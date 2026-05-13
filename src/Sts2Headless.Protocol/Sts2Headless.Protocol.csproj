@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Wire protocol types: JSON-RPC-style envelope, methods, notifications. See AD-2.</Description>
+  </PropertyGroup>
+
+</Project>

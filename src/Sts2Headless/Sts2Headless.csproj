@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Headless host: loads sts2.dll out-of-game, exposes the wire protocol over stdio.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <!-- GodotStubs is referenced for its build artifact only; we resolve it
+         at runtime from vendor/, not via a transitive reference. Keeping it
+         in the solution makes `dotnet build` produce it next to our exe. -->
+    <ProjectReference Include="..\GodotStubs\GodotStubs.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

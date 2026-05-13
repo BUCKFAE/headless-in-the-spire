@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Built with AssemblyName=GodotSharp so sts2.dll's references resolve to
+         these stubs at runtime. The real GodotSharp.dll never gets loaded
+         because our vendor/ path shadows it. -->
+    <AssemblyName>GodotSharp</AssemblyName>
+    <Description>No-op replacements for the GodotSharp types that sts2.dll references. Loaded in place of the real GodotSharp.dll to keep the game's engine layer inert.</Description>
+  </PropertyGroup>
+
+</Project>

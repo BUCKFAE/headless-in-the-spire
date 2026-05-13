@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GodotStubs/GodotStubs.csproj" />
+    <Project Path="src/Sts2Headless.Protocol/Sts2Headless.Protocol.csproj" />
+    <Project Path="src/Sts2Headless/Sts2Headless.csproj" />
+  </Folder>
+</Solution>
