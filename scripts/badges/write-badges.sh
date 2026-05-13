@@ -9,12 +9,8 @@ die() {
     exit 1
 }
 
-json_escape() {
-    local value="$1"
-    value="${value//\\/\\\\}"
-    value="${value//\"/\\\"}"
-    value="${value//$'\n'/ }"
-    printf '%s' "$value"
+urlencode() {
+    jq -rn --arg s "$1" '$s|@uri'
 }
 
 write_badge() {
@@ -24,25 +20,19 @@ write_badge() {
     local color="$4"
     local logo="${5:-}"
     local logo_color="${6:-}"
-    local path="$BADGE_DIR/$name.json"
+    local path="$BADGE_DIR/$name.svg"
 
     mkdir -p "$BADGE_DIR"
 
-    {
-        printf '{\n'
-        printf '  "schemaVersion": 1,\n'
-        printf '  "label": "%s",\n' "$(json_escape "$label")"
-        printf '  "message": "%s",\n' "$(json_escape "$message")"
-        if [[ -n "$logo" ]]; then
-            printf '  "namedLogo": "%s",\n' "$(json_escape "$logo")"
-        fi
-        if [[ -n "$logo_color" ]]; then
-            printf '  "logoColor": "%s",\n' "$(json_escape "$logo_color")"
-        fi
-        printf '  "color": "%s"\n' "$(json_escape "$color")"
-        printf '}\n'
-    } > "$path"
+    local url="https://img.shields.io/static/v1?label=$(urlencode "$label")&message=$(urlencode "$message")&color=$(urlencode "$color")"
+    if [[ -n "$logo" ]]; then
+        url+="&logo=$(urlencode "$logo")"
+    fi
+    if [[ -n "$logo_color" ]]; then
+        url+="&logoColor=$(urlencode "$logo_color")"
+    fi
 
+    curl --fail --silent --show-error --location --max-time 30 --output "$path" "$url"
     printf 'Wrote %s: %s=%s\n' "$path" "$label" "$message"
 }
 
