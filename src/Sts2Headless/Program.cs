@@ -10,6 +10,11 @@ var gameVersionFile = Path.Combine(repoRoot, "GAME_VERSION");
 
 VendorAssemblyResolver.Install(vendorDir);
 
+if (args.Contains("--inspect-sts2"))
+{
+    return InspectCommand.Run(vendorDir);
+}
+
 Console.WriteLine("sts2-headless");
 Console.WriteLine($"  repo:    {repoRoot}");
 Console.WriteLine($"  vendor:  {vendorDir}");

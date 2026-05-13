@@ -33,6 +33,10 @@ build:
 run: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build
 
+# Load vendor/sts2.dll and report missing GodotStubs surface (diagnostic).
+inspect-sts2: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --inspect-sts2
+
 # Remove all bin/ and obj/ build artifacts.
 clean:
     @dotnet clean Sts2Headless.slnx

@@ -5,6 +5,11 @@
          these stubs at runtime. The real GodotSharp.dll never gets loaded
          because our vendor/ path shadows it. -->
     <AssemblyName>GodotSharp</AssemblyName>
+    <!-- Must match what sts2.dll references — currently GodotSharp 4.5.1.0.
+         If a game-version bump changes this, the inspector will surface a
+         FileNotFoundException with the new version in the message. -->
+    <AssemblyVersion>4.5.1.0</AssemblyVersion>
+    <FileVersion>4.5.1.0</FileVersion>
     <Description>No-op replacements for the GodotSharp types that sts2.dll references. Loaded in place of the real GodotSharp.dll to keep the game's engine layer inert.</Description>
   </PropertyGroup>
 
