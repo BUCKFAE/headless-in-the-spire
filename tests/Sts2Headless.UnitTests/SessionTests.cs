@@ -1,3 +1,4 @@
+using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
 using Xunit;
 
@@ -30,11 +31,11 @@ public class SessionTests
         var session = new Session();
         var run = DummyRun();
 
-        session.Set(run, "ironclad", 42uL);
+        session.Set(run, Character.Ironclad, 42uL);
 
         Assert.True(session.IsActive);
         Assert.Same(run, session.Run);
-        Assert.Equal("ironclad", session.Character);
+        Assert.Equal(Character.Ironclad, session.Character);
         Assert.Equal(42uL, session.Seed);
     }
 
@@ -44,10 +45,10 @@ public class SessionTests
         // Calling run/new while a run is active replaces it — there's only
         // one slot. The old RunHandle is dropped, GC reclaims it.
         var session = new Session();
-        session.Set(DummyRun(), "ironclad", 1uL);
+        session.Set(DummyRun(), Character.Ironclad, 1uL);
 
         var replacement = DummyRun();
-        session.Set(replacement, "ironclad", 99uL);
+        session.Set(replacement, Character.Ironclad, 99uL);
 
         Assert.Same(replacement, session.Run);
         Assert.Equal(99uL, session.Seed);
@@ -57,7 +58,7 @@ public class SessionTests
     public void Clear_ResetsAllFields_AndFlipsIsActive()
     {
         var session = new Session();
-        session.Set(DummyRun(), "ironclad", 7uL);
+        session.Set(DummyRun(), Character.Ironclad, 7uL);
 
         session.Clear();
 

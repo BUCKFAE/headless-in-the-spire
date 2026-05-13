@@ -21,7 +21,7 @@ public class MapNavigationTests
         Assert.True(afterNode.Ok);
         // The exact node type is seed-dependent; we just assert *some*
         // transition off MapRoom so this stays stable across game rebalances.
-        Assert.NotEqual("MapRoom", afterNode.CurrentRoomType);
+        Assert.NotEqual(RoomType.MapRoom, afterNode.CurrentRoomType);
         Assert.False(afterNode.IsGameOver);
         Assert.True(afterNode.ActFloor > 0);
 

@@ -1,4 +1,5 @@
 using System.Reflection;
+using Sts2Headless.Protocol.Methods;
 
 namespace Sts2Headless.Runtime;
 
@@ -20,12 +21,14 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 
 // Snapshot of the run for read-only wire surfacing. ExpandableRecord pattern:
 // add fields as we bind more reads, never break existing JSON shape.
+// CurrentRoomType is the Protocol enum, mapped from sts2's `room.GetType().Name`
+// at the binding layer — unknown sts2 rooms come back as RoomType.Unknown.
 public sealed record RunSnapshot(
     int CurrentHp,
     int MaxHp,
     int Gold,
     int DeckSize,
-    string CurrentRoomType,
+    RoomType CurrentRoomType,
     int ActFloor,
     bool IsGameOver);
 
@@ -95,11 +98,15 @@ public sealed class Sts2Bindings
     }
 
     // Full sts2-cli StartRun chain, condensed. Returns a triple the wire
-    // layer can pass back in for subsequent calls. We intentionally leave
-    // StartedWithNeow=false: with it true, NEventRoom.Create silently zeroes
-    // Player.Creature.CurrentHp via a GodotStubs gap (see probe-run-state
-    // commit 7c9faa1 and the sts2-startrun-chain memory).
-    public RunHandle StartIroncladRun(ulong seed)
+    // layer can pass back in for subsequent calls. `withNeow` opts into the
+    // Neow blessing event: lands CurrentRoom at EventRoom (the Neow node)
+    // instead of MapRoom. Was previously hard-pinned to false because
+    // NEventRoom.Create silently zeroed Player.Creature.CurrentHp via a
+    // GodotStubs gap (Vector2.Zero + Node2D.Position) — that gap is now
+    // closed, but the event-choice wire method to *dismiss* Neow is not yet
+    // bound, so callers that opt in must be ready for a room they can't
+    // currently leave.
+    public RunHandle StartIroncladRun(ulong seed, bool withNeow = false)
     {
         var player = _createIroncladRun.Invoke(null, new object?[] { _unlockStateAll, seed })
             ?? throw new InvalidOperationException("Player.CreateForNewRun returned null");
@@ -130,7 +137,7 @@ public sealed class Sts2Bindings
 
         var extra = _runStateExtraFields.GetValue(runState)
             ?? throw new InvalidOperationException("RunState.ExtraFields was null");
-        _extraFieldsStartedWithNeow.SetValue(extra, false);
+        _extraFieldsStartedWithNeow.SetValue(extra, withNeow);
 
         _runManagerGenerateRooms.Invoke(runManager, null);
         _runManagerLaunch.Invoke(runManager, null);
@@ -165,7 +172,14 @@ public sealed class Sts2Bindings
         }
 
         var room = _runStateCurrentRoom.GetValue(handle.RunState);
-        var roomType = room is null ? "<none>" : room.GetType().Name;
+        var roomTypeName = room?.GetType().Name;
+        // Map sts2's PascalCase type name onto the Protocol enum. Anything
+        // the enum doesn't catalogue surfaces as Unknown — see RoomType
+        // for the curated list and add as we encounter new rooms.
+        var roomType = roomTypeName is not null
+                       && Enum.TryParse<RoomType>(roomTypeName, ignoreCase: false, out var parsed)
+            ? parsed
+            : RoomType.Unknown;
         var actFloor = (int)_runStateActFloor.GetValue(handle.RunState)!;
         var isGameOver = (bool)_runStateIsGameOver.GetValue(handle.RunState)!;
 

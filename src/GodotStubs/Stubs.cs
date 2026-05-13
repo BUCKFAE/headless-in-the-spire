@@ -91,20 +91,34 @@ public static class OS
 public class Dictionary { }
 
 // from: every Godot.GD reference in sts2.dll (8 members), enumerated via
-//   `just list-members Godot.GD`. Print* and Push* are no-ops; Load<T>
-//   returns default (null for ref types); rand helpers return 0. If
-//   headless paths start needing real values from any of these, override
-//   the specific member.
+//   `just list-members Godot.GD`. Load<T> returns default (null for ref
+//   types); rand helpers return 0. Print* go to stdout, PushError/PrintErr/
+//   PushWarning go to stderr with a [godot] prefix — real Godot surfaces
+//   these in its log/editor, and silently dropping them masks engine-side
+//   complaints that we'd otherwise have to reverse-engineer from symptoms.
 public static class GD
 {
     public static T Load<T>(string _) => default!;
     public static double RandRange(double _, double __) => 0;
     public static float Randf() => 0;
-    public static void Print(string _) { }
-    public static void PrintErr(string _) { }
-    public static void PrintRich(string _) { }
-    public static void PushError(string _) { }
-    public static void PushWarning(string _) { }
+    // Everything routes to stderr: stdout is the AD-2 NDJSON wire and must
+    // never carry log noise. Real Godot displays Print* in the editor/console,
+    // which is logically stderr for a headless host. Push*/PrintErr also dump
+    // the MegaCrit frames of the current stack so silently-swallowed engine
+    // exceptions are recoverable without re-running under a debugger.
+    public static void Print(string s) => Console.Error.WriteLine($"[godot] {s}");
+    public static void PrintRich(string s) => Console.Error.WriteLine($"[godot] {s}");
+    public static void PrintErr(string s) { Console.Error.WriteLine($"[godot:err] {s}"); WriteMegaCritFrames("[godot:err]"); }
+    public static void PushError(string s) { Console.Error.WriteLine($"[godot:push-error] {s}"); WriteMegaCritFrames("[godot:push-error]"); }
+    public static void PushWarning(string s) => Console.Error.WriteLine($"[godot:push-warning] {s}");
+
+    private static void WriteMegaCritFrames(string prefix)
+    {
+        foreach (var line in Environment.StackTrace.Split('\n'))
+        {
+            if (line.Contains("MegaCrit.")) Console.Error.WriteLine($"{prefix}   {line.TrimStart()}");
+        }
+    }
 }
 
 // ── Value types ─────────────────────────────────────────────────────────
@@ -117,6 +131,12 @@ public readonly struct Vector2
     //   node classes initialise Vector2 size/position constants. Stored
     //   but never read; no-op body is fine.
     public Vector2(float _, float __) { }
+
+    // from: Neow path during EnterAct (PROBE_NEOW=1) — caught by GD.PushError
+    //   "Method not found: 'Godot.Vector2 Godot.Vector2.get_Zero()'."
+    //   NEventRoom.Create reads this for initial node positioning. Default
+    //   struct value is the correct zero.
+    public static Vector2 Zero => default;
 }
 public readonly struct Vector2I { }
 public readonly struct Vector3 { }
@@ -290,6 +310,12 @@ public class Node2D : CanvasItem
     public new class MethodName : CanvasItem.MethodName { }
     public new class PropertyName : CanvasItem.PropertyName { }
     public new class SignalName : CanvasItem.SignalName { }
+
+    // from: Neow path during EnterAct (PROBE_NEOW=1) — caught by GD.PushError
+    //   "Method not found: 'Void Godot.Node2D.set_Position(Godot.Vector2)'."
+    //   NEventRoom places child nodes at a Position. Auto-property is
+    //   enough; nothing reads it back in headless paths.
+    public Vector2 Position { get; set; }
 }
 
 public class Sprite2D : Node2D

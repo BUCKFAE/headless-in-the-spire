@@ -10,4 +10,11 @@
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- RunSnapshot and Sts2Bindings surface wire-level enum types
+         (Character, RoomType) from the Protocol layer, so the wire shape
+         has a single source of truth across the runtime / host / tests. -->
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+  </ItemGroup>
+
 </Project>

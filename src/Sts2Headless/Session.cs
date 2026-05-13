@@ -1,3 +1,4 @@
+using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
 
 namespace Sts2Headless;
@@ -12,12 +13,12 @@ namespace Sts2Headless;
 public sealed class Session
 {
     public RunHandle? Run { get; private set; }
-    public string? Character { get; private set; }
+    public Character? Character { get; private set; }
     public ulong Seed { get; private set; }
 
     public bool IsActive => Run is not null;
 
-    public void Set(RunHandle run, string character, ulong seed)
+    public void Set(RunHandle run, Character character, ulong seed)
     {
         Run = run;
         Character = character;

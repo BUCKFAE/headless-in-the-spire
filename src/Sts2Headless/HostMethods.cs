@@ -37,20 +37,20 @@ public static class HostMethods
 
     private static RunNewResult RunNew(Sts2Bindings bindings, Session session, RunNewParams? @params)
     {
-        var character = @params?.Character ?? "ironclad";
+        var character = @params?.Character ?? Character.Ironclad;
         var seed = @params?.Seed ?? 1uL;
+        var withNeow = @params?.WithNeow ?? false;
 
-        if (!string.Equals(character, "ironclad", StringComparison.OrdinalIgnoreCase))
+        if (character != Character.Ironclad)
         {
-            throw new ArgumentException($"character '{character}' not yet supported (only 'ironclad')");
+            throw new ArgumentException($"character '{character}' not yet supported (only Ironclad)");
         }
 
         // Pass C: full StartRun chain (was just Player.CreateForNewRun in
-        // Pass A). Lands the run at MapRoom with StartedWithNeow=false —
-        // until the Neow GodotStubs gap is closed, the wire-level run starts
-        // post-Neow at the map screen.
-        var run = bindings.StartIroncladRun(seed);
-        session.Set(run, character.ToLowerInvariant(), seed);
+        // Pass A). Default lands at MapRoom; withNeow=true lands at the
+        // Neow EventRoom (no dismiss method bound yet — opt-in for tests).
+        var run = bindings.StartIroncladRun(seed, withNeow);
+        session.Set(run, character, seed);
 
         var s = bindings.ReadSnapshot(run);
         return new RunNewResult(
