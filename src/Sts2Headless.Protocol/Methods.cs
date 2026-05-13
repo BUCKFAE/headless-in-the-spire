@@ -84,6 +84,28 @@ public sealed record MapNode(
     [property: JsonPropertyName("row")] int Row,
     [property: JsonPropertyName("type")] MapNodeType Type);
 
+// One option offered by an Event the player is currently standing on.
+//
+// Index is the position in the current page's option list — pass it back via
+// run/select_event_option. We don't surface a stable id because sts2 itself
+// doesn't expose one beyond the loc text-key, and the index alone is what
+// EventOption.Chosen() dispatches on.
+//
+// TextKey is the loc string the game uses to look up the option's title
+// (e.g. "NEOW.pages.INITIAL.options.STONE_HUMIDIFIER"). It's the closest
+// thing to a stable identifier and lets callers branch on "the relic option"
+// without booking knowledge of the index ordering. Null when the option has
+// no loc binding (a few procedurally-generated options).
+//
+// IsLocked mirrors the in-game "you can't pick this yet" flag — surfaced so
+// callers can grey-out rather than guess. The host does not block locked
+// picks server-side; if a caller still selects one, sts2's Chosen() will
+// no-op and the room will stay put.
+public sealed record EventOption(
+    [property: JsonPropertyName("index")] int Index,
+    [property: JsonPropertyName("textKey")] string? TextKey,
+    [property: JsonPropertyName("isLocked")] bool IsLocked);
+
 // ── host/ping ────────────────────────────────────────────────────────────
 
 public sealed record HostPingResult(
@@ -116,7 +138,12 @@ public sealed record RunNewResult(
     // Legal next moves from the current map position. Empty when the player
     // isn't standing on the map (e.g. mid-combat, on Neow's event); callers
     // should re-issue run/state once the current room resolves.
-    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes);
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    // Legal event-option picks when the current room is an Event. Empty
+    // unless currentRoomType == EventRoom; mirrors the "current page" of the
+    // active Event, so callers should re-read after run/select_event_option
+    // (multi-page events refresh this list each turn).
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions);
 
 // ── run/state ────────────────────────────────────────────────────────────
 
@@ -132,7 +159,8 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
     [property: JsonPropertyName("actFloor")] int ActFloor,
     [property: JsonPropertyName("isGameOver")] bool IsGameOver,
-    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes);
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions);
 
 // ── run/select_map_node ──────────────────────────────────────────────────
 
@@ -148,4 +176,25 @@ public sealed record RunSelectMapNodeResult(
     [property: JsonPropertyName("actFloor")] int ActFloor,
     [property: JsonPropertyName("isGameOver")] bool IsGameOver,
     [property: JsonPropertyName("hp")] int Hp,
-    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes);
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions);
+
+// ── run/select_event_option ──────────────────────────────────────────────
+
+// optionIndex matches the EventOption.Index returned by the most recent
+// run/state (or run/new) when the current room is an Event. Picking a
+// locked option is permitted by the wire layer — sts2 simply ignores it —
+// and the resulting AvailableEventOptions tells the caller whether the
+// page advanced.
+public sealed record RunSelectEventOptionParams(
+    [property: JsonPropertyName("optionIndex")] int OptionIndex);
+
+public sealed record RunSelectEventOptionResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("optionIndex")] int OptionIndex,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions);

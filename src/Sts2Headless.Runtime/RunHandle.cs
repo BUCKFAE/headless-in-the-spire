@@ -17,6 +17,8 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 // at the binding layer — unknown sts2 rooms come back as RoomType.Unknown.
 // AvailableMapNodes is the list of legal next moves from the current map
 // position; empty when the player isn't standing on the map.
+// AvailableEventOptions are the current-page picks for an active Event;
+// empty unless CurrentRoomType == EventRoom.
 public sealed record RunSnapshot(
     int CurrentHp,
     int MaxHp,
@@ -25,4 +27,5 @@ public sealed record RunSnapshot(
     RoomType CurrentRoomType,
     int ActFloor,
     bool IsGameOver,
-    IReadOnlyList<MapNode> AvailableMapNodes);
+    IReadOnlyList<MapNode> AvailableMapNodes,
+    IReadOnlyList<EventOption> AvailableEventOptions);

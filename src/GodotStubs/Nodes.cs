@@ -27,6 +27,11 @@ public class Node : GodotObject
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
     public new class SignalName : GodotObject.SignalName { }
+
+    // from: EventOption.Chosen → CardModel.GetTaughtUpgradedTag chain →
+    //   Node.set_Name(StringName). MissingMethodException at first option
+    //   pick. Auto-property is enough; nothing reads it back in headless.
+    public StringName Name { get; set; } = new(string.Empty);
 }
 
 public class CanvasItem : Node

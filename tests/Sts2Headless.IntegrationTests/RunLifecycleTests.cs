@@ -29,8 +29,8 @@ public class RunLifecycleTests
         // ExtraFields.StartedWithNeow=true makes EnterAct auto-enter the
         // Neow blessing EventRoom. The path used to silently zero HP via
         // missing GodotStubs (Vector2.Zero / Node2D.Position) — gap closed.
-        // No wire method yet exists to dismiss the Neow event, so this only
-        // verifies the landing shape; the EventRoom is a dead-end for now.
+        // Event-choice flow lives in EventChoiceTests; this test pins the
+        // landing shape: still in EventRoom, full HP, run not over.
         await using var host = new HostSubprocess();
 
         var result = await host.SendAsync<RunNewResult>(

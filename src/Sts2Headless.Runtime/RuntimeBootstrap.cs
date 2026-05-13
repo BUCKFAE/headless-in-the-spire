@@ -16,14 +16,17 @@ public static class RuntimeBootstrap
         Assembly? Sts2,
         string? SetupError,
         bool SyncContextInstalled,
-        IReadOnlyList<HangPatches.PatchOutcome> Patches);
+        IReadOnlyList<HangPatches.PatchOutcome> Patches,
+        IReadOnlyList<LocPatches.PatchOutcome> LocPatches);
 
     public static Result Run(string vendorDir)
     {
         var sts2Path = Path.Combine(vendorDir, "sts2.dll");
         if (!File.Exists(sts2Path))
         {
-            return new Result(null, "vendor/sts2.dll missing — run `just setup`.", false, Array.Empty<HangPatches.PatchOutcome>());
+            return new Result(null, "vendor/sts2.dll missing — run `just setup`.", false,
+                Array.Empty<HangPatches.PatchOutcome>(),
+                Array.Empty<LocPatches.PatchOutcome>());
         }
 
         var sts2 = AssemblyLoadContext.Default.LoadFromAssemblyPath(sts2Path);
@@ -32,6 +35,7 @@ public static class RuntimeBootstrap
         SynchronizationContext.SetSynchronizationContext(syncCtx);
 
         var patches = HangPatches.Apply(sts2);
-        return new Result(sts2, null, true, patches);
+        var locPatches = LocPatches.Apply(sts2);
+        return new Result(sts2, null, true, patches, locPatches);
     }
 }

@@ -120,3 +120,30 @@ public class RichTextEffect : Resource
     public new class PropertyName : Resource.PropertyName { }
     public new class SignalName : Resource.SignalName { }
 }
+
+// from: MegaCrit.Sts2.Core.HoverTips.HoverTip..ctor — TypeLoadException
+//   when Neow event option generation walks CursedPearl.ExtraHoverTips,
+//   which constructs HoverTips that hold a Texture2D field. We only need
+//   the three members `just list-members Godot.Texture2D` surfaces; no
+//   real image data is read.
+public class Texture2D : Resource
+{
+    public new class MethodName : Resource.MethodName { }
+    public new class PropertyName : Resource.PropertyName { }
+    public new class SignalName : Resource.SignalName { }
+
+    public Image GetImage() => new();
+    public int GetWidth() => 0;
+    public Vector2 GetSize() => Vector2.Zero;
+}
+
+// from: MegaCrit.Sts2.Core.HoverTips.HoverTip..ctor (via Texture2D.GetImage).
+//   Image exists only as the return type of Texture2D.GetImage(); no
+//   pixels are inspected and no members are referenced beyond the
+//   constructor.
+public class Image : Resource
+{
+    public new class MethodName : Resource.MethodName { }
+    public new class PropertyName : Resource.PropertyName { }
+    public new class SignalName : Resource.SignalName { }
+}

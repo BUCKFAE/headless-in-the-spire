@@ -24,6 +24,7 @@ public static class HostMethods
             ["run/new"] = Typed<RunNewParams, RunNewResult>(p => RunNew(bindings, session, p)),
             ["run/state"] = TypedNoParams(() => RunState(bindings, session)),
             ["run/select_map_node"] = Typed<RunSelectMapNodeParams, RunSelectMapNodeResult>(p => RunSelectMapNode(bindings, session, p)),
+            ["run/select_event_option"] = Typed<RunSelectEventOptionParams, RunSelectEventOptionResult>(p => RunSelectEventOption(bindings, session, p)),
         };
     }
 
@@ -48,7 +49,8 @@ public static class HostMethods
 
         // Pass C: full StartRun chain (was just Player.CreateForNewRun in
         // Pass A). Default lands at MapRoom; withNeow=true lands at the
-        // Neow EventRoom (no dismiss method bound yet — opt-in for tests).
+        // Neow EventRoom. Callers can drive run/select_event_option to
+        // dismiss the event once it's surfaced through AvailableEventOptions.
         var run = bindings.StartIroncladRun(seed, withNeow);
         session.Set(run, character, seed);
 
@@ -59,7 +61,8 @@ public static class HostMethods
             Seed: seed,
             PlayerType: run.Player.GetType().FullName ?? run.Player.GetType().Name,
             CurrentRoomType: s.CurrentRoomType,
-            AvailableMapNodes: s.AvailableMapNodes);
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions);
     }
 
     private static RunStateResult RunState(Sts2Bindings bindings, Session session)
@@ -79,7 +82,8 @@ public static class HostMethods
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
             IsGameOver: s.IsGameOver,
-            AvailableMapNodes: s.AvailableMapNodes);
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions);
     }
 
     private static RunSelectMapNodeResult RunSelectMapNode(Sts2Bindings bindings, Session session, RunSelectMapNodeParams? @params)
@@ -100,7 +104,29 @@ public static class HostMethods
             ActFloor: s.ActFloor,
             IsGameOver: s.IsGameOver,
             Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes);
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions);
+    }
+
+    private static RunSelectEventOptionResult RunSelectEventOption(Sts2Bindings bindings, Session session, RunSelectEventOptionParams? @params)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new ArgumentException("run/select_event_option requires params {optionIndex}");
+
+        bindings.SelectEventOption(run, args.OptionIndex);
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunSelectEventOptionResult(
+            Ok: true,
+            OptionIndex: args.OptionIndex,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions);
     }
 
     // Adapter that turns a typed Func<TParams?, TResult> into the JsonNode-

@@ -36,6 +36,14 @@ internal static class ProbeBootstrapCommand
             var detail = o.Detail is null ? "" : $"  ({o.Detail})";
             Console.WriteLine($"    [{status,-4}] {o.Target}{detail}");
         }
+        Console.WriteLine("  loc patches:");
+        foreach (var o in preamble.LocPatches)
+        {
+            var status = o.Patched ? "ok" : "MISS";
+            if (!o.Patched) patchesOk = false;
+            var detail = o.Detail is null ? "" : $"  ({o.Detail})";
+            Console.WriteLine($"    [{status,-4}] {o.Target}{detail}");
+        }
 
         Console.WriteLine("  bootstrap:");
         var steps = BootstrapSequence.Apply(preamble.Sts2!);

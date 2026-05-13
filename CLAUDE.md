@@ -71,6 +71,17 @@ GAME_VERSION                   pinned version string + SHA-256 of vendor/sts2.dl
 - Wire protocol authored in C# records; payloads carried as `JsonNode` at the
   envelope layer, deserialised to concrete records at the method-dispatch
   layer. See `src/Sts2Headless.Protocol/Envelope.cs` and AD-2.
+- **Prefer enums over strings on the wire and in code.** Any field with a
+  fixed set of values (room type, character, map-node type, …) gets a C#
+  enum with a `JsonStringEnumConverter` and an `Unknown` sentinel. Grow the
+  enum when an integration test surfaces a new value rather than widening
+  the parse — see `RoomType` / `MapNodeType` in `Methods.cs` for the
+  canonical pattern.
+- **Integration tests must use those enums end-to-end.** Assert against
+  `RoomType.MapRoom` etc., not the string `"MapRoom"`; build params from the
+  DTO records (`new RunNewParams(Character: Character.Ironclad, …)`), not
+  hand-written JSON. A wire rename then surfaces as a compile error in the
+  tests instead of a passing-but-wrong assertion.
 - Vendor DLL resolution goes through `Sts2Headless.Runtime.VendorAssemblyResolver`
   → `AssemblyLoadContext.Default.Resolving`. We don't probe the game's full
   data directory at runtime; `vendor/` is the curated set.

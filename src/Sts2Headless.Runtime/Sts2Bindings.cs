@@ -64,6 +64,18 @@ public sealed class Sts2Bindings
     private readonly FieldInfo _mapCoordColField;
     private readonly FieldInfo _mapCoordRowField;
 
+    // ── Event surface ───────────────────────────────────────────────────
+    private readonly PropertyInfo _runManagerEventSynchronizer;
+    private readonly MethodInfo _eventSyncGetLocalEvent;
+    private readonly PropertyInfo _eventIsFinished;
+    private readonly PropertyInfo _eventCurrentOptions;
+    private readonly PropertyInfo? _eventOptionTextKey;
+    private readonly PropertyInfo _eventOptionIsLocked;
+    private readonly MethodInfo _eventOptionChosen;
+    private readonly MethodInfo? _runManagerProceedFromTerminalRewards;
+    private readonly MethodInfo? _runManagerEnterRoom;
+    private readonly Type? _mapRoomType;
+
     private Sts2Bindings(Assembly sts2, BindingState s)
     {
         Sts2 = sts2;
@@ -100,17 +112,24 @@ public sealed class Sts2Bindings
         _mapPointPointType = s.MapPointPointType;
         _mapCoordColField = s.MapCoordColField;
         _mapCoordRowField = s.MapCoordRowField;
+        _runManagerEventSynchronizer = s.RunManagerEventSynchronizer;
+        _eventSyncGetLocalEvent = s.EventSyncGetLocalEvent;
+        _eventIsFinished = s.EventIsFinished;
+        _eventCurrentOptions = s.EventCurrentOptions;
+        _eventOptionTextKey = s.EventOptionTextKey;
+        _eventOptionIsLocked = s.EventOptionIsLocked;
+        _eventOptionChosen = s.EventOptionChosen;
+        _runManagerProceedFromTerminalRewards = s.RunManagerProceedFromTerminalRewards;
+        _runManagerEnterRoom = s.RunManagerEnterRoom;
+        _mapRoomType = s.MapRoomType;
     }
 
     // Full sts2-cli StartRun chain, condensed. Returns a triple the wire
     // layer can pass back in for subsequent calls. `withNeow` opts into the
     // Neow blessing event: lands CurrentRoom at EventRoom (the Neow node)
-    // instead of MapRoom. Was previously hard-pinned to false because
-    // NEventRoom.Create silently zeroed Player.Creature.CurrentHp via a
-    // GodotStubs gap (Vector2.Zero + Node2D.Position) — that gap is now
-    // closed, but the event-choice wire method to *dismiss* Neow is not yet
-    // bound, so callers that opt in must be ready for a room they can't
-    // currently leave.
+    // instead of MapRoom. Callers can then drive run/select_event_option
+    // to dismiss the event; LocPatches + the Texture2D / StringName stubs
+    // are what let the event populate options in the first place.
     public RunHandle StartIroncladRun(ulong seed, bool withNeow = false)
     {
         var player = _createIroncladRun.Invoke(null, new object?[] { _unlockStateAll, seed })
@@ -197,7 +216,133 @@ public sealed class Sts2Bindings
             ? ReadAvailableMapNodes(handle.RunState)
             : Array.Empty<MapNode>();
 
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes);
+        // Symmetric to availableNodes: only surface event picks when the
+        // engine actually has an Event live. Outside EventRoom GetLocalEvent
+        // can return null or stale state — gate to keep the wire honest.
+        var availableEventOptions = roomType == RoomType.EventRoom
+            ? ReadAvailableEventOptions(handle.RunManager)
+            : Array.Empty<EventOption>();
+
+        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions);
+    }
+
+    // Walk RunManager.EventSynchronizer → GetLocalEvent → CurrentOptions and
+    // shape each option into the wire record. Mirrors sts2-cli's
+    // EventChoiceState reduced to the data fields we surface — the loc-lookup
+    // and dynamic-vars layers stay client-side, keeping the host loc-free.
+    //
+    // Returns [] when:
+    // - EventSynchronizer is null (e.g. the engine cleared it between rooms);
+    // - GetLocalEvent returns null (no event currently live);
+    // - IsFinished is true (the event has resolved but the room hasn't flipped yet);
+    // - CurrentOptions is null/empty.
+    // Each "[]" case means a caller-visible event isn't actually pickable;
+    // the room transition is the engine's responsibility to drive.
+    private IReadOnlyList<EventOption> ReadAvailableEventOptions(object runManager)
+    {
+        var sync = _runManagerEventSynchronizer.GetValue(runManager);
+        if (sync is null) return Array.Empty<EventOption>();
+
+        var localEvent = _eventSyncGetLocalEvent.Invoke(sync, null);
+        if (localEvent is null) return Array.Empty<EventOption>();
+
+        if ((bool)_eventIsFinished.GetValue(localEvent)!) return Array.Empty<EventOption>();
+
+        if (_eventCurrentOptions.GetValue(localEvent) is not System.Collections.IList options
+            || options.Count == 0)
+        {
+            return Array.Empty<EventOption>();
+        }
+
+        var result = new List<EventOption>(options.Count);
+        for (var i = 0; i < options.Count; i++)
+        {
+            var opt = options[i];
+            if (opt is null) continue;
+            var textKey = _eventOptionTextKey?.GetValue(opt) as string;
+            var isLocked = (bool)_eventOptionIsLocked.GetValue(opt)!;
+            result.Add(new EventOption(i, textKey, isLocked));
+        }
+        return result;
+    }
+
+    // Fire EventOption.Chosen() for the option at `optionIndex` on the
+    // currently-live event. No-op if no event is live or the index is out of
+    // range — the caller will see the unchanged AvailableEventOptions in the
+    // next snapshot and can decide how to recover. Mirrors sts2-cli's
+    // DoChooseOption(EventRoom) path, minus the card-reward / pending-bundles
+    // detection (those gates don't yet exist on our wire).
+    public void SelectEventOption(RunHandle handle, int optionIndex)
+    {
+        var sync = _runManagerEventSynchronizer.GetValue(handle.RunManager)
+            ?? throw new InvalidOperationException("RunManager.EventSynchronizer was null");
+        var localEvent = _eventSyncGetLocalEvent.Invoke(sync, null)
+            ?? throw new InvalidOperationException("EventSynchronizer.GetLocalEvent returned null");
+        if ((bool)_eventIsFinished.GetValue(localEvent)!)
+        {
+            throw new InvalidOperationException("event is already finished");
+        }
+        if (_eventCurrentOptions.GetValue(localEvent) is not System.Collections.IList options)
+        {
+            throw new InvalidOperationException("event has no CurrentOptions");
+        }
+        if (optionIndex < 0 || optionIndex >= options.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(optionIndex),
+                $"optionIndex {optionIndex} out of range; event has {options.Count} options");
+        }
+
+        var option = options[optionIndex]
+            ?? throw new InvalidOperationException($"event option at index {optionIndex} was null");
+
+        // Chosen() is synchronous in the no-card-reward case (Neow's GAIN
+        // OBOL etc.). For options that branch into card selection, the call
+        // would block on GetSelectedCardReward — that path is not yet on the
+        // wire, so callers picking such options will hang. Documented gap.
+        var result = _eventOptionChosen.Invoke(option, null);
+        if (result is Task t) t.GetAwaiter().GetResult();
+
+        // sts2-cli pattern: after the event finishes, the game still leaves
+        // CurrentRoom as the EventRoom until something nudges the next
+        // transition. Without this, the wire reports CurrentRoomType=EventRoom
+        // forever and the caller has no way to leave. Mirror sts2-cli's force-
+        // transition (ProceedFromTerminalRewardsScreen → EnterRoom(MapRoom))
+        // so a successful pick lands the player back on the map.
+        var nowFinished = (bool)_eventIsFinished.GetValue(localEvent)!;
+        if (nowFinished)
+        {
+            AutoAdvanceFinishedEvent(handle.RunManager, handle.RunState);
+        }
+    }
+
+    private void AutoAdvanceFinishedEvent(object runManager, object runState)
+    {
+        if (_runManagerProceedFromTerminalRewards is not null)
+        {
+            try
+            {
+                var proceed = _runManagerProceedFromTerminalRewards.Invoke(runManager, null);
+                if (proceed is Task pt) pt.GetAwaiter().GetResult();
+            }
+            catch { /* sts2-cli also swallows — terminal-rewards may not apply */ }
+        }
+
+        // Only force-enter the map if we're still in an EventRoom; for
+        // events that resolve naturally (e.g. a curse adding a card and
+        // leaving the player at a treasure room) we don't want to override
+        // the engine's chosen next room.
+        var stillEvent = _runStateCurrentRoom.GetValue(runState)?.GetType().Name == "EventRoom";
+        if (stillEvent && _runManagerEnterRoom is not null && _mapRoomType is not null)
+        {
+            try
+            {
+                var mapRoom = Activator.CreateInstance(_mapRoomType)
+                    ?? throw new InvalidOperationException($"{_mapRoomType.FullName} default ctor returned null");
+                var enter = _runManagerEnterRoom.Invoke(runManager, new[] { mapRoom });
+                if (enter is Task et) et.GetAwaiter().GetResult();
+            }
+            catch { /* sts2-cli also swallows — caller will see EventRoom remains and can decide */ }
+        }
     }
 
     // Enumerate next-move candidates by mirroring sts2-cli's MapSelectState:
@@ -391,6 +536,45 @@ public sealed class Sts2Bindings
             ?? mapCoordType.GetField("Row", BindingFlags.Public | BindingFlags.Instance)
             ?? throw new InvalidOperationException($"{mapCoordType.FullName}.row field not found");
 
+        // Event surface. Walk: RunManager.EventSynchronizer →
+        // GetLocalEvent() → CurrentOptions / IsFinished. Element type of
+        // CurrentOptions tells us where to find TextKey / IsLocked / Chosen.
+        // Types are discovered through reachability rather than FQN so a
+        // namespace rename in MegaCrit's tree doesn't break the binding.
+        var runManagerEventSync = RequireProperty(runManagerType, "EventSynchronizer");
+        var eventSyncType = runManagerEventSync.PropertyType;
+        var eventSyncGetLocalEvent = eventSyncType.GetMethod("GetLocalEvent", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes)
+            ?? eventSyncType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m => m.Name == "GetLocalEvent" && m.GetParameters().Length == 0)
+            ?? throw new InvalidOperationException($"{eventSyncType.FullName}.GetLocalEvent() not found");
+        var eventType = eventSyncGetLocalEvent.ReturnType;
+        var eventIsFinished = RequireProperty(eventType, "IsFinished");
+        var eventCurrentOptions = RequireProperty(eventType, "CurrentOptions");
+        // CurrentOptions is an IList<EventOption> (or similar) — pull the
+        // element type so we can bind TextKey / IsLocked / Chosen on it.
+        var optionsListType = eventCurrentOptions.PropertyType;
+        var eventOptionType = ExtractElementType(optionsListType)
+            ?? throw new InvalidOperationException($"{optionsListType.FullName}: cannot infer element type for EventOption discovery");
+        // TextKey is the only one of the three we can live without — a few
+        // procedural options skip it. IsLocked and Chosen are load-bearing.
+        var eventOptionTextKey = eventOptionType.GetProperty("TextKey", BindingFlags.Public | BindingFlags.Instance);
+        var eventOptionIsLocked = RequireProperty(eventOptionType, "IsLocked");
+        var eventOptionChosen = eventOptionType.GetMethod("Chosen", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes)
+            ?? eventOptionType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m => m.Name == "Chosen" && m.GetParameters().Length == 0)
+            ?? throw new InvalidOperationException($"{eventOptionType.FullName}.Chosen() not found");
+
+        // Soft-bound: auto-advance after a finished event tries to call
+        // these to leave the EventRoom. Failures degrade to "caller sees
+        // CurrentRoomType=EventRoom and is responsible for next steps".
+        var proceedFromTerminalRewards = runManagerType.GetMethod("ProceedFromTerminalRewardsScreen", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes)
+            ?? runManagerType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m => m.Name == "ProceedFromTerminalRewardsScreen" && m.GetParameters().Length == 0);
+        var enterRoom = runManagerType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .FirstOrDefault(m => m.Name == "EnterRoom" && m.GetParameters().Length == 1);
+        var mapRoomLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Rooms.MapRoom");
+        var mapRoomType2 = mapRoomLookup.Found ? mapRoomLookup.Type : null;
+
         return new Sts2Bindings(sts2, new BindingState(
             playerType, createIroncladRun, unlockAll,
             new InvocationPlan(createForTest), runManagerInstance, netServiceType,
@@ -401,7 +585,30 @@ public sealed class Sts2Bindings
             currentRoom, actFloor, isGameOver,
             runStateMap, runStateCurrentMapCoord, mapStartingMapPoint, mapGetPoint,
             mapPointChildren, mapPointCoord, mapPointPointType,
-            mapCoordColField, mapCoordRowField));
+            mapCoordColField, mapCoordRowField,
+            runManagerEventSync, eventSyncGetLocalEvent, eventIsFinished, eventCurrentOptions,
+            eventOptionTextKey, eventOptionIsLocked, eventOptionChosen,
+            proceedFromTerminalRewards, enterRoom, mapRoomType2));
+    }
+
+    // List-like CurrentOptions could be IList<T>, List<T>, or a custom Godot-
+    // collection wrapper. Try the obvious shapes — generic-interface arg,
+    // GenericTypeArguments, then "Item" indexer return — before giving up.
+    private static Type? ExtractElementType(Type listType)
+    {
+        foreach (var iface in listType.GetInterfaces())
+        {
+            if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IReadOnlyList<>))
+                return iface.GenericTypeArguments[0];
+            if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IList<>))
+                return iface.GenericTypeArguments[0];
+            if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                return iface.GenericTypeArguments[0];
+        }
+        if (listType.IsGenericType && listType.GenericTypeArguments.Length == 1)
+            return listType.GenericTypeArguments[0];
+        var indexer = listType.GetProperty("Item", BindingFlags.Public | BindingFlags.Instance);
+        return indexer?.PropertyType;
     }
 
     private static InvocationPlan SoleOverload(Type owner, string methodName)
@@ -458,5 +665,9 @@ public sealed class Sts2Bindings
         PropertyInfo RunStateCurrentRoom, PropertyInfo RunStateActFloor, PropertyInfo RunStateIsGameOver,
         PropertyInfo RunStateMap, PropertyInfo RunStateCurrentMapCoord, PropertyInfo MapStartingMapPoint,
         MethodInfo MapGetPoint, PropertyInfo MapPointChildren, FieldInfo MapPointCoord,
-        PropertyInfo MapPointPointType, FieldInfo MapCoordColField, FieldInfo MapCoordRowField);
+        PropertyInfo MapPointPointType, FieldInfo MapCoordColField, FieldInfo MapCoordRowField,
+        PropertyInfo RunManagerEventSynchronizer, MethodInfo EventSyncGetLocalEvent,
+        PropertyInfo EventIsFinished, PropertyInfo EventCurrentOptions,
+        PropertyInfo? EventOptionTextKey, PropertyInfo EventOptionIsLocked, MethodInfo EventOptionChosen,
+        MethodInfo? RunManagerProceedFromTerminalRewards, MethodInfo? RunManagerEnterRoom, Type? MapRoomType);
 }

@@ -33,3 +33,28 @@ public readonly struct Color
 }
 public readonly struct Variant { }
 public readonly struct Callable { }
+
+// from: MegaCrit.Sts2.Core.Events.EventOption.Chosen → chain into
+//   RunManager hooks that compare relic ids. TypeLoadException: "Could not
+//   load type 'Godot.StringName'". `just list-members Godot.StringName`
+//   shows the 6 surfaces: ctor, op_Equality (×2), op_Inequality, op_Implicit
+//   (×2). Stored but never compared meaningfully; equality on the stub
+//   collapses to string equality on the inner Name.
+public sealed class StringName
+{
+    public string Name { get; }
+
+    public StringName(string name) => Name = name ?? string.Empty;
+
+    public static bool operator ==(StringName? a, StringName? b)
+        => ReferenceEquals(a, b) || (a is not null && b is not null && a.Name == b.Name);
+    public static bool operator !=(StringName? a, StringName? b) => !(a == b);
+    public static bool operator ==(in NativeInterop.godot_string_name _, StringName? __) => false;
+    public static bool operator !=(in NativeInterop.godot_string_name a, StringName? b) => !(a == b);
+
+    public static implicit operator string(StringName n) => n.Name;
+    public static implicit operator StringName(string s) => new(s);
+
+    public override bool Equals(object? obj) => obj is StringName sn && sn.Name == Name;
+    public override int GetHashCode() => Name.GetHashCode();
+}
