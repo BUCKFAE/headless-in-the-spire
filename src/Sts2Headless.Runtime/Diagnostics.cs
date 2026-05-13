@@ -21,4 +21,23 @@ public static class Diagnostics
 
     public static string Describe(Exception ex)
         => $"{ex.GetType().Name}: {ex.Message}";
+
+    // Compact stack frames from sts2.dll (game-side) + the unwrapped exception
+    // header. Skips noise from Sts2Headless.* / System.* / [MoveNext] frames so
+    // the failing call site is actually visible.
+    public static string DescribeWithStack(Exception ex)
+    {
+        var lines = new List<string> { Describe(ex) };
+        if (ex.StackTrace is { } trace)
+        {
+            foreach (var raw in trace.Split('\n'))
+            {
+                var line = raw.TrimEnd();
+                if (line.Length == 0) continue;
+                if (!line.Contains("MegaCrit.")) continue;
+                lines.Add(line.TrimStart());
+            }
+        }
+        return string.Join(" | ", lines);
+    }
 }

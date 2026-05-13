@@ -21,13 +21,18 @@ public static class BootstrapSequence
 
     public static IReadOnlyList<StepOutcome> Apply(Assembly sts2)
     {
+        // ModelDb.Inject must run BEFORE InitProgressData: ProgressSaveManager
+        // .LoadProgress() walks the model registry looking up entries like
+        // CHARACTER.IRONCLAD, and throws KeyNotFoundException if ModelDb is
+        // empty. sts2-cli has the opposite order and silently swallows the
+        // failure — we'd rather have green output and real progress data.
         return
         [
             SetTestMode(sts2),
             WarmPlatformUtil(sts2),
             InitSaveProfileId(sts2),
-            InitSaveProgressData(sts2),
             InjectModelSubtypes(sts2),
+            InitSaveProgressData(sts2),
             InitModelIdSerializationCache(sts2),
             CreateIroncladSmoke(sts2),
         ];
@@ -99,7 +104,7 @@ public static class BootstrapSequence
             methodInfo.Invoke(instance, args);
             return new(label, true, null);
         }
-        catch (Exception ex) { return new(label, false, Describe(Unwrap(ex))); }
+        catch (Exception ex) { return new(label, false, Diagnostics.DescribeWithStack(Unwrap(ex))); }
     }
 
     private static StepOutcome InjectModelSubtypes(Assembly sts2)

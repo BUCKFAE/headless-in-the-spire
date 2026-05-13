@@ -14,10 +14,9 @@ namespace Sts2Headless.Runtime.Tests;
 // while the real chain is broken.
 //
 // The expected step list is a SNAPSHOT, not a should-pass set. If a future
-// chunk (e.g. wiring LocManager) flips InitProgressData to green, this test
-// fails — that's the reminder to update the snapshot. Same in the other
-// direction: if anything we already proved working regresses, the diff
-// shows exactly which step is now wrong.
+// chunk flips a step's Ok value, this test fails — that's the reminder to
+// update the snapshot. Same in the other direction: if anything we already
+// proved working regresses, the diff shows exactly which step is now wrong.
 public class BootstrapSequenceTests
 {
     [Fact]
@@ -38,16 +37,16 @@ public class BootstrapSequenceTests
 
         var steps = BootstrapSequence.Apply(preamble.Sts2!);
 
-        // Snapshot of the known state as of 2026-05-13. InitProgressData is
-        // expected-fail because LocManager isn't initialized yet — it'll flip
-        // to true once the first user-facing-string method needs it.
+        // Snapshot of the known state as of 2026-05-13. Fully green: ModelDb
+        // injection runs before InitProgressData so ProgressSaveManager's
+        // CHARACTER.* lookups resolve.
         var expected = new (string Label, bool Ok)[]
         {
             ("TestMode.IsOn = true", true),
             ("PlatformUtil.PrimaryPlatform (warm)", true),
             ("InitProfileId(0)", true),
-            ("InitProgressData()", false),
             ("ModelDb.Inject loop over AbstractModelSubtypes.All", true),
+            ("InitProgressData()", true),
             ("ModelIdSerializationCache.Init()", true),
             ("Player.CreateForNewRun<Ironclad>(UnlockState.all, 1uL)", true),
         };
