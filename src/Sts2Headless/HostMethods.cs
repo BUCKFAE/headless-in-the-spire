@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Sts2Headless.Runtime;
 
@@ -15,6 +14,7 @@ public static class HostMethods
             ["host/ping"] = _ => Ping(repoRoot),
             ["run/new"] = p => RunNew(bindings, session, p),
             ["run/state"] = _ => RunState(bindings, session),
+            ["run/select_map_node"] = p => RunSelectMapNode(bindings, session, p),
         };
     }
 
@@ -41,35 +41,69 @@ public static class HostMethods
             throw new ArgumentException($"character '{character}' not yet supported (only 'ironclad')");
         }
 
-        var player = bindings.CreateIroncladRun(seed);
-        session.Set(player, character.ToLowerInvariant(), seed);
+        // Pass C: full StartRun chain (was just Player.CreateForNewRun in
+        // Pass A). Lands the run at MapRoom with StartedWithNeow=false —
+        // until the Neow GodotStubs gap is closed, the wire-level run starts
+        // post-Neow at the map screen.
+        var run = bindings.StartIroncladRun(seed);
+        session.Set(run, character.ToLowerInvariant(), seed);
 
+        var snapshot = bindings.ReadSnapshot(run);
         return new JsonObject
         {
             ["ok"] = true,
             ["character"] = character,
             ["seed"] = seed,
-            ["playerType"] = player.GetType().FullName,
+            ["playerType"] = run.Player.GetType().FullName,
+            ["currentRoomType"] = snapshot.CurrentRoomType,
         };
     }
 
     private static JsonNode? RunState(Sts2Bindings bindings, Session session)
     {
-        if (!session.IsActive || session.Player is null)
-        {
-            throw new InvalidOperationException("no active run — call run/new first");
-        }
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
 
-        var state = bindings.ReadPlayerState(session.Player);
+        var s = bindings.ReadSnapshot(run);
         return new JsonObject
         {
             ["ok"] = true,
             ["character"] = session.Character,
             ["seed"] = session.Seed,
-            ["hp"] = state.CurrentHp,
-            ["maxHp"] = state.MaxHp,
-            ["gold"] = state.Gold,
-            ["deckSize"] = state.DeckSize,
+            ["hp"] = s.CurrentHp,
+            ["maxHp"] = s.MaxHp,
+            ["gold"] = s.Gold,
+            ["deckSize"] = s.DeckSize,
+            ["currentRoomType"] = s.CurrentRoomType,
+            ["actFloor"] = s.ActFloor,
+            ["isGameOver"] = s.IsGameOver,
+        };
+    }
+
+    private static JsonNode? RunSelectMapNode(Sts2Bindings bindings, Session session, JsonNode? @params)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+
+        var obj = @params as JsonObject
+            ?? throw new ArgumentException("run/select_map_node requires params {col, row}");
+        var col = obj["col"]?.GetValue<int>()
+            ?? throw new ArgumentException("run/select_map_node requires 'col'");
+        var row = obj["row"]?.GetValue<int>()
+            ?? throw new ArgumentException("run/select_map_node requires 'row'");
+
+        bindings.EnterMapCoord(run, col, row);
+
+        var s = bindings.ReadSnapshot(run);
+        return new JsonObject
+        {
+            ["ok"] = true,
+            ["col"] = col,
+            ["row"] = row,
+            ["currentRoomType"] = s.CurrentRoomType,
+            ["actFloor"] = s.ActFloor,
+            ["isGameOver"] = s.IsGameOver,
+            ["hp"] = s.CurrentHp,
         };
     }
 

@@ -1,3 +1,5 @@
+using Sts2Headless.Runtime;
+
 namespace Sts2Headless;
 
 // Single-slot run holder. The host owns at most one active run at a time;
@@ -9,22 +11,22 @@ namespace Sts2Headless;
 // (host owns the lifetime, clients never hold raw handles) stay the same.
 public sealed class Session
 {
-    public object? Player { get; private set; }
+    public RunHandle? Run { get; private set; }
     public string? Character { get; private set; }
     public ulong Seed { get; private set; }
 
-    public bool IsActive => Player is not null;
+    public bool IsActive => Run is not null;
 
-    public void Set(object player, string character, ulong seed)
+    public void Set(RunHandle run, string character, ulong seed)
     {
-        Player = player;
+        Run = run;
         Character = character;
         Seed = seed;
     }
 
     public void Clear()
     {
-        Player = null;
+        Run = null;
         Character = null;
         Seed = 0;
     }

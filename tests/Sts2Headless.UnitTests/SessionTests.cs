@@ -1,3 +1,4 @@
+using Sts2Headless.Runtime;
 using Xunit;
 
 namespace Sts2Headless.UnitTests;
@@ -5,17 +6,20 @@ namespace Sts2Headless.UnitTests;
 // Session is the single source of truth for "is a run active and what is it?"
 // Every future stateful method consults it, so the lifecycle (empty → set →
 // cleared → set again) needs to be airtight even before any sts2 type is in
-// scope. The Player object stored is just `object` here — we don't care what
-// it is, only that the slot holds and releases it correctly.
+// scope. The RunHandle stored carries three opaque `object` slots (player,
+// runState, runManager) — we don't care what's in them here, only that the
+// slot holds and releases the triple atomically.
 public class SessionTests
 {
+    private static RunHandle DummyRun() => new(new object(), new object(), new object());
+
     [Fact]
     public void NewSession_IsInactive_AndExposesDefaults()
     {
         var session = new Session();
 
         Assert.False(session.IsActive);
-        Assert.Null(session.Player);
+        Assert.Null(session.Run);
         Assert.Null(session.Character);
         Assert.Equal(0uL, session.Seed);
     }
@@ -24,12 +28,12 @@ public class SessionTests
     public void Set_StoresAllFields_AndFlipsIsActive()
     {
         var session = new Session();
-        var player = new object();
+        var run = DummyRun();
 
-        session.Set(player, "ironclad", 42uL);
+        session.Set(run, "ironclad", 42uL);
 
         Assert.True(session.IsActive);
-        Assert.Same(player, session.Player);
+        Assert.Same(run, session.Run);
         Assert.Equal("ironclad", session.Character);
         Assert.Equal(42uL, session.Seed);
     }
@@ -38,14 +42,14 @@ public class SessionTests
     public void Set_Overwrites_PreviousRun()
     {
         // Calling run/new while a run is active replaces it — there's only
-        // one slot. The old Player handle is dropped, GC reclaims it.
+        // one slot. The old RunHandle is dropped, GC reclaims it.
         var session = new Session();
-        session.Set(new object(), "ironclad", 1uL);
+        session.Set(DummyRun(), "ironclad", 1uL);
 
-        var replacement = new object();
+        var replacement = DummyRun();
         session.Set(replacement, "ironclad", 99uL);
 
-        Assert.Same(replacement, session.Player);
+        Assert.Same(replacement, session.Run);
         Assert.Equal(99uL, session.Seed);
     }
 
@@ -53,12 +57,12 @@ public class SessionTests
     public void Clear_ResetsAllFields_AndFlipsIsActive()
     {
         var session = new Session();
-        session.Set(new object(), "ironclad", 7uL);
+        session.Set(DummyRun(), "ironclad", 7uL);
 
         session.Clear();
 
         Assert.False(session.IsActive);
-        Assert.Null(session.Player);
+        Assert.Null(session.Run);
         Assert.Null(session.Character);
         Assert.Equal(0uL, session.Seed);
     }

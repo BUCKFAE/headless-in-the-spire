@@ -36,8 +36,12 @@ public class StdioHostTests
     }
 
     [Fact]
-    public async Task RunNew_Ironclad_Returns_Player()
+    public async Task RunNew_Ironclad_Lands_At_MapRoom()
     {
+        // Pass C: run/new now walks the full StartRun chain (sts2-cli's
+        // RunSimulator.StartRun port), so the post-call state is the map
+        // screen. StartedWithNeow is forced to false until the Neow
+        // GodotStubs gap is closed (see sts2-startrun-chain memory).
         var response = await SendOne("""{"id":3,"method":"run/new","params":{"seed":42}}""");
 
         Assert.Equal(3L, (long)response["id"]!);
@@ -47,6 +51,7 @@ public class StdioHostTests
         Assert.Equal("ironclad", (string)result["character"]!);
         Assert.Equal(42UL, (ulong)result["seed"]!);
         Assert.Contains("Player", (string)result["playerType"]!);
+        Assert.Equal("MapRoom", (string)result["currentRoomType"]!);
     }
 
     [Fact]
@@ -61,7 +66,7 @@ public class StdioHostTests
     }
 
     [Fact]
-    public async Task RunState_AfterRunNew_ReturnsPlayerSnapshot()
+    public async Task RunState_AfterRunNew_ReturnsRunSnapshot()
     {
         var responses = await SendMany(
             """{"id":1,"method":"run/new","params":{"seed":1}}""",
@@ -84,6 +89,48 @@ public class StdioHostTests
         Assert.True((int)result["hp"]! <= (int)result["maxHp"]!);
         Assert.True((int)result["gold"]! >= 0, $"gold should be >= 0, was {result["gold"]}");
         Assert.True((int)result["deckSize"]! > 0, $"deckSize should be > 0, was {result["deckSize"]}");
+        // Pass C additions: location + game-over flag.
+        Assert.Equal("MapRoom", (string)result["currentRoomType"]!);
+        Assert.Equal(0, (int)result["actFloor"]!);
+        Assert.False((bool)result["isGameOver"]!);
+    }
+
+    [Fact]
+    public async Task RunSelectMapNode_AdvancesFromMapToCombat()
+    {
+        // (col=3, row=0) is a valid first-floor coord for the procedurally-
+        // generated Ironclad seed=42 map. The exact node-type that the
+        // generator parks here is seed-dependent; we assert *some*
+        // transition off MapRoom rather than pinning the type.
+        var responses = await SendMany(
+            """{"id":1,"method":"run/new","params":{"seed":42}}""",
+            """{"id":2,"method":"run/select_map_node","params":{"col":3,"row":0}}""",
+            """{"id":3,"method":"run/state"}""");
+
+        Assert.Null(responses[0]["error"]);
+        Assert.Null(responses[1]["error"]);
+        Assert.Null(responses[2]["error"]);
+
+        var afterNode = responses[1]["result"]!.AsObject();
+        Assert.True((bool)afterNode["ok"]!);
+        Assert.NotEqual("MapRoom", (string)afterNode["currentRoomType"]!);
+        Assert.False((bool)afterNode["isGameOver"]!);
+        Assert.True((int)afterNode["actFloor"]! > 0, $"actFloor should advance, was {afterNode["actFloor"]}");
+
+        // run/state confirms the transition persists in the session.
+        var state = responses[2]["result"]!.AsObject();
+        Assert.Equal((string)afterNode["currentRoomType"]!, (string)state["currentRoomType"]!);
+        Assert.Equal((int)afterNode["actFloor"]!, (int)state["actFloor"]!);
+    }
+
+    [Fact]
+    public async Task RunSelectMapNode_WithoutRunNew_Errors()
+    {
+        var response = await SendOne("""{"id":1,"method":"run/select_map_node","params":{"col":3,"row":0}}""");
+
+        var error = response["error"]!.AsObject();
+        Assert.Equal(-32603, (int)error["code"]!);
+        Assert.Contains("no active run", (string)error["message"]!);
     }
 
     [Fact]
