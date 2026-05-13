@@ -84,6 +84,47 @@ public sealed record MapNode(
     [property: JsonPropertyName("row")] int Row,
     [property: JsonPropertyName("type")] MapNodeType Type);
 
+// Card targeting modes. Mirrors sts2's TargetType enum at the wire layer; the
+// binding maps `card.TargetType.ToString()` into this enum with the Unknown
+// fallback discipline used elsewhere. AnyEnemy is the only mode that requires
+// a caller-supplied targetIndex on run/play_card — for the others the engine
+// resolves targets internally and the wire `targetIndex` is ignored.
+[JsonConverter(typeof(JsonStringEnumConverter<TargetType>))]
+public enum TargetType
+{
+    Unknown,
+    None,
+    AnyEnemy,
+    AllEnemies,
+    Self,
+    AnyAlly,
+    AllAllies,
+    Caster,
+}
+
+// Intent shapes we've actually seen on monster NextMove.Intents. The wire
+// enum is shallower than sts2's IntentType (which mixes "Attack" and
+// "AttackDefend" and similar combined kinds); we surface the primary kind and
+// let the per-intent damage/block fields carry the numbers. Same Unknown
+// fallback discipline as RoomType — grow rather than widen on surprise.
+[JsonConverter(typeof(JsonStringEnumConverter<IntentKind>))]
+public enum IntentKind
+{
+    Unknown,
+    Attack,
+    Defend,
+    Buff,
+    Debuff,
+    Sleep,
+    Stun,
+    Escape,
+    Magic,
+    AttackDefend,
+    AttackBuff,
+    AttackDebuff,
+    StrongDebuff,
+}
+
 // One option offered by an Event the player is currently standing on.
 //
 // Index is the position in the current page's option list — pass it back via
@@ -105,6 +146,68 @@ public sealed record EventOption(
     [property: JsonPropertyName("index")] int Index,
     [property: JsonPropertyName("textKey")] string? TextKey,
     [property: JsonPropertyName("isLocked")] bool IsLocked);
+
+// One status effect / buff / debuff on a creature. Id is the game's stable
+// power key (e.g. "STRENGTH", "VULNERABLE"); Amount is the stack count. We
+// don't surface a localized name — clients translate using the id.
+public sealed record Power(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("amount")] int Amount);
+
+// One element of an enemy's NextMove. Damage is per-hit (multiply by Hits for
+// total); Block is the amount the enemy will gain. Kind is sts2's primary
+// IntentType bucket — combined kinds (AttackDefend, AttackBuff, …) keep their
+// composite name so callers can branch on the precise shape they see.
+public sealed record Intent(
+    [property: JsonPropertyName("kind")] IntentKind Kind,
+    [property: JsonPropertyName("damage")] int? Damage,
+    [property: JsonPropertyName("hits")] int? Hits,
+    [property: JsonPropertyName("block")] int? Block);
+
+// One card in the player's hand. Index is the array position (pass back via
+// run/play_card.cardIndex); Id is the card's stable id string ("STRIKE_RED");
+// Cost is the energy cost after combat modifiers (-1 means unplayable, the
+// sts2 convention for X-cost or perma-disabled cards). TargetType drives
+// whether targetIndex is required on play.
+public sealed record Card(
+    [property: JsonPropertyName("index")] int Index,
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("cost")] int Cost,
+    [property: JsonPropertyName("canPlay")] bool CanPlay,
+    [property: JsonPropertyName("targetType")] TargetType TargetType);
+
+// One enemy in the current combat. Index is the position in the alive-enemy
+// list (pass back via run/play_card.targetIndex when the card's TargetType is
+// AnyEnemy); MonsterId is the game's stable monster id ("LOUSE_RED" etc.) and
+// is the closest thing to a stable name. IntendsAttack is the convenience
+// summary "is this enemy about to attack me?" — Intents carries the
+// per-intent detail.
+public sealed record Enemy(
+    [property: JsonPropertyName("index")] int Index,
+    [property: JsonPropertyName("monsterId")] string? MonsterId,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("maxHp")] int MaxHp,
+    [property: JsonPropertyName("block")] int Block,
+    [property: JsonPropertyName("intendsAttack")] bool IntendsAttack,
+    [property: JsonPropertyName("intents")] IReadOnlyList<Intent> Intents,
+    [property: JsonPropertyName("powers")] IReadOnlyList<Power> Powers);
+
+// Combat-only state. Surfaced on snapshot responses only when CurrentRoomType
+// == CombatRoom (or the room flipped back to MapRoom in the same tick via
+// post-combat auto-advance — in which case CombatState is omitted on the
+// follow-up snapshot). Round numbers start at 1 on the first player turn.
+public sealed record CombatState(
+    [property: JsonPropertyName("round")] int Round,
+    [property: JsonPropertyName("energy")] int Energy,
+    [property: JsonPropertyName("maxEnergy")] int MaxEnergy,
+    [property: JsonPropertyName("playerBlock")] int PlayerBlock,
+    [property: JsonPropertyName("isPlayPhase")] bool IsPlayPhase,
+    [property: JsonPropertyName("isInProgress")] bool IsInProgress,
+    [property: JsonPropertyName("drawPileCount")] int DrawPileCount,
+    [property: JsonPropertyName("discardPileCount")] int DiscardPileCount,
+    [property: JsonPropertyName("hand")] IReadOnlyList<Card> Hand,
+    [property: JsonPropertyName("enemies")] IReadOnlyList<Enemy> Enemies,
+    [property: JsonPropertyName("playerPowers")] IReadOnlyList<Power> PlayerPowers);
 
 // ── host/ping ────────────────────────────────────────────────────────────
 
@@ -143,7 +246,12 @@ public sealed record RunNewResult(
     // unless currentRoomType == EventRoom; mirrors the "current page" of the
     // active Event, so callers should re-read after run/select_event_option
     // (multi-page events refresh this list each turn).
-    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions);
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    // Combat read-out when CurrentRoomType == CombatRoom. Null otherwise (the
+    // wire's room gating mirrors availableMapNodes / availableEventOptions —
+    // clients should branch on currentRoomType, not on whether this field
+    // is non-null).
+    [property: JsonPropertyName("combatState")] CombatState? CombatState);
 
 // ── run/state ────────────────────────────────────────────────────────────
 
@@ -160,7 +268,8 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("actFloor")] int ActFloor,
     [property: JsonPropertyName("isGameOver")] bool IsGameOver,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
-    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions);
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState);
 
 // ── run/select_map_node ──────────────────────────────────────────────────
 
@@ -177,7 +286,8 @@ public sealed record RunSelectMapNodeResult(
     [property: JsonPropertyName("isGameOver")] bool IsGameOver,
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
-    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions);
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState);
 
 // ── run/select_event_option ──────────────────────────────────────────────
 
@@ -197,4 +307,41 @@ public sealed record RunSelectEventOptionResult(
     [property: JsonPropertyName("isGameOver")] bool IsGameOver,
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
-    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions);
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState);
+
+// ── run/end_turn ─────────────────────────────────────────────────────────
+
+// No params record — run/end_turn acts on the current run's active combat.
+// Errors when there is no active run, when the current room isn't a
+// CombatRoom, or when combat has already ended.
+public sealed record RunEndTurnResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState);
+
+// ── run/play_card ────────────────────────────────────────────────────────
+
+// cardIndex is the position in the current snapshot's combatState.hand list.
+// targetIndex is required when the card's TargetType is AnyEnemy and is
+// otherwise ignored; the index matches combatState.enemies (alive-only).
+public sealed record RunPlayCardParams(
+    [property: JsonPropertyName("cardIndex")] int CardIndex,
+    [property: JsonPropertyName("targetIndex")] int? TargetIndex = null);
+
+public sealed record RunPlayCardResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("cardIndex")] int CardIndex,
+    [property: JsonPropertyName("targetIndex")] int? TargetIndex,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState);

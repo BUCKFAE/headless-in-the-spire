@@ -20,25 +20,57 @@ public class GodotObject
     public class MethodName { }
     public class PropertyName { }
     public class SignalName { }
+
+    // from: CombatManager.AfterCombatRoomLoaded — `await ToSignal(target, …)`
+    //   used pervasively to wait for animation/UI events. In headless we
+    //   return an awaiter that's already complete so the chain doesn't park.
+    public SignalAwaiter ToSignal(GodotObject source, StringName signal)
+        => new(source, signal, this);
 }
 
 public class Node : GodotObject
 {
-    public new class MethodName : GodotObject.MethodName { }
+    public new class MethodName : GodotObject.MethodName
+    {
+        public static readonly StringName AddChild = new("add_child");
+        public static readonly StringName QueueFree = new("queue_free");
+        public static readonly StringName RemoveChild = new("remove_child");
+    }
     public new class PropertyName : GodotObject.PropertyName { }
-    public new class SignalName : GodotObject.SignalName { }
+    public new class SignalName : GodotObject.SignalName
+    {
+        public static readonly StringName ChildEnteredTree = new("child_entered_tree");
+        public static readonly StringName ChildExitingTree = new("child_exiting_tree");
+        public static readonly StringName Ready = new("ready");
+        public static readonly StringName TreeExited = new("tree_exited");
+        public static readonly StringName TreeExiting = new("tree_exiting");
+    }
 
     // from: EventOption.Chosen → CardModel.GetTaughtUpgradedTag chain →
     //   Node.set_Name(StringName). MissingMethodException at first option
     //   pick. Auto-property is enough; nothing reads it back in headless.
     public StringName Name { get; set; } = new(string.Empty);
+
+    // from: CombatManager.AfterCombatRoomLoaded — instantiates animation
+    //   tweens via Node.CreateTween(). The Tween is enqueued via Callable
+    //   wrappers; no animations run in headless so a fresh stub instance
+    //   is enough for the chain to type-check and complete.
+    public Tween CreateTween() => new();
+    public SceneTree? GetTree() => null;
+    public Viewport? GetViewport() => null;
+    public bool IsInsideTree() => false;
+    public void QueueFree() { }
 }
 
 public class CanvasItem : Node
 {
     public new class MethodName : Node.MethodName { }
     public new class PropertyName : Node.PropertyName { }
-    public new class SignalName : Node.SignalName { }
+    public new class SignalName : Node.SignalName
+    {
+        public static readonly StringName ItemRectChanged = new("item_rect_changed");
+        public static readonly StringName VisibilityChanged = new("visibility_changed");
+    }
 }
 
 // ── Node2D and descendants ──────────────────────────────────────────────
@@ -67,14 +99,20 @@ public class GpuParticles2D : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
-    public new class SignalName : Node2D.SignalName { }
+    public new class SignalName : Node2D.SignalName
+    {
+        public static readonly StringName Finished = new("finished");
+    }
 }
 
 public class CpuParticles2D : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
-    public new class SignalName : Node2D.SignalName { }
+    public new class SignalName : Node2D.SignalName
+    {
+        public static readonly StringName Finished = new("finished");
+    }
 }
 
 public class Line2D : Node2D

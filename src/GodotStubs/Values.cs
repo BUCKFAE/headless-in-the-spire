@@ -13,15 +13,40 @@ public readonly struct Vector2
     //   but never read; no-op body is fine.
     public Vector2(float _, float __) { }
 
+    public float X { get; }
+    public float Y { get; }
+
     // from: Neow path during EnterAct (PROBE_NEOW=1) — caught by GD.PushError
     //   "Method not found: 'Godot.Vector2 Godot.Vector2.get_Zero()'."
     //   NEventRoom.Create reads this for initial node positioning. Default
     //   struct value is the correct zero.
     public static Vector2 Zero => default;
+    public static Vector2 One => default;
+    public static Vector2 Up => default;
+    public static Vector2 Down => default;
+    public static Vector2 Left => default;
+    public static Vector2 Right => default;
+
+    public static Vector2 operator +(Vector2 _, Vector2 __) => default;
+    public static Vector2 operator -(Vector2 _, Vector2 __) => default;
+    public static Vector2 operator -(Vector2 _) => default;
+    public static Vector2 operator *(Vector2 _, Vector2 __) => default;
+    public static Vector2 operator *(Vector2 _, float __) => default;
+    public static Vector2 operator *(float _, Vector2 __) => default;
+    public static Vector2 operator /(Vector2 _, Vector2 __) => default;
+    public static Vector2 operator /(Vector2 _, float __) => default;
+    public static bool operator ==(Vector2 _, Vector2 __) => false;
+    public static bool operator !=(Vector2 _, Vector2 __) => true;
+    public override bool Equals(object? obj) => false;
+    public override int GetHashCode() => 0;
 }
 public readonly struct Vector2I { }
 public readonly struct Vector3 { }
-public readonly struct Rect2 { }
+public readonly struct Rect2
+{
+    public Vector2 Size => default;
+    public Vector2 Position => default;
+}
 public readonly struct Color
 {
     // from: 19 ModelDb subtypes (Defect, BouncingFlask, DeprecatedCharacter, …)
@@ -31,8 +56,46 @@ public readonly struct Color
     //   actually read.
     public Color(string _) { }
 }
-public readonly struct Variant { }
-public readonly struct Callable { }
+// Variant is Godot's universal value box. sts2's Tween calls pass strongly-typed
+// args (Color, float, Vector2, StringName, …) that the IL implicitly converts
+// to Variant. Each conversion is a `call Godot.Variant::op_Implicit(<type>)`
+// at runtime — the stub method must exist or the call site throws
+// MissingMethodException. None of the conversions are reflected on the wire
+// (headless never reads from a Variant), so the body returns default.
+public readonly struct Variant
+{
+    public static Variant From<T>(T _) => default;
+    public static implicit operator Variant(bool _) => default;
+    public static implicit operator Variant(int _) => default;
+    public static implicit operator Variant(long _) => default;
+    public static implicit operator Variant(float _) => default;
+    public static implicit operator Variant(double _) => default;
+    public static implicit operator Variant(string _) => default;
+    public static implicit operator Variant(StringName _) => default;
+    public static implicit operator Variant(NodePath _) => default;
+    public static implicit operator Variant(Vector2 _) => default;
+    public static implicit operator Variant(Vector2I _) => default;
+    public static implicit operator Variant(Vector3 _) => default;
+    public static implicit operator Variant(Rect2 _) => default;
+    public static implicit operator Variant(Color _) => default;
+    public static implicit operator Variant(Quaternion _) => default;
+    public static implicit operator Variant(Transform2D _) => default;
+    public static implicit operator Variant(Rid _) => default;
+    public static implicit operator Variant(GodotObject? _) => default;
+    public static implicit operator Variant(Callable _) => default;
+    public static implicit operator Variant(Signal _) => default;
+}
+public readonly struct Callable
+{
+    // from: CombatManager.AfterCombatRoomLoaded — `Callable.From(() => …)`
+    //   wraps continuations for the engine's animation scheduler. The
+    //   resulting Callable is enqueued through Tween in headless mode where
+    //   it's a no-op, so the wrapped action never runs — only the surface
+    //   needs to exist.
+    public Callable(GodotObject _, StringName __) { }
+    public static Callable From(System.Action _) => default;
+    public static Callable From<T>(System.Action<T> _) => default;
+}
 
 // from: MegaCrit.Sts2.Core.Events.EventOption.Chosen → chain into
 //   RunManager hooks that compare relic ids. TypeLoadException: "Could not

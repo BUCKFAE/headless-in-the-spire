@@ -31,6 +31,8 @@ public class BootstrapSequenceTests
         var preamble = RuntimeBootstrap.Run(vendorDir);
         Assert.Null(preamble.SetupError);
         Assert.True(preamble.SyncContextInstalled);
+        Assert.True(preamble.TestModeEnabled,
+            "TestMode.IsOn must be set during the preamble — combat-start branches on it and stays half-initialised otherwise");
         Assert.NotNull(preamble.Sts2);
         Assert.All(preamble.Patches, p =>
             Assert.True(p.Patched, $"patch missing: {p.Target} ({p.Detail})"));

@@ -6,16 +6,36 @@ namespace Godot;
 
 public class Control : CanvasItem
 {
-    public new class MethodName : CanvasItem.MethodName { }
-    public new class PropertyName : CanvasItem.PropertyName { }
-    public new class SignalName : CanvasItem.SignalName { }
+    public new class MethodName : CanvasItem.MethodName
+    {
+        public static readonly StringName GrabFocus = new("grab_focus");
+    }
+    public new class PropertyName : CanvasItem.PropertyName
+    {
+        public static readonly StringName Size = new("size");
+    }
+    public new class SignalName : CanvasItem.SignalName
+    {
+        public static readonly StringName FocusEntered = new("focus_entered");
+        public static readonly StringName FocusExited = new("focus_exited");
+        public static readonly StringName GuiInput = new("gui_input");
+        public static readonly StringName MouseEntered = new("mouse_entered");
+        public static readonly StringName MouseExited = new("mouse_exited");
+        public static readonly StringName Resized = new("resized");
+    }
+
+    public Vector2 Position { get; set; }
+    public Vector2 Size { get; set; }
 }
 
 public class Range : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
-    public new class SignalName : Control.SignalName { }
+    public new class SignalName : Control.SignalName
+    {
+        public static readonly StringName ValueChanged = new("value_changed");
+    }
 }
 
 public class Label : Control
@@ -27,16 +47,26 @@ public class Label : Control
 
 public class LineEdit : Control
 {
-    public new class MethodName : Control.MethodName { }
+    public new class MethodName : Control.MethodName
+    {
+        public static readonly StringName Deselect = new("deselect");
+    }
     public new class PropertyName : Control.PropertyName { }
-    public new class SignalName : Control.SignalName { }
+    public new class SignalName : Control.SignalName
+    {
+        public static readonly StringName TextChanged = new("text_changed");
+        public static readonly StringName TextSubmitted = new("text_submitted");
+    }
 }
 
 public class TextEdit : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
-    public new class SignalName : Control.SignalName { }
+    public new class SignalName : Control.SignalName
+    {
+        public static readonly StringName TextChanged = new("text_changed");
+    }
 }
 
 public class Panel : Control

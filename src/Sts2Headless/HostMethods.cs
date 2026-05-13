@@ -25,6 +25,8 @@ public static class HostMethods
             ["run/state"] = TypedNoParams(() => RunState(bindings, session)),
             ["run/select_map_node"] = Typed<RunSelectMapNodeParams, RunSelectMapNodeResult>(p => RunSelectMapNode(bindings, session, p)),
             ["run/select_event_option"] = Typed<RunSelectEventOptionParams, RunSelectEventOptionResult>(p => RunSelectEventOption(bindings, session, p)),
+            ["run/end_turn"] = TypedNoParams(() => RunEndTurn(bindings, session)),
+            ["run/play_card"] = Typed<RunPlayCardParams, RunPlayCardResult>(p => RunPlayCard(bindings, session, p)),
         };
     }
 
@@ -62,7 +64,8 @@ public static class HostMethods
             PlayerType: run.Player.GetType().FullName ?? run.Player.GetType().Name,
             CurrentRoomType: s.CurrentRoomType,
             AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions);
+            AvailableEventOptions: s.AvailableEventOptions,
+            CombatState: s.CombatState);
     }
 
     private static RunStateResult RunState(Sts2Bindings bindings, Session session)
@@ -83,7 +86,8 @@ public static class HostMethods
             ActFloor: s.ActFloor,
             IsGameOver: s.IsGameOver,
             AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions);
+            AvailableEventOptions: s.AvailableEventOptions,
+            CombatState: s.CombatState);
     }
 
     private static RunSelectMapNodeResult RunSelectMapNode(Sts2Bindings bindings, Session session, RunSelectMapNodeParams? @params)
@@ -105,7 +109,8 @@ public static class HostMethods
             IsGameOver: s.IsGameOver,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions);
+            AvailableEventOptions: s.AvailableEventOptions,
+            CombatState: s.CombatState);
     }
 
     private static RunSelectEventOptionResult RunSelectEventOption(Sts2Bindings bindings, Session session, RunSelectEventOptionParams? @params)
@@ -126,7 +131,50 @@ public static class HostMethods
             IsGameOver: s.IsGameOver,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions);
+            AvailableEventOptions: s.AvailableEventOptions,
+            CombatState: s.CombatState);
+    }
+
+    private static RunEndTurnResult RunEndTurn(Sts2Bindings bindings, Session session)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+
+        bindings.EndTurn(run);
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunEndTurnResult(
+            Ok: true,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            CombatState: s.CombatState);
+    }
+
+    private static RunPlayCardResult RunPlayCard(Sts2Bindings bindings, Session session, RunPlayCardParams? @params)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new ArgumentException("run/play_card requires params {cardIndex, targetIndex?}");
+
+        bindings.PlayCard(run, args.CardIndex, args.TargetIndex);
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunPlayCardResult(
+            Ok: true,
+            CardIndex: args.CardIndex,
+            TargetIndex: args.TargetIndex,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            CombatState: s.CombatState);
     }
 
     // Adapter that turns a typed Func<TParams?, TResult> into the JsonNode-

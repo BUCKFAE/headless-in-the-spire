@@ -22,6 +22,7 @@ internal static class ProbeInitCommand
         var sts2Name = result.Sts2!.GetName();
         Console.WriteLine($"  load sts2:                          ok ({sts2Name.Name} {sts2Name.Version})");
         Console.WriteLine($"  install InlineSynchronizationCtx:   {(result.SyncContextInstalled ? "ok" : "MISS")}");
+        Console.WriteLine($"  enable TestMode.IsOn:               {(result.TestModeEnabled ? "ok" : "MISS")}");
 
         Console.WriteLine("  harmony patches:");
         var allOk = true;

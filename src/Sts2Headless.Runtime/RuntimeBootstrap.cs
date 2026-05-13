@@ -16,6 +16,7 @@ public static class RuntimeBootstrap
         Assembly? Sts2,
         string? SetupError,
         bool SyncContextInstalled,
+        bool TestModeEnabled,
         IReadOnlyList<HangPatches.PatchOutcome> Patches,
         IReadOnlyList<LocPatches.PatchOutcome> LocPatches);
 
@@ -24,7 +25,7 @@ public static class RuntimeBootstrap
         var sts2Path = Path.Combine(vendorDir, "sts2.dll");
         if (!File.Exists(sts2Path))
         {
-            return new Result(null, "vendor/sts2.dll missing — run `just setup`.", false,
+            return new Result(null, "vendor/sts2.dll missing — run `just setup`.", false, false,
                 Array.Empty<HangPatches.PatchOutcome>(),
                 Array.Empty<LocPatches.PatchOutcome>());
         }
@@ -34,8 +35,29 @@ public static class RuntimeBootstrap
         var syncCtx = new InlineSynchronizationContext();
         SynchronizationContext.SetSynchronizationContext(syncCtx);
 
+        // sts2.dll branches a lot of behavior on TestMode.IsOn: under it, the
+        // engine skips animations, auto-resolves screens that would otherwise
+        // wait on UI input, and (critically) drives combat-start synchronously
+        // from CombatRoom.EnterInternal. Without this flag set, EnterMapCoord
+        // lands the player in a CombatRoom whose CombatManager is set up but
+        // never actually starts the player turn — hand stays empty, energy
+        // stays at 0, IsInProgress stays false. Mirrors sts2-cli's
+        // EnsureModelDbInitialized → `TestMode.IsOn = true`.
+        var testModeOn = SetTestModeOn(sts2);
+
         var patches = HangPatches.Apply(sts2);
         var locPatches = LocPatches.Apply(sts2);
-        return new Result(sts2, null, true, patches, locPatches);
+        return new Result(sts2, null, true, testModeOn, patches, locPatches);
+    }
+
+    private static bool SetTestModeOn(Assembly sts2)
+    {
+        var lookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.TestSupport.TestMode");
+        if (!lookup.Found) return false;
+        var setter = lookup.Type!.GetProperty("IsOn", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            ?.GetSetMethod();
+        if (setter is null) return false;
+        setter.Invoke(null, new object?[] { true });
+        return true;
     }
 }

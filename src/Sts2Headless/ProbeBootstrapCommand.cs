@@ -26,6 +26,7 @@ internal static class ProbeBootstrapCommand
         var sts2Name = preamble.Sts2!.GetName();
         Console.WriteLine($"  load sts2:                          ok ({sts2Name.Name} {sts2Name.Version})");
         Console.WriteLine($"  install InlineSynchronizationCtx:   {(preamble.SyncContextInstalled ? "ok" : "MISS")}");
+        Console.WriteLine($"  enable TestMode.IsOn:               {(preamble.TestModeEnabled ? "ok" : "MISS")}");
 
         Console.WriteLine("  harmony patches:");
         var patchesOk = true;
