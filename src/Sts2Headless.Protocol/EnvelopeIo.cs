@@ -9,7 +9,11 @@ namespace Sts2Headless.Protocol;
 // callers would otherwise get CRLF and need to strip it).
 public static class EnvelopeIo
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    // Shared by every layer that touches the wire: envelope framing here,
+    // typed method DTOs in Methods.cs, request/response (de)serialisation
+    // in tests. One JsonOptions instance = one source of truth for naming,
+    // null-handling, etc. — schema drift can't sneak in via a stray new().
+    public static readonly JsonSerializerOptions JsonOptions = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };

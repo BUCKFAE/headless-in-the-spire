@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using Xunit;
 
 namespace Sts2Headless.UnitTests;
@@ -6,7 +5,8 @@ namespace Sts2Headless.UnitTests;
 // HostMethods.Ping reads GAME_VERSION from disk and shapes the response.
 // It deliberately doesn't touch Sts2Bindings, so it's safe to exercise
 // without a game install — drop a fake GAME_VERSION into a tempdir and
-// assert the parse.
+// assert the parse. Returns a HostPingResult DTO; we assert on its fields
+// rather than JSON shape so a rename in the wire schema is a compile error.
 public class HostMethodsTests
 {
     [Fact]
@@ -18,11 +18,11 @@ public class HostMethodsTests
             SHA256   abcdef0123456789
             """);
 
-        var result = HostMethods.Ping(temp.Path)!.AsObject();
+        var result = HostMethods.Ping(temp.Path);
 
-        Assert.True((bool)result["ok"]!);
-        Assert.Equal("0.1.2.3", (string)result["gameVersion"]!);
-        Assert.Equal("abcdef0123456789", (string)result["gameSha256"]!);
+        Assert.True(result.Ok);
+        Assert.Equal("0.1.2.3", result.GameVersion);
+        Assert.Equal("abcdef0123456789", result.GameSha256);
     }
 
     [Fact]
@@ -30,11 +30,11 @@ public class HostMethodsTests
     {
         using var temp = new TempRepoRoot(null);
 
-        var result = HostMethods.Ping(temp.Path)!.AsObject();
+        var result = HostMethods.Ping(temp.Path);
 
-        Assert.True((bool)result["ok"]!);
-        Assert.Null(result["gameVersion"]);
-        Assert.Null(result["gameSha256"]);
+        Assert.True(result.Ok);
+        Assert.Null(result.GameVersion);
+        Assert.Null(result.GameSha256);
     }
 
     [Fact]
@@ -51,9 +51,9 @@ public class HostMethodsTests
             SHA256   deadbeef
             """);
 
-        var result = HostMethods.Ping(temp.Path)!.AsObject();
-        Assert.Equal("1.0.0", (string)result["gameVersion"]!);
-        Assert.Equal("deadbeef", (string)result["gameSha256"]!);
+        var result = HostMethods.Ping(temp.Path);
+        Assert.Equal("1.0.0", result.GameVersion);
+        Assert.Equal("deadbeef", result.GameSha256);
     }
 
     [Fact]
@@ -65,8 +65,8 @@ public class HostMethodsTests
         // angle brackets — but a real version with spaces should also survive.
         using var temp = new TempRepoRoot("VERSION  Some Build 0.1\nSHA256  ff");
 
-        var result = HostMethods.Ping(temp.Path)!.AsObject();
-        Assert.Equal("Some Build 0.1", (string)result["gameVersion"]!);
+        var result = HostMethods.Ping(temp.Path);
+        Assert.Equal("Some Build 0.1", result.GameVersion);
     }
 
     // RAII helper: a tempdir that looks enough like a repo root that Ping's

@@ -13,13 +13,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Tests construct typed Request/Response DTOs from Sts2Headless.Protocol
+         so a renamed wire field is a compile error here, not a silently-
+         passing test. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
     <!-- GodotStubs builds as GodotSharp.dll and must be present next to the
          test binaries so sts2.dll's references resolve. -->
     <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />
-    <!-- The subprocess host fixture in StdioHostTests spawns Sts2Headless.dll
-         from the test bin/, so this reference both lands the exe nearby and
-         keeps it rebuilt when its sources change. -->
+    <!-- The HostSubprocess fixture spawns Sts2Headless.dll from the test
+         bin/, so this reference both lands the exe nearby and keeps it
+         rebuilt when its sources change. -->
     <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
   </ItemGroup>
 

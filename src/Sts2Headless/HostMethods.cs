@@ -1,40 +1,44 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using Sts2Headless.Protocol;
+using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
 
 namespace Sts2Headless;
 
 // Method registry. Each pass adds entries; the keys are the wire-level
 // method names callers send in `{ "method": "..." }`.
+//
+// Handlers operate on the typed DTOs in Sts2Headless.Protocol.Methods. The
+// Typed<> adapter below bridges those records to the JsonNode-shaped
+// StdioHost.Handler delegate — deserialise params on entry, serialise
+// result on exit, sharing EnvelopeIo.JsonOptions so the wire shape can't
+// drift between the registry and the framing layer.
 public static class HostMethods
 {
     public static IReadOnlyDictionary<string, StdioHost.Handler> Build(string repoRoot, Sts2Bindings bindings, Session session)
     {
         return new Dictionary<string, StdioHost.Handler>
         {
-            ["host/ping"] = _ => Ping(repoRoot),
-            ["run/new"] = p => RunNew(bindings, session, p),
-            ["run/state"] = _ => RunState(bindings, session),
-            ["run/select_map_node"] = p => RunSelectMapNode(bindings, session, p),
+            ["host/ping"] = TypedNoParams(() => Ping(repoRoot)),
+            ["run/new"] = Typed<RunNewParams, RunNewResult>(p => RunNew(bindings, session, p)),
+            ["run/state"] = TypedNoParams(() => RunState(bindings, session)),
+            ["run/select_map_node"] = Typed<RunSelectMapNodeParams, RunSelectMapNodeResult>(p => RunSelectMapNode(bindings, session, p)),
         };
     }
 
     // Public for unit tests: doesn't touch sts2 bindings, only reads
     // GAME_VERSION from disk, so it's safe to exercise without a game install.
-    public static JsonNode? Ping(string repoRoot)
+    public static HostPingResult Ping(string repoRoot)
     {
         var (version, sha256) = ReadGameVersion(repoRoot);
-        return new JsonObject
-        {
-            ["ok"] = true,
-            ["gameVersion"] = version,
-            ["gameSha256"] = sha256,
-        };
+        return new HostPingResult(Ok: true, GameVersion: version, GameSha256: sha256);
     }
 
-    private static JsonNode? RunNew(Sts2Bindings bindings, Session session, JsonNode? @params)
+    private static RunNewResult RunNew(Sts2Bindings bindings, Session session, RunNewParams? @params)
     {
-        var character = (@params as JsonObject)?["character"]?.GetValue<string>() ?? "ironclad";
-        var seed = (@params as JsonObject)?["seed"]?.GetValue<ulong>() ?? 1uL;
+        var character = @params?.Character ?? "ironclad";
+        var seed = @params?.Seed ?? 1uL;
 
         if (!string.Equals(character, "ironclad", StringComparison.OrdinalIgnoreCase))
         {
@@ -48,64 +52,68 @@ public static class HostMethods
         var run = bindings.StartIroncladRun(seed);
         session.Set(run, character.ToLowerInvariant(), seed);
 
-        var snapshot = bindings.ReadSnapshot(run);
-        return new JsonObject
-        {
-            ["ok"] = true,
-            ["character"] = character,
-            ["seed"] = seed,
-            ["playerType"] = run.Player.GetType().FullName,
-            ["currentRoomType"] = snapshot.CurrentRoomType,
-        };
+        var s = bindings.ReadSnapshot(run);
+        return new RunNewResult(
+            Ok: true,
+            Character: character,
+            Seed: seed,
+            PlayerType: run.Player.GetType().FullName ?? run.Player.GetType().Name,
+            CurrentRoomType: s.CurrentRoomType);
     }
 
-    private static JsonNode? RunState(Sts2Bindings bindings, Session session)
+    private static RunStateResult RunState(Sts2Bindings bindings, Session session)
     {
         var run = session.Run
             ?? throw new InvalidOperationException("no active run — call run/new first");
 
         var s = bindings.ReadSnapshot(run);
-        return new JsonObject
-        {
-            ["ok"] = true,
-            ["character"] = session.Character,
-            ["seed"] = session.Seed,
-            ["hp"] = s.CurrentHp,
-            ["maxHp"] = s.MaxHp,
-            ["gold"] = s.Gold,
-            ["deckSize"] = s.DeckSize,
-            ["currentRoomType"] = s.CurrentRoomType,
-            ["actFloor"] = s.ActFloor,
-            ["isGameOver"] = s.IsGameOver,
-        };
+        return new RunStateResult(
+            Ok: true,
+            Character: session.Character,
+            Seed: session.Seed,
+            Hp: s.CurrentHp,
+            MaxHp: s.MaxHp,
+            Gold: s.Gold,
+            DeckSize: s.DeckSize,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver);
     }
 
-    private static JsonNode? RunSelectMapNode(Sts2Bindings bindings, Session session, JsonNode? @params)
+    private static RunSelectMapNodeResult RunSelectMapNode(Sts2Bindings bindings, Session session, RunSelectMapNodeParams? @params)
     {
         var run = session.Run
             ?? throw new InvalidOperationException("no active run — call run/new first");
-
-        var obj = @params as JsonObject
+        var args = @params
             ?? throw new ArgumentException("run/select_map_node requires params {col, row}");
-        var col = obj["col"]?.GetValue<int>()
-            ?? throw new ArgumentException("run/select_map_node requires 'col'");
-        var row = obj["row"]?.GetValue<int>()
-            ?? throw new ArgumentException("run/select_map_node requires 'row'");
 
-        bindings.EnterMapCoord(run, col, row);
+        bindings.EnterMapCoord(run, args.Col, args.Row);
 
         var s = bindings.ReadSnapshot(run);
-        return new JsonObject
-        {
-            ["ok"] = true,
-            ["col"] = col,
-            ["row"] = row,
-            ["currentRoomType"] = s.CurrentRoomType,
-            ["actFloor"] = s.ActFloor,
-            ["isGameOver"] = s.IsGameOver,
-            ["hp"] = s.CurrentHp,
-        };
+        return new RunSelectMapNodeResult(
+            Ok: true,
+            Col: args.Col,
+            Row: args.Row,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp);
     }
+
+    // Adapter that turns a typed Func<TParams?, TResult> into the JsonNode-
+    // shaped delegate StdioHost.Handler expects. Deserialisation tolerates a
+    // missing or null params object (TParams? default); the caller decides
+    // whether to throw for required fields.
+    private static StdioHost.Handler Typed<TParams, TResult>(Func<TParams?, TResult> handler)
+        => raw =>
+        {
+            var p = raw is null ? default : raw.Deserialize<TParams>(EnvelopeIo.JsonOptions);
+            var r = handler(p);
+            return JsonSerializer.SerializeToNode(r, EnvelopeIo.JsonOptions);
+        };
+
+    private static StdioHost.Handler TypedNoParams<TResult>(Func<TResult> handler)
+        => _ => JsonSerializer.SerializeToNode(handler(), EnvelopeIo.JsonOptions);
 
     private static (string? Version, string? Sha256) ReadGameVersion(string repoRoot)
     {
