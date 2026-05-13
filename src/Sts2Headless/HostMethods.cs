@@ -58,7 +58,8 @@ public static class HostMethods
             Character: character,
             Seed: seed,
             PlayerType: run.Player.GetType().FullName ?? run.Player.GetType().Name,
-            CurrentRoomType: s.CurrentRoomType);
+            CurrentRoomType: s.CurrentRoomType,
+            AvailableMapNodes: s.AvailableMapNodes);
     }
 
     private static RunStateResult RunState(Sts2Bindings bindings, Session session)
@@ -77,7 +78,8 @@ public static class HostMethods
             DeckSize: s.DeckSize,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
-            IsGameOver: s.IsGameOver);
+            IsGameOver: s.IsGameOver,
+            AvailableMapNodes: s.AvailableMapNodes);
     }
 
     private static RunSelectMapNodeResult RunSelectMapNode(Sts2Bindings bindings, Session session, RunSelectMapNodeParams? @params)
@@ -97,7 +99,8 @@ public static class HostMethods
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
             IsGameOver: s.IsGameOver,
-            Hp: s.CurrentHp);
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes);
     }
 
     // Adapter that turns a typed Func<TParams?, TResult> into the JsonNode-

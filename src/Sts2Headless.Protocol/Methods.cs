@@ -53,6 +53,37 @@ public enum RoomType
     BossRoom,
 }
 
+// Map-node types we've seen sts2's MapPoint.PointType report. Distinct from
+// RoomType: this is the *kind* of node painted on the act map (Monster,
+// Elite, …), whereas RoomType is the runtime room you land in after picking
+// the node (Elite resolves to CombatRoom, etc.). Same Unknown-fallback
+// discipline as RoomType — grow the enum as integration tests surface new
+// names rather than widening the parser.
+//
+// Observed so far: Monster (act 0 starting nodes). Elite/Event/RestSite/
+// Treasure/Merchant/Boss are speculative — left in to document the schema
+// callers can expect, validated when the corresponding nodes actually appear.
+[JsonConverter(typeof(JsonStringEnumConverter<MapNodeType>))]
+public enum MapNodeType
+{
+    Unknown,
+    Monster,
+    Elite,
+    Event,
+    RestSite,
+    Treasure,
+    Merchant,
+    Boss,
+}
+
+// One legal next move from the current map position. Col/row feed straight
+// back into run/select_map_node; Type lets clients distinguish "definitely
+// combat" from "definitely shop" without booting the room first.
+public sealed record MapNode(
+    [property: JsonPropertyName("col")] int Col,
+    [property: JsonPropertyName("row")] int Row,
+    [property: JsonPropertyName("type")] MapNodeType Type);
+
 // ── host/ping ────────────────────────────────────────────────────────────
 
 public sealed record HostPingResult(
@@ -81,7 +112,11 @@ public sealed record RunNewResult(
     [property: JsonPropertyName("character")] Character Character,
     [property: JsonPropertyName("seed")] ulong Seed,
     [property: JsonPropertyName("playerType")] string PlayerType,
-    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType);
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    // Legal next moves from the current map position. Empty when the player
+    // isn't standing on the map (e.g. mid-combat, on Neow's event); callers
+    // should re-issue run/state once the current room resolves.
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes);
 
 // ── run/state ────────────────────────────────────────────────────────────
 
@@ -96,7 +131,8 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("deckSize")] int DeckSize,
     [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
     [property: JsonPropertyName("actFloor")] int ActFloor,
-    [property: JsonPropertyName("isGameOver")] bool IsGameOver);
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes);
 
 // ── run/select_map_node ──────────────────────────────────────────────────
 
@@ -111,4 +147,5 @@ public sealed record RunSelectMapNodeResult(
     [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
     [property: JsonPropertyName("actFloor")] int ActFloor,
     [property: JsonPropertyName("isGameOver")] bool IsGameOver,
-    [property: JsonPropertyName("hp")] int Hp);
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes);

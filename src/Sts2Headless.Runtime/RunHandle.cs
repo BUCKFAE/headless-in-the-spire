@@ -15,6 +15,8 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 // add fields as we bind more reads, never break existing JSON shape.
 // CurrentRoomType is the Protocol enum, mapped from sts2's `room.GetType().Name`
 // at the binding layer — unknown sts2 rooms come back as RoomType.Unknown.
+// AvailableMapNodes is the list of legal next moves from the current map
+// position; empty when the player isn't standing on the map.
 public sealed record RunSnapshot(
     int CurrentHp,
     int MaxHp,
@@ -22,4 +24,5 @@ public sealed record RunSnapshot(
     int DeckSize,
     RoomType CurrentRoomType,
     int ActFloor,
-    bool IsGameOver);
+    bool IsGameOver,
+    IReadOnlyList<MapNode> AvailableMapNodes);

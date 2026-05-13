@@ -53,6 +53,17 @@ public sealed class Sts2Bindings
     private readonly PropertyInfo _runStateActFloor;
     private readonly PropertyInfo _runStateIsGameOver;
 
+    // ── Map traversal (for available-node enumeration) ──────────────────
+    private readonly PropertyInfo _runStateMap;
+    private readonly PropertyInfo _runStateCurrentMapCoord;
+    private readonly PropertyInfo _mapStartingMapPoint;
+    private readonly MethodInfo _mapGetPoint;
+    private readonly PropertyInfo _mapPointChildren;
+    private readonly FieldInfo _mapPointCoord;
+    private readonly PropertyInfo _mapPointPointType;
+    private readonly FieldInfo _mapCoordColField;
+    private readonly FieldInfo _mapCoordRowField;
+
     private Sts2Bindings(Assembly sts2, BindingState s)
     {
         Sts2 = sts2;
@@ -80,6 +91,15 @@ public sealed class Sts2Bindings
         _runStateCurrentRoom = s.RunStateCurrentRoom;
         _runStateActFloor = s.RunStateActFloor;
         _runStateIsGameOver = s.RunStateIsGameOver;
+        _runStateMap = s.RunStateMap;
+        _runStateCurrentMapCoord = s.RunStateCurrentMapCoord;
+        _mapStartingMapPoint = s.MapStartingMapPoint;
+        _mapGetPoint = s.MapGetPoint;
+        _mapPointChildren = s.MapPointChildren;
+        _mapPointCoord = s.MapPointCoord;
+        _mapPointPointType = s.MapPointPointType;
+        _mapCoordColField = s.MapCoordColField;
+        _mapCoordRowField = s.MapCoordRowField;
     }
 
     // Full sts2-cli StartRun chain, condensed. Returns a triple the wire
@@ -168,7 +188,86 @@ public sealed class Sts2Bindings
         var actFloor = (int)_runStateActFloor.GetValue(handle.RunState)!;
         var isGameOver = (bool)_runStateIsGameOver.GetValue(handle.RunState)!;
 
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver);
+        // Only surface map choices when the player is actually at the map.
+        // The underlying map graph is computable any time, but exposing it
+        // mid-combat or mid-event would let callers issue run/select_map_node
+        // in a state where the engine will reject it; better to be empty
+        // and have the consumer wait for currentRoomType to flip back.
+        var availableNodes = roomType == RoomType.MapRoom
+            ? ReadAvailableMapNodes(handle.RunState)
+            : Array.Empty<MapNode>();
+
+        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes);
+    }
+
+    // Enumerate next-move candidates by mirroring sts2-cli's MapSelectState:
+    // - currentCoord null → starting position; offer the start node plus its
+    //   children (sts2 lets you pick any of the starting-row entries).
+    // - currentCoord set + GetPoint returns a MapPoint → its Children.
+    // - currentCoord set + GetPoint returns null → stale coord after a forced
+    //   transition; fall back to StartingMapPoint.Children so the wire stays
+    //   honest rather than silently empty.
+    // Returns [] if the Map isn't available yet (pre-EnterAct, mid-event).
+    private IReadOnlyList<MapNode> ReadAvailableMapNodes(object runState)
+    {
+        var map = _runStateMap.GetValue(runState);
+        if (map is null) return Array.Empty<MapNode>();
+
+        var currentCoord = _runStateCurrentMapCoord.GetValue(runState);
+
+        if (currentCoord is null)
+        {
+            var startingPoint = _mapStartingMapPoint.GetValue(map);
+            if (startingPoint is null) return Array.Empty<MapNode>();
+
+            var result = new List<MapNode> { ToMapNode(startingPoint) };
+            AppendChildren(startingPoint, result);
+            return result;
+        }
+
+        var currentPoint = _mapGetPoint.Invoke(map, new[] { currentCoord });
+        if (currentPoint is null)
+        {
+            var startingPoint = _mapStartingMapPoint.GetValue(map);
+            if (startingPoint is null) return Array.Empty<MapNode>();
+            var fallback = new List<MapNode>();
+            AppendChildren(startingPoint, fallback);
+            return fallback;
+        }
+
+        var children = new List<MapNode>();
+        AppendChildren(currentPoint, children);
+        return children;
+    }
+
+    private void AppendChildren(object mapPoint, List<MapNode> sink)
+    {
+        if (_mapPointChildren.GetValue(mapPoint) is not System.Collections.IEnumerable children) return;
+        foreach (var child in children)
+        {
+            if (child is null) continue;
+            sink.Add(ToMapNode(child));
+        }
+    }
+
+    private MapNode ToMapNode(object mapPoint)
+    {
+        var coord = _mapPointCoord.GetValue(mapPoint)
+            ?? throw new InvalidOperationException("MapPoint.coord was null");
+        var col = Convert.ToInt32(_mapCoordColField.GetValue(coord));
+        var row = Convert.ToInt32(_mapCoordRowField.GetValue(coord));
+
+        var pointTypeValue = _mapPointPointType.GetValue(mapPoint);
+        var pointTypeName = pointTypeValue?.ToString();
+        // Same Unknown-fallback discipline as RoomType. If the test harness
+        // reports an Unknown that isn't actually unknown, the fix is to add
+        // the value to MapNodeType — not to widen the parse.
+        var type = pointTypeName is not null
+                   && Enum.TryParse<MapNodeType>(pointTypeName, ignoreCase: false, out var parsed)
+            ? parsed
+            : MapNodeType.Unknown;
+
+        return new MapNode(col, row, type);
     }
 
     // Build a MapCoord from {col, row} and pump RunManager.EnterMapCoord.
@@ -267,6 +366,31 @@ public sealed class Sts2Bindings
         var mapCoordType = coordParam?.ParameterType
             ?? throw new InvalidOperationException("RunManager.EnterMapCoord has no parameters; cannot infer MapCoord type");
 
+        // Map traversal handles. Walks: RunState.Map → StartingMapPoint or
+        // GetPoint(currentMapCoord) → Children → coord.{col,row} + PointType.
+        // MapPoint's `coord` is a public field on a struct (lowercase, same
+        // as MapCoord proper); MapCoord's col/row are also public fields.
+        var runStateMap = RequireProperty(runStateType, "Map");
+        var runStateCurrentMapCoord = RequireProperty(runStateType, "CurrentMapCoord");
+        var mapType = runStateMap.PropertyType;
+        var mapStartingMapPoint = RequireProperty(mapType, "StartingMapPoint");
+        var mapGetPoint = mapType.GetMethod("GetPoint", BindingFlags.Public | BindingFlags.Instance, new[] { mapCoordType })
+            ?? mapType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m => m.Name == "GetPoint" && m.GetParameters().Length == 1)
+            ?? throw new InvalidOperationException($"{mapType.FullName}.GetPoint(MapCoord) not found");
+        var mapPointType = mapStartingMapPoint.PropertyType;
+        var mapPointChildren = RequireProperty(mapPointType, "Children");
+        var mapPointCoord = mapPointType.GetField("coord", BindingFlags.Public | BindingFlags.Instance)
+            ?? mapPointType.GetField("Coord", BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException($"{mapPointType.FullName}.coord field not found");
+        var mapPointPointType = RequireProperty(mapPointType, "PointType");
+        var mapCoordColField = mapCoordType.GetField("col", BindingFlags.Public | BindingFlags.Instance)
+            ?? mapCoordType.GetField("Col", BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException($"{mapCoordType.FullName}.col field not found");
+        var mapCoordRowField = mapCoordType.GetField("row", BindingFlags.Public | BindingFlags.Instance)
+            ?? mapCoordType.GetField("Row", BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException($"{mapCoordType.FullName}.row field not found");
+
         return new Sts2Bindings(sts2, new BindingState(
             playerType, createIroncladRun, unlockAll,
             new InvocationPlan(createForTest), runManagerInstance, netServiceType,
@@ -274,7 +398,10 @@ public sealed class Sts2Bindings
             generateRooms, launch, finalize, enterAct, enterMapCoord, mapCoordType,
             playerGold, playerCreature, playerDeck,
             creatureCurrentHp, creatureMaxHp, deckCards,
-            currentRoom, actFloor, isGameOver));
+            currentRoom, actFloor, isGameOver,
+            runStateMap, runStateCurrentMapCoord, mapStartingMapPoint, mapGetPoint,
+            mapPointChildren, mapPointCoord, mapPointPointType,
+            mapCoordColField, mapCoordRowField));
     }
 
     private static InvocationPlan SoleOverload(Type owner, string methodName)
@@ -328,5 +455,8 @@ public sealed class Sts2Bindings
         InvocationPlan RunManagerEnterAct, InvocationPlan RunManagerEnterMapCoord, Type MapCoordType,
         PropertyInfo PlayerGold, PropertyInfo PlayerCreature, PropertyInfo PlayerDeck,
         PropertyInfo CreatureCurrentHp, PropertyInfo CreatureMaxHp, PropertyInfo DeckCards,
-        PropertyInfo RunStateCurrentRoom, PropertyInfo RunStateActFloor, PropertyInfo RunStateIsGameOver);
+        PropertyInfo RunStateCurrentRoom, PropertyInfo RunStateActFloor, PropertyInfo RunStateIsGameOver,
+        PropertyInfo RunStateMap, PropertyInfo RunStateCurrentMapCoord, PropertyInfo MapStartingMapPoint,
+        MethodInfo MapGetPoint, PropertyInfo MapPointChildren, FieldInfo MapPointCoord,
+        PropertyInfo MapPointPointType, FieldInfo MapCoordColField, FieldInfo MapCoordRowField);
 }
