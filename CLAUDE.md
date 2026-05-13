@@ -48,11 +48,16 @@ just run      # smoke-test the host
 ## Project layout
 
 ```
+Directory.Build.props          shared csproj settings (net10.0, nullable, etc.)
 src/
-  Directory.Build.props        shared csproj settings (net10.0, nullable, etc.)
-  Sts2Headless/                exe — entry, vendor resolver, stdio loop (TBD)
+  Sts2Headless/                exe — entry, CLI/probe commands, stdio loop (TBD)
+  Sts2Headless.Runtime/        lib — vendor resolver, sts2 load, sync ctx,
+                                     Harmony hang patches, bootstrap walker.
+                                     Everything that talks to a live sts2.dll.
   Sts2Headless.Protocol/       lib — JSON-RPC-style envelope + method records
   GodotStubs/                  lib — no-op GodotSharp.dll replacement (grown on demand)
+tests/
+  Sts2Headless.Runtime.Tests/  xUnit — bootstrap regression, AD-4 invariant
 Sts2Headless.slnx              solution at repo root
 scripts/                       bootstrap shell scripts (bash)
 vendor/                        game DLLs (gitignored; populated by `just pull-game-libs`)
@@ -66,9 +71,12 @@ GAME_VERSION                   pinned version string + SHA-256 of vendor/sts2.dl
 - Wire protocol authored in C# records; payloads carried as `JsonNode` at the
   envelope layer, deserialised to concrete records at the method-dispatch
   layer. See `src/Sts2Headless.Protocol/Envelope.cs` and AD-2.
-- Vendor DLL resolution goes through `VendorAssemblyResolver` →
-  `AssemblyLoadContext.Default.Resolving`. We don't probe the game's full data
-  directory at runtime; `vendor/` is the curated set.
+- Vendor DLL resolution goes through `Sts2Headless.Runtime.VendorAssemblyResolver`
+  → `AssemblyLoadContext.Default.Resolving`. We don't probe the game's full
+  data directory at runtime; `vendor/` is the curated set.
+- AD-4 (no compile-time sts2 reference) is guarded by
+  `tests/Sts2Headless.Runtime.Tests/Ad4InvariantTests.cs`; the bootstrap walk
+  is locked in by `BootstrapSequenceTests.cs`. Run via `just test`.
 - New `just` recipes get a one-line doc comment that fits in `just --list`
   output. Multi-line comments are clipped.
 - Don't reference `external-tools/` in code — it's a research clone of

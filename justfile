@@ -59,10 +59,10 @@ clean:
 
 # ── Tests ─────────────────────────────────────────────────────────────────
 
+# Run the xUnit test suite (loads vendor/sts2.dll in-process; needs `just setup`).
 test:
-    @echo "Running unittests..."
-    # TODO: Wire in C# tests once src/ exists.
+    @dotnet test Sts2Headless.slnx {{MSBUILD_MAX_CPU}} --nologo
 
 test-full: test
     @echo "Running full tests..."
-    # TODO: Wire in end-to-end tests.
+    # TODO: Wire in end-to-end tests (subprocess host fixture).

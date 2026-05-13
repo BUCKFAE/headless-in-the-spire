@@ -220,20 +220,6 @@ public static class BootstrapSequence
         catch (Exception ex) { return new(label, false, Describe(Unwrap(ex))); }
     }
 
-    // Unwrap reflection-invocation wrappers AND cctor wrappers so the
-    // surfaced exception is what the underlying game code actually threw.
-    // Without this, every static-initializer failure looks identical
-    // ("the type initializer for X threw") and you can't tell what X needs.
-    private static Exception Unwrap(Exception ex)
-    {
-        while (ex.InnerException is not null
-               && ex is TargetInvocationException or TypeInitializationException)
-        {
-            ex = ex.InnerException;
-        }
-        return ex;
-    }
-
-    private static string Describe(Exception ex)
-        => $"{ex.GetType().Name}: {ex.Message}";
+    private static Exception Unwrap(Exception ex) => Diagnostics.Unwrap(ex);
+    private static string Describe(Exception ex) => Diagnostics.Describe(ex);
 }

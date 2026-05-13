@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Description>Integration tests for Sts2Headless.Runtime. Loads vendor/sts2.dll in-process and asserts the bootstrap walk produces the expected StepOutcome list, plus invariants like AD-4 (no compile-time sts2 reference).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+    <!-- GodotStubs builds as GodotSharp.dll and must be present next to the
+         test binaries so sts2.dll's references resolve. -->
+    <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />
+    <!-- Reference the exe so its built output lands in the test bin/ —
+         enables the AD-4 invariant test to inspect its assembly references. -->
+    <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
+  </ItemGroup>
+
+</Project>

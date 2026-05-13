@@ -5,4 +5,7 @@
     <Project Path="src/Sts2Headless.Runtime/Sts2Headless.Runtime.csproj" />
     <Project Path="src/Sts2Headless/Sts2Headless.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sts2Headless.Runtime.Tests/Sts2Headless.Runtime.Tests.csproj" />
+  </Folder>
 </Solution>
