@@ -21,7 +21,7 @@ pull-game-libs:
 # Clone reference projects (currently sts2-cli) into external-tools/.
 clone-external-tools:
     @mkdir -p external-tools
-    @test -d external-tools/sts2-cli || git clone --depth 1 https://github.com/wuhao21/sts2-cli.git external-tools/sts2-cli
+    @test -d external-tools/sts2-cli || git clone --depth 1 --single-branch --no-tags https://github.com/wuhao21/sts2-cli.git external-tools/sts2-cli
 
 # ── Build ─────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,10 @@ run: build
 # Load vendor/sts2.dll and report missing GodotStubs surface (diagnostic).
 inspect-sts2: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --inspect-sts2
+
+# Install sync context + Harmony hang-patches against vendor/sts2.dll (diagnostic).
+probe-init: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-init
 
 # Remove all bin/ and obj/ build artifacts.
 clean:
