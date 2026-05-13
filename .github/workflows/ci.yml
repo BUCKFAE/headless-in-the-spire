@@ -4,15 +4,10 @@ on:
   pull_request:
   push:
     branches: [main]
-    paths-ignore:
-      - ".github/badges/**"
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
-
-permissions:
-  contents: read
 
 jobs:
   build:
@@ -37,19 +32,3 @@ jobs:
       # local. `just test-integration` runs it on dev machines after `just setup`.
       - name: Unit tests
         run: dotnet test tests/Sts2Headless.UnitTests/Sts2Headless.UnitTests.csproj --configuration Release --no-build --nologo --logger "console;verbosity=normal"
-
-  update-badges:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-
-      - name: Generate badges
-        run: bash scripts/badges/write-badges.sh
