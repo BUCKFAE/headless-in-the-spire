@@ -53,16 +53,3 @@ jobs:
 
       - name: Generate badges
         run: bash scripts/badges/write-badges.sh
-
-      - name: Commit badge changes
-        run: |
-          if [[ -z "$(git status --porcelain -- .github/badges)" ]]; then
-            echo "Badges are already current."
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/badges
-          git commit -m "Update generated badges"
-          git push
