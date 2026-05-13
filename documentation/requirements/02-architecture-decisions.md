@@ -195,3 +195,66 @@ Bump workflow:
 - A snapshot-diff classifier (content drift vs. structural drift) is a
   worthwhile but secondary investment; we can do it manually until volume
   demands automation.
+
+---
+
+## AD-4 — Game-symbol access: reflection only, no compile-time references to sts2.dll
+
+**Status**: Accepted (2026-05-13)
+
+**Context**
+
+`sts2.dll` is proprietary and gitignored (AD-3). Everything in `vendor/` is
+populated at first-run by `just setup` from the user's Steam install. The
+host needs to call into sts2 (instantiate `Player`, register `ModelDb`
+subtypes, find `Cmd.Wait` for a Harmony patch, etc.). Two ways to do that:
+
+- **Compile-time reference.** Add `<Reference Include="vendor/sts2.dll"/>`
+  in `Sts2Headless.csproj`. Game types resolve to typed symbols — clean
+  call sites, IDE completion, stage-2 compat check (AD-3) works
+  automatically. This is what `wuhao21/sts2-cli` does.
+- **Reflection only.** Game types are never named in C# source. Every
+  access goes through `Type.GetType`, `MethodInfo.Invoke`, etc., grouped
+  in a curated surface that AD-3's stage-1 reflection manifest naturally
+  describes.
+
+The compile-time path is more ergonomic but has a hard cost: `dotnet
+build` requires a populated `vendor/` directory, which requires a Steam
+install of the game. Contributors without the game can't compile, and
+CI (GitHub Actions, etc.) can't build or run unit tests without us
+either checking in proprietary bytes (forbidden by AD-3) or wiring a
+Steam runner into CI (expensive, fragile, licence-questionable).
+
+**Decision**
+
+The host accesses sts2 symbols by reflection only. `Sts2Headless.csproj`
+has no `<Reference>` to anything under `vendor/`, and no `using
+MegaCrit.Sts2.…` directives appear anywhere in `src/`.
+
+Reflection access is funneled through a small set of helpers (initially
+ad-hoc, hardening into the AD-3 reflection manifest as it matures) so
+the surface stays inventoried.
+
+`GodotStubs` is unaffected — it's our own typed library, referenced
+normally. The constraint is only on sts2-defined types.
+
+**Consequences**
+
+- `dotnet build` works for anyone who clones the repo, with no Steam
+  install required. CI can build and run host-only tests (anything that
+  doesn't try to invoke sts2 itself) without proprietary bytes.
+- Per-call-site verbosity at every reflective access. We accept this cost
+  in exchange for the build-without-vendor property and as a forcing
+  function for the reflection manifest.
+- AD-3's stage-2 compile-time compat check does not apply to game
+  symbols — they're invisible to the C# compiler. Stage 1 (the
+  reflection manifest diff) becomes load-bearing as a result; it has
+  to catch what the compiler would otherwise have caught.
+- Source-generated typed wrappers over the manifest (a "stage 1.5") are
+  a plausible future investment. They'd recover the ergonomics of the
+  compile-time path without sacrificing offline-buildability: the
+  generator runs on the manifest, which is a checked-in JSON file. Not
+  pursued in the initial iteration.
+- Tests that need to actually invoke sts2 (smoke tests for hang patches,
+  end-to-end runs) require a populated `vendor/` and must be marked /
+  gated so they're skipped in CI environments without it.
