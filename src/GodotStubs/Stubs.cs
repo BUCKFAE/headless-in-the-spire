@@ -15,13 +15,103 @@
 
 namespace Godot;
 
+// ── Static helpers ──────────────────────────────────────────────────────
+
+// from: MegaCrit.Sts2.Core.Models.ModelIdSerializationCache.Init
+//   (TypeLoadException → MissingMethodException progression during
+//    probe-bootstrap.)
+// Real Mathf is a static class with dozens of helpers. Members added on
+// demand, each with the probe failure that forced it.
+public static class Mathf
+{
+    // from: ModelIdSerializationCache.Init — MissingMethodException
+    //   "Method not found: 'Int32 Godot.Mathf.CeilToInt(Double)'."
+    public static int CeilToInt(double s) => (int)Math.Ceiling(s);
+}
+
+// from: every Godot.OS reference in sts2.dll (27 members), enumerated via
+//   `just list-members Godot.OS`. Defaults are the smallest safe values
+//   (empty string/array, false, 0, Error.Ok, empty Dictionary). If any
+//   headless code path needs richer behaviour, override that specific
+//   member; do not add members that --list-members didn't surface.
+public static class OS
+{
+    // ── bool returns: default false ──
+    public static bool HasFeature(string _) => false;
+    public static bool IsDebugBuild() => false;
+    public static bool IsInLowProcessorUsageMode() => false;
+    public static bool IsSandboxed() => false;
+    public static bool IsStdOutVerbose() => false;
+    public static bool IsUserfsPersistent() => false;
+
+    // ── int / uint returns ──
+    public static int GetProcessorCount() => 0;
+    public static ulong GetStaticMemoryPeakUsage() => 0;
+    public static ulong GetStaticMemoryUsage() => 0;
+
+    // ── string returns: empty string ──
+    public static string GetDataDir() => string.Empty;
+    public static string GetDistributionName() => string.Empty;
+    public static string GetEnvironment(string _) => string.Empty;
+    public static string GetExecutablePath() => string.Empty;
+    public static string GetLocale() => string.Empty;
+    public static string GetLocaleLanguage() => string.Empty;
+    public static string GetModelName() => string.Empty;
+    public static string GetName() => string.Empty;
+    public static string GetProcessorName() => string.Empty;
+    public static string GetUserDataDir() => string.Empty;
+    public static string GetVersion() => string.Empty;
+
+    // ── string[] returns ──
+    public static string[] GetCmdlineArgs() => Array.Empty<string>();
+    public static string[] GetCmdlineUserArgs() => Array.Empty<string>();
+    public static string[] GetGrantedPermissions() => Array.Empty<string>();
+
+    // ── other ──
+    public static Dictionary GetMemoryInfo() => new();
+    public static Error ShellOpen(string _) => Error.Ok;
+    public static Error ShellShowInFileManager(string _, bool __) => Error.Ok;
+    public static void Crash(string _) { }
+}
+
+// from: Godot.OS.GetMemoryInfo() return type (and likely future references).
+// Real Godot.Dictionary is a Variant-keyed dict exposed to GDScript; for
+// our purposes an empty class is enough — the result is never read in
+// headless paths we've reached so far.
+public class Dictionary { }
+
+// from: every Godot.GD reference in sts2.dll (8 members), enumerated via
+//   `just list-members Godot.GD`. Print* and Push* are no-ops; Load<T>
+//   returns default (null for ref types); rand helpers return 0. If
+//   headless paths start needing real values from any of these, override
+//   the specific member.
+public static class GD
+{
+    public static T Load<T>(string _) => default!;
+    public static double RandRange(double _, double __) => 0;
+    public static float Randf() => 0;
+    public static void Print(string _) { }
+    public static void PrintErr(string _) { }
+    public static void PrintRich(string _) { }
+    public static void PushError(string _) { }
+    public static void PushWarning(string _) { }
+}
+
 // ── Value types ─────────────────────────────────────────────────────────
 
 public readonly struct Vector2 { }
 public readonly struct Vector2I { }
 public readonly struct Vector3 { }
 public readonly struct Rect2 { }
-public readonly struct Color { }
+public readonly struct Color
+{
+    // from: 19 ModelDb subtypes (Defect, BouncingFlask, DeprecatedCharacter, …)
+    //   MissingMethodException during Inject: "Method not found:
+    //   'Void Godot.Color..ctor(System.String)'." — model cctors build
+    //   colors from hex strings. Body is a no-op; nothing on this stub is
+    //   actually read.
+    public Color(string _) { }
+}
 public readonly struct Variant { }
 public readonly struct Callable { }
 
@@ -67,6 +157,11 @@ public class ENetConnection : GodotObject
     public enum EventType { None = 0 }
 }
 
+// from: SaveManager.InitProfileId — `just list-members Godot.FileAccess`
+//   (17 members). "Empty filesystem" semantics: FileExists/IsOpen false,
+//   sizes 0, reads return empty buffers/strings, writes no-op return true.
+//   Open returns a fresh instance (rather than null) so write paths don't
+//   NPE; the resulting "file" is discarded since nothing reads back.
 public class FileAccess : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
@@ -74,6 +169,55 @@ public class FileAccess : GodotObject
     public new class SignalName : GodotObject.SignalName { }
 
     public enum ModeFlags { Read = 1, Write = 2, ReadWrite = 3, WriteRead = 7 }
+
+    public bool IsOpen() => false;
+    public bool StoreBuffer(byte[] _) => true;
+    public bool StoreLine(string _) => true;
+    public byte[] GetBuffer(long _) => Array.Empty<byte>();
+    public Error GetError() => Error.Ok;
+    public string GetAsText(bool _) => string.Empty;
+    public string GetLine() => string.Empty;
+    public ulong GetLength() => 0;
+    public ulong GetPosition() => 0;
+    public void Close() { }
+    public void Flush() { }
+    public void Seek(ulong _) { }
+
+    public static bool FileExists(string _) => false;
+    public static Error GetOpenError() => Error.Ok;
+    public static FileAccess Open(string _, ModeFlags __) => new();
+    public static long GetSize(string _) => 0;
+    public static ulong GetModifiedTime(string _) => 0;
+}
+
+// from: SaveManager.InitProfileId(0) — `just list-members Godot.DirAccess`
+//   (15 members). Stubbed as an "empty filesystem": bool false, empty
+//   strings/arrays, Error.Ok on writes (caller proceeds as if mkdir
+//   succeeded), and Open returns a fresh instance so callers don't NPE
+//   on the result. If any path actually reads contents back, override
+//   that specific member.
+public class DirAccess : GodotObject
+{
+    public new class MethodName : GodotObject.MethodName { }
+    public new class PropertyName : GodotObject.PropertyName { }
+    public new class SignalName : GodotObject.SignalName { }
+
+    public bool CurrentIsDir() => false;
+    public Error ListDirBegin() => Error.Ok;
+    public Error Remove(string _) => Error.Ok;
+    public string GetNext() => string.Empty;
+    public string[] GetDirectories() => Array.Empty<string>();
+    public string[] GetFiles() => Array.Empty<string>();
+    public bool IncludeHidden { set { } }
+
+    public static bool DirExistsAbsolute(string _) => false;
+    public static DirAccess Open(string _) => new();
+    public static Error MakeDirAbsolute(string _) => Error.Ok;
+    public static Error MakeDirRecursiveAbsolute(string _) => Error.Ok;
+    public static Error RemoveAbsolute(string _) => Error.Ok;
+    public static Error RenameAbsolute(string _, string __) => Error.Ok;
+    public static string[] GetDirectoriesAt(string _) => Array.Empty<string>();
+    public static string[] GetFilesAt(string _) => Array.Empty<string>();
 }
 
 public class RichTextEffect : Resource

@@ -1,5 +1,8 @@
 set dotenv-load
 
+BUILD_CORES := "auto"
+MSBUILD_MAX_CPU := if BUILD_CORES == "auto" { "-maxcpucount" } else { "-maxcpucount:" + BUILD_CORES }
+
 default:
     @just --list
 
@@ -25,9 +28,9 @@ clone-external-tools:
 
 # ── Build ─────────────────────────────────────────────────────────────────
 
-# Build the whole solution (Sts2Headless exe + Protocol lib + GodotStubs lib).
+# Build the whole solution with MSBuild parallelism; override with `just BUILD_CORES=4 build`.
 build:
-    @dotnet build Sts2Headless.slnx
+    @dotnet build Sts2Headless.slnx {{MSBUILD_MAX_CPU}}
 
 # Run the headless host (prints the banner and vendor inventory for now).
 run: build
@@ -40,6 +43,14 @@ inspect-sts2: build
 # Install sync context + Harmony hang-patches against vendor/sts2.dll (diagnostic).
 probe-init: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-init
+
+# probe-init + walk sts2's bootstrap chain (TestMode→ModelDb→Player smoke).
+probe-bootstrap: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-bootstrap
+
+# List every member of <fqn> that sts2.dll references (e.g. `just list-members Godot.OS`).
+list-members fqn: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --list-members {{fqn}}
 
 # Remove all bin/ and obj/ build artifacts.
 clean:

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Runtime layer: vendor resolution, sts2.dll load, sync-context install, Harmony hang patches, reflection-only bootstrap walker. Everything that talks to a live sts2.dll lives here so both the exe and the test suite can drive it.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Harmony for runtime IL patches on sts2.dll. AD-4: sts2 is never
+         referenced at compile time; patches discover targets reflectively. -->
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
+  </ItemGroup>
+
+</Project>

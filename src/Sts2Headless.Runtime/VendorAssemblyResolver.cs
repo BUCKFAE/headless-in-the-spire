@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Runtime;
 
 // Resolves managed assembly references against vendor/, which holds the
 // pinned game DLLs (see AD-3) plus our GodotStubs build output. Wired into
@@ -13,7 +13,7 @@ namespace Sts2Headless;
 //
 // We intentionally do not probe the game's full data directory at runtime:
 // vendor/ is the curated set and anything outside it should fail loudly.
-internal sealed class VendorAssemblyResolver
+public sealed class VendorAssemblyResolver
 {
     private readonly string _vendorDir;
     private readonly Dictionary<string, Assembly> _cache = new(StringComparer.OrdinalIgnoreCase);

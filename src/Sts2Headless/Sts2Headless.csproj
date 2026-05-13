@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <ProjectReference Include="..\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
     <!-- GodotStubs builds as GodotSharp.dll and lands next to our exe, so the
          default loader probing path satisfies sts2.dll's GodotSharp references
          without going through our vendor resolver. -->
