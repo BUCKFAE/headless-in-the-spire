@@ -11,6 +11,8 @@ namespace Sts2Headless.Protocol;
 // We keep `params` / `result` as JsonNode at this layer so the envelope is
 // agnostic to specific method payloads — those live alongside the methods
 // they belong to. Method dispatch upstack deserialises into concrete records.
+//
+// TODO: Add examples, right now i dont' really know what a notification might be
 
 public sealed record Request(
     [property: JsonPropertyName("id")] long Id,
