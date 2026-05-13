@@ -27,6 +27,16 @@ public static class Mathf
     // from: ModelIdSerializationCache.Init — MissingMethodException
     //   "Method not found: 'Int32 Godot.Mathf.CeilToInt(Double)'."
     public static int CeilToInt(double s) => (int)Math.Ceiling(s);
+
+    // from: MegaCrit.Sts2.Core.Map.StandardActMap.GenerateNextCoord
+    //   MissingMethodException during EnterAct's map generation:
+    //   "Method not found: 'Int32 Godot.Mathf.Max(Int32, Int32)'."
+    public static int Max(int a, int b) => Math.Max(a, b);
+
+    // from: MegaCrit.Sts2.Core.Map.StandardActMap.GenerateNextCoord
+    //   MissingMethodException during EnterAct's map generation:
+    //   "Method not found: 'Int32 Godot.Mathf.Min(Int32, Int32)'."
+    public static int Min(int a, int b) => Math.Min(a, b);
 }
 
 // from: every Godot.OS reference in sts2.dll (27 members), enumerated via
@@ -99,7 +109,15 @@ public static class GD
 
 // ── Value types ─────────────────────────────────────────────────────────
 
-public readonly struct Vector2 { }
+public readonly struct Vector2
+{
+    // from: MegaCrit.Sts2.Core.Nodes.NGame..cctor (and likely siblings)
+    //   MissingMethodException during EnterAct: "Method not found:
+    //   'Void Godot.Vector2..ctor(Single, Single)'." — static fields on
+    //   node classes initialise Vector2 size/position constants. Stored
+    //   but never read; no-op body is fine.
+    public Vector2(float _, float __) { }
+}
 public readonly struct Vector2I { }
 public readonly struct Vector3 { }
 public readonly struct Rect2 { }
@@ -132,6 +150,30 @@ public class GodotObject
     public class MethodName { }
     public class PropertyName { }
     public class SignalName { }
+}
+
+// from: MegaCrit.Sts2.Core.Nodes.Rooms.NEventRoom.Create
+//   TypeLoadException during EnterAct's Neow room entry: "Could not load
+//   type 'Godot.PackedScene'." Real type is sealed and instantiates Godot
+//   scene trees; here we only need a placeholder type to satisfy field
+//   types and method signatures. No instances are ever exercised.
+public class PackedScene : Resource
+{
+    public new class MethodName : Resource.MethodName { }
+    public new class PropertyName : Resource.PropertyName { }
+    public new class SignalName : Resource.SignalName { }
+
+    // from: MegaCrit.Sts2.Core.Nodes.Rooms.NEventRoom.Create
+    //   MissingMethodException: "Method not found: '!!0
+    //   Godot.PackedScene.Instantiate(GenEditState)'." Real method
+    //   instantiates a scene; returning null short-circuits NEventRoom
+    //   creation in a way that zeroes Player.Creature.CurrentHp (probed
+    //   directly — IsGameOver flips to true after EnterAct). Match sts2-cli
+    //   and return `new T()` so downstream code has a non-null node to
+    //   read back.
+    public enum GenEditState { Disabled = 0, Instance = 1, Main = 2, MainInherited = 3 }
+
+    public T Instantiate<T>(GenEditState _ = GenEditState.Disabled) where T : Node, new() => new T();
 }
 
 public class Resource : GodotObject
@@ -290,6 +332,17 @@ public class BackBufferCopy : Node2D
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
     public new class SignalName : Node2D.SignalName { }
+}
+
+// from: MegaCrit.Sts2.Core.Nodes.NGame..cctor
+//   TypeLoadException during EnterAct: "Could not load type 'Godot.Window'".
+//   Static field on the node class is typed as Window; never accessed via
+//   real Godot APIs at runtime in headless. Empty placeholder is enough.
+public class Window : Node
+{
+    public new class MethodName : Node.MethodName { }
+    public new class PropertyName : Node.PropertyName { }
+    public new class SignalName : Node.SignalName { }
 }
 
 // ── Control and descendants ─────────────────────────────────────────────

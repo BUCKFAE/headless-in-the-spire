@@ -26,6 +26,11 @@ if (args.Contains("--probe-bootstrap"))
     return ProbeBootstrapCommand.Run(vendorDir);
 }
 
+if (args.Contains("--probe-run-state"))
+{
+    return ProbeRunStateCommand.Run(vendorDir);
+}
+
 if (args.Contains("--stdio"))
 {
     var preamble = RuntimeBootstrap.Run(vendorDir);

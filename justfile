@@ -48,6 +48,10 @@ probe-init: build
 probe-bootstrap: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-bootstrap
 
+# probe-bootstrap + walk RunState→RunManager→EnterAct chain; dumps post-boot state.
+probe-run-state: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-run-state
+
 # List every member of <fqn> that sts2.dll references (e.g. `just list-members Godot.OS`).
 list-members fqn: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --list-members {{fqn}}
