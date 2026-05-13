@@ -26,6 +26,11 @@ if (args.Contains("--probe-bootstrap"))
     return ProbeBootstrapCommand.Run(vendorDir);
 }
 
+if (args.Contains("--stdio"))
+{
+    return StdioHost.Run(Console.In, Console.Out, HostMethods.Build(repoRoot));
+}
+
 // --list-members <FQN>: dump every member of <FQN> that sts2.dll references.
 // Used to grow GodotStubs accurately without speculation.
 var listIdx = Array.IndexOf(args, "--list-members");

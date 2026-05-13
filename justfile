@@ -52,6 +52,10 @@ probe-bootstrap: build
 list-members fqn: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --list-members {{fqn}}
 
+# Run the host in NDJSON stdio mode (AD-2). One JSON request per line on stdin, one response per line on stdout.
+stdio: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --stdio
+
 # Remove all bin/ and obj/ build artifacts.
 clean:
     @dotnet clean Sts2Headless.slnx
