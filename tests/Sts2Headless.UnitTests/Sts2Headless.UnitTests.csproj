@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Description>Unit tests that DO NOT load vendor/sts2.dll. Safe to run on CI and on any machine without a local game install. Anything that touches the live game DLL belongs in Sts2Headless.IntegrationTests instead.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+    <!-- Referenced so the AD-4 invariant test can inspect every production
+         assembly that lands in the test bin/. GodotStubs comes along
+         transitively via Sts2Headless. -->
+    <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
+    <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,7 +1,7 @@
 using Sts2Headless.Runtime;
 using Xunit;
 
-namespace Sts2Headless.Runtime.Tests;
+namespace Sts2Headless.IntegrationTests;
 
 // Locks in the current end-to-end bootstrap state. Mirrors the output of
 // `just probe-bootstrap` — if the human-eyeballed probe goes green, the

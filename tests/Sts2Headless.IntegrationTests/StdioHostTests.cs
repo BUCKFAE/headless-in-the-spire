@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Xunit;
 
-namespace Sts2Headless.Runtime.Tests;
+namespace Sts2Headless.IntegrationTests;
 
 // End-to-end subprocess fixture: spawn the host with --stdio, write one or
 // more NDJSON requests, read the responses back. The host bootstraps sts2.dll

@@ -2,7 +2,7 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Xunit;
 
-namespace Sts2Headless.Runtime.Tests;
+namespace Sts2Headless.UnitTests;
 
 // AD-4: nothing we ship may take a compile-time dependency on sts2.dll. All
 // interaction with the game DLL goes through reflection so a game-version

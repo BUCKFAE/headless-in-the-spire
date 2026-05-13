@@ -17,7 +17,9 @@ public static class HostMethods
         };
     }
 
-    private static JsonNode? Ping(string repoRoot)
+    // Public for unit tests: doesn't touch sts2 bindings, only reads
+    // GAME_VERSION from disk, so it's safe to exercise without a game install.
+    public static JsonNode? Ping(string repoRoot)
     {
         var (version, sha256) = ReadGameVersion(repoRoot);
         return new JsonObject

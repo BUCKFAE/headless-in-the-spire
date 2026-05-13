@@ -63,10 +63,13 @@ clean:
 
 # ── Tests ─────────────────────────────────────────────────────────────────
 
-# Run the xUnit test suite (loads vendor/sts2.dll in-process; needs `just setup`).
-test:
-    @dotnet test Sts2Headless.slnx {{MSBUILD_MAX_CPU}} --nologo
+# Run only the unit suite — no vendor/sts2.dll required. Mirrors CI.
+test-unit:
+    @dotnet test tests/Sts2Headless.UnitTests/Sts2Headless.UnitTests.csproj {{MSBUILD_MAX_CPU}} --nologo
 
-test-full: test
-    @echo "Running full tests..."
-    # TODO: Wire in end-to-end tests (subprocess host fixture).
+# Run the integration suite (loads vendor/sts2.dll; run `just setup` first).
+test-integration:
+    @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo
+
+# Run both suites.
+test: test-unit test-integration

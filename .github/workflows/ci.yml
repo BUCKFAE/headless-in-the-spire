@@ -26,3 +26,9 @@ jobs:
 
       - name: Build
         run: dotnet build Sts2Headless.slnx --configuration Release --no-restore
+
+      # Only the unit suite runs in CI. Sts2Headless.IntegrationTests loads
+      # vendor/sts2.dll, which is proprietary and cannot ship to CI — it stays
+      # local. `just test-integration` runs it on dev machines after `just setup`.
+      - name: Unit tests
+        run: dotnet test tests/Sts2Headless.UnitTests/Sts2Headless.UnitTests.csproj --configuration Release --no-build --nologo --logger "console;verbosity=normal"

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <Description>Integration tests for Sts2Headless.Runtime. Loads vendor/sts2.dll in-process and asserts the bootstrap walk produces the expected StepOutcome list, plus invariants like AD-4 (no compile-time sts2 reference).</Description>
+    <Description>Integration tests that load vendor/sts2.dll (in-process or via subprocess). Local-only: cannot run on CI because the game DLL is proprietary and not checked in. Run `just setup` first; without it these tests fail with a clear error.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,8 +17,9 @@
     <!-- GodotStubs builds as GodotSharp.dll and must be present next to the
          test binaries so sts2.dll's references resolve. -->
     <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />
-    <!-- Reference the exe so its built output lands in the test bin/ —
-         enables the AD-4 invariant test to inspect its assembly references. -->
+    <!-- The subprocess host fixture in StdioHostTests spawns Sts2Headless.dll
+         from the test bin/, so this reference both lands the exe nearby and
+         keeps it rebuilt when its sources change. -->
     <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
   </ItemGroup>
 

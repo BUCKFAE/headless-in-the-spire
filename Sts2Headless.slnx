@@ -6,6 +6,7 @@
     <Project Path="src/Sts2Headless/Sts2Headless.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Sts2Headless.Runtime.Tests/Sts2Headless.Runtime.Tests.csproj" />
+    <Project Path="tests/Sts2Headless.UnitTests/Sts2Headless.UnitTests.csproj" />
+    <Project Path="tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj" />
   </Folder>
 </Solution>
