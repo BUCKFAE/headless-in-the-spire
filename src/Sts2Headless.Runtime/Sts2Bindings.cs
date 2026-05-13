@@ -13,24 +13,9 @@ namespace Sts2Headless.Runtime;
 // expose a thin wrapper here. Keep the wire-level concepts (e.g. character
 // name strings) out of this class — that translation belongs in the method
 // handler, not in the binding layer.
-
-// A "live run" is a triple: the Player aggregate, the RunState owned by the
-// game, and the RunManager singleton instance that mutates them. Wire code
-// treats it opaquely; the binding layer is the only thing that destructures.
-public sealed record RunHandle(object Player, object RunState, object RunManager);
-
-// Snapshot of the run for read-only wire surfacing. ExpandableRecord pattern:
-// add fields as we bind more reads, never break existing JSON shape.
-// CurrentRoomType is the Protocol enum, mapped from sts2's `room.GetType().Name`
-// at the binding layer — unknown sts2 rooms come back as RoomType.Unknown.
-public sealed record RunSnapshot(
-    int CurrentHp,
-    int MaxHp,
-    int Gold,
-    int DeckSize,
-    RoomType CurrentRoomType,
-    int ActFloor,
-    bool IsGameOver);
+//
+// Wire-facing types (RunHandle, RunSnapshot) live in RunHandle.cs; the
+// reflection helper InvocationPlan lives in InvocationPlan.cs.
 
 public sealed class Sts2Bindings
 {
@@ -344,49 +329,4 @@ public sealed class Sts2Bindings
         PropertyInfo PlayerGold, PropertyInfo PlayerCreature, PropertyInfo PlayerDeck,
         PropertyInfo CreatureCurrentHp, PropertyInfo CreatureMaxHp, PropertyInfo DeckCards,
         PropertyInfo RunStateCurrentRoom, PropertyInfo RunStateActFloor, PropertyInfo RunStateIsGameOver);
-}
-
-// Bind-time-captured method + parameter shape. Invoke by supplying a name→
-// value dict; anything the dict doesn't carry must have a default in the
-// method signature, otherwise we throw a diagnostic naming the signature.
-// Used wherever sts2's signatures have optional parameters we don't care to
-// understand — version drift in those params then doesn't reach us.
-internal sealed class InvocationPlan
-{
-    public MethodInfo Method { get; }
-    public ParameterInfo[] Parameters { get; }
-
-    public InvocationPlan(MethodInfo method)
-    {
-        Method = method;
-        Parameters = method.GetParameters();
-    }
-
-    public object? Invoke(object? target, IReadOnlyDictionary<string, object?> known)
-    {
-        var args = new object?[Parameters.Length];
-        for (var i = 0; i < Parameters.Length; i++)
-        {
-            var p = Parameters[i];
-            if (known.TryGetValue(p.Name!, out var v))
-            {
-                args[i] = v;
-            }
-            else if (p.HasDefaultValue)
-            {
-                args[i] = p.DefaultValue;
-            }
-            else
-            {
-                throw new InvalidOperationException(
-                    $"InvocationPlan({Method.DeclaringType?.Name}.{Method.Name}): " +
-                    $"parameter '{p.Name}' has no provided value and no default. " +
-                    $"signature: {Describe()}");
-            }
-        }
-        return Method.Invoke(target, args);
-    }
-
-    public string Describe() =>
-        $"({string.Join(", ", Parameters.Select(p => $"{p.Name}: {p.ParameterType.Name}{(p.HasDefaultValue ? "?" : "")}"))})";
 }
