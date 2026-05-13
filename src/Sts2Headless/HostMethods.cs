@@ -8,12 +8,13 @@ namespace Sts2Headless;
 // method names callers send in `{ "method": "..." }`.
 public static class HostMethods
 {
-    public static IReadOnlyDictionary<string, StdioHost.Handler> Build(string repoRoot, Sts2Bindings bindings)
+    public static IReadOnlyDictionary<string, StdioHost.Handler> Build(string repoRoot, Sts2Bindings bindings, Session session)
     {
         return new Dictionary<string, StdioHost.Handler>
         {
             ["host/ping"] = _ => Ping(repoRoot),
-            ["run/new"] = p => RunNew(bindings, p),
+            ["run/new"] = p => RunNew(bindings, session, p),
+            ["run/state"] = _ => RunState(bindings, session),
         };
     }
 
@@ -30,7 +31,7 @@ public static class HostMethods
         };
     }
 
-    private static JsonNode? RunNew(Sts2Bindings bindings, JsonNode? @params)
+    private static JsonNode? RunNew(Sts2Bindings bindings, Session session, JsonNode? @params)
     {
         var character = (@params as JsonObject)?["character"]?.GetValue<string>() ?? "ironclad";
         var seed = (@params as JsonObject)?["seed"]?.GetValue<ulong>() ?? 1uL;
@@ -41,12 +42,34 @@ public static class HostMethods
         }
 
         var player = bindings.CreateIroncladRun(seed);
+        session.Set(player, character.ToLowerInvariant(), seed);
+
         return new JsonObject
         {
             ["ok"] = true,
             ["character"] = character,
             ["seed"] = seed,
             ["playerType"] = player.GetType().FullName,
+        };
+    }
+
+    private static JsonNode? RunState(Sts2Bindings bindings, Session session)
+    {
+        if (!session.IsActive || session.Player is null)
+        {
+            throw new InvalidOperationException("no active run — call run/new first");
+        }
+
+        var state = bindings.ReadPlayerState(session.Player);
+        return new JsonObject
+        {
+            ["ok"] = true,
+            ["character"] = session.Character,
+            ["seed"] = session.Seed,
+            ["hp"] = state.CurrentHp,
+            ["maxHp"] = state.MaxHp,
+            ["gold"] = state.Gold,
+            ["deckSize"] = state.DeckSize,
         };
     }
 

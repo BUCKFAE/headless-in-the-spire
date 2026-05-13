@@ -35,10 +35,8 @@ if (args.Contains("--stdio"))
         return 1;
     }
 
-    // Step failures are surfaced as stderr warnings rather than fatals.
-    // InitProgressData is expected to fail today (LocManager not initialised);
-    // anything else surprising is a smell worth knowing about, not a reason to
-    // refuse to serve requests that may not depend on the failing step.
+    // Step failures are surfaced as stderr warnings rather than fatals — the
+    // host keeps serving requests that may not depend on the failing step.
     foreach (var step in BootstrapSequence.Apply(preamble.Sts2!))
     {
         if (!step.Ok) Console.Error.WriteLine($"sts2-headless: bootstrap step '{step.Label}' did not succeed — {step.Detail}");
@@ -52,7 +50,8 @@ if (args.Contains("--stdio"))
         return 1;
     }
 
-    return StdioHost.Run(Console.In, Console.Out, HostMethods.Build(repoRoot, bindings));
+    var session = new Session();
+    return StdioHost.Run(Console.In, Console.Out, HostMethods.Build(repoRoot, bindings, session));
 }
 
 // --list-members <FQN>: dump every member of <FQN> that sts2.dll references.

@@ -60,9 +60,54 @@ public class StdioHostTests
         Assert.Contains("silent", (string)error["message"]!);
     }
 
-    // Spawns the host, writes one request line, reads one response line,
-    // closes stdin and waits for clean exit. Returns the parsed response.
+    [Fact]
+    public async Task RunState_AfterRunNew_ReturnsPlayerSnapshot()
+    {
+        var responses = await SendMany(
+            """{"id":1,"method":"run/new","params":{"seed":1}}""",
+            """{"id":2,"method":"run/state"}""");
+
+        Assert.Null(responses[0]["error"]);
+
+        var state = responses[1];
+        Assert.Equal(2L, (long)state["id"]!);
+        Assert.Null(state["error"]);
+        var result = state["result"]!.AsObject();
+        Assert.True((bool)result["ok"]!);
+        Assert.Equal("ironclad", (string)result["character"]!);
+        Assert.Equal(1UL, (ulong)result["seed"]!);
+        // Ironclad starts at 80/80 — we don't pin the exact number here in case
+        // the game rebalances, but the values must be sensible (positive HP,
+        // non-negative gold, non-empty starting deck).
+        Assert.True((int)result["hp"]! > 0, $"hp should be > 0, was {result["hp"]}");
+        Assert.True((int)result["maxHp"]! > 0, $"maxHp should be > 0, was {result["maxHp"]}");
+        Assert.True((int)result["hp"]! <= (int)result["maxHp"]!);
+        Assert.True((int)result["gold"]! >= 0, $"gold should be >= 0, was {result["gold"]}");
+        Assert.True((int)result["deckSize"]! > 0, $"deckSize should be > 0, was {result["deckSize"]}");
+    }
+
+    [Fact]
+    public async Task RunState_WithoutRunNew_ReturnsInternalError()
+    {
+        var response = await SendOne("""{"id":1,"method":"run/state"}""");
+
+        Assert.Equal(1L, (long)response["id"]!);
+        var error = response["error"]!.AsObject();
+        Assert.Equal(-32603, (int)error["code"]!);
+        Assert.Contains("no active run", (string)error["message"]!);
+    }
+
     private static async Task<JsonObject> SendOne(string requestLine)
+    {
+        var responses = await SendMany(requestLine);
+        return responses[0];
+    }
+
+    // Spawns the host, writes each request line in order, reads exactly one
+    // response per request, closes stdin and waits for clean exit. Stateful
+    // method pairs (run/new → run/state) need this because the session lives
+    // for the process's lifetime — separate subprocesses would reset it.
+    private static async Task<JsonObject[]> SendMany(params string[] requestLines)
     {
         var hostDll = Path.Combine(AppContext.BaseDirectory, "Sts2Headless.dll");
         Assert.True(File.Exists(hostDll), $"Sts2Headless.dll not found at {hostDll}");
@@ -80,21 +125,29 @@ public class StdioHostTests
         using var proc = Process.Start(psi)!;
         try
         {
-            await proc.StandardInput.WriteLineAsync(requestLine);
+            foreach (var line in requestLines)
+            {
+                await proc.StandardInput.WriteLineAsync(line);
+            }
             await proc.StandardInput.FlushAsync();
             proc.StandardInput.Close();
 
-            var line = await proc.StandardOutput.ReadLineAsync().WaitAsync(Timeout);
-            if (string.IsNullOrEmpty(line))
+            var responses = new JsonObject[requestLines.Length];
+            for (var i = 0; i < requestLines.Length; i++)
             {
-                var stderr = await proc.StandardError.ReadToEndAsync();
-                throw new Xunit.Sdk.XunitException($"no response received. stderr:\n{stderr}");
+                var line = await proc.StandardOutput.ReadLineAsync().WaitAsync(Timeout);
+                if (string.IsNullOrEmpty(line))
+                {
+                    var stderr = await proc.StandardError.ReadToEndAsync();
+                    throw new Xunit.Sdk.XunitException($"no response received for request {i}. stderr:\n{stderr}");
+                }
+                responses[i] = JsonNode.Parse(line)!.AsObject();
             }
 
             await proc.WaitForExitAsync().WaitAsync(Timeout);
             Assert.Equal(0, proc.ExitCode);
 
-            return JsonNode.Parse(line)!.AsObject();
+            return responses;
         }
         finally
         {
