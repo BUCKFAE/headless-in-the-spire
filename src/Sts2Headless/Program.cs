@@ -28,7 +28,31 @@ if (args.Contains("--probe-bootstrap"))
 
 if (args.Contains("--stdio"))
 {
-    return StdioHost.Run(Console.In, Console.Out, HostMethods.Build(repoRoot));
+    var preamble = RuntimeBootstrap.Run(vendorDir);
+    if (preamble.SetupError is not null)
+    {
+        Console.Error.WriteLine($"sts2-headless: bootstrap setup failed — {preamble.SetupError}");
+        return 1;
+    }
+
+    // Step failures are surfaced as stderr warnings rather than fatals.
+    // InitProgressData is expected to fail today (LocManager not initialised);
+    // anything else surprising is a smell worth knowing about, not a reason to
+    // refuse to serve requests that may not depend on the failing step.
+    foreach (var step in BootstrapSequence.Apply(preamble.Sts2!))
+    {
+        if (!step.Ok) Console.Error.WriteLine($"sts2-headless: bootstrap step '{step.Label}' did not succeed — {step.Detail}");
+    }
+
+    Sts2Bindings bindings;
+    try { bindings = Sts2Bindings.Bind(preamble.Sts2!); }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"sts2-headless: binding failed — {Diagnostics.Describe(Diagnostics.Unwrap(ex))}");
+        return 1;
+    }
+
+    return StdioHost.Run(Console.In, Console.Out, HostMethods.Build(repoRoot, bindings));
 }
 
 // --list-members <FQN>: dump every member of <FQN> that sts2.dll references.

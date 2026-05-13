@@ -1,4 +1,6 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using Sts2Headless.Runtime;
 
 namespace Sts2Headless;
 
@@ -6,11 +8,12 @@ namespace Sts2Headless;
 // method names callers send in `{ "method": "..." }`.
 public static class HostMethods
 {
-    public static IReadOnlyDictionary<string, StdioHost.Handler> Build(string repoRoot)
+    public static IReadOnlyDictionary<string, StdioHost.Handler> Build(string repoRoot, Sts2Bindings bindings)
     {
         return new Dictionary<string, StdioHost.Handler>
         {
             ["host/ping"] = _ => Ping(repoRoot),
+            ["run/new"] = p => RunNew(bindings, p),
         };
     }
 
@@ -22,6 +25,26 @@ public static class HostMethods
             ["ok"] = true,
             ["gameVersion"] = version,
             ["gameSha256"] = sha256,
+        };
+    }
+
+    private static JsonNode? RunNew(Sts2Bindings bindings, JsonNode? @params)
+    {
+        var character = (@params as JsonObject)?["character"]?.GetValue<string>() ?? "ironclad";
+        var seed = (@params as JsonObject)?["seed"]?.GetValue<ulong>() ?? 1uL;
+
+        if (!string.Equals(character, "ironclad", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException($"character '{character}' not yet supported (only 'ironclad')");
+        }
+
+        var player = bindings.CreateIroncladRun(seed);
+        return new JsonObject
+        {
+            ["ok"] = true,
+            ["character"] = character,
+            ["seed"] = seed,
+            ["playerType"] = player.GetType().FullName,
         };
     }
 
