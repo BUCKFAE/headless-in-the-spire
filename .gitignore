@@ -1,3 +1,11 @@
 
 # External tools, cloned by claude
-./external-tools
+external-tools/
+
+# Local configuration — per-machine paths, never commit.
+.env
+
+# Vendored game DLLs — extracted from each contributor's local Steam install.
+# sts2.dll is proprietary and must not be checked in. We pin the version
+# via GAME_VERSION (checked in) + a SHA-256 of the expected bytes.
+/vendor
