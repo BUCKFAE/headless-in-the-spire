@@ -1,0 +1,140 @@
+---
+name: cleanup
+description: Run a repo-cleanup sweep — docs freshness, large-file split candidates, magic-number/string → enum conversions, TODO/dead-code/duplicate scans, doc drift, and project-specific invariants. Reports findings before changing anything; only proposes edits for mechanical transforms.
+---
+
+# /cleanup
+
+Run a structured cleanup pass over the repo. Split into **report-only** passes
+(judgment required — surface findings, let the user decide) and **propose-edit**
+passes (mechanical — show a diff, then apply on approval).
+
+Work the passes in order. After each pass, write findings to the conversation
+under a clear heading; do **not** silently accumulate into a final dump.
+
+## Pass 1 — Docs freshness (report only)
+
+Goal: catch drift between `README.md` / `CLAUDE.md` and the actual repo.
+
+- Read `README.md` and `CLAUDE.md`.
+- For every file path, directory, `just` recipe, env var, or symbol they
+  mention, verify it still exists. Use `just --list` to confirm recipes.
+- Diff the documented project layout against `ls src/ tests/`.
+- Flag instructions that contradict each other or current code (e.g. CLAUDE.md
+  says "X lives in Y/" but it's actually in Z/).
+
+Report: a bullet list of stale references with file:line in the doc.
+**Do not edit docs.** Surface findings, let the user decide.
+
+## Pass 2 — Large files (report only)
+
+Goal: find files that have outgrown their purpose and should be split.
+
+```bash
+find src tests -type f \( -name '*.cs' \) -not -path '*/bin/*' -not -path '*/obj/*' \
+  -exec wc -l {} + | sort -rn | head -20
+```
+
+For each of the top ~5 files:
+- Read it.
+- Decide: is the size justified (one cohesive responsibility) or is it doing
+  several things that would read better split? Look for natural seams:
+  multiple top-level types, distinct regions, helpers that don't share state
+  with the main type.
+- If split looks worthwhile, sketch the split (proposed new files + which
+  members move) but **do not** make the change. Let the user pick which to act on.
+
+## Pass 3 — Magic numbers / strings → enums (propose edits)
+
+Goal: catch string/int literals that should be enum values per the CLAUDE.md
+convention ("Prefer enums over strings on the wire and in code").
+
+Spawn an Explore sub-agent (or two, in parallel, scoped to different dirs) to
+find:
+- String literals matching known enum values in `src/Sts2Headless.Protocol/`
+  (`RoomType`, `MapNodeType`, `Character`, etc.) — e.g. raw `"MapRoom"`.
+- Hand-written JSON in `tests/Sts2Headless.IntegrationTests/` instead of
+  building params from DTO records.
+- Repeated integer literals that look like they encode a fixed set (turn
+  phases, card targets, etc.).
+
+For each finding: propose the concrete edit (literal → enum reference, or
+JSON-string → DTO-record), show the diff, apply on approval. This pass is
+mechanical enough to propose edits directly.
+
+## Pass 4 — TODO / FIXME / HACK scan (report only)
+
+```bash
+rg -n --no-heading -t cs -t md '\b(TODO|FIXME|HACK|XXX)\b' src tests documentation
+```
+
+Group by file. For each, decide: still relevant, or stale and removable?
+Surface as a list; let the user prune.
+
+## Pass 5 — Dead code (report only)
+
+Goal: find unreferenced code and comment rot.
+
+- Unused `using` directives and unreachable code: run `dotnet build` and
+  surface analyzer warnings (`CS8019`, `IDE0005`, `CS0162`).
+- Large commented-out blocks: `rg -n --multiline '^\s*//.{0,}\n(\s*//.{0,}\n){4,}' src tests`
+- Public types/methods with zero references outside their declaring file:
+  pick the suspicious ones and grep for usages across `src/` and `tests/`.
+- `GodotStubs/`: per CLAUDE.md, every stub has a `// from: <type>.<member>`
+  comment. For each stub, confirm the named caller still exists in
+  `src/Sts2Headless*`. Flag stubs whose caller is gone.
+
+Report findings; **do not delete**. Dead-code calls are judgment-heavy
+(reflection, dynamic loading via Harmony, test-only fixtures).
+
+## Pass 6 — Docs / comment drift (report only)
+
+- Walk `documentation/` and grep for file paths, type names, and `just`
+  recipes. Verify each still exists.
+- In `src/` and `tests/`, scan comments referencing symbols
+  (`<see cref=`, "see Foo", "from: Bar.Baz"). Verify the symbol still exists.
+- Specifically check `documentation/requirements/` and
+  `documentation/research/` — they are load-bearing for agents per CLAUDE.md.
+
+Report drifted references with file:line.
+
+## Pass 7 — Duplicate / near-duplicate code (report only)
+
+Goal: small helpers reinvented in multiple files.
+
+- Look for repeated short methods (5–20 lines) with similar bodies across
+  files. Candidates: JSON helpers, path manipulation, reflection plumbing,
+  test fixture setup.
+- Cross-check `src/Sts2Headless/`, `src/Sts2Headless.Runtime/`, and
+  `src/Sts2Headless.Protocol/` for duplicate utility code that could move to
+  a shared spot.
+
+Report candidates with the duplicated locations; promotion choices are
+judgment calls — let the user decide.
+
+## Pass 8 — Project-specific invariants
+
+Per CLAUDE.md:
+- AD-4 (no compile-time sts2 reference) — confirm
+  `tests/Sts2Headless.UnitTests/Ad4InvariantTests.cs` (or wherever it lives
+  now) still exists and `just test` passes it.
+- Bootstrap walk — confirm `BootstrapSequenceTests.cs` exists.
+- Vendor DLL hash matches `GAME_VERSION` (read the file, don't auto-bump).
+
+Report status; surface anything missing.
+
+## Output format
+
+After all passes, give a short summary:
+- Pass N: <count> findings, <count> proposed edits applied / pending.
+- Highest-leverage next actions (top 3).
+
+Do **not** produce a long catch-all document. The per-pass findings posted
+during the run are the deliverable; the summary is the index.
+
+## What this skill does NOT do
+
+- Auto-edit docs (Pass 1, Pass 6) — too much judgment.
+- Delete dead code (Pass 5) — reflection / Harmony / test-only fixtures bite.
+- Bump `GAME_VERSION` (Pass 8) — hard rule from CLAUDE.md.
+- Split files (Pass 2) — propose only.

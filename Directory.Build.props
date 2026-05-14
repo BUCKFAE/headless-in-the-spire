@@ -8,6 +8,12 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+
+    <!-- Required for IDE0005 (unused using) to fire during `dotnet build`,
+         not just in the IDE. CS1591 (missing XML doc comment) would otherwise
+         drown out the signal, so it's suppressed. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
 </Project>
