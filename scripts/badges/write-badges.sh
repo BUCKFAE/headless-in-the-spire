@@ -70,6 +70,29 @@ count_tests() {
     ' {} + | awk '{ total += $1 } END { print total + 0 }'
 }
 
+count_csharp_loc() {
+    local total=0
+    local path
+    for path in "$@"; do
+        [[ -d "$path" ]] || continue
+        local subtotal
+        subtotal="$(find "$path" -type f -name '*.cs' \
+            -not -path '*/bin/*' -not -path '*/obj/*' \
+            -exec cat {} + | wc -l)"
+        total=$(( total + subtotal ))
+    done
+    printf '%s\n' "$total"
+}
+
+format_loc() {
+    local n="$1"
+    if (( n >= 1000 )); then
+        awk -v n="$n" 'BEGIN { printf "%.1fk", n / 1000 }'
+    else
+        printf '%s' "$n"
+    fi
+}
+
 target_framework="$(xml_value "$ROOT/Directory.Build.props" TargetFramework)"
 [[ -n "$target_framework" ]] || die "TargetFramework not found in Directory.Build.props"
 dotnet_version="${target_framework#net}"
@@ -83,9 +106,13 @@ godot_stubs_version="$(xml_value "$ROOT/src/GodotStubs/GodotStubs.csproj" Assemb
 godot_stubs_version="${godot_stubs_version%.0}"
 
 
+csharp_loc="$(count_csharp_loc "$ROOT/src" "$ROOT/tests")"
+csharp_loc_label="$(format_loc "$csharp_loc")"
+
 write_badge dotnet ".NET" "$dotnet_version" "512BD4" "dotnet" "white"
 write_badge tests "tests" "$total_count" "blue"
 write_badge godot-stubs "Godot stubs" "$godot_stubs_version" "478CBF" "godotengine" "white"
+write_badge csharp-loc "C# LoC" "$csharp_loc_label" "239120" "csharp" "white"
 
 printf 'Counted %s tests (%s unit, %s integration)\n' \
     "$total_count" "$unit_count" "$integration_count"
