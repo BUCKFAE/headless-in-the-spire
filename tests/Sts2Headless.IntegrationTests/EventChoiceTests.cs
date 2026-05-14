@@ -151,4 +151,63 @@ public class EventChoiceTests : IClassFixture<HostSubprocess>
         Assert.Empty(afterChoose.AvailableEventOptions);
         Assert.NotEmpty(afterChoose.AvailableMapNodes);
     }
+
+    [Fact]
+    public async Task QuestionMarkRoom_MultiPageEvent_StaysInEventRoomAfterFirstPick()
+    {
+        // Some in-run events span multiple pages: picking the first option
+        // opens a new option set rather than terminating the room. The wire
+        // contract in Methods.cs lets that surface as RoomType.EventRoom with
+        // a refreshed AvailableEventOptions list and no map nodes yet. Seed 6
+        // rolls its row-2 `?` into TabletOfTruth, which exercises that path.
+        // If a future game rebalance changes the rolled event or its layout,
+        // pick another seed — the test only requires (a) Unknown node on
+        // row 2 and (b) first option keeps the room in EventRoom.
+        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 6uL));
+        var afterCombat = await MapHelpers.WalkPastFirstCombat(_host);
+        var mystery = afterCombat.AvailableMapNodes.First(n => n.Type == MapNodeType.Unknown);
+
+        var afterPick = await _host.SendAsync<RunSelectMapNodeResult>(
+            "run/select_map_node", new RunSelectMapNodeParams(Col: mystery.Col, Row: mystery.Row));
+        Assert.Equal(RoomType.EventRoom, afterPick.CurrentRoomType);
+        Assert.NotEmpty(afterPick.AvailableEventOptions);
+
+        var afterChoose = await _host.SendAsync<RunSelectEventOptionResult>(
+            "run/select_event_option", new RunSelectEventOptionParams(OptionIndex: 0));
+
+        Assert.True(afterChoose.Ok);
+        // Page-advance, not room-exit: still in EventRoom with a fresh option
+        // list and no map nodes yet.
+        Assert.Equal(RoomType.EventRoom, afterChoose.CurrentRoomType);
+        Assert.NotEmpty(afterChoose.AvailableEventOptions);
+        Assert.Empty(afterChoose.AvailableMapNodes);
+    }
+
+    [Fact]
+    public async Task QuestionMarkRoom_RollsIntoCombat_LandsInCombatRoom()
+    {
+        // PointType.Unknown rolls per seed: some land EventRoom (covered by
+        // the SunkenStatue test), others roll straight into a CombatRoom with
+        // no event surface at all. Seed 3 hits the latter — confirms the
+        // select_map_node binding handles the rolled-Combat case end-to-end:
+        // CombatState populated, hand/enemies non-empty, play phase active.
+        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 3uL));
+        var afterCombat = await MapHelpers.WalkPastFirstCombat(_host);
+        var mystery = afterCombat.AvailableMapNodes.First(n => n.Type == MapNodeType.Unknown);
+
+        var afterPick = await _host.SendAsync<RunSelectMapNodeResult>(
+            "run/select_map_node", new RunSelectMapNodeParams(Col: mystery.Col, Row: mystery.Row));
+
+        Assert.Equal(RoomType.CombatRoom, afterPick.CurrentRoomType);
+        Assert.NotNull(afterPick.CombatState);
+        var combat = afterPick.CombatState!;
+        Assert.True(combat.IsInProgress);
+        Assert.True(combat.IsPlayPhase);
+        Assert.Equal(1, combat.Round);
+        Assert.NotEmpty(combat.Hand);
+        Assert.NotEmpty(combat.Enemies);
+        // No event/map surface should leak through when we're mid-combat.
+        Assert.Empty(afterPick.AvailableEventOptions);
+        Assert.Empty(afterPick.AvailableMapNodes);
+    }
 }
