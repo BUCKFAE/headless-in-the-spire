@@ -37,6 +37,11 @@ public sealed partial class Sts2Bindings
     // sts2-cli mirrors this at RunSimulator.cs:253-255.
     private readonly MemberInfo _localContextNetIdMember;
     private readonly InvocationPlan _runManagerSetUpTest;
+    // Reset surface for run reuse. SetUpTest throws "State is already set."
+    // when called twice, so a second run/new on the same host must tear down
+    // the prior run first. Mirrors sts2-cli RunSimulator.CleanUp:3573.
+    private readonly PropertyInfo _runManagerIsInProgress;
+    private readonly MethodInfo _runManagerCleanUp;
     private readonly PropertyInfo _runStateExtraFields;
     private readonly PropertyInfo _extraFieldsStartedWithNeow;
     private readonly MethodInfo _runManagerGenerateRooms;
@@ -196,6 +201,8 @@ public sealed partial class Sts2Bindings
         _netServiceType = s.NetServiceType;
         _localContextNetIdMember = s.LocalContextNetIdMember;
         _runManagerSetUpTest = s.RunManagerSetUpTest;
+        _runManagerIsInProgress = s.RunManagerIsInProgress;
+        _runManagerCleanUp = s.RunManagerCleanUp;
         _runStateExtraFields = s.RunStateExtraFields;
         _extraFieldsStartedWithNeow = s.ExtraFieldsStartedWithNeow;
         _runManagerGenerateRooms = s.RunManagerGenerateRooms;
@@ -314,6 +321,16 @@ public sealed partial class Sts2Bindings
         // reward-set objects belong to the prior RunManager state and become
         // invalid after the second run/new wipes that state.
         _pendingRewards = null;
+
+        // Reset RunManager if a previous run is still installed; SetUpTest
+        // throws "State is already set." otherwise. sts2-cli does the same
+        // thing at RunSimulator.CleanUp:3573.
+        var existingManager = _runManagerInstance.GetValue(null);
+        if (existingManager is not null
+            && _runManagerIsInProgress.GetValue(existingManager) is true)
+        {
+            _runManagerCleanUp.Invoke(existingManager, new object?[] { /* graceful: */ true });
+        }
 
         // Player.CreateForNewRun's second ulong is the player's NetId, not the
         // run seed (the seed lives on RunState — see CreateForTest below).
@@ -1412,6 +1429,10 @@ public sealed partial class Sts2Bindings
             ?? throw new InvalidOperationException($"{localContextType.FullName}.NetId (static property or field) not found");
 
         var setUpTest = SoleOverload(runManagerType, "SetUpTest");
+        var isInProgress = RequireProperty(runManagerType, "IsInProgress");
+        var cleanUp = runManagerType.GetMethod("CleanUp",
+                BindingFlags.Public | BindingFlags.Instance, new[] { typeof(bool) })
+            ?? throw new InvalidOperationException("RunManager.CleanUp(bool) not found");
         var generateRooms = NoArgInstance(runManagerType, "GenerateRooms");
         var launch = NoArgInstance(runManagerType, "Launch");
         var finalize = NoArgInstance(runManagerType, "FinalizeStartingRelics");
@@ -1511,7 +1532,7 @@ public sealed partial class Sts2Bindings
             playerType, createIroncladRun, unlockAll,
             new InvocationPlan(createForTest), runManagerInstance, netServiceType,
             localContextNetIdMember,
-            setUpTest, extraFields, startedWithNeow,
+            setUpTest, isInProgress, cleanUp, extraFields, startedWithNeow,
             generateRooms, launch, finalize, enterAct, enterMapCoord, mapCoordType,
             playerGold, playerCreature, playerDeck, playerNetId,
             creatureCurrentHp, creatureMaxHp, deckCards,
@@ -1949,7 +1970,8 @@ public sealed partial class Sts2Bindings
         Type PlayerType, MethodInfo CreateIroncladRun, object UnlockStateAll,
         InvocationPlan RunStateCreateForTest, PropertyInfo RunManagerInstance, Type NetServiceType,
         MemberInfo LocalContextNetIdMember,
-        InvocationPlan RunManagerSetUpTest, PropertyInfo RunStateExtraFields, PropertyInfo ExtraFieldsStartedWithNeow,
+        InvocationPlan RunManagerSetUpTest, PropertyInfo RunManagerIsInProgress, MethodInfo RunManagerCleanUp,
+        PropertyInfo RunStateExtraFields, PropertyInfo ExtraFieldsStartedWithNeow,
         MethodInfo RunManagerGenerateRooms, MethodInfo RunManagerLaunch, MethodInfo RunManagerFinalizeStartingRelics,
         InvocationPlan RunManagerEnterAct, InvocationPlan RunManagerEnterMapCoord, Type MapCoordType,
         PropertyInfo PlayerGold, PropertyInfo PlayerCreature, PropertyInfo PlayerDeck, PropertyInfo PlayerNetId,
