@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "headless-in-the-spire-agents"
+description = "Agents (algorithms, drivers) on top of the headless-in-the-spire wire client."
+readme = "README.md"
+# Pinned to 3.13 in lockstep with the workspace root (../../../.python-version)
+# and the sibling client package. Bump in all three places.
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Julian Schubert" }]
+dynamic = ["version"]
+dependencies = [
+    # Workspace member — resolved against the in-repo path by
+    # [tool.uv.sources] below. The published-PyPI version pin will go here
+    # the day this package starts shipping independently.
+    "headless-in-the-spire",
+]
+
+[project.urls]
+Homepage = "https://github.com/buckfae/headless-in-the-spire"
+
+# uv-specific: tell the resolver that `headless-in-the-spire` above is the
+# sibling workspace member, not a PyPI package. Without this, `uv sync`
+# would attempt a PyPI lookup and fail (the package doesn't exist there
+# yet).
+[tool.uv.sources]
+headless-in-the-spire = { workspace = true }
+
+[tool.hatch.version]
+path = "src/headless_in_the_spire_agents/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/headless_in_the_spire_agents"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

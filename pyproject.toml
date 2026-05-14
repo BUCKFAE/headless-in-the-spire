@@ -23,7 +23,10 @@ requires-python = ">=3.13"
 package = false
 
 [tool.uv.workspace]
-members = ["clients/python/headless-in-the-spire"]
+members = [
+    "clients/python/headless-in-the-spire",
+    "clients/python/headless-in-the-spire-agents",
+]
 
 [dependency-groups]
 # Shared dev tooling across every workspace member. Pulled in by

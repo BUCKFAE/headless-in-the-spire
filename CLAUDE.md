@@ -90,6 +90,7 @@ uv.lock                        resolved Python deps — committed for reproducib
 .python-version                pinned Python toolchain (read by uv)
 clients/python/
   headless-in-the-spire/       wire client — generated pydantic v2 DTOs + transport
+  headless-in-the-spire-agents/ algorithms / drivers on top of the wire client (AD-5)
 ```
 
 ## Conventions

@@ -48,6 +48,43 @@ jobs:
       - name: Unit tests
         run: dotnet test tests/Sts2Headless.UnitTests/Sts2Headless.UnitTests.csproj --configuration Release --no-build --nologo --logger "console;verbosity=normal"
 
+      # ── Python client ───────────────────────────────────────────────────
+      # uv manages Python itself (3.13 from .python-version) and every dev
+      # tool. The workspace .venv at the repo root is created by `uv sync`
+      # and serves every member.
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: uv sync
+        run: uv sync --all-packages
+
+      - name: Python lint
+        run: |
+          uv run ruff check clients/python/
+          uv run ruff format --check clients/python/
+
+      - name: Python typecheck
+        run: uv run pyright
+
+      # AD-5 drift guard for the Python DTOs. Regenerates _models.py from
+      # protocol/openrpc.json and fails if the checked-in file differs.
+      # Mirrors the C# Schema-drift step above; catches a regen forgotten
+      # after a Methods.cs change.
+      - name: Python models drift check
+        run: |
+          uv run python clients/python/headless-in-the-spire/scripts/generate_models.py
+          git diff --exit-code clients/python/headless-in-the-spire/src/headless_in_the_spire/_models.py
+
+      # The live round-trip test in test_transport_smoke.py is gated on
+      # vendor/sts2.dll being present (the host needs it to bootstrap, per
+      # AD-3). CI has no vendor/, so those two cases skip automatically;
+      # the parity tests still run. `clients/python/` picks up every
+      # workspace member's tests.
+      - name: Python tests
+        run: uv run pytest clients/python/
+
   update-badges:
     runs-on: ubuntu-latest
     timeout-minutes: 5

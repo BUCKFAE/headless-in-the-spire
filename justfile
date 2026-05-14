@@ -103,10 +103,10 @@ test-unit:
 test-integration:
     @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
 
-# Run the Python client tests via the uv workspace .venv.
+# Run every Python workspace member's tests via the uv workspace .venv.
 test-python:
     @bash scripts/check-uv.sh
-    @uv run pytest clients/python/headless-in-the-spire/tests/
+    @uv run pytest clients/python/
 
 # Lint Python (ruff check + ruff format --check). Workspace-wide.
 lint-python:

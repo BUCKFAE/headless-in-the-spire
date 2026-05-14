@@ -24,11 +24,19 @@ def _repo_root() -> Path:
 
 
 def _host_available() -> bool:
+    # Explicit binary path overrides everything — caller asserts the host
+    # is ready to run.
     if os.environ.get("HEADLESS_IN_THE_SPIRE_HOST"):
         return True
     if shutil.which("dotnet") is None:
         return False
-    return (_repo_root() / "src" / "Sts2Headless" / "Sts2Headless.csproj").is_file()
+    repo = _repo_root()
+    if not (repo / "src" / "Sts2Headless" / "Sts2Headless.csproj").is_file():
+        return False
+    # The host loads vendor/sts2.dll during bootstrap (AD-3); without it
+    # even `host/ping` fails before reaching the dispatch loop. CI and
+    # fresh clones won't have it, so skip the live round-trip there.
+    return (repo / "vendor" / "sts2.dll").is_file()
 
 
 @pytest.mark.skipif(not _host_available(), reason="no host binary and no dotnet+project")
