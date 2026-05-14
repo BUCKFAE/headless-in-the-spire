@@ -22,7 +22,7 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/julianschubert/headless-in-the-spire"
+Homepage = "https://github.com/buckfae/headless-in-the-spire"
 
 [tool.hatch.version]
 path = "src/headless_in_the_spire/__init__.py"

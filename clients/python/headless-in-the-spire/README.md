@@ -46,16 +46,6 @@ on every build — the C# side enforces `Methods.cs` ↔ `MethodCatalog` parity
 plus a `protocol/openrpc.json` drift check; this package follows on the
 human-reviewed bump.
 
-## Known sharp edges
-
-- `Character` (non-nullable enum at `Character` schema) and `Character1` (the
-  inlined nullable variant used by `RunNewParams.character`) are duplicated.
-  Root cause: the C# schema emitter inlines the enum + `null` for nullable
-  enum properties instead of emitting a `$ref` to the hoisted `Character`
-  schema. Fix lives in `OpenRpcEmitter` upstream; until then, construct
-  `RunNewParams` with `Character1.ironclad` (the values still match the
-  wire).
-
 ## Package boundary
 
 This package contains **only** the wire client. Algorithms (minmax, MCTS,

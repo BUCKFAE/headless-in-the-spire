@@ -671,16 +671,14 @@
         "type": "object",
         "properties": {
           "character": {
-            "enum": [
-              "ironclad",
-              "silent",
-              "defect",
-              "watcher",
-              "regent",
-              "necrobinder",
-              null
-            ],
-            "default": null
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Character"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "seed": {
             "type": [
@@ -1110,14 +1108,13 @@
             "type": "boolean"
           },
           "character": {
-            "enum": [
-              "ironclad",
-              "silent",
-              "defect",
-              "watcher",
-              "regent",
-              "necrobinder",
-              null
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Character"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "seed": {

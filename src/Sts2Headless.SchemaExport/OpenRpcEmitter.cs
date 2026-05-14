@@ -116,6 +116,26 @@ internal static class OpenRpcEmitter
                     };
                 }
 
+                // Nullable hoisted enum (e.g. `Character?`) — the exporter
+                // walks `Nullable<Character>` and inlines `{ enum: [...vals,
+                // null] }` rather than recursing through the underlying type.
+                // Without this branch, generated clients duplicate the enum
+                // (`Character` and `Character1` in pydantic) because the
+                // property carries the values inline. Emit a clean nullable
+                // $ref instead.
+                var underlying = Nullable.GetUnderlyingType(ctx.TypeInfo.Type);
+                if (underlying is not null && hoistSet.Contains(underlying))
+                {
+                    return new JsonObject
+                    {
+                        ["anyOf"] = new JsonArray
+                        {
+                            new JsonObject { ["$ref"] = SchemasRefPrefix + underlying.Name },
+                            new JsonObject { ["type"] = "null" },
+                        },
+                    };
+                }
+
                 return node;
             },
         };
