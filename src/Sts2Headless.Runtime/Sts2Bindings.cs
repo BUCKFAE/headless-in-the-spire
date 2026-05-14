@@ -157,8 +157,9 @@ public sealed partial class Sts2Bindings
     private readonly PropertyInfo? _runManagerRewardSynchronizer;
     private readonly MethodInfo? _rewardSyncSyncLocalObtainedCard;
     // CardPileCmd.Add(card, PileType.Deck) — engine path for adding a chosen
-    // card-reward card to the deck. sts2-cli uses this; production
-    // ClaimCardReward currently bypasses with direct deck.Add (see Phase 4).
+    // card-reward card to the deck. Routes through the listener pipeline so
+    // on-card-obtain relics (LuckyFysh, Ceramic Fish, …) fire; a direct
+    // deck.Add would skip the hook. RelicListenerTests pins this behaviour.
     private readonly MethodInfo? _cardPileCmdAdd;
     private readonly object? _pileTypeDeckValue;
 
@@ -172,7 +173,7 @@ public sealed partial class Sts2Bindings
     private readonly MethodInfo? _relicModelToMutable;
 
     // Mutable post-combat reward state. Generated lazily once combat ends
-    // (see EnsurePendingRewards); consumed by SelectReward / SkipReward.
+    // (see TryGeneratePendingRewards); consumed by SelectReward / SkipReward.
     // Single-slot to match the single-active-run host model. Cleared on
     // run/new and once the last reward is claimed.
     private List<object>? _pendingRewards;
@@ -956,14 +957,10 @@ public sealed partial class Sts2Bindings
 
         if (TryGeneratePendingRewards(handle))
         {
-            if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
-                Console.Error.WriteLine($"[rewards] generated {_pendingRewards?.Count} reward(s)");
             // Surface them to the wire; caller will drive consumption.
             return;
         }
 
-        if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
-            Console.Error.WriteLine("[rewards] generation failed/empty — falling through to legacy auto-advance");
         // No reward bindings — fall through to the original behaviour so the
         // host still escapes the CombatRoom on its own.
         AutoAdvanceFinishedEvent(handle.RunManager, handle.RunState);
@@ -980,8 +977,6 @@ public sealed partial class Sts2Bindings
             || _rewardsSetWithRewardsFromRoom is null
             || _rewardsSetGenerateWithoutOffering is null)
         {
-            if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
-                Console.Error.WriteLine($"[rewards] bindings missing: ctor={_rewardsSetCtor is not null} fromRoom={_rewardsSetWithRewardsFromRoom is not null} generate={_rewardsSetGenerateWithoutOffering is not null}");
             return false;
         }
 
@@ -1022,21 +1017,19 @@ public sealed partial class Sts2Bindings
             _pendingRewards = collected;
             return true;
         }
-        catch (Exception ex)
+        catch
         {
-            if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
-                Console.Error.WriteLine($"[rewards] generation threw: {ex.GetType().Name}: {ex.Message}");
             return false;
         }
     }
 
     // Claim the reward at `rewardIndex` in the latest snapshot. Card-kind
     // rewards take `cardIndex` and route through CardPileCmd.Add (which fans
-    // out to obtain-listeners — relics like Ceramic Fish observe it). Non-card
+    // out to obtain-listeners — relics like LuckyFysh observe it). Non-card
     // rewards run the engine's OnSelectWrapper (gold credit, potion grant,
-    // relic obtain). Both paths propagate exceptions; --probe-rewards-natural-
-    // chain (seed=42) confirmed the natural chain runs gap-free with NetIds
-    // aligned, so safety nets here would only mask future regressions.
+    // relic obtain). Both paths propagate exceptions: --probe-rewards-natural-
+    // chain confirmed the chain runs gap-free with NetIds aligned, so safety
+    // nets here would only mask future regressions.
     public void SelectReward(RunHandle handle, int rewardIndex, int? cardIndex)
     {
         if (_pendingRewards is null || _pendingRewards.Count == 0)
@@ -1107,9 +1100,8 @@ public sealed partial class Sts2Bindings
         var picked = cards[cardIndex];
 
         // Engine path: CardPileCmd.Add(card, PileType.Deck). Routes through
-        // the listener pipeline (relic on-card-obtain hooks fire), unlike a
-        // direct deck.Add which bypasses listeners. Probe-rewards-natural-
-        // chain proved this runs gap-free with NetIds aligned (Phase 2).
+        // the listener pipeline so relic on-card-obtain hooks fire; a direct
+        // deck.Add would bypass listeners. RelicListenerTests pins this.
         if (_cardPileCmdAdd is null || _pileTypeDeckValue is null)
             throw new InvalidOperationException("CardPileCmd.Add or PileType.Deck not bound — cannot route card-obtain through engine");
         var paramCount = _cardPileCmdAdd.GetParameters().Length;
