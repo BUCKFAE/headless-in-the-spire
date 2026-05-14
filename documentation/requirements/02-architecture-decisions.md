@@ -258,3 +258,118 @@ normally. The constraint is only on sts2-defined types.
 - Tests that need to actually invoke sts2 (smoke tests for hang patches,
   end-to-end runs) require a populated `vendor/` and must be marked /
   gated so they're skipped in CI environments without it.
+
+---
+
+## AD-5 — Schema description format: OpenRPC
+
+**Status**: Accepted (2026-05-14)
+
+**Context**
+
+AD-2 commits us to NDJSON-over-stdio with a JSON-RPC envelope, schema authored
+in C# records, and client bindings generated from an exported schema. It does
+not name the *format* of the exported schema. This decision picks one.
+
+Goal 4 names two first-class binding targets — Python (for ML / RL) and
+Kotlin (for our own consumers) — plus open-ended future targets. The schema
+format has to:
+
+1. Describe a JSON-RPC method catalogue, not just data shapes. Method names,
+   notifications, and per-method errors are first-class concepts on our wire;
+   HTTP verbs and status codes are not.
+2. Have working codegen for Python and Kotlin today, or with bounded one-time
+   effort.
+3. Embed JSON Schema for the DTOs so the substrate stays durable even if the
+   wrapper format stagnates.
+
+The candidates with non-zero ecosystem support:
+
+| Option | Native fit | Python codegen | Kotlin codegen | Honest about protocol |
+| --- | --- | --- | --- | --- |
+| **OpenRPC** | designed for JSON-RPC | `datamodel-code-generator` + dispatch glue, or `openrpcclientgenerator` (pydantic) | none actively maintained — DIY template against `open-rpc/generator` | yes |
+| OpenAPI | designed for HTTP REST | mature `openapi-generator` (HTTP transport, swappable) | mature | no — protocol misrepresented as HTTP |
+| Plain JSON Schema + private method index | partial — DTOs only | mature DTO codegen, hand-roll dispatch | mature DTO codegen, hand-roll dispatch | yes, but readers learn our private format |
+| protobuf / gRPC | no — binary, breaks Goal 5 | n/a | n/a | no |
+
+The OpenAPI route looks attractive at first — its codegen is the most polished
+in the industry, especially for Kotlin. The cost is that OpenAPI describes
+HTTP, and we don't speak HTTP. Using it as our canonical schema means:
+
+- Every method becomes a fictitious `POST /method/name`. Anyone reading the
+  schema reasonably believes they can curl the service; they can't.
+- Generated clients are HTTP clients (`httpx`, `OkHttpClient`, …). We strip
+  the HTTP transport and graft on our NDJSON-over-stdio adapter on every
+  binding, every language, forever. The DTO codegen is the only piece that
+  survives unchanged.
+- Notifications and per-method JSON-RPC errors don't fit HTTP's verb / status
+  model — they get described as common-error responses or out-of-band events
+  documented in prose.
+
+These costs are not one-time. They are paid every time a new contributor reads
+the schema, every time a doc tool renders it, every time we add a binding. We
+decline to pay rent on a permanent misrepresentation in exchange for codegen
+polish.
+
+OpenRPC fits the protocol natively. Methods, notifications, and per-method
+errors are first-class in the spec; slash-namespaced names like `run/new` are
+spec-legal; DTOs embed JSON Schema verbatim. The cost is on the tooling side,
+not the modelling side. See
+[schema-description-format.md](../research/schema-description-format.md) for
+the full ecosystem and tooling survey behind this decision.
+
+**Decision**
+
+OpenRPC is the canonical schema description format for the wire protocol.
+
+A single C# tool walks the records in `Sts2Headless.Protocol.Methods` and
+emits `protocol/openrpc.json`. The artefact is checked in (so contributors
+without a .NET build can regenerate language bindings) and validated against
+`open-rpc/meta-schema` in CI. The emitter sits on top of .NET 10's
+`System.Text.Json.Schema.JsonSchemaExporter` and adds the method-catalogue
+layer on top — realistic size ~300–400 LOC for the current method set.
+
+All language bindings derive from `protocol/openrpc.json`:
+
+- **Python**: `datamodel-code-generator` for DTOs (`msgspec` /
+  `dataclasses` / `pydantic v2` / `TypedDict` — picked at integration time)
+  plus an in-repo dispatch template.
+- **Kotlin**: an in-repo template component for `open-rpc/generator`,
+  written once. Likely the first OpenRPC Kotlin generator in the ecosystem;
+  upstream contribution if the template lands cleanly.
+- **Future languages**: prefer off-the-shelf `open-rpc/generator` components
+  (TypeScript and Rust ship in the box) before hand-rolling.
+
+OpenAPI is **not** dual-published. Anyone who wants OpenAPI can derive it
+from `openrpc.json` themselves; we do not bake the protocol misrepresentation
+into our canonical contract.
+
+**Consequences**
+
+- The schema artefact accurately describes the wire protocol. No HTTP
+  fiction; nobody reading the docs is misled about what they're talking to.
+- One source of truth (`Methods.cs` records) → one canonical artefact
+  (`openrpc.json`) → N generated bindings. Methods or DTOs added outside
+  `Methods.cs` cannot enter the protocol by construction.
+- The `Unknown` sentinel pattern (every wire enum carries a sentinel; the
+  host emits it for variants the schema hasn't catalogued, so clients keep
+  parsing across game patches — see Goal 1) is **not expressible** in
+  OpenRPC or any other schema we evaluated. Each such enum carries a
+  `description` note documenting the contract, and generated clients must
+  not perform exhaustive matches on these enums.
+- Slash-namespaced method names (`run/new`, `debug/give_relic`) are
+  spec-legal but generators sanitise differently per language (`/` becomes
+  `_`, or nested namespaces). The first generated client per language is
+  pinned via an integration test so a generator behavioural change can't
+  silently rename our public API.
+- We carry the maintenance of one C# emitter (~300–400 LOC) and one
+  per-language dispatch template. Writing the Kotlin generator component is
+  a multi-day one-time investment; once written, it sits in the repo and
+  runs on every protocol bump.
+- If OpenRPC the spec ever stagnates, the embedded JSON Schema for the DTOs
+  survives a format migration trivially; only the thin method-catalogue
+  wrapper needs replacement. We are not betting the project on the format's
+  long-term health.
+- We are the first STS project (1 or 2) to ship a formal protocol
+  description — the ecosystem survey found none. There is no de-facto
+  community schema to align with and no compatibility pressure either way.
