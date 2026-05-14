@@ -48,7 +48,7 @@ if (args.Contains("--stdio"))
     }
 
     Sts2Bindings bindings;
-    try { bindings = Sts2Bindings.Bind(preamble.Sts2!); }
+    try { bindings = Sts2Bindings.Bind(preamble.Sts2!, preamble.SyncContext); }
     catch (Exception ex)
     {
         Console.Error.WriteLine($"sts2-headless: binding failed — {Diagnostics.Describe(Diagnostics.Unwrap(ex))}");

@@ -26,6 +26,12 @@ public class Control : CanvasItem
 
     public Vector2 Position { get; set; }
     public Vector2 Size { get; set; }
+    // from: NCreature.PerformIntent (and other combat-anim sites that read
+    //   the source/target screen position for VFX). The headless host never
+    //   renders, but the property must exist or SwitchFromPlayerToEnemySide →
+    //   ExecuteEnemyTurn throws MissingMethodException before any monster
+    //   intent resolves. Returning default is harmless — no consumer reads it.
+    public Vector2 GlobalPosition { get; set; }
 }
 
 public class Range : Control

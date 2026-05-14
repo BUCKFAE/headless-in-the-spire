@@ -61,17 +61,15 @@ public class CombatTests
     }
 
     [Fact]
-    public async Task EndTurn_AdvancesRoundCounter_AndReturnsToPlayPhase()
+    public async Task EndTurn_AdvancesRoundCounter_AndRunsEnemyTurn()
     {
         // After end_turn the engine switches sides (player → enemy → next
-        // player turn). The wire layer drives SwitchFromPlayerToEnemySide so
-        // that round increments and IsPlayPhase flips back. Note: under the
-        // current GodotStubs surface the enemy's attack is a no-op (the
-        // ExecuteEnemyTurn callback we pass is null, so monsters don't
-        // actually damage the player) — fixing that needs more engine
-        // plumbing and is tracked separately. Until then, combat won't end
-        // by attrition; tests that need a finished fight should play cards
-        // to deal damage instead.
+        // player turn). The wire layer drives SwitchFromPlayerToEnemySide
+        // (the natural multi-player chain refuses without a real NetService),
+        // which then runs the standard StartTurn → ExecuteEnemyTurn path
+        // synchronously: monsters resolve their intents and deal damage.
+        // Verified: round advances, IsPlayPhase flips back, and the Fuzzy
+        // Wurm Crawler's Attack intent reduces player HP.
         await using var host = new HostSubprocess();
 
         var start = await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
@@ -80,6 +78,12 @@ public class CombatTests
             "run/select_map_node", new RunSelectMapNodeParams(Col: monsterNode.Col, Row: monsterNode.Row));
         Assert.NotNull(inCombat.CombatState);
         Assert.Equal(1, inCombat.CombatState!.Round);
+        var hpBefore = inCombat.Hp;
+        // Pre-condition: the chosen monster actually intends to attack this
+        // turn. If it didn't, the HP-decreased assertion below would be
+        // meaningless. Seed 42 → Fuzzy Wurm Crawler with an Attack intent.
+        Assert.Contains(inCombat.CombatState.Enemies, e =>
+            e.Intents.Any(i => i.Kind == IntentKind.Attack));
 
         var afterEndTurn = await host.SendAsync<RunEndTurnResult>("run/end_turn");
 
@@ -92,6 +96,54 @@ public class CombatTests
         Assert.True(afterEndTurn.CombatState.IsInProgress);
         // Energy should refresh on round start (Ironclad base is 3).
         Assert.Equal(afterEndTurn.CombatState.MaxEnergy, afterEndTurn.CombatState.Energy);
+        // Enemy actually attacked — player HP dropped.
+        Assert.True(afterEndTurn.Hp < hpBefore,
+            $"expected enemy turn to deal damage; hp {hpBefore} → {afterEndTurn.Hp}");
+    }
+
+    [Fact]
+    public async Task FightToCompletion_AdvancesBackToMapRoom()
+    {
+        // Drive a full combat: spam attack cards every turn until either the
+        // enemy dies (combat ends → auto-advance back to MapRoom) or we run
+        // out of safety iterations. The Ironclad starting deck plus
+        // Strike+Bash damage outpaces the Crawler's incoming damage, so the
+        // fight resolves long before the iteration cap.
+        await using var host = new HostSubprocess();
+
+        var start = await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        var monsterNode = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
+        var snap = await host.SendAsync<RunSelectMapNodeResult>(
+            "run/select_map_node", new RunSelectMapNodeParams(Col: monsterNode.Col, Row: monsterNode.Row));
+
+        RoomType currentRoom = snap.CurrentRoomType;
+        Protocol.Methods.CombatState? combat = snap.CombatState;
+        Assert.NotNull(combat);
+
+        for (var safety = 0; safety < 40 && currentRoom == RoomType.CombatRoom; safety++)
+        {
+            // Play any playable attack card we can afford, targeting enemy 0.
+            var attack = combat!.Hand.FirstOrDefault(c =>
+                c.CanPlay && c.Cost <= combat.Energy && c.TargetType == TargetType.AnyEnemy);
+            if (attack is not null)
+            {
+                var afterPlay = await host.SendAsync<RunPlayCardResult>(
+                    "run/play_card", new RunPlayCardParams(CardIndex: attack.Index, TargetIndex: 0));
+                currentRoom = afterPlay.CurrentRoomType;
+                combat = afterPlay.CombatState;
+                if (currentRoom != RoomType.CombatRoom) break;
+                continue;
+            }
+
+            // Out of attack options — end the turn.
+            var afterEnd = await host.SendAsync<RunEndTurnResult>("run/end_turn");
+            currentRoom = afterEnd.CurrentRoomType;
+            combat = afterEnd.CombatState;
+        }
+
+        // Combat resolved: auto-advance returned us to a MapRoom with fresh
+        // node choices. Combat state is no longer attached to the snapshot.
+        Assert.Equal(RoomType.MapRoom, currentRoom);
     }
 
     [Fact]

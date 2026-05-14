@@ -11,10 +11,13 @@ public readonly struct Vector2
     //   'Void Godot.Vector2..ctor(Single, Single)'." — static fields on
     //   node classes initialise Vector2 size/position constants. Stored
     //   but never read; no-op body is fine.
-    public Vector2(float _, float __) { }
+    public Vector2(float x, float y) { X = x; Y = y; }
 
-    public float X { get; }
-    public float Y { get; }
+    // from: NCreature.PerformIntent → reads Vector2.X (FIELD, not property)
+    //   for VFX positioning. MissingFieldException if these are auto-props.
+    //   Match real Godot's struct shape: public readonly fields.
+    public readonly float X;
+    public readonly float Y;
 
     // from: Neow path during EnterAct (PROBE_NEOW=1) — caught by GD.PushError
     //   "Method not found: 'Godot.Vector2 Godot.Vector2.get_Zero()'."

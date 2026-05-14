@@ -127,9 +127,16 @@ public sealed class Sts2Bindings
     private readonly PropertyInfo? _actionExecutorIsRunning;
     private readonly MethodInfo? _actionExecutorFinishedExecutingActions;
 
-    private Sts2Bindings(Assembly sts2, BindingState s)
+    // Optional handle to the inline sync context installed by RuntimeBootstrap.
+    // EndTurn pumps it to drive sts2's fire-and-forget enemy-turn chain through
+    // completion. If absent (older boot path that doesn't capture it), we fall
+    // back to manually triggering SwitchFromPlayerToEnemySide.
+    private readonly InlineSynchronizationContext? _syncCtx;
+
+    private Sts2Bindings(Assembly sts2, BindingState s, InlineSynchronizationContext? syncCtx)
     {
         Sts2 = sts2;
+        _syncCtx = syncCtx;
         _playerType = s.PlayerType;
         _createIroncladRun = s.CreateIroncladRun;
         _unlockStateAll = s.UnlockStateAll;
@@ -576,12 +583,20 @@ public sealed class Sts2Bindings
         }
     }
 
-    // Fire PlayerCmd.EndTurn(player, canBackOut: false). HangPatches already
-    // forces Task.Yield() to complete inline (the equivalent of sts2-cli's
-    // SuppressYield permanently on), so the call returns synchronously and
-    // we don't need its multi-phase retry loop. After EndTurn, AutoAdvancePost-
-    // Combat detects combat-end transitions and ushers the player back to
-    // the map; the caller sees the room flip in the next snapshot.
+    // Fire PlayerCmd.EndTurn(player, canBackOut: false) and pump the engine's
+    // async chain to completion. PlayerCmd.EndTurn → SetReadyToEndTurn →
+    // (fire-and-forget) AfterAllPlayersReadyToEndTurn → enqueue
+    // ReadyToBeginEnemyTurnAction → SetReadyToBeginEnemyTurn →
+    // AfterAllPlayersReadyToBeginEnemyTurn → SwitchFromPlayerToEnemySide →
+    // SwitchSides → StartTurn(enemy) → ExecuteEnemyTurn (monsters attack)
+    // → EndEnemyTurn → SwitchSides → StartTurn(player). The chain hops the
+    // ActionExecutor twice and posts continuations to the sync context; we
+    // drive it to the next player turn by alternating Pump (drains posted
+    // continuations) with DrainActionExecutor (awaits FinishedExecutingActions).
+    // The SwitchFromPlayerToEnemySide direct-call is a last-resort fallback
+    // if pumping doesn't converge — kept around because earlier behaviour
+    // relied on it, and skipping the enemy side entirely is at least a
+    // non-deadlocked degraded path.
     public void EndTurn(RunHandle handle)
     {
         if (_playerCmdEndTurn is null)
@@ -594,6 +609,8 @@ public sealed class Sts2Bindings
         if (!inProgress)
             throw new InvalidOperationException("combat is not in progress");
 
+        var roundBefore = ReadRound(cm);
+
         // EndTurn(player, canBackOut, ...optional). Pass Type.Missing for any
         // trailing optional parameters so reflection picks up their default
         // values rather than null-ing a non-nullable parameter.
@@ -604,59 +621,101 @@ public sealed class Sts2Bindings
         for (var i = 2; i < paramCount; i++) args[i] = Type.Missing;
         var result = _playerCmdEndTurn.Invoke(null, args);
         if (result is Task t) t.GetAwaiter().GetResult();
-        DrainActionExecutor(handle);
 
-        // After EndTurn, sts2 sits in "between phases" (enemy turn pending)
-        // until something drives the enemy-side action queue. The next player
-        // turn doesn't start until AfterAllPlayersReadyToEndTurn → SwitchSides
-        // fires; under TestMode the engine queues this on the action executor
-        // but needs nudging to drain when no Godot frame loop is calling in.
-        // Spin-pump until IsPlayPhase flips back, combat ends, or we time out.
-        AwaitNextPlayerTurnOrCombatEnd(handle);
+        // Phase 1: try to let the engine drive itself. Pump + drain in a tight
+        // loop until either combat ends, the player dies, or we re-enter
+        // play phase on the NEXT round (round number strictly greater than
+        // when we started). Falls through fast if the natural chain refuses
+        // (see deadline comment below).
+        // Phase 1 deadline is short: under the current bootstrap, the natural
+        // chain (AfterAllPlayersReadyToEndTurn → ...) throws
+        // "Local player not found in combat" inside LocalContext.GetMe almost
+        // immediately — NetService.LocalNetId is never wired up. The chain
+        // would converge in <10ms if it could; 50 iterations × 2ms is plenty
+        // of headroom for the inline sync context to drain, while keeping
+        // the wall-clock cost of every end_turn from ballooning to seconds.
+        var converged = PumpUntilNextPlayerTurn(handle, cm, roundBefore, deadlineIterations: 50);
+        if (!converged)
+        {
+            // Fallback path: force the side switch ourselves and let
+            // ExecuteEnemyTurn run. SwitchFromPlayerToEnemySide is one-shot
+            // (it doesn't loop until back-on-player-side), so on rounds where
+            // the chain's end-of-enemy-turn SwitchSides → StartTurn(player)
+            // doesn't fire to completion synchronously, we may need to invoke
+            // it again after pumping. Cap retries to avoid wedging on a fight
+            // we genuinely can't progress.
+            for (var retry = 0; retry < 8 && !converged; retry++)
+            {
+                ForceSwitchToEnemySide(handle, cm);
+                converged = PumpUntilNextPlayerTurn(handle, cm, roundBefore, deadlineIterations: 200);
+            }
+            if (!converged && Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
+            {
+                var ipp = (bool)_combatManagerIsPlayPhase!.GetValue(cm)!;
+                var inp = (bool)_combatManagerIsInProgress!.GetValue(cm)!;
+                Console.Error.WriteLine($"[end_turn] did not converge — roundBefore={roundBefore}, roundNow={ReadRound(cm)}, IsPlayPhase={ipp}, IsInProgress={inp}");
+            }
+        }
 
         AutoAdvancePostCombat(handle);
     }
 
-    private void AwaitNextPlayerTurnOrCombatEnd(RunHandle handle)
+    // Returns true if a terminal condition was reached (next player turn,
+    // combat ended, or player dead). Returns false on timeout.
+    private bool PumpUntilNextPlayerTurn(RunHandle handle, object cm, int roundBefore, int deadlineIterations)
     {
-        if (_combatManagerInstance is null || _combatManagerIsInProgress is null
-            || _combatManagerIsPlayPhase is null) return;
-        var cm = _combatManagerInstance.GetValue(null);
-        if (cm is null) return;
-        var cmType = cm.GetType();
+        if (_combatManagerIsInProgress is null || _combatManagerIsPlayPhase is null) return true;
 
-        // After EndTurn, the engine sets the player's "ready" flag but waits
-        // for an external trigger to actually fire the enemy turn (in real
-        // gameplay, the multiplayer sync layer drives this). In TestMode we
-        // need to push the same transition ourselves by calling the public
-        // SwitchFromPlayerToEnemySide(Func<Task>) helper.
-        var switchSides = cmType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .FirstOrDefault(m => m.Name == "SwitchFromPlayerToEnemySide" && m.GetParameters().Length == 1);
-
-        for (var i = 0; i < 500; i++)
+        for (var i = 0; i < deadlineIterations; i++)
         {
+            _syncCtx?.Pump();
             DrainActionExecutor(handle);
-            var inProgress = (bool)_combatManagerIsInProgress.GetValue(cm)!;
-            if (!inProgress) return;
-            var playPhase = (bool)_combatManagerIsPlayPhase.GetValue(cm)!;
-            if (playPhase) return;
 
-            if (switchSides is not null)
+            if (!(bool)_combatManagerIsInProgress.GetValue(cm)!) return true;
+            if (_creatureIsDead is not null)
             {
-                try
-                {
-                    var task = switchSides.Invoke(cm, new object?[] { null });
-                    if (task is Task st) st.GetAwaiter().GetResult();
-                    DrainActionExecutor(handle);
-                }
-                catch
-                {
-                    // Engine refuses (not "all players ready" yet, or already
-                    // switched). Give the sync context a chance to settle.
-                }
+                var creature = _playerCreature.GetValue(handle.Player);
+                if (creature is not null && (bool)_creatureIsDead.GetValue(creature)!) return true;
+            }
+            if ((bool)_combatManagerIsPlayPhase.GetValue(cm)!)
+            {
+                var roundNow = ReadRound(cm);
+                // Real progress: a new round started. Round-stable + play-phase
+                // means we never actually left (e.g. EndTurn was a no-op).
+                if (roundNow > roundBefore) return true;
             }
             Thread.Sleep(2);
         }
+        return false;
+    }
+
+    private void ForceSwitchToEnemySide(RunHandle handle, object cm)
+    {
+        var switchSides = cm.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .FirstOrDefault(m => m.Name == "SwitchFromPlayerToEnemySide" && m.GetParameters().Length == 1);
+        if (switchSides is null) return;
+        try
+        {
+            var task = switchSides.Invoke(cm, new object?[] { null });
+            if (task is Task st) st.GetAwaiter().GetResult();
+            DrainActionExecutor(handle);
+        }
+        catch (Exception ex)
+        {
+            if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
+                Console.Error.WriteLine($"[end_turn] ForceSwitchToEnemySide threw: {ex.GetType().Name}: {ex.Message}");
+            // Engine refused (e.g. not all players ready). Let the next pump
+            // window try again or fall through to AutoAdvancePostCombat.
+        }
+    }
+
+    private int ReadRound(object cm)
+    {
+        if (_combatManagerDebugOnlyGetState is null || _combatStateRoundNumber is null) return 0;
+        var state = _combatManagerDebugOnlyGetState.Invoke(cm, Array.Empty<object?>());
+        if (state is null) return 0;
+        var v = _combatStateRoundNumber.GetValue(state);
+        return v is null ? 0 : Convert.ToInt32(v);
     }
 
     // Enqueue a PlayCardAction for hand[cardIndex]. When the card targets
@@ -934,7 +993,7 @@ public sealed class Sts2Bindings
         _createIroncladRun.Invoke(null, new object?[] { _unlockStateAll, seed })
             ?? throw new InvalidOperationException("Player.CreateForNewRun returned null");
 
-    public static Sts2Bindings Bind(Assembly sts2)
+    public static Sts2Bindings Bind(Assembly sts2, InlineSynchronizationContext? syncCtx = null)
     {
         var playerType = Require(sts2, "MegaCrit.Sts2.Core.Entities.Players.Player");
         var ironcladType = Require(sts2, "MegaCrit.Sts2.Core.Models.Characters.Ironclad");
@@ -1069,7 +1128,7 @@ public sealed class Sts2Bindings
             runManagerEventSync, eventSyncGetLocalEvent, eventIsFinished, eventCurrentOptions,
             eventOptionTextKey, eventOptionIsLocked, eventOptionChosen,
             proceedFromTerminalRewards, enterRoom, mapRoomType2,
-            combat));
+            combat), syncCtx);
     }
 
     // Combat discovery. Every step is soft — if something doesn't resolve we

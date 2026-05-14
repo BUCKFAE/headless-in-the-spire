@@ -18,7 +18,8 @@ public static class RuntimeBootstrap
         bool SyncContextInstalled,
         bool TestModeEnabled,
         IReadOnlyList<HangPatches.PatchOutcome> Patches,
-        IReadOnlyList<LocPatches.PatchOutcome> LocPatches);
+        IReadOnlyList<LocPatches.PatchOutcome> LocPatches,
+        InlineSynchronizationContext? SyncContext);
 
     public static Result Run(string vendorDir)
     {
@@ -27,7 +28,8 @@ public static class RuntimeBootstrap
         {
             return new Result(null, "vendor/sts2.dll missing — run `just setup`.", false, false,
                 Array.Empty<HangPatches.PatchOutcome>(),
-                Array.Empty<LocPatches.PatchOutcome>());
+                Array.Empty<LocPatches.PatchOutcome>(),
+                SyncContext: null);
         }
 
         var sts2 = AssemblyLoadContext.Default.LoadFromAssemblyPath(sts2Path);
@@ -47,7 +49,7 @@ public static class RuntimeBootstrap
 
         var patches = HangPatches.Apply(sts2);
         var locPatches = LocPatches.Apply(sts2);
-        return new Result(sts2, null, true, testModeOn, patches, locPatches);
+        return new Result(sts2, null, true, testModeOn, patches, locPatches, syncCtx);
     }
 
     private static bool SetTestModeOn(Assembly sts2)
