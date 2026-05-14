@@ -56,8 +56,9 @@ public class Tween : GodotObject
     public enum EaseType { In = 0, Out = 1, InOut = 2, OutIn = 3 }
     public enum TransitionType { Linear = 0, Sine = 1, Quint = 2, Quart = 3, Quad = 4, Expo = 5, Elastic = 6, Cubic = 7, Circ = 8, Bounce = 9, Back = 10, Spring = 11 }
 
+#pragma warning disable CS0067 // Event never raised — stub only
     public event System.Action? Finished;
-    private void RaiseFinished() => Finished?.Invoke();
+#pragma warning restore CS0067
 
     public PropertyTweener TweenProperty(GodotObject _, NodePath __, Variant ___, double ____) => new();
     public MethodTweener TweenMethod(Callable _, Variant __, Variant ___, double ____) => new();

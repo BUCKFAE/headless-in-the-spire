@@ -192,6 +192,59 @@ public sealed record Enemy(
     [property: JsonPropertyName("intents")] IReadOnlyList<Intent> Intents,
     [property: JsonPropertyName("powers")] IReadOnlyList<Power> Powers);
 
+// Kind of reward offered by the engine after a combat resolves. Wire shape
+// matches the sts2 type name (CardReward → "card", GoldReward → "gold", …);
+// keeping the lowercase wire form keeps the JSON readable. Same Unknown-
+// fallback discipline as RoomType — an unrecognised reward stays selectable
+// (the engine still resolves it via OnSelectWrapper) but its kind is opaque
+// to clients until we add it here.
+[JsonConverter(typeof(JsonStringEnumConverter<RewardKind>))]
+public enum RewardKind
+{
+    [JsonStringEnumMemberName("unknown")] Unknown,
+    [JsonStringEnumMemberName("card")] Card,
+    [JsonStringEnumMemberName("gold")] Gold,
+    [JsonStringEnumMemberName("relic")] Relic,
+    [JsonStringEnumMemberName("potion")] Potion,
+}
+
+// One card option inside a CardReward. Index is the position in the reward's
+// card list; pass back via run/select_reward.cardIndex when claiming a Card-
+// kind reward. Id/Cost mirror the in-hand Card record so a single client
+// helper can render either.
+public sealed record CardRewardOption(
+    [property: JsonPropertyName("index")] int Index,
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("cost")] int Cost);
+
+// One reward in the post-combat reward set. Index is the position in the
+// pending list; pass back via run/select_reward.rewardIndex (and
+// run/skip_reward when CanSkip is true). Kind-specific fields are nullable —
+// only the matching kind populates its slot:
+//   - Card  → Cards (one inner pick required, see CanSkip for skippability)
+//   - Gold  → GoldAmount
+//   - Potion → PotionId (sts2's stable potion id)
+//   - Relic → RelicId  (sts2's stable relic id)
+// Unknown-kind rewards still surface so a client can claim them blind via
+// select_reward; the engine resolves the action either way.
+public sealed record RewardOption(
+    [property: JsonPropertyName("index")] int Index,
+    [property: JsonPropertyName("kind")] RewardKind Kind,
+    [property: JsonPropertyName("canSkip")] bool CanSkip,
+    [property: JsonPropertyName("goldAmount")] int? GoldAmount = null,
+    [property: JsonPropertyName("potionId")] string? PotionId = null,
+    [property: JsonPropertyName("relicId")] string? RelicId = null,
+    [property: JsonPropertyName("cards")] IReadOnlyList<CardRewardOption>? Cards = null);
+
+// Post-combat decision payload. Surfaced on snapshots whenever the engine
+// has an unconsumed reward set — typically after combat ends and before the
+// caller advances back to the map. While Available is non-empty the host
+// holds back the auto-advance to MapRoom; once every reward is selected or
+// skipped, the next snapshot returns rewardsState=null and the room has
+// flipped back to MapRoom.
+public sealed record RewardsState(
+    [property: JsonPropertyName("available")] IReadOnlyList<RewardOption> Available);
+
 // Combat-only state. Surfaced on snapshot responses only when CurrentRoomType
 // == CombatRoom (or the room flipped back to MapRoom in the same tick via
 // post-combat auto-advance — in which case CombatState is omitted on the
@@ -251,7 +304,11 @@ public sealed record RunNewResult(
     // wire's room gating mirrors availableMapNodes / availableEventOptions —
     // clients should branch on currentRoomType, not on whether this field
     // is non-null).
-    [property: JsonPropertyName("combatState")] CombatState? CombatState);
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    // Pending post-combat rewards. Non-null when the engine has rewards the
+    // caller hasn't yet selected/skipped — drives the run/select_reward and
+    // run/skip_reward decisions. Null in every other state.
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
 
 // ── run/state ────────────────────────────────────────────────────────────
 
@@ -269,7 +326,8 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("isGameOver")] bool IsGameOver,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
-    [property: JsonPropertyName("combatState")] CombatState? CombatState);
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
 
 // ── run/select_map_node ──────────────────────────────────────────────────
 
@@ -287,7 +345,8 @@ public sealed record RunSelectMapNodeResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
-    [property: JsonPropertyName("combatState")] CombatState? CombatState);
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
 
 // ── run/select_event_option ──────────────────────────────────────────────
 
@@ -308,7 +367,8 @@ public sealed record RunSelectEventOptionResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
-    [property: JsonPropertyName("combatState")] CombatState? CombatState);
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
 
 // ── run/end_turn ─────────────────────────────────────────────────────────
 
@@ -323,7 +383,8 @@ public sealed record RunEndTurnResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
-    [property: JsonPropertyName("combatState")] CombatState? CombatState);
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
 
 // ── run/play_card ────────────────────────────────────────────────────────
 
@@ -344,4 +405,52 @@ public sealed record RunPlayCardResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
-    [property: JsonPropertyName("combatState")] CombatState? CombatState);
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+
+// ── run/select_reward ────────────────────────────────────────────────────
+
+// rewardIndex is the position in the most recent snapshot's
+// rewardsState.available list. cardIndex is required when the picked reward's
+// kind == Card and ignored otherwise. Selecting a reward consumes it; if any
+// rewards remain after this call, rewardsState on the response is non-null.
+// Once the last reward is consumed, the host advances back to MapRoom and
+// rewardsState turns null on the next snapshot.
+public sealed record RunSelectRewardParams(
+    [property: JsonPropertyName("rewardIndex")] int RewardIndex,
+    [property: JsonPropertyName("cardIndex")] int? CardIndex = null);
+
+public sealed record RunSelectRewardResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("rewardIndex")] int RewardIndex,
+    [property: JsonPropertyName("cardIndex")] int? CardIndex,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+
+// ── run/skip_reward ──────────────────────────────────────────────────────
+
+// rewardIndex is the position in the most recent snapshot's
+// rewardsState.available list. Skipping is only valid for rewards whose
+// CanSkip flag is true (currently: card rewards that aren't forced); the
+// host throws if the indexed reward isn't skippable so callers can't drift
+// engine state.
+public sealed record RunSkipRewardParams(
+    [property: JsonPropertyName("rewardIndex")] int RewardIndex);
+
+public sealed record RunSkipRewardResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("rewardIndex")] int RewardIndex,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);

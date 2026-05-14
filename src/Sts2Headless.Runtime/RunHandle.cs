@@ -20,6 +20,8 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 // AvailableEventOptions are the current-page picks for an active Event;
 // empty unless CurrentRoomType == EventRoom.
 // CombatState is the combat read-out; null unless CurrentRoomType == CombatRoom.
+// RewardsState carries the post-combat reward decisions when the engine has
+// any unclaimed; null whenever the wire has nothing pending for the caller.
 public sealed record RunSnapshot(
     int CurrentHp,
     int MaxHp,
@@ -30,4 +32,5 @@ public sealed record RunSnapshot(
     bool IsGameOver,
     IReadOnlyList<MapNode> AvailableMapNodes,
     IReadOnlyList<EventOption> AvailableEventOptions,
-    CombatState? CombatState);
+    CombatState? CombatState,
+    RewardsState? RewardsState);

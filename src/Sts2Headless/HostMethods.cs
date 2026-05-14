@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Sts2Headless.Protocol;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
@@ -27,6 +26,8 @@ public static class HostMethods
             ["run/select_event_option"] = Typed<RunSelectEventOptionParams, RunSelectEventOptionResult>(p => RunSelectEventOption(bindings, session, p)),
             ["run/end_turn"] = TypedNoParams(() => RunEndTurn(bindings, session)),
             ["run/play_card"] = Typed<RunPlayCardParams, RunPlayCardResult>(p => RunPlayCard(bindings, session, p)),
+            ["run/select_reward"] = Typed<RunSelectRewardParams, RunSelectRewardResult>(p => RunSelectReward(bindings, session, p)),
+            ["run/skip_reward"] = Typed<RunSkipRewardParams, RunSkipRewardResult>(p => RunSkipReward(bindings, session, p)),
         };
     }
 
@@ -65,7 +66,8 @@ public static class HostMethods
             CurrentRoomType: s.CurrentRoomType,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
-            CombatState: s.CombatState);
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState);
     }
 
     private static RunStateResult RunState(Sts2Bindings bindings, Session session)
@@ -87,7 +89,8 @@ public static class HostMethods
             IsGameOver: s.IsGameOver,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
-            CombatState: s.CombatState);
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState);
     }
 
     private static RunSelectMapNodeResult RunSelectMapNode(Sts2Bindings bindings, Session session, RunSelectMapNodeParams? @params)
@@ -110,7 +113,8 @@ public static class HostMethods
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
-            CombatState: s.CombatState);
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState);
     }
 
     private static RunSelectEventOptionResult RunSelectEventOption(Sts2Bindings bindings, Session session, RunSelectEventOptionParams? @params)
@@ -132,7 +136,8 @@ public static class HostMethods
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
-            CombatState: s.CombatState);
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState);
     }
 
     private static RunEndTurnResult RunEndTurn(Sts2Bindings bindings, Session session)
@@ -151,7 +156,8 @@ public static class HostMethods
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
-            CombatState: s.CombatState);
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState);
     }
 
     private static RunPlayCardResult RunPlayCard(Sts2Bindings bindings, Session session, RunPlayCardParams? @params)
@@ -174,7 +180,55 @@ public static class HostMethods
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
-            CombatState: s.CombatState);
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState);
+    }
+
+    private static RunSelectRewardResult RunSelectReward(Sts2Bindings bindings, Session session, RunSelectRewardParams? @params)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new ArgumentException("run/select_reward requires params {rewardIndex, cardIndex?}");
+
+        bindings.SelectReward(run, args.RewardIndex, args.CardIndex);
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunSelectRewardResult(
+            Ok: true,
+            RewardIndex: args.RewardIndex,
+            CardIndex: args.CardIndex,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState);
+    }
+
+    private static RunSkipRewardResult RunSkipReward(Sts2Bindings bindings, Session session, RunSkipRewardParams? @params)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new ArgumentException("run/skip_reward requires params {rewardIndex}");
+
+        bindings.SkipReward(run, args.RewardIndex);
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunSkipRewardResult(
+            Ok: true,
+            RewardIndex: args.RewardIndex,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState);
     }
 
     // Adapter that turns a typed Func<TParams?, TResult> into the JsonNode-

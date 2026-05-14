@@ -119,13 +119,39 @@ public sealed class Sts2Bindings
     private readonly PropertyInfo? _nextMoveIntents;
     private readonly PropertyInfo? _intentIntentType;
     private readonly MethodInfo? _playerCmdEndTurn;
-    private readonly Type? _playCardActionType;
     private readonly ConstructorInfo? _playCardActionCtor;
     private readonly PropertyInfo? _runManagerActionQueueSet;
     private readonly MethodInfo? _actionQueueSetEnqueueWithoutSynchronizing;
     private readonly PropertyInfo? _runManagerActionExecutor;
     private readonly PropertyInfo? _actionExecutorIsRunning;
     private readonly MethodInfo? _actionExecutorFinishedExecutingActions;
+
+    // ── Reward surface ──────────────────────────────────────────────────
+    // All soft-bound: if a reward type or member doesn't resolve, the host
+    // still boots — the wire just surfaces an empty/Unknown reward. The
+    // mutating paths throw if their handles are null so callers see the gap.
+    private readonly ConstructorInfo? _rewardsSetCtor;
+    private readonly MethodInfo? _rewardsSetWithRewardsFromRoom;
+    private readonly MethodInfo? _rewardsSetGenerateWithoutOffering;
+    private readonly MethodInfo? _rewardOnSelectWrapper;
+    private readonly Type? _cardRewardType;
+    private readonly PropertyInfo? _cardRewardCards;
+    private readonly PropertyInfo? _cardRewardCanSkip;
+    private readonly MethodInfo? _cardRewardOnSkipped;
+    private readonly Type? _goldRewardType;
+    private readonly PropertyInfo? _goldRewardAmount;
+    private readonly Type? _potionRewardType;
+    private readonly PropertyInfo? _potionRewardPotionId;
+    private readonly Type? _relicRewardType;
+    private readonly PropertyInfo? _relicRewardRelicId;
+    private readonly PropertyInfo? _runManagerRewardSynchronizer;
+    private readonly MethodInfo? _rewardSyncSyncLocalObtainedCard;
+
+    // Mutable post-combat reward state. Generated lazily once combat ends
+    // (see EnsurePendingRewards); consumed by SelectReward / SkipReward.
+    // Single-slot to match the single-active-run host model. Cleared on
+    // run/new and once the last reward is claimed.
+    private List<object>? _pendingRewards;
 
     // Optional handle to the inline sync context installed by RuntimeBootstrap.
     // EndTurn pumps it to drive sts2's fire-and-forget enemy-turn chain through
@@ -218,13 +244,29 @@ public sealed class Sts2Bindings
         _nextMoveIntents = c.NextMoveIntents;
         _intentIntentType = c.IntentIntentType;
         _playerCmdEndTurn = c.PlayerCmdEndTurn;
-        _playCardActionType = c.PlayCardActionType;
         _playCardActionCtor = c.PlayCardActionCtor;
         _runManagerActionQueueSet = c.RunManagerActionQueueSet;
         _actionQueueSetEnqueueWithoutSynchronizing = c.ActionQueueSetEnqueueWithoutSynchronizing;
         _runManagerActionExecutor = c.RunManagerActionExecutor;
         _actionExecutorIsRunning = c.ActionExecutorIsRunning;
         _actionExecutorFinishedExecutingActions = c.ActionExecutorFinishedExecutingActions;
+        var r = s.Rewards;
+        _rewardsSetCtor = r.RewardsSetCtor;
+        _rewardsSetWithRewardsFromRoom = r.RewardsSetWithRewardsFromRoom;
+        _rewardsSetGenerateWithoutOffering = r.RewardsSetGenerateWithoutOffering;
+        _rewardOnSelectWrapper = r.RewardOnSelectWrapper;
+        _cardRewardType = r.CardRewardType;
+        _cardRewardCards = r.CardRewardCards;
+        _cardRewardCanSkip = r.CardRewardCanSkip;
+        _cardRewardOnSkipped = r.CardRewardOnSkipped;
+        _goldRewardType = r.GoldRewardType;
+        _goldRewardAmount = r.GoldRewardAmount;
+        _potionRewardType = r.PotionRewardType;
+        _potionRewardPotionId = r.PotionRewardPotionId;
+        _relicRewardType = r.RelicRewardType;
+        _relicRewardRelicId = r.RelicRewardRelicId;
+        _runManagerRewardSynchronizer = r.RunManagerRewardSynchronizer;
+        _rewardSyncSyncLocalObtainedCard = r.RewardSyncSyncLocalObtainedCard;
     }
 
     // Full sts2-cli StartRun chain, condensed. Returns a triple the wire
@@ -235,6 +277,11 @@ public sealed class Sts2Bindings
     // are what let the event populate options in the first place.
     public RunHandle StartIroncladRun(ulong seed, bool withNeow = false)
     {
+        // A new run cannot inherit pending rewards from a previous one — the
+        // reward-set objects belong to the prior RunManager state and become
+        // invalid after the second run/new wipes that state.
+        _pendingRewards = null;
+
         var player = _createIroncladRun.Invoke(null, new object?[] { _unlockStateAll, seed })
             ?? throw new InvalidOperationException("Player.CreateForNewRun returned null");
 
@@ -261,6 +308,13 @@ public sealed class Sts2Bindings
             ["state"] = runState,
             ["gameService"] = netService,
         });
+
+        // We deliberately do NOT set LocalContext.NetId here. Wiring it
+        // breaks the existing end-turn flow (the natural chain partially
+        // converges and our retry loop over-fires, advancing multiple
+        // rounds per call). The reward path bypasses LocalContext entirely
+        // by using direct mutation commands (CardPileCmd.Add etc.) — see
+        // ClaimCardReward / SelectReward.
 
         var extra = _runStateExtraFields.GetValue(runState)
             ?? throw new InvalidOperationException("RunState.ExtraFields was null");
@@ -333,7 +387,82 @@ public sealed class Sts2Bindings
             ? ReadCombatState(handle)
             : null;
 
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, combatState);
+        // Rewards persist across the room flip — the engine generates them
+        // while still in CombatRoom (combat ended, isInProgress=false) and we
+        // hold them through the wire turn(s) until the caller consumes them.
+        // Surface whenever non-empty regardless of room.
+        var rewardsState = ReadRewardsState();
+
+        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, combatState, rewardsState);
+    }
+
+    // Project the stashed list of pending rewards into the wire DTO. Returns
+    // null when nothing is pending — the convention RewardsState carries
+    // (no decision required). Indexes are reassigned 0..N-1 every call so a
+    // fresh snapshot is always self-consistent for the next select_reward.
+    private RewardsState? ReadRewardsState()
+    {
+        if (_pendingRewards is null || _pendingRewards.Count == 0) return null;
+
+        var options = new List<RewardOption>(_pendingRewards.Count);
+        for (var i = 0; i < _pendingRewards.Count; i++)
+        {
+            var reward = _pendingRewards[i];
+            var (kind, canSkip, gold, potion, relic, cards) = ProjectReward(reward);
+            options.Add(new RewardOption(i, kind, canSkip, gold, potion, relic, cards));
+        }
+        return new RewardsState(options);
+    }
+
+    private (RewardKind, bool, int?, string?, string?, IReadOnlyList<CardRewardOption>?) ProjectReward(object reward)
+    {
+        if (_cardRewardType is not null && _cardRewardType.IsInstanceOfType(reward))
+        {
+            var canSkip = _cardRewardCanSkip is not null
+                && (bool)(_cardRewardCanSkip.GetValue(reward) ?? false);
+            var cards = ReadCardRewardCards(reward);
+            return (RewardKind.Card, canSkip, null, null, null, cards);
+        }
+        if (_goldRewardType is not null && _goldRewardType.IsInstanceOfType(reward))
+        {
+            var amount = _goldRewardAmount is not null
+                ? Convert.ToInt32(_goldRewardAmount.GetValue(reward) ?? 0)
+                : 0;
+            return (RewardKind.Gold, false, amount, null, null, null);
+        }
+        if (_potionRewardType is not null && _potionRewardType.IsInstanceOfType(reward))
+        {
+            var id = _potionRewardPotionId is not null
+                ? ReadEntryId(_potionRewardPotionId, reward) ?? _potionRewardPotionId.GetValue(reward)?.ToString()
+                : null;
+            return (RewardKind.Potion, false, null, id, null, null);
+        }
+        if (_relicRewardType is not null && _relicRewardType.IsInstanceOfType(reward))
+        {
+            var id = _relicRewardRelicId is not null
+                ? ReadEntryId(_relicRewardRelicId, reward) ?? _relicRewardRelicId.GetValue(reward)?.ToString()
+                : null;
+            return (RewardKind.Relic, false, null, null, id, null);
+        }
+        return (RewardKind.Unknown, false, null, null, null, null);
+    }
+
+    private IReadOnlyList<CardRewardOption> ReadCardRewardCards(object cardReward)
+    {
+        if (_cardRewardCards?.GetValue(cardReward) is not System.Collections.IEnumerable raw)
+            return Array.Empty<CardRewardOption>();
+        var result = new List<CardRewardOption>();
+        var idx = 0;
+        foreach (var card in raw)
+        {
+            if (card is null) continue;
+            var id = ReadEntryId(_cardId, card) ?? card.GetType().Name;
+            var cost = _cardEnergyCost is not null && _energyCostGetResolved is not null
+                ? Convert.ToInt32(_energyCostGetResolved.Invoke(_cardEnergyCost.GetValue(card), null) ?? 0)
+                : 0;
+            result.Add(new CardRewardOption(idx++, id, cost));
+        }
+        return result;
     }
 
     // CombatManager.Instance + Player.PlayerCombatState walk. Returns null if
@@ -622,43 +751,35 @@ public sealed class Sts2Bindings
         var result = _playerCmdEndTurn.Invoke(null, args);
         if (result is Task t) t.GetAwaiter().GetResult();
 
-        // Phase 1: try to let the engine drive itself. Pump + drain in a tight
-        // loop until either combat ends, the player dies, or we re-enter
-        // play phase on the NEXT round (round number strictly greater than
-        // when we started). Falls through fast if the natural chain refuses
-        // (see deadline comment below).
-        // Phase 1 deadline is short: under the current bootstrap, the natural
-        // chain (AfterAllPlayersReadyToEndTurn → ...) throws
-        // "Local player not found in combat" inside LocalContext.GetMe almost
-        // immediately — NetService.LocalNetId is never wired up. The chain
-        // would converge in <10ms if it could; 50 iterations × 2ms is plenty
-        // of headroom for the inline sync context to drain, while keeping
-        // the wall-clock cost of every end_turn from ballooning to seconds.
+        // Phase 1: short pump. Under the current bootstrap (LocalContext
+        // unwired by design — see StartIroncladRun), the natural chain
+        // throws "Local player not found" inside LocalContext.GetMe almost
+        // immediately. The pump exists to drive the inline sync context
+        // forward in case some future setup makes the chain work; today it
+        // just falls through fast.
         var converged = PumpUntilNextPlayerTurn(handle, cm, roundBefore, deadlineIterations: 50);
-        if (!converged)
+
+        // Phase 2: drive side-switching ourselves. SwitchFromPlayerToEnemy
+        // Side is one-shot (each call advances exactly one cycle leg), so
+        // multiple retries are needed to push through enemy turn → next
+        // player turn. Cap the loop so a stuck engine surfaces a deadline
+        // timeout rather than hanging the host.
+        for (var retry = 0; retry < 8 && !converged; retry++)
         {
-            // Fallback path: force the side switch ourselves and let
-            // ExecuteEnemyTurn run. SwitchFromPlayerToEnemySide is one-shot
-            // (it doesn't loop until back-on-player-side), so on rounds where
-            // the chain's end-of-enemy-turn SwitchSides → StartTurn(player)
-            // doesn't fire to completion synchronously, we may need to invoke
-            // it again after pumping. Cap retries to avoid wedging on a fight
-            // we genuinely can't progress.
-            for (var retry = 0; retry < 8 && !converged; retry++)
-            {
-                ForceSwitchToEnemySide(handle, cm);
-                converged = PumpUntilNextPlayerTurn(handle, cm, roundBefore, deadlineIterations: 200);
-            }
-            if (!converged && Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
-            {
-                var ipp = (bool)_combatManagerIsPlayPhase!.GetValue(cm)!;
-                var inp = (bool)_combatManagerIsInProgress!.GetValue(cm)!;
-                Console.Error.WriteLine($"[end_turn] did not converge — roundBefore={roundBefore}, roundNow={ReadRound(cm)}, IsPlayPhase={ipp}, IsInProgress={inp}");
-            }
+            ForceSwitchToEnemySide(handle, cm);
+            converged = PumpUntilNextPlayerTurn(handle, cm, roundBefore, deadlineIterations: 200);
+        }
+
+        if (!converged && Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
+        {
+            var ipp = (bool)_combatManagerIsPlayPhase!.GetValue(cm)!;
+            var inp = (bool)_combatManagerIsInProgress!.GetValue(cm)!;
+            Console.Error.WriteLine($"[end_turn] did not converge — roundBefore={roundBefore}, roundNow={ReadRound(cm)}, IsPlayPhase={ipp}, IsInProgress={inp}");
         }
 
         AutoAdvancePostCombat(handle);
     }
+
 
     // Returns true if a terminal condition was reached (next player turn,
     // combat ended, or player dead). Returns false on timeout.
@@ -704,8 +825,6 @@ public sealed class Sts2Bindings
         {
             if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
                 Console.Error.WriteLine($"[end_turn] ForceSwitchToEnemySide threw: {ex.GetType().Name}: {ex.Message}");
-            // Engine refused (e.g. not all players ready). Let the next pump
-            // window try again or fall through to AutoAdvancePostCombat.
         }
     }
 
@@ -794,13 +913,16 @@ public sealed class Sts2Bindings
         return alive[targetIndex.Value];
     }
 
-    // After a mutating combat action, detect "combat ended, room hasn't moved"
-    // and force the same transition sts2-cli's ForceToMap does: drain terminal
-    // rewards (which generates the post-combat reward set), then EnterRoom(MapRoom)
-    // if we're still parked at a CombatRoom. Card rewards are deferred — the
-    // generated reward set is left in the engine's hands; only the room
-    // transition is forced. Boss rooms aren't yet branched on (EnterNextAct);
-    // tested seeds don't hit a boss until later passes wire that up.
+    // After a mutating combat action, decide what to do next:
+    //   - combat still running → no-op
+    //   - combat ended, no rewards bound → legacy path (proceed + EnterRoom),
+    //     skipping every reward the engine offered (matches the pre-rewards
+    //     behaviour for setups where we couldn't bind RewardsSet)
+    //   - combat ended, rewards bound → generate the reward set and hold it
+    //     in _pendingRewards. Do NOT advance — the wire surfaces the pending
+    //     decisions via RewardsState; the caller drives select_reward / skip
+    //     until the list empties, at which point AdvanceAfterRewardsConsumed
+    //     fires the legacy proceed-and-enter path to reach MapRoom.
     private void AutoAdvancePostCombat(RunHandle handle)
     {
         if (_combatManagerInstance is null) return;
@@ -812,6 +934,241 @@ public sealed class Sts2Bindings
         var roomName = _runStateCurrentRoom.GetValue(handle.RunState)?.GetType().Name;
         if (roomName != "CombatRoom") return;
 
+        // Already-pending rewards mean the caller previously consumed at least
+        // one reward but more remain; don't regenerate.
+        if (_pendingRewards is not null && _pendingRewards.Count > 0) return;
+
+        if (TryGeneratePendingRewards(handle))
+        {
+            if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
+                Console.Error.WriteLine($"[rewards] generated {_pendingRewards?.Count} reward(s)");
+            // Surface them to the wire; caller will drive consumption.
+            return;
+        }
+
+        if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
+            Console.Error.WriteLine("[rewards] generation failed/empty — falling through to legacy auto-advance");
+        // No reward bindings — fall through to the original behaviour so the
+        // host still escapes the CombatRoom on its own.
+        AutoAdvanceFinishedEvent(handle.RunManager, handle.RunState);
+    }
+
+    // Generates the post-combat RewardsSet and stashes everything it produced
+    // into _pendingRewards. Returns true iff at least one reward landed in the
+    // pending list; false signals the caller should fall back to the legacy
+    // proceed-and-skip path. Failures (missing bindings, generation throws)
+    // also return false rather than booby-trap the wire with an empty list.
+    private bool TryGeneratePendingRewards(RunHandle handle)
+    {
+        if (_rewardsSetCtor is null
+            || _rewardsSetWithRewardsFromRoom is null
+            || _rewardsSetGenerateWithoutOffering is null)
+        {
+            if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
+                Console.Error.WriteLine($"[rewards] bindings missing: ctor={_rewardsSetCtor is not null} fromRoom={_rewardsSetWithRewardsFromRoom is not null} generate={_rewardsSetGenerateWithoutOffering is not null}");
+            return false;
+        }
+
+        var room = _runStateCurrentRoom.GetValue(handle.RunState);
+        if (room is null) return false;
+
+        try
+        {
+            var rewardsSet = _rewardsSetCtor.Invoke(new[] { handle.Player });
+            // WithRewardsFromRoom returns the same RewardsSet (fluent); accept
+            // either-or so a future signature change doesn't crash us.
+            var withRoom = _rewardsSetWithRewardsFromRoom.Invoke(rewardsSet, new[] { room }) ?? rewardsSet;
+            var task = _rewardsSetGenerateWithoutOffering.Invoke(withRoom, Array.Empty<object?>());
+            object? generated = null;
+            if (task is Task t)
+            {
+                t.GetAwaiter().GetResult();
+                // Task<IEnumerable<Reward>>.Result via reflection — the runtime
+                // type is the closed generic, so .GetType().GetProperty works.
+                var resultProp = t.GetType().GetProperty("Result", BindingFlags.Public | BindingFlags.Instance);
+                generated = resultProp?.GetValue(t);
+            }
+            else
+            {
+                generated = task; // Synchronous override (unlikely but defensive).
+            }
+
+            if (generated is not System.Collections.IEnumerable seq) return false;
+
+            var collected = new List<object>();
+            foreach (var reward in seq)
+            {
+                if (reward is null) continue;
+                collected.Add(reward);
+            }
+            if (collected.Count == 0) return false;
+
+            _pendingRewards = collected;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
+                Console.Error.WriteLine($"[rewards] generation threw: {ex.GetType().Name}: {ex.Message}");
+            return false;
+        }
+    }
+
+    // Claim the reward at `rewardIndex` in the latest snapshot. For Card-kind
+    // rewards, `cardIndex` is required and picks which inner card to add to
+    // the deck (followed by a SyncLocalObtainedCard so the engine's listeners
+    // observe the obtain). For non-card rewards the engine's OnSelectWrapper
+    // is the only thing we need to fire — gold credits to the player, the
+    // potion lands in the slot, etc. Removing the entry from _pendingRewards
+    // happens last so a throw from OnSelectWrapper doesn't lose the wire's
+    // view of the pending decision.
+    public void SelectReward(RunHandle handle, int rewardIndex, int? cardIndex)
+    {
+        if (_pendingRewards is null || _pendingRewards.Count == 0)
+            throw new InvalidOperationException("no pending rewards to select");
+        if (rewardIndex < 0 || rewardIndex >= _pendingRewards.Count)
+            throw new ArgumentOutOfRangeException(nameof(rewardIndex),
+                $"rewardIndex {rewardIndex} out of range; {_pendingRewards.Count} reward(s) pending");
+
+        var reward = _pendingRewards[rewardIndex];
+
+        if (_cardRewardType is not null && _cardRewardType.IsInstanceOfType(reward))
+        {
+            if (cardIndex is null)
+                throw new ArgumentException("card-kind reward requires cardIndex");
+            ClaimCardReward(handle, reward, cardIndex.Value);
+        }
+        else
+        {
+            // Non-card rewards (gold, potion, relic): try the engine's
+            // OnSelectWrapper path. It may throw on multiplayer-aware
+            // lookups (LocalContext.GetMe) under our setup; treat as
+            // best-effort. The reward still gets removed from the pending
+            // list so the caller can keep advancing.
+            try { InvokeOnSelectWrapper(reward); }
+            catch (Exception ex)
+            {
+                if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
+                    Console.Error.WriteLine($"[rewards] non-card OnSelectWrapper threw: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        _pendingRewards.RemoveAt(rewardIndex);
+        DrainActionExecutor(handle);
+        AdvanceAfterRewardsConsumed(handle);
+    }
+
+    // Skip the reward at `rewardIndex`. Only legal for skippable card rewards;
+    // the wire's CanSkip flag tells callers in advance, but the host still
+    // re-checks here so a stale snapshot can't drift state. Non-card rewards
+    // and locked card rewards both throw rather than silently no-op.
+    public void SkipReward(RunHandle handle, int rewardIndex)
+    {
+        if (_pendingRewards is null || _pendingRewards.Count == 0)
+            throw new InvalidOperationException("no pending rewards to skip");
+        if (rewardIndex < 0 || rewardIndex >= _pendingRewards.Count)
+            throw new ArgumentOutOfRangeException(nameof(rewardIndex),
+                $"rewardIndex {rewardIndex} out of range; {_pendingRewards.Count} reward(s) pending");
+
+        var reward = _pendingRewards[rewardIndex];
+        if (_cardRewardType is null || !_cardRewardType.IsInstanceOfType(reward))
+            throw new InvalidOperationException("only card rewards are skippable");
+        if (_cardRewardCanSkip is not null && !(bool)(_cardRewardCanSkip.GetValue(reward) ?? false))
+            throw new InvalidOperationException("this card reward is not skippable (CanSkip=false)");
+
+        if (_cardRewardOnSkipped is not null)
+        {
+            // Best-effort: OnSkipped touches RunHistory, which throws on
+            // hardcoded "Player ID 1" lookups under our setup. The wire
+            // semantics ("skip = don't add card") still hold even if the
+            // engine listener cycle fails, since we never invoke
+            // CardPileCmd.Add in the skip path.
+            try
+            {
+                var result = _cardRewardOnSkipped.Invoke(reward, Array.Empty<object?>());
+                if (result is Task t) t.GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
+                    Console.Error.WriteLine($"[rewards] OnSkipped threw: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        _pendingRewards.RemoveAt(rewardIndex);
+        DrainActionExecutor(handle);
+        AdvanceAfterRewardsConsumed(handle);
+    }
+
+    private void ClaimCardReward(RunHandle handle, object cardReward, int cardIndex)
+    {
+        if (_cardRewardCards?.GetValue(cardReward) is not System.Collections.IEnumerable cardsEnumerable)
+            throw new InvalidOperationException("CardReward.Cards was null or not enumerable");
+        var cards = new List<object>();
+        foreach (var c in cardsEnumerable) if (c is not null) cards.Add(c);
+        if (cardIndex < 0 || cardIndex >= cards.Count)
+            throw new ArgumentOutOfRangeException(nameof(cardIndex),
+                $"cardIndex {cardIndex} out of range; {cards.Count} card(s) on offer");
+
+        var picked = cards[cardIndex];
+
+        // sts2-cli line 1205: direct deck mutation via CardPileCmd. Avoids
+        // CardReward.OnSelectWrapper, which would route through
+        // LocalContext.GetMe and throw under our setup.
+        // Direct deck mutation. CardPileCmd.Add (the engine's official path)
+        // NREs on call here because its internals walk PlayerChoiceContext /
+        // LocalContext, neither of which is wired in our setup. Adding to the
+        // Deck.Cards list directly skips the engine's listener/animation
+        // pipeline (relics that trigger on card-obtain won't fire) but the
+        // post-condition the wire promises ("card is in the deck") holds.
+        var deck = _playerDeck.GetValue(handle.Player)
+            ?? throw new InvalidOperationException("Player.Deck was null");
+        var cardsObj = _deckCards.GetValue(deck)
+            ?? throw new InvalidOperationException("Deck.Cards was null");
+        if (cardsObj is not System.Collections.IList deckList)
+            throw new InvalidOperationException($"Deck.Cards is not list-shaped (got {cardsObj.GetType().Name})");
+        deckList.Add(picked);
+
+        // Notify the engine the card was obtained (achievements, listeners,
+        // multiplayer sync). Best-effort: a throw here doesn't undo the deck
+        // add. sts2-cli swallows similar exceptions on this path.
+        if (_runManagerRewardSynchronizer is not null && _rewardSyncSyncLocalObtainedCard is not null)
+        {
+            try
+            {
+                var sync = _runManagerRewardSynchronizer.GetValue(handle.RunManager);
+                if (sync is not null) _rewardSyncSyncLocalObtainedCard.Invoke(sync, new[] { picked });
+            }
+            catch (Exception ex)
+            {
+                if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
+                    Console.Error.WriteLine($"[rewards] SyncLocalObtainedCard threw: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+    }
+
+    // Best-effort OnSelectWrapper invocation for non-card rewards. Goes
+    // through the engine's standard reward-claim path (which credits gold,
+    // grants the relic/potion, etc.). May throw on multiplayer-aware
+    // lookups under our setup; the caller treats this as "best effort —
+    // we already removed the reward from the pending list".
+    private void InvokeOnSelectWrapper(object reward)
+    {
+        if (_rewardOnSelectWrapper is null) return;
+        var mi = _rewardOnSelectWrapper.DeclaringType?.IsInstanceOfType(reward) == true
+            ? _rewardOnSelectWrapper
+            : reward.GetType().GetMethod("OnSelectWrapper", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes)
+              ?? _rewardOnSelectWrapper;
+        var result = mi.Invoke(reward, Array.Empty<object?>());
+        if (result is Task t) t.GetAwaiter().GetResult();
+    }
+
+    private void AdvanceAfterRewardsConsumed(RunHandle handle)
+    {
+        if (_pendingRewards is null || _pendingRewards.Count > 0) return;
+        _pendingRewards = null;
+        // Now the legacy escape path is correct: combat is over, no decisions
+        // left, push us back to MapRoom (or whatever the engine flips to).
         AutoAdvanceFinishedEvent(handle.RunManager, handle.RunState);
     }
 
@@ -1113,6 +1470,7 @@ public sealed class Sts2Bindings
         var mapRoomType2 = mapRoomLookup.Found ? mapRoomLookup.Type : null;
 
         var combat = BindCombat(sts2, runManagerType, playerType, playerCreature.PropertyType);
+        var rewards = BindRewards(sts2, runManagerType, playerType);
 
         return new Sts2Bindings(sts2, new BindingState(
             playerType, createIroncladRun, unlockAll,
@@ -1128,7 +1486,101 @@ public sealed class Sts2Bindings
             runManagerEventSync, eventSyncGetLocalEvent, eventIsFinished, eventCurrentOptions,
             eventOptionTextKey, eventOptionIsLocked, eventOptionChosen,
             proceedFromTerminalRewards, enterRoom, mapRoomType2,
-            combat), syncCtx);
+            combat, rewards), syncCtx);
+    }
+
+    // Reward surface discovery. Tries the well-known FQNs first (matching
+    // sts2-cli's RunSimulator imports); falls back to simple-name scans via
+    // Sts2Reflection.FindType. Each piece is independently nullable so a
+    // moved type degrades the wire to "no rewards visible" rather than
+    // failing bootstrap.
+    private static RewardBindings BindRewards(Assembly sts2, Type runManagerType, Type playerType)
+    {
+        Type? rewardsSetType = null;
+        ConstructorInfo? rewardsSetCtor = null;
+        MethodInfo? withRewardsFromRoom = null;
+        MethodInfo? generateWithoutOffering = null;
+        MethodInfo? rewardOnSelectWrapper = null;
+        var rewardsSetLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Rewards.RewardsSet");
+        if (rewardsSetLookup.Found)
+        {
+            rewardsSetType = rewardsSetLookup.Type!;
+            rewardsSetCtor = rewardsSetType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(c => c.GetParameters().Length == 1 && c.GetParameters()[0].ParameterType == playerType);
+            withRewardsFromRoom = rewardsSetType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m => m.Name == "WithRewardsFromRoom" && m.GetParameters().Length == 1);
+            generateWithoutOffering = rewardsSetType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m => m.Name == "GenerateWithoutOffering" && m.GetParameters().Length == 0);
+        }
+
+        Type? cardRewardType = null;
+        PropertyInfo? cardRewardCards = null, cardRewardCanSkip = null;
+        MethodInfo? cardRewardOnSkipped = null;
+        var cardRewardLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Rewards.CardReward");
+        if (cardRewardLookup.Found)
+        {
+            cardRewardType = cardRewardLookup.Type!;
+            cardRewardCards = cardRewardType.GetProperty("Cards", BindingFlags.Public | BindingFlags.Instance);
+            cardRewardCanSkip = cardRewardType.GetProperty("CanSkip", BindingFlags.Public | BindingFlags.Instance);
+            cardRewardOnSkipped = cardRewardType.GetMethod("OnSkipped",
+                BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
+            // OnSelectWrapper lives on the Reward base; pull from CardReward since
+            // we know it inherits from Reward (and CardReward is the most likely
+            // entry-point for the lookup to succeed).
+            rewardOnSelectWrapper = cardRewardType.GetMethod("OnSelectWrapper",
+                BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
+        }
+
+        Type? goldRewardType = null;
+        PropertyInfo? goldRewardAmount = null;
+        var goldLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Rewards.GoldReward");
+        if (goldLookup.Found)
+        {
+            goldRewardType = goldLookup.Type!;
+            // Amount is the most likely property name; try common variants.
+            goldRewardAmount = goldRewardType.GetProperty("Amount", BindingFlags.Public | BindingFlags.Instance)
+                ?? goldRewardType.GetProperty("Gold", BindingFlags.Public | BindingFlags.Instance)
+                ?? goldRewardType.GetProperty("GoldAmount", BindingFlags.Public | BindingFlags.Instance);
+        }
+
+        Type? potionRewardType = null;
+        PropertyInfo? potionRewardPotionId = null;
+        var potionLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Rewards.PotionReward");
+        if (potionLookup.Found)
+        {
+            potionRewardType = potionLookup.Type!;
+            potionRewardPotionId = potionRewardType.GetProperty("PotionId", BindingFlags.Public | BindingFlags.Instance)
+                ?? potionRewardType.GetProperty("Potion", BindingFlags.Public | BindingFlags.Instance)
+                ?? potionRewardType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+        }
+
+        Type? relicRewardType = null;
+        PropertyInfo? relicRewardRelicId = null;
+        var relicLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Rewards.RelicReward");
+        if (relicLookup.Found)
+        {
+            relicRewardType = relicLookup.Type!;
+            relicRewardRelicId = relicRewardType.GetProperty("RelicId", BindingFlags.Public | BindingFlags.Instance)
+                ?? relicRewardType.GetProperty("Relic", BindingFlags.Public | BindingFlags.Instance)
+                ?? relicRewardType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+        }
+
+        var rewardSync = runManagerType.GetProperty("RewardSynchronizer", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo? syncLocalObtainedCard = null;
+        if (rewardSync is not null)
+        {
+            syncLocalObtainedCard = rewardSync.PropertyType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m => m.Name == "SyncLocalObtainedCard" && m.GetParameters().Length == 1);
+        }
+
+        return new RewardBindings(
+            rewardsSetCtor, withRewardsFromRoom, generateWithoutOffering,
+            rewardOnSelectWrapper,
+            cardRewardType, cardRewardCards, cardRewardCanSkip, cardRewardOnSkipped,
+            goldRewardType, goldRewardAmount,
+            potionRewardType, potionRewardPotionId,
+            relicRewardType, relicRewardRelicId,
+            rewardSync, syncLocalObtainedCard);
     }
 
     // Combat discovery. Every step is soft — if something doesn't resolve we
@@ -1408,7 +1860,24 @@ public sealed class Sts2Bindings
         PropertyInfo EventIsFinished, PropertyInfo EventCurrentOptions,
         PropertyInfo? EventOptionTextKey, PropertyInfo EventOptionIsLocked, MethodInfo EventOptionChosen,
         MethodInfo? RunManagerProceedFromTerminalRewards, MethodInfo? RunManagerEnterRoom, Type? MapRoomType,
-        CombatBindings Combat);
+        CombatBindings Combat, RewardBindings Rewards);
+
+    // Post-combat reward surface. Soft-bound — if RewardsSet (or its members)
+    // can't be located, ReadRewardsState returns null and the auto-advance
+    // falls back to the legacy proceed-and-skip path. Each reward subtype is
+    // optional too; rewards we can't classify still surface as Unknown so the
+    // wire never silently drops a pending decision.
+    private sealed record RewardBindings(
+        ConstructorInfo? RewardsSetCtor,
+        MethodInfo? RewardsSetWithRewardsFromRoom, MethodInfo? RewardsSetGenerateWithoutOffering,
+        MethodInfo? RewardOnSelectWrapper,
+        Type? CardRewardType, PropertyInfo? CardRewardCards, PropertyInfo? CardRewardCanSkip,
+        MethodInfo? CardRewardOnSkipped,
+        Type? GoldRewardType, PropertyInfo? GoldRewardAmount,
+        Type? PotionRewardType, PropertyInfo? PotionRewardPotionId,
+        Type? RelicRewardType, PropertyInfo? RelicRewardRelicId,
+        PropertyInfo? RunManagerRewardSynchronizer,
+        MethodInfo? RewardSyncSyncLocalObtainedCard);
 
     // Combat surface is grouped to keep BindingState's positional ctor scannable.
     // Every member is nullable: combat is opt-in at read time (snapshot returns
