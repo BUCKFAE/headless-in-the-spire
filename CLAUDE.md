@@ -14,7 +14,10 @@ for testing, AI experimentation, and replay recording.
 - `documentation/requirements/01-initial-goals.md` — the five project goals.
 - `documentation/requirements/02-architecture-decisions.md` — **read this before
   any non-trivial design work.** AD-1 (C# only), AD-2 (NDJSON / JSON-RPC over
-  stdio), AD-3 (pinned game version) shape almost every decision in the repo.
+  stdio), AD-3 (pinned game version), AD-6 (C# is the source of behavioral
+  truth) shape almost every decision in the repo.
+- `documentation/testing.md` — the three-axis (Unit / Integration / End-to-end)
+  test pyramid. Pick the right axis before adding a test.
 - `documentation/research/04-sts2-cli-anatomy.md` — how the only working OSS
   reference (`wuhao21/sts2-cli`) makes the game run headless, and what we
   decided to take vs. leave behind.
@@ -30,6 +33,19 @@ for testing, AI experimentation, and replay recording.
 - **GodotStubs grows on demand.** Do not speculatively mirror the GodotSharp
   surface. Add a stub when sts2.dll's reference forces it, with a
   `// from: <type>.<member>` comment recording the caller.
+- **C# is the source of behavioral truth (AD-6).** Drivers, agents,
+  scenarios, fixtures, replay corpora, and regression tests are authored in
+  C# — `src/Sts2Headless.Agents/` for drivers / agents,
+  `tests/Sts2Headless.IntegrationTests/` for single-slice scenarios,
+  `tests/Sts2Headless.End2EndTests/` for multi-room arcs and replays. Do
+  **not** reach for Python to author this kind of work: no Python "greedy
+  agent", no Python "drive a scenario" tests, no Python "this is how the
+  game should behave" assertions. Python tests live under
+  `clients/python/.../tests/` and verify *parity* with the C# reference
+  only — a red Python test attributes to the client or the bridge, never
+  to game behavior. The cost of "I'll just write a quick pytest" is
+  permanent ambiguity about who owns behavioral truth; we paid that cost
+  once across the ecosystem we surveyed and won't again.
 
 ## Local setup
 

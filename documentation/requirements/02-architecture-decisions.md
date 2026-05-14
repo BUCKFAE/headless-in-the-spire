@@ -401,3 +401,82 @@ broader Python tooling ecosystem has converged on.
 - We are the first STS project (1 or 2) to ship a formal protocol
   description — the ecosystem survey found none. There is no de-facto
   community schema to align with and no compatibility pressure either way.
+
+---
+
+## AD-6 — Behavioral source of truth: C# only; clients verify parity
+
+**Status**: Accepted (2026-05-14)
+
+**Context**
+
+AD-1 made the *core* C#-only — the in-game mod, the headless host, and the
+orchestrator that drives `sts2.dll`. External clients (Python, Kotlin, …) are
+*consumers* generated from the wire schema (AD-5).
+
+That decision covered the production wire layer cleanly, but left the *test*
+layer ambiguous. Tests, drivers, scenarios, agents, and replays are all
+things that could plausibly live in *either* the C# core or in the Python
+client tree:
+
+- A "greedy agent that drives Act 1 to the boss" could be a C# test fixture
+  or a Python script.
+- A "fixture run from `run/new` to a particular game state" could be authored
+  in either language.
+- A regression test for "play this card does X" could be a C# xUnit test
+  or a `pytest` against the wire.
+
+If both are allowed, "what the game is supposed to do" has two co-authors.
+When the C# suite and the Python suite disagree, neither is canonical; we
+spend cycles arbitrating. Worse, behavioral truth slowly drifts into
+whichever side is easier to write at the moment, and the canonical answer
+to "does this commit regress combat?" depends on whose tests ran.
+
+The same logic that justified AD-1 for the runtime applies to the test
+estate. Letting Python tests author canonical scenarios silently makes
+Python a producer of behavioral contracts — exactly the polyglot core
+AD-1 rejected.
+
+**Decision**
+
+C# is the single source of behavioral truth. Concretely:
+
+- **Drivers, agents, scenarios, fixtures, and replay corpora are authored
+  in C#.** Drivers and agents live in `src/Sts2Headless.Agents/`; the
+  scenarios that exercise them live in `tests/Sts2Headless.End2EndTests/`
+  (multi-room arcs) and `tests/Sts2Headless.IntegrationTests/`
+  (single-slice scenarios). See [testing.md](../testing.md) for the
+  three-axis test split.
+- **Regression tests that assert "the game should behave like X" are C#
+  tests** (xUnit, against a real host subprocess). A red C# test is a
+  real regression; its meaning does not depend on the Python tree.
+- **Python client tests do exactly one thing: verify parity.** Given the
+  same wire scenario, the Python client must produce the same outcome
+  (deserialised DTOs, decoded events, …) as the C# reference. A red
+  Python test attributes to the client or the bridge, *never* to the
+  game.
+- **Python never authors canonical scenarios.** A useful Python script
+  that happens to drive a scenario can live in the agents package as a
+  user tool, but it is not part of the regression net and is not
+  consulted to answer "what is the game supposed to do here?".
+
+This applies recursively to any future client (Kotlin, TS, Rust): each is
+a parity consumer of the C#-authored canon, not a co-author.
+
+**Consequences**
+
+- Bug attribution is mechanical. C# red → game / host regression. Python
+  red while C# green → client / bridge regression. There is no third case.
+- The Python tree is allowed to be smaller. It needs the parity tests and
+  the DTO codegen, not a parallel scenario corpus.
+- Future replay corpora are C# artefacts. A "replay" is recorded by the
+  C# host, asserted by a C# end-to-end test, and re-played by Python
+  clients only as a parity check.
+- Adding a new client language costs one parity-test scaffold, not a new
+  scenario authoring story.
+- We forgo the ergonomics of "just write a quick pytest for this" as a
+  regression mechanism. Quick pytests still work as ad-hoc tools for the
+  engineer writing them; they just don't enter the net.
+- This decision relies on the C# suite being fast and ergonomic enough to
+  absorb all scenario authoring. If that becomes false, we revisit — the
+  answer is to fix the C# suite, not to relax this AD.
