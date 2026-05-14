@@ -156,6 +156,11 @@ public sealed partial class Sts2Bindings
     private readonly PropertyInfo? _relicRewardRelicId;
     private readonly PropertyInfo? _runManagerRewardSynchronizer;
     private readonly MethodInfo? _rewardSyncSyncLocalObtainedCard;
+    // CardPileCmd.Add(card, PileType.Deck) — engine path for adding a chosen
+    // card-reward card to the deck. sts2-cli uses this; production
+    // ClaimCardReward currently bypasses with direct deck.Add (see Phase 4).
+    private readonly MethodInfo? _cardPileCmdAdd;
+    private readonly object? _pileTypeDeckValue;
 
     // Mutable post-combat reward state. Generated lazily once combat ends
     // (see EnsurePendingRewards); consumed by SelectReward / SkipReward.
@@ -279,6 +284,8 @@ public sealed partial class Sts2Bindings
         _relicRewardRelicId = r.RelicRewardRelicId;
         _runManagerRewardSynchronizer = r.RunManagerRewardSynchronizer;
         _rewardSyncSyncLocalObtainedCard = r.RewardSyncSyncLocalObtainedCard;
+        _cardPileCmdAdd = r.CardPileCmdAdd;
+        _pileTypeDeckValue = r.PileTypeDeckValue;
     }
 
     // Full sts2-cli StartRun chain, condensed. Returns a triple the wire
@@ -1604,6 +1611,29 @@ public sealed partial class Sts2Bindings
                 .FirstOrDefault(m => m.Name == "SyncLocalObtainedCard" && m.GetParameters().Length == 1);
         }
 
+        // CardPileCmd.Add(card, PileType.Deck) — sts2-cli's RunSimulator uses
+        // this static helper to route a reward card through the engine's
+        // listener pipeline (relics that trigger on card-obtain, multiplayer
+        // sync, etc.). Soft-bind: a missing CardPileCmd or PileType still
+        // boots; only the catalog/probe-rewards path requires it.
+        MethodInfo? cardPileCmdAdd = null;
+        object? pileTypeDeckValue = null;
+        var cardPileCmdLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Commands.CardPileCmd");
+        var pileTypeLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Entities.Cards.PileType");
+        if (cardPileCmdLookup.Found && pileTypeLookup.Found)
+        {
+            cardPileCmdAdd = cardPileCmdLookup.Type!
+                .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .FirstOrDefault(m =>
+                {
+                    if (m.Name != "Add") return false;
+                    var ps = m.GetParameters();
+                    return ps.Length >= 2 && ps[1].ParameterType == pileTypeLookup.Type;
+                });
+            try { pileTypeDeckValue = Enum.Parse(pileTypeLookup.Type!, "Deck"); }
+            catch { /* enum value renamed — leave null, catalog will report it */ }
+        }
+
         return new RewardBindings(
             rewardsSetCtor, withRewardsFromRoom, generateWithoutOffering,
             rewardOnSelectWrapper,
@@ -1611,7 +1641,8 @@ public sealed partial class Sts2Bindings
             goldRewardType, goldRewardAmount,
             potionRewardType, potionRewardPotionId,
             relicRewardType, relicRewardRelicId,
-            rewardSync, syncLocalObtainedCard);
+            rewardSync, syncLocalObtainedCard,
+            cardPileCmdAdd, pileTypeDeckValue);
     }
 
     // Combat discovery. Every step is soft — if something doesn't resolve we
@@ -1909,7 +1940,8 @@ public sealed partial class Sts2Bindings
         Type? PotionRewardType, PropertyInfo? PotionRewardPotionId,
         Type? RelicRewardType, PropertyInfo? RelicRewardRelicId,
         PropertyInfo? RunManagerRewardSynchronizer,
-        MethodInfo? RewardSyncSyncLocalObtainedCard);
+        MethodInfo? RewardSyncSyncLocalObtainedCard,
+        MethodInfo? CardPileCmdAdd, object? PileTypeDeckValue);
 
     // Combat surface is grouped to keep BindingState's positional ctor scannable.
     // Every member is nullable: combat is opt-in at read time (snapshot returns

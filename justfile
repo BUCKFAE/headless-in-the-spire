@@ -61,6 +61,10 @@ probe-run-state: build
 probe-natural-chain: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-natural-chain
 
+# Drive the natural reward-claim chain (no try/catch around CardPileCmd.Add / OnSelectWrapper / OnSkipped) and dump gaps.
+probe-rewards-natural-chain: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-rewards-natural-chain
+
 # List every member of <fqn> that sts2.dll references (e.g. `just list-members Godot.OS`).
 list-members fqn: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --list-members {{fqn}}
