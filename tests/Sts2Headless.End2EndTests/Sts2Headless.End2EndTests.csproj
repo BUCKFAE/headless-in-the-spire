@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Description>End-to-end tests: multi-room arcs and replays driven through the real headless host. Per testing.md, these pin player journeys end-to-end (in contrast to IntegrationTests, which pin single wire-call slices). Local-only — requires vendor/sts2.dll the same way IntegrationTests does.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+    <!-- The host exe must be present next to test binaries so HostSubprocess
+         can spawn it; GodotStubs builds as GodotSharp.dll so sts2.dll's
+         references resolve. Same posture as IntegrationTests. -->
+    <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- HostSubprocess lives in IntegrationTests today and is shared from
+         here via source-link rather than duplicated. If a third project ever
+         needs it, that's the signal to extract it into a Sts2Headless.Testing
+         library; until then this single linked reference is cheaper than the
+         extraction. -->
+    <Compile Include="..\Sts2Headless.IntegrationTests\HostSubprocess.cs">
+      <Link>HostSubprocess.cs</Link>
+    </Compile>
+  </ItemGroup>
+
+</Project>

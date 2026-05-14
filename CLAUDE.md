@@ -91,11 +91,18 @@ src/
                                      Everything that talks to a live sts2.dll.
   Sts2Headless.Protocol/       lib — JSON-RPC-style envelope, method records,
                                      MethodCatalog (single source of truth).
+  Sts2Headless.Agents/         lib — drivers / agents that talk to a running
+                                     host via ITransport (AD-6). GreedyAgent
+                                     is the first one.
   Sts2Headless.SchemaExport/   exe — emits protocol/openrpc.json from Protocol
                                      records (AD-5). Run via `just export-schema`.
   GodotStubs/                  lib — no-op GodotSharp.dll replacement (grown on demand)
 tests/
-  Sts2Headless.Runtime.Tests/  xUnit — bootstrap regression, AD-4 invariant
+  Sts2Headless.UnitTests/      xUnit — host-only logic, no sts2.dll.
+  Sts2Headless.IntegrationTests/  xUnit — single-slice scenarios against the
+                                     real host subprocess + sts2.dll.
+  Sts2Headless.End2EndTests/   xUnit — multi-room arcs / replays. See
+                                     documentation/testing.md.
 Sts2Headless.slnx              solution at repo root
 scripts/                       bootstrap shell scripts (bash)
 protocol/openrpc.json          generated wire-protocol schema (AD-5)

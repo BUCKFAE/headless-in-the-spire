@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Drivers and agents that talk to a running headless host via the wire protocol. Per AD-6, this project is one of the homes for the C#-authored behavioral source of truth — agents here are the canonical implementations that exercise full game arcs end-to-end.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>

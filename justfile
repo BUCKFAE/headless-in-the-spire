@@ -103,6 +103,10 @@ test-unit:
 test-integration:
     @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
 
+# Run the end-to-end suite (multi-room arcs; same vendor/sts2.dll requirement).
+test-end2end:
+    @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+
 # Run every Python workspace member's tests via the uv workspace .venv.
 test-python:
     @bash scripts/check-uv.sh
@@ -125,5 +129,5 @@ typecheck-python:
     @bash scripts/check-uv.sh
     @uv run pyright
 
-# Run every test suite (C# unit + integration + Python) plus lint + typecheck.
-test: test-unit test-integration test-python lint-python typecheck-python
+# Run every test suite (C# unit + integration + end2end + Python) plus lint + typecheck.
+test: test-unit test-integration test-end2end test-python lint-python typecheck-python
