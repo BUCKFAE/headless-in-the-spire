@@ -747,11 +747,11 @@ public sealed partial class Sts2Bindings
     // drive it to the next player turn by alternating Pump (drains posted
     // continuations) with DrainActionExecutor (awaits FinishedExecutingActions).
     //
-    // Even with LocalContext wired, the natural chain hits Godot/null gaps
-    // we don't fully stub (NDamageNumVfx, CardPileCmd.Shuffle), so we keep
-    // the SwitchFromPlayerToEnemySide fallback: it sidesteps the chain by
-    // calling the side-switch directly. Multiple retries push through the
-    // enemy turn → next player turn cycle one cycle leg at a time.
+    // With Player.NetId = LocalContext.NetId = 1uL (sts2-cli's contract) and
+    // the GodotStubs gaps catalogued by Phase 1 patched, the natural chain
+    // runs end-to-end. probe-natural-chain converges to next-player-turn in
+    // a single pump iteration and reports zero gaps — the manual side-switch
+    // fallback that used to live here is no longer needed.
     public void EndTurn(RunHandle handle)
     {
         if (_playerCmdEndTurn is null)
@@ -777,22 +777,12 @@ public sealed partial class Sts2Bindings
         var result = _playerCmdEndTurn.Invoke(null, args);
         if (result is Task t) t.GetAwaiter().GetResult();
 
-        // Phase 1: short pump. With LocalContext wired, the natural chain
-        // advances some way before tripping on missing Godot surface deep in
-        // the enemy-turn / setup-player-turn path. A short pump lets quick
-        // cases converge.
-        var converged = PumpUntilNextPlayerTurn(handle, cm, roundBefore, deadlineIterations: 50);
-
-        // Phase 2: drive side-switching ourselves. SwitchFromPlayerToEnemy
-        // Side is one-shot (each call advances exactly one cycle leg), so
-        // multiple retries are needed to push through enemy turn → next
-        // player turn. Cap the loop so a stuck engine surfaces a deadline
-        // timeout rather than hanging the host.
-        for (var retry = 0; retry < 8 && !converged; retry++)
-        {
-            ForceSwitchToEnemySide(handle, cm);
-            converged = PumpUntilNextPlayerTurn(handle, cm, roundBefore, deadlineIterations: 200);
-        }
+        // Pump the engine until a terminal condition is reached. Cap the
+        // deadline so a stuck chain surfaces as a debug-logged timeout rather
+        // than hanging the host. The cap is generous (vs. probe's 1-iteration
+        // happy path) to absorb future scenarios — multi-enemy boss fights,
+        // multi-hit attacks, etc. — without re-tightening every time.
+        var converged = PumpUntilTerminal(handle, cm, roundBefore, deadlineIterations: 500);
 
         if (!converged && Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
         {
@@ -807,7 +797,7 @@ public sealed partial class Sts2Bindings
 
     // Returns true if a terminal condition was reached (next player turn,
     // combat ended, or player dead). Returns false on timeout.
-    private bool PumpUntilNextPlayerTurn(RunHandle handle, object cm, int roundBefore, int deadlineIterations)
+    private bool PumpUntilTerminal(RunHandle handle, object cm, int roundBefore, int deadlineIterations)
     {
         if (_combatManagerIsInProgress is null || _combatManagerIsPlayPhase is null) return true;
 
@@ -832,24 +822,6 @@ public sealed partial class Sts2Bindings
             Thread.Sleep(2);
         }
         return false;
-    }
-
-    private void ForceSwitchToEnemySide(RunHandle handle, object cm)
-    {
-        var switchSides = cm.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .FirstOrDefault(m => m.Name == "SwitchFromPlayerToEnemySide" && m.GetParameters().Length == 1);
-        if (switchSides is null) return;
-        try
-        {
-            var task = switchSides.Invoke(cm, new object?[] { null });
-            if (task is Task st) st.GetAwaiter().GetResult();
-            DrainActionExecutor(handle);
-        }
-        catch (Exception ex)
-        {
-            if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
-                Console.Error.WriteLine($"[end_turn] ForceSwitchToEnemySide threw: {ex.GetType().Name}: {ex.Message}");
-        }
     }
 
     private int ReadRound(object cm)
