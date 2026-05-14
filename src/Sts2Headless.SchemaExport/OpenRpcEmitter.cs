@@ -1,6 +1,8 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Sts2Headless.Protocol;
 
@@ -146,7 +148,90 @@ internal static class OpenRpcEmitter
             var schema = options.GetJsonSchemaAsNode(t, exporterOptions);
             schemas[t.Name] = schema;
         }
+
+        // The hoist-set short-circuit in TransformSchemaNode replaces nested
+        // hoisted-type schemas with bare `$ref`s before JsonSchemaExporter
+        // gets a chance to wrap reference-type properties with their NRT
+        // nullability. The exporter's `Nullable.GetUnderlyingType` path
+        // handles value-type `Character?` (covered by the second branch in
+        // TransformSchemaNode) but reference-type `CombatState?` carries
+        // nullability as an attribute, not a wrapper, so the short-circuit
+        // wins and the resulting schema marks the property required +
+        // non-nullable. The host omits the field when null
+        // (DefaultIgnoreCondition.WhenWritingNull), which then fails
+        // deserialisation on every client. Fix here so the schema
+        // matches the wire.
+        foreach (var t in hoistSet)
+        {
+            if (!t.IsClass) continue;
+            if (schemas[t.Name] is not JsonObject schema) continue;
+            ReconcileNullableProperties(t, schema, hoistSet);
+        }
+
         return schemas;
+    }
+
+    // Reconcile every nullable property with the wire's omit-when-null
+    // contract. EnvelopeIo.JsonOptions sets
+    // DefaultIgnoreCondition=WhenWritingNull, so any property whose value
+    // is null at serialise time is dropped from the payload entirely.
+    // JsonSchemaExporter doesn't model that policy: nullable properties
+    // come back marked `required` because their constructor parameter has
+    // no default. Strip them from `required` here, and for bare-$ref
+    // hoisted-ref properties also wrap the schema in `anyOf [$ref, null]`
+    // (the hoist-set short-circuit in TransformSchemaNode replaces the
+    // exporter's nullable wrapping with a bare $ref before this point).
+    private static void ReconcileNullableProperties(Type t, JsonObject schema, HashSet<Type> hoistSet)
+    {
+        if (schema["properties"] is not JsonObject properties) return;
+        var required = schema["required"] as JsonArray;
+        var nullabilityContext = new NullabilityInfoContext();
+
+        foreach (var propInfo in t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (!IsNullableProperty(propInfo, nullabilityContext)) continue;
+
+            var jsonName = propInfo.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
+                ?? JsonNamingPolicy.CamelCase.ConvertName(propInfo.Name);
+            if (properties[jsonName] is not JsonObject propSchema) continue;
+
+            // Bare-$ref to a hoisted type — wrap with anyOf null. Other
+            // shapes (`type: [...,null]`, existing anyOf) already permit
+            // null, so the schema is fine; only the required list needs
+            // fixing for them.
+            if (propSchema["$ref"] is JsonValue refValue
+                && refValue.TryGetValue(out string? refTarget)
+                && refTarget is not null
+                && refTarget.StartsWith(SchemasRefPrefix, StringComparison.Ordinal)
+                && hoistSet.Any(h => h.Name == refTarget[SchemasRefPrefix.Length..]))
+            {
+                properties[jsonName] = new JsonObject
+                {
+                    ["anyOf"] = new JsonArray
+                    {
+                        new JsonObject { ["$ref"] = refTarget },
+                        new JsonObject { ["type"] = "null" },
+                    },
+                };
+            }
+
+            if (required is null) continue;
+            for (var i = required.Count - 1; i >= 0; i--)
+            {
+                if (required[i] is JsonValue v
+                    && v.TryGetValue(out string? s)
+                    && s == jsonName)
+                {
+                    required.RemoveAt(i);
+                }
+            }
+        }
+    }
+
+    private static bool IsNullableProperty(PropertyInfo prop, NullabilityInfoContext ctx)
+    {
+        if (Nullable.GetUnderlyingType(prop.PropertyType) is not null) return true;
+        return ctx.Create(prop).ReadState == NullabilityState.Nullable;
     }
 
     private static JsonArray BuildMethods()
@@ -168,7 +253,7 @@ internal static class OpenRpcEmitter
                 });
             }
 
-            methods.Add(new JsonObject
+            var methodObject = new JsonObject
             {
                 ["name"] = entry.Name,
                 ["summary"] = entry.Summary,
@@ -182,7 +267,16 @@ internal static class OpenRpcEmitter
                         ["$ref"] = SchemasRefPrefix + entry.ResultType.Name,
                     },
                 },
-            });
+            };
+            // AD-7: debug-only methods are tagged via the OpenRPC `x-`
+            // extension namespace. Documentation + a hint for generated
+            // clients to segregate them visually; actual enforcement is
+            // host-side (the --enable-debug gate).
+            if (entry.IsDebugOnly)
+            {
+                methodObject["x-debugOnly"] = true;
+            }
+            methods.Add(methodObject);
         }
         return methods;
     }

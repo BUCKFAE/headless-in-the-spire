@@ -70,6 +70,14 @@ public sealed partial class Sts2Bindings
     private readonly PropertyInfo _playerNetId;
     private readonly PropertyInfo _creatureCurrentHp;
     private readonly PropertyInfo _creatureMaxHp;
+    // Backing fields for CurrentHp / MaxHp. The properties are read-only on
+    // the engine side (state mutation goes through damage / heal commands),
+    // so debug/set_hp writes to the underlying fields directly — same
+    // posture sts2-cli's SetPlayer takes. Soft-bound: a renamed backing
+    // field disables debug/set_hp via WireException at call time rather
+    // than failing host startup.
+    private readonly FieldInfo? _creatureCurrentHpField;
+    private readonly FieldInfo? _creatureMaxHpField;
     private readonly PropertyInfo _deckCards;
     private readonly PropertyInfo _runStateCurrentRoom;
     private readonly PropertyInfo _runStateActFloor;
@@ -237,6 +245,8 @@ public sealed partial class Sts2Bindings
         _playerNetId = s.PlayerNetId;
         _creatureCurrentHp = s.CreatureCurrentHp;
         _creatureMaxHp = s.CreatureMaxHp;
+        _creatureCurrentHpField = s.CreatureCurrentHpField;
+        _creatureMaxHpField = s.CreatureMaxHpField;
         _deckCards = s.DeckCards;
         _runStateCurrentRoom = s.RunStateCurrentRoom;
         _runStateActFloor = s.RunStateActFloor;
@@ -1333,6 +1343,49 @@ public sealed partial class Sts2Bindings
         _syncCtx?.Pump();
     }
 
+    // Set the player's CurrentHp (and optionally MaxHp) by writing the
+    // engine's backing fields directly. Bypasses the damage-event pipeline
+    // and any on-hit relic listeners; the wire-level Methods doc records
+    // the contract.
+    //
+    // Caller is responsible for validation — Methods.DebugSetHpParams +
+    // HostMethods.DebugSetHp enforce the rules (hp >= 0, maxHp >= 1, hp <=
+    // maxHp). This helper trusts its inputs and reports the post-write
+    // (HP, MaxHp) tuple for the caller to use in the wire result.
+    //
+    // Returns the new (CurrentHp, MaxHp) read back through the public
+    // properties — useful as a defence-in-depth check that the write took.
+    public (int Hp, int MaxHp) SetPlayerHp(RunHandle handle, int hp, int? maxHp)
+    {
+        if (_creatureCurrentHpField is null)
+        {
+            throw new InvalidOperationException(
+                "debug/set_hp: backing field for Creature.CurrentHp was not located at bootstrap. " +
+                "Either the engine renamed the field or BindingFlags need updating.");
+        }
+        var creature = _playerCreature.GetValue(handle.Player)
+            ?? throw new InvalidOperationException("Player.Creature was null — no live player to mutate");
+
+        // MaxHp first: if the caller is raising MaxHp, we want CurrentHp to
+        // be writable up to the new max. If the caller is lowering it, the
+        // hp clamp at the validation layer is already in place.
+        if (maxHp is not null)
+        {
+            if (_creatureMaxHpField is null)
+            {
+                throw new InvalidOperationException(
+                    "debug/set_hp: maxHp was requested but the backing field for Creature.MaxHp was not located.");
+            }
+            _creatureMaxHpField.SetValue(creature, maxHp.Value);
+        }
+
+        _creatureCurrentHpField.SetValue(creature, hp);
+
+        var newHp = (int)_creatureCurrentHp.GetValue(creature)!;
+        var newMaxHp = (int)_creatureMaxHp.GetValue(creature)!;
+        return (newHp, newMaxHp);
+    }
+
     private void AdvanceAfterRewardsConsumed(RunHandle handle)
     {
         if (_pendingRewards is null || _pendingRewards.Count > 0) return;
@@ -1612,6 +1665,14 @@ public sealed partial class Sts2Bindings
         }
         var creatureCurrentHp = RequireProperty(playerCreature.PropertyType, "CurrentHp");
         var creatureMaxHp = RequireProperty(playerCreature.PropertyType, "MaxHp");
+        // Backing fields for direct write (debug/set_hp). sts2-cli's
+        // SetPlayer uses `_currentHp` and `_maxHp`; mirror that and
+        // tolerate either casing for resilience. Soft-bound — debug/set_hp
+        // throws a typed WireException at call time if either is absent.
+        var creatureCurrentHpField = playerCreature.PropertyType.GetField("_currentHp", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? playerCreature.PropertyType.GetField("currentHp", BindingFlags.NonPublic | BindingFlags.Instance);
+        var creatureMaxHpField = playerCreature.PropertyType.GetField("_maxHp", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? playerCreature.PropertyType.GetField("maxHp", BindingFlags.NonPublic | BindingFlags.Instance);
         var deckCards = RequireProperty(playerDeck.PropertyType, "Cards");
         var currentRoom = RequireProperty(runStateType, "CurrentRoom");
         var actFloor = RequireProperty(runStateType, "ActFloor");
@@ -1733,7 +1794,9 @@ public sealed partial class Sts2Bindings
             generateRooms, launch, finalize, enterAct, enterMapCoord, mapCoordType,
             playerGold, playerCreature, playerDeck, playerNetId,
             playerRelics, relicIdProp,
-            creatureCurrentHp, creatureMaxHp, deckCards,
+            creatureCurrentHp, creatureMaxHp,
+            creatureCurrentHpField, creatureMaxHpField,
+            deckCards,
             currentRoom, actFloor, isGameOver,
             runStateMap, runStateCurrentMapCoord, mapStartingMapPoint, mapGetPoint,
             mapPointChildren, mapPointCoord, mapPointPointType,
@@ -2176,7 +2239,9 @@ public sealed partial class Sts2Bindings
         InvocationPlan RunManagerEnterAct, InvocationPlan RunManagerEnterMapCoord, Type MapCoordType,
         PropertyInfo PlayerGold, PropertyInfo PlayerCreature, PropertyInfo PlayerDeck, PropertyInfo PlayerNetId,
         PropertyInfo? PlayerRelics, PropertyInfo? RelicId,
-        PropertyInfo CreatureCurrentHp, PropertyInfo CreatureMaxHp, PropertyInfo DeckCards,
+        PropertyInfo CreatureCurrentHp, PropertyInfo CreatureMaxHp,
+        FieldInfo? CreatureCurrentHpField, FieldInfo? CreatureMaxHpField,
+        PropertyInfo DeckCards,
         PropertyInfo RunStateCurrentRoom, PropertyInfo RunStateActFloor, PropertyInfo RunStateIsGameOver,
         PropertyInfo RunStateMap, PropertyInfo RunStateCurrentMapCoord, PropertyInfo MapStartingMapPoint,
         MethodInfo MapGetPoint, PropertyInfo MapPointChildren, FieldInfo MapPointCoord,

@@ -551,3 +551,32 @@ public sealed record DebugGiveRelicResult(
     [property: JsonPropertyName("gold")] int Gold,
     [property: JsonPropertyName("deckSize")] int DeckSize);
 
+// ── debug/set_hp ─────────────────────────────────────────────────────────
+
+// Test affordance — write the player's current HP (and optionally Max HP)
+// directly into the engine's backing fields. **Bypasses** the damage event
+// path, on-hit relic listeners (Burning Blood's heal, etc.), the death
+// pipeline, and any other side effect a "real" HP change would trigger.
+//
+// Validation:
+//   * hp >= 0
+//   * maxHp, when provided, >= 1
+//   * hp <= maxHp (the resulting maxHp — either the provided value or the
+//     current one if maxHp was omitted)
+// Validation failures return WireErrorCode.InvalidParams (-32602).
+//
+// Setting hp to 0 does NOT trigger game-over by itself — the engine's
+// IsGameOver flag is set elsewhere on the death pipeline. Callers wanting
+// to test "what does run/state look like at zero HP" can use this; callers
+// wanting to test the death transition itself need to drive damage events
+// through combat.
+public sealed record DebugSetHpParams(
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("maxHp")] int? MaxHp = null);
+
+public sealed record DebugSetHpResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("maxHp")] int MaxHp,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver);
+

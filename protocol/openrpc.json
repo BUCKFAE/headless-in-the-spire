@@ -184,7 +184,7 @@
     },
     {
       "name": "debug/give_relic",
-      "summary": "Test affordance — grant a relic via RelicCmd.Obtain (engine path).",
+      "summary": "Test affordance — grant a relic via RelicCmd.Obtain (engine path). Requires --enable-debug.",
       "paramStructure": "by-name",
       "params": [
         {
@@ -200,7 +200,29 @@
         "schema": {
           "$ref": "#/components/schemas/DebugGiveRelicResult"
         }
-      }
+      },
+      "x-debugOnly": true
+    },
+    {
+      "name": "debug/set_hp",
+      "summary": "Test affordance — set the player's CurrentHp (and optionally MaxHp) by writing the engine's backing fields. Bypasses damage events, on-hit relics, and game-over detection; the resulting state is not authoritative. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugSetHpParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugSetHpResult"
+        }
+      },
+      "x-debugOnly": true
     }
   ],
   "components": {
@@ -363,6 +385,47 @@
           "deckSize"
         ]
       },
+      "DebugSetHpParams": {
+        "type": "object",
+        "properties": {
+          "hp": {
+            "type": "integer"
+          },
+          "maxHp": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "hp"
+        ]
+      },
+      "DebugSetHpResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "maxHp": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "hp",
+          "maxHp",
+          "isGameOver"
+        ]
+      },
       "Enemy": {
         "type": "object",
         "properties": {
@@ -402,7 +465,6 @@
         },
         "required": [
           "index",
-          "monsterId",
           "hp",
           "maxHp",
           "block",
@@ -429,7 +491,6 @@
         },
         "required": [
           "index",
-          "textKey",
           "isLocked"
         ]
       },
@@ -453,9 +514,7 @@
           }
         },
         "required": [
-          "ok",
-          "gameVersion",
-          "gameSha256"
+          "ok"
         ]
       },
       "Intent": {
@@ -484,10 +543,7 @@
           }
         },
         "required": [
-          "kind",
-          "damage",
-          "hits",
-          "block"
+          "kind"
         ]
       },
       "IntentKind": {
@@ -705,10 +761,24 @@
             }
           },
           "combatState": {
-            "$ref": "#/components/schemas/CombatState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rewardsState": {
-            "$ref": "#/components/schemas/RewardsState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "relics": {
             "type": "array",
@@ -726,8 +796,6 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
-          "combatState",
-          "rewardsState",
           "relics"
         ]
       },
@@ -797,10 +865,24 @@
             }
           },
           "combatState": {
-            "$ref": "#/components/schemas/CombatState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rewardsState": {
-            "$ref": "#/components/schemas/RewardsState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "relics": {
             "type": "array",
@@ -818,8 +900,6 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
-          "combatState",
-          "rewardsState",
           "relics"
         ]
       },
@@ -887,10 +967,24 @@
             }
           },
           "combatState": {
-            "$ref": "#/components/schemas/CombatState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rewardsState": {
-            "$ref": "#/components/schemas/RewardsState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "relics": {
             "type": "array",
@@ -902,7 +996,6 @@
         "required": [
           "ok",
           "cardIndex",
-          "targetIndex",
           "currentRoomType",
           "actFloor",
           "isGameOver",
@@ -910,8 +1003,6 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
-          "combatState",
-          "rewardsState",
           "relics"
         ]
       },
@@ -966,10 +1057,24 @@
             }
           },
           "combatState": {
-            "$ref": "#/components/schemas/CombatState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rewardsState": {
-            "$ref": "#/components/schemas/RewardsState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "relics": {
             "type": "array",
@@ -988,8 +1093,6 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
-          "combatState",
-          "rewardsState",
           "relics"
         ]
       },
@@ -1051,10 +1154,24 @@
             }
           },
           "combatState": {
-            "$ref": "#/components/schemas/CombatState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rewardsState": {
-            "$ref": "#/components/schemas/RewardsState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "relics": {
             "type": "array",
@@ -1074,8 +1191,6 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
-          "combatState",
-          "rewardsState",
           "relics"
         ]
       },
@@ -1130,10 +1245,24 @@
             }
           },
           "combatState": {
-            "$ref": "#/components/schemas/CombatState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rewardsState": {
-            "$ref": "#/components/schemas/RewardsState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "relics": {
             "type": "array",
@@ -1152,8 +1281,6 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
-          "combatState",
-          "rewardsState",
           "relics"
         ]
       },
@@ -1221,10 +1348,24 @@
             }
           },
           "combatState": {
-            "$ref": "#/components/schemas/CombatState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rewardsState": {
-            "$ref": "#/components/schemas/RewardsState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "relics": {
             "type": "array",
@@ -1236,7 +1377,6 @@
         "required": [
           "ok",
           "rewardIndex",
-          "cardIndex",
           "currentRoomType",
           "actFloor",
           "isGameOver",
@@ -1244,8 +1384,6 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
-          "combatState",
-          "rewardsState",
           "relics"
         ]
       },
@@ -1300,10 +1438,24 @@
             }
           },
           "combatState": {
-            "$ref": "#/components/schemas/CombatState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rewardsState": {
-            "$ref": "#/components/schemas/RewardsState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "relics": {
             "type": "array",
@@ -1322,8 +1474,6 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
-          "combatState",
-          "rewardsState",
           "relics"
         ]
       },
@@ -1386,10 +1536,24 @@
             }
           },
           "combatState": {
-            "$ref": "#/components/schemas/CombatState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rewardsState": {
-            "$ref": "#/components/schemas/RewardsState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "relics": {
             "type": "array",
@@ -1400,7 +1564,6 @@
         },
         "required": [
           "ok",
-          "character",
           "seed",
           "hp",
           "maxHp",
@@ -1412,8 +1575,6 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
-          "combatState",
-          "rewardsState",
           "relics"
         ]
       },

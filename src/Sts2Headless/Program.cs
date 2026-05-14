@@ -65,8 +65,18 @@ if (args.Contains("--stdio"))
         return 1;
     }
 
+    // AD-7: debug/* methods are opt-in via --enable-debug. Without it, any
+    // debug/* call is rejected with WireErrorCode.DebugMethodDisabled. When
+    // it IS set, we log a loud stderr banner so the capability is visible
+    // in any log capture and never accidentally invisible to an operator.
+    var debugEnabled = args.Contains("--enable-debug");
+    if (debugEnabled)
+    {
+        Console.Error.WriteLine("sts2-headless: debug methods ENABLED via --enable-debug (development/test only — never use in production).");
+    }
+
     var session = new Session();
-    return StdioHost.Run(Console.In, Console.Out, HostMethods.Build(repoRoot, bindings, session));
+    return StdioHost.Run(Console.In, Console.Out, HostMethods.Build(repoRoot, bindings, session, debugEnabled));
 }
 
 // --list-members <FQN>: dump every member of <FQN> that sts2.dll references.

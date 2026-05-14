@@ -38,6 +38,13 @@ public sealed class HostSubprocess : IAsyncDisposable
         };
         psi.ArgumentList.Add(hostDll);
         psi.ArgumentList.Add("--stdio");
+        // AD-7: debug methods (debug/give_relic, debug/set_hp, …) are
+        // opt-in via --enable-debug. The integration-test fixture is a
+        // test context by construction, so we always opt in; production
+        // hosts must never set this flag. The
+        // HostSubprocessNoDebug counterpart in DebugDisabledTests
+        // deliberately omits it to pin the gate from the other side.
+        psi.ArgumentList.Add("--enable-debug");
 
         _proc = Process.Start(psi)
             ?? throw new InvalidOperationException("failed to start headless host subprocess");

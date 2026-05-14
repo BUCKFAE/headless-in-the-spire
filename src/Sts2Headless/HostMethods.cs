@@ -15,7 +15,7 @@ namespace Sts2Headless;
 // drift between the registry and the framing layer.
 public static class HostMethods
 {
-    public static IReadOnlyDictionary<string, StdioHost.Handler> Build(string repoRoot, Sts2Bindings bindings, Session session)
+    public static IReadOnlyDictionary<string, StdioHost.Handler> Build(string repoRoot, Sts2Bindings bindings, Session session, bool debugEnabled)
     {
         var dict = new Dictionary<string, StdioHost.Handler>
         {
@@ -29,12 +29,16 @@ public static class HostMethods
             ["run/play_card"] = Typed<RunPlayCardParams, RunPlayCardResult>(p => RunPlayCard(bindings, session, p)),
             ["run/select_reward"] = Typed<RunSelectRewardParams, RunSelectRewardResult>(p => RunSelectReward(bindings, session, p)),
             ["run/skip_reward"] = Typed<RunSkipRewardParams, RunSkipRewardResult>(p => RunSkipReward(bindings, session, p)),
-            // Test affordance — grants a relic to the active player via the
-            // engine path (RelicCmd.Obtain). Used by the relic-listener
-            // regression tests to pin engine-pipeline side effects (e.g.
-            // LuckyFysh's +15 gold on card-obtain) that direct deck mutation
-            // would silently bypass.
-            ["debug/give_relic"] = Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, session, p)),
+            // AD-7: every debug/* method is wrapped by GateDebug. With
+            // --enable-debug off, the gate replaces the handler with one
+            // that throws WireException(DebugMethodDisabled) so an
+            // accidental call surfaces a typed wire error rather than a
+            // silent no-op or an InternalError. The catalogue entries stay
+            // registered so AssertParity / schema export stay honest.
+            ["debug/give_relic"] = GateDebug("debug/give_relic", debugEnabled,
+                Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, session, p))),
+            ["debug/set_hp"] = GateDebug("debug/set_hp", debugEnabled,
+                Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, session, p))),
         };
         // AD-5: catalogue is the source of truth shared with the schema
         // emitter. A method registered here without an entry — or vice
@@ -42,6 +46,21 @@ public static class HostMethods
         // from `protocol/openrpc.json`.
         MethodCatalog.AssertParity(dict.Keys);
         return dict;
+    }
+
+    // AD-7: wrap a debug handler so it refuses to run unless --enable-debug
+    // is set on the host process. The error code is intentionally distinct
+    // from MethodNotFound (-32601) and InternalError (-32603) so clients
+    // can branch on "the host knows this method exists but it's gated off"
+    // — useful for tooling that wants to surface a clear message rather
+    // than letting the call look like a typo.
+    private static StdioHost.Handler GateDebug(string methodName, bool debugEnabled, StdioHost.Handler inner)
+    {
+        if (debugEnabled) return inner;
+        return _ => throw new WireException(
+            WireErrorCode.DebugMethodDisabled,
+            $"{methodName} is a debug-only method and this host process was not started with --enable-debug. " +
+            $"Debug methods are never available by default; enabling them is an explicit operator action.");
     }
 
     // Public for unit tests: doesn't touch sts2 bindings, only reads
@@ -283,6 +302,50 @@ public static class HostMethods
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
+    }
+
+    private static DebugSetHpResult DebugSetHp(Sts2Bindings bindings, Session session, DebugSetHpParams? @params)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/set_hp requires params {hp, maxHp?}");
+
+        // Validate up-front so a bad request never reaches the engine.
+        // Using InvalidParams (-32602) over a generic ArgumentException so
+        // generated clients see the right code on a validation failure.
+        if (args.Hp < 0)
+        {
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"debug/set_hp: hp must be >= 0 (got {args.Hp})");
+        }
+        if (args.MaxHp is not null && args.MaxHp.Value < 1)
+        {
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"debug/set_hp: maxHp must be >= 1 (got {args.MaxHp.Value})");
+        }
+        // Effective max: the requested maxHp, or the current one if the
+        // caller didn't ask to change it.
+        var snapshotBefore = bindings.ReadSnapshot(run);
+        var effectiveMaxHp = args.MaxHp ?? snapshotBefore.MaxHp;
+        if (args.Hp > effectiveMaxHp)
+        {
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"debug/set_hp: hp ({args.Hp}) must be <= maxHp ({effectiveMaxHp})");
+        }
+
+        bindings.SetPlayerHp(run, args.Hp, args.MaxHp);
+
+        // Read back through the snapshot (not the helper's tuple) so the
+        // wire result reflects whatever the engine actually surfaces post-
+        // write — defence in depth against a property/field divergence.
+        var s = bindings.ReadSnapshot(run);
+        return new DebugSetHpResult(
+            Ok: true,
+            Hp: s.CurrentHp,
+            MaxHp: s.MaxHp,
+            IsGameOver: s.IsGameOver);
     }
 
     private static DebugGiveRelicResult DebugGiveRelic(Sts2Bindings bindings, Session session, DebugGiveRelicParams? @params)

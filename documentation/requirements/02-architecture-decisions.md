@@ -480,3 +480,102 @@ a parity consumer of the C#-authored canon, not a co-author.
 - This decision relies on the C# suite being fast and ergonomic enough to
   absorb all scenario authoring. If that becomes false, we revisit — the
   answer is to fix the C# suite, not to relax this AD.
+
+---
+
+## AD-7 — Debug methods are opt-in via `--enable-debug`
+
+**Status**: Accepted (2026-05-14)
+
+**Context**
+
+The wire protocol includes test affordances that bypass normal game
+mechanics: `debug/give_relic` grants a relic without an in-game source
+event, `debug/set_hp` writes the engine's HP backing field directly. These
+are load-bearing for end-to-end tests (e.g. healing the greedy agent
+between rooms so it can reach the act boss) but actively destructive to
+authoritative state — a run where `debug/*` has been called is no longer
+a faithful replay of the underlying game.
+
+The first cuts of these methods were registered in the host's dispatch
+table unconditionally. That posture has two failure modes:
+
+1. **Accidental production use.** A client of the wire that copies an
+   example from a test (or fat-fingers a method name into a script)
+   silently mutates state in a non-game-authoritative way. Bugs surface
+   late, far from the cheat.
+2. **Replay corruption.** A replay file recorded with debug calls
+   intermixed looks identical to a clean replay; downstream analysis that
+   trusts the stream draws conclusions from a poisoned run without
+   knowing.
+
+Both fail silently in the existing AD-2 wire setup, and neither is
+recoverable after the fact. The AD-6 "behavioral truth lives in C#"
+posture relies on the wire being a faithful narrative of the game; debug
+calls being available by default puts that property on a soft footing.
+
+**Decision**
+
+Debug methods are gated by an explicit `--enable-debug` flag on the host
+process. With the flag absent — the default in every production posture
+— every `debug/*` call returns `WireErrorCode.DebugMethodDisabled`
+(-32001) regardless of params; the dispatch table still registers the
+method handler (so `MethodCatalog.AssertParity` stays valid) but the
+handler refuses to run.
+
+Operational rules:
+
+- **The flag is a CLI argument, not an env var.** It surfaces in every
+  process listing (`ps`, container logs, systemd unit files) so an
+  operator cannot accidentally enable debug without it being visible.
+- **The flag is logged to stderr when the host starts with it.** A
+  conspicuous banner — `"sts2-headless: debug methods ENABLED via
+  --enable-debug (development/test only — never use in production)"` —
+  ensures that any captured log shows the capability was on.
+- **The integration-test fixture (`HostSubprocess`) passes the flag
+  unconditionally.** Tests are the canonical "I want debug methods"
+  context, and every other test would have to pass the flag explicitly
+  if the fixture didn't. The negative-side fixture (`NoDebugHost` in
+  `DebugDisabledTests`) deliberately omits it to pin the gate behaviour
+  from the other side; the gate test is the regression net.
+- **The wire schema marks debug methods with `x-debugOnly: true`.** This
+  is documentation, not enforcement — it lets generated clients
+  segregate, hide, or label debug methods, and lets schema-aware tooling
+  flag a replay containing debug calls. The host gate is what actually
+  refuses calls.
+- **The error code is distinct from MethodNotFound and InternalError.**
+  Clients can branch on `DebugMethodDisabled` specifically. A
+  `MethodNotFound` (-32601) reply would imply the method doesn't exist,
+  hiding the policy decision; an `InternalError` (-32603) would suggest
+  a bug. The custom code (-32001) makes the gate an observable, named
+  policy.
+
+The flag is intentionally per-method-class, not per-method. Granular
+per-method opt-in adds operational surface area without changing the
+threat model (an operator who enables `--enable-debug` to use one debug
+method has already crossed the "I am running a non-production host"
+boundary; enabling another method behind it is no additional risk).
+
+**Consequences**
+
+- A production host is debug-locked by construction. Forgetting to
+  remove a debug call from client code surfaces immediately as a typed
+  wire error rather than as silently-corrupted state.
+- Replays produced by a debug-enabled host can be detected by any
+  consumer that watches for `debug/*` request lines; the wire itself
+  doesn't add new framing, but the namespace is reserved and visible.
+- Every debug method added in the future inherits the gate by default —
+  the registration helper (`GateDebug` in `HostMethods`) wraps every
+  `debug/*` handler. Adding a debug method without going through this
+  helper is the failure mode the unit + integration-suite parity tests
+  (`DebugDisabledTests.NonDebugMethod_StillWorks_WithoutEnableDebugFlag`)
+  exist to catch.
+- We accept the small ergonomic cost of one CLI flag for every
+  development / CI invocation — `just test-integration` passes it via
+  the fixture; manual `dotnet run` invocations against the host must add
+  it. The cost is a one-time learning hit for new contributors and
+  measurably zero for automation.
+- This AD applies recursively: any future namespace whose semantics are
+  "this should never run in production" (e.g. a hypothetical `cheat/`
+  or `fuzz/` family) inherits the same posture, with its own gate flag
+  and the same error-code discipline.

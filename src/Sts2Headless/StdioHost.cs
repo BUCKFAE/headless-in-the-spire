@@ -31,7 +31,7 @@ public static class StdioHost
                 // We can't recover the request id from a malformed line, so
                 // respond with id=-1 and JSON-RPC's parse-error code.
                 EnvelopeIo.WriteResponse(stdout, new Response(
-                    -1, null, new Error(-32700, "parse error: " + ex.Message, null)));
+                    -1, null, new Error(WireErrorCode.ParseError, "parse error: " + ex.Message, null)));
                 continue;
             }
             if (request is null) return 0;
@@ -40,7 +40,7 @@ public static class StdioHost
             if (!methods.TryGetValue(request.Method, out var handler))
             {
                 response = new Response(request.Id, null,
-                    new Error(-32601, $"method not found: {request.Method}", null));
+                    new Error(WireErrorCode.MethodNotFound, $"method not found: {request.Method}", null));
             }
             else
             {
@@ -49,11 +49,19 @@ public static class StdioHost
                     var result = handler(request.Params);
                     response = new Response(request.Id, result, null);
                 }
+                catch (WireException wex)
+                {
+                    // Typed wire-level errors (debug gate, future validation
+                    // codes) carry their own code; surface it verbatim rather
+                    // than wrapping in the generic InternalError.
+                    response = new Response(request.Id, null,
+                        new Error(wex.Code, wex.Message, null));
+                }
                 catch (Exception ex)
                 {
                     var unwrapped = Diagnostics.Unwrap(ex);
                     response = new Response(request.Id, null,
-                        new Error(-32603, "internal error: " + Diagnostics.Describe(unwrapped), null));
+                        new Error(WireErrorCode.InternalError, "internal error: " + Diagnostics.Describe(unwrapped), null));
                 }
             }
             EnvelopeIo.WriteResponse(stdout, response);

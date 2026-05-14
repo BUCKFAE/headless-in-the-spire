@@ -33,6 +33,19 @@ for testing, AI experimentation, and replay recording.
 - **GodotStubs grows on demand.** Do not speculatively mirror the GodotSharp
   surface. Add a stub when sts2.dll's reference forces it, with a
   `// from: <type>.<member>` comment recording the caller.
+- **Debug methods are opt-in via `--enable-debug` (AD-7).** Any wire
+  method under the `debug/` namespace (`debug/give_relic`, `debug/set_hp`,
+  …) is **disabled by default**. The host only serves it when started
+  with the `--enable-debug` CLI flag; without it, calls return
+  `WireErrorCode.DebugMethodDisabled` (-32001). When adding a new debug
+  method, register it via `HostMethods.GateDebug(...)`, mark its
+  `MethodCatalog` entry with `IsDebugOnly: true`, and add a positive case
+  to `DebugSetHpTests`-style tests *and* a negative case to
+  `DebugDisabledTests` so the gate stays a tested regression net. The
+  HostSubprocess test fixture passes `--enable-debug` automatically; a
+  production host must never set it. Treat any unexplained appearance of
+  `--enable-debug` in process args or deployment configs as a
+  security/correctness concern, not a convenience.
 - **C# is the source of behavioral truth (AD-6).** Drivers, agents,
   scenarios, fixtures, replay corpora, and regression tests are authored in
   C# — `src/Sts2Headless.Agents/` for drivers / agents,

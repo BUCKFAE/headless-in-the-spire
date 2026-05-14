@@ -14,11 +14,17 @@ namespace Sts2Headless.Protocol;
 // the next `just export-schema`; the host fails to start until a handler
 // is registered under the same key.
 
+// IsDebugOnly marks the method as a test affordance that must never be
+// served in production. The host's --enable-debug flag (AD-7) is required
+// to make it callable; the schema emitter labels debug methods with
+// `x-debugOnly: true` so generated clients can segregate them. Default
+// false — additions are opt-in.
 public sealed record MethodEntry(
     string Name,
     Type? ParamsType,
     Type ResultType,
-    string Summary);
+    string Summary,
+    bool IsDebugOnly = false);
 
 public static class MethodCatalog
 {
@@ -77,7 +83,14 @@ public static class MethodCatalog
         new("debug/give_relic",
             ParamsType: typeof(DebugGiveRelicParams),
             ResultType: typeof(DebugGiveRelicResult),
-            Summary: "Test affordance — grant a relic via RelicCmd.Obtain (engine path)."),
+            Summary: "Test affordance — grant a relic via RelicCmd.Obtain (engine path). Requires --enable-debug.",
+            IsDebugOnly: true),
+
+        new("debug/set_hp",
+            ParamsType: typeof(DebugSetHpParams),
+            ResultType: typeof(DebugSetHpResult),
+            Summary: "Test affordance — set the player's CurrentHp (and optionally MaxHp) by writing the engine's backing fields. Bypasses damage events, on-hit relics, and game-over detection; the resulting state is not authoritative. Requires --enable-debug.",
+            IsDebugOnly: true),
     };
 
     // Throws if the supplied dispatch-table keys differ from the catalogue
