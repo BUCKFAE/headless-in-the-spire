@@ -439,6 +439,35 @@ public sealed record RunSelectRestSiteOptionResult(
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
 
+// ── run/leave_treasure_room ──────────────────────────────────────────────
+
+// A treasure room is auto-resolve from the player's perspective — there's
+// no option to pick beyond "open the chest" — but the engine does not
+// transition the room on its own. Calling this method drives the chain:
+// TreasureRoom.DoNormalRewards populates the chest offering,
+// TreasureRoomRelicSynchronizer.BeginRelicPicking + PickRelicLocally(0)
+// claim the relic through the engine's grant pipeline (Player.Relics +
+// listener hooks stay aligned), DoExtraRewardsIfNeeded covers act-3 /
+// ascension extras, and EnterRoom(MapRoom) flips the room. The returned
+// snapshot reflects the post-leave state.
+//
+// No params — chests have a single relic offering and the host always
+// claims it (greedy default). A future slice can split this into a
+// previewable pick/skip once a SilverCrucible-style "first chest is
+// empty" relic actually ships.
+public sealed record RunLeaveTreasureRoomResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+
 // ── run/end_turn ─────────────────────────────────────────────────────────
 
 // No params record — run/end_turn acts on the current run's active combat.

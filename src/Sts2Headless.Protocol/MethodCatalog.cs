@@ -60,6 +60,11 @@ public static class MethodCatalog
             ResultType: typeof(RunSelectRestSiteOptionResult),
             Summary: "Pick an option on the current rest site (HEAL, SMITH, …). HEAL exits to MapRoom; SMITH branches into card-select which is not wired yet."),
 
+        new("run/leave_treasure_room",
+            ParamsType: null,
+            ResultType: typeof(RunLeaveTreasureRoomResult),
+            Summary: "Open the chest in the current treasure room and exit to MapRoom. No params — chests have a single relic offering and the host auto-picks it via the engine's TreasureRoomRelicSynchronizer (greedy default; a future slice can split this into previewable pick/skip)."),
+
         new("run/end_turn",
             ParamsType: null,
             ResultType: typeof(RunEndTurnResult),

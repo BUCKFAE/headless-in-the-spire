@@ -63,8 +63,8 @@ public sealed class GreedyAgent : IAgent
             RoomType.CombatRoom or RoomType.BossRoom => StepCombatAsync(host, s),
             RoomType.EventRoom => StepEventAsync(host, s),
             RoomType.RestSiteRoom => StepRestSiteAsync(host, s),
+            RoomType.TreasureRoom => StepTreasureAsync(host, s),
             RoomType.MerchantRoom => throw NoWireExitYet("merchant"),
-            RoomType.TreasureRoom => throw NoWireExitYet("treasure"),
             _ => throw new InvalidOperationException(
                 $"GreedyAgent: unhandled room type {s.CurrentRoomType}. " +
                 "This is either a new RoomType the wire surface added without " +
@@ -180,6 +180,17 @@ public sealed class GreedyAgent : IAgent
             "run/select_rest_site_option",
             new RunSelectRestSiteOptionParams(OptionIndex: pick.Index));
         return await host.SendAsync<RunStateResult>("run/state");
+    }
+
+    private static async Task<RunStateResult> StepTreasureAsync(ITransport host, RunStateResult s)
+    {
+        // Treasure has no player decision — call leave_treasure_room and the
+        // engine grants the relic + gold via its synchronizer path. The
+        // engine sometimes routes a follow-up pick through the standard
+        // rewards channel, so drain any RewardsState the response surfaces
+        // before re-snapshotting.
+        var resp = await host.SendAsync<RunLeaveTreasureRoomResult>("run/leave_treasure_room");
+        return await DrainRewardsAsync(host, resp.RewardsState);
     }
 
     private static async Task<RunStateResult> StepEventAsync(ITransport host, RunStateResult s)

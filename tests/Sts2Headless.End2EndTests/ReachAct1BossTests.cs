@@ -34,10 +34,11 @@ public class ReachAct1BossTests : IClassFixture<HostSubprocess>
         var transport = new HostSubprocessTransport(_host);
         var agent = new GreedyAgent();
 
-        // Cap wall-time at two minutes. Act 1 with heal-between-rooms takes
-        // well under that even at slow CI cadence; hitting the cap means the
-        // agent is looping or stalled and we surface cancellation rather
-        // than waiting for the step-counter to trip.
+        // Cap wall-time at two minutes. Act 1 with heal-between-rooms +
+        // treasure-room chest opening takes well under that even at slow CI
+        // cadence; hitting the cap means the agent is looping or stalled
+        // and we surface cancellation rather than waiting for the step-
+        // counter to trip.
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
         // Drive in waves, healing between waves whenever the agent surfaces

@@ -25,6 +25,7 @@ public static class HostMethods
             ["run/select_map_node"] = Typed<RunSelectMapNodeParams, RunSelectMapNodeResult>(p => RunSelectMapNode(bindings, session, p)),
             ["run/select_event_option"] = Typed<RunSelectEventOptionParams, RunSelectEventOptionResult>(p => RunSelectEventOption(bindings, session, p)),
             ["run/select_rest_site_option"] = Typed<RunSelectRestSiteOptionParams, RunSelectRestSiteOptionResult>(p => RunSelectRestSiteOption(bindings, session, p)),
+            ["run/leave_treasure_room"] = TypedNoParams(() => RunLeaveTreasureRoom(bindings, session)),
             ["run/end_turn"] = TypedNoParams(() => RunEndTurn(bindings, session)),
             ["run/play_card"] = Typed<RunPlayCardParams, RunPlayCardResult>(p => RunPlayCard(bindings, session, p)),
             ["run/select_reward"] = Typed<RunSelectRewardParams, RunSelectRewardResult>(p => RunSelectReward(bindings, session, p)),
@@ -193,6 +194,28 @@ public static class HostMethods
         return new RunSelectRestSiteOptionResult(
             Ok: true,
             OptionIndex: args.OptionIndex,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
+    }
+
+    private static RunLeaveTreasureRoomResult RunLeaveTreasureRoom(Sts2Bindings bindings, Session session)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+
+        bindings.LeaveTreasureRoom(run);
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunLeaveTreasureRoomResult(
+            Ok: true,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
             IsGameOver: s.IsGameOver,

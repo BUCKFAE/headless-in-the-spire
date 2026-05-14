@@ -111,6 +111,18 @@
       }
     },
     {
+      "name": "run/leave_treasure_room",
+      "summary": "Open the chest in the current treasure room and exit to MapRoom. No params — chests have a single relic offering and the host auto-picks it via the engine's TreasureRoomRelicSynchronizer (greedy default; a future slice can split this into previewable pick/skip).",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunLeaveTreasureRoomResult"
+        }
+      }
+    },
+    {
       "name": "run/end_turn",
       "summary": "End the player's turn in the active combat.",
       "paramStructure": "by-name",
@@ -725,6 +737,81 @@
         ]
       },
       "RunEndTurnResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
+          "combatState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewardsState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "availableRestSiteOptions",
+          "relics"
+        ]
+      },
+      "RunLeaveTreasureRoomResult": {
         "type": "object",
         "properties": {
           "ok": {
