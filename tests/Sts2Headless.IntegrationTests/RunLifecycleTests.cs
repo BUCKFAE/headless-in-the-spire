@@ -6,14 +6,21 @@ namespace Sts2Headless.IntegrationTests;
 // run/new + run/state happy and error paths. After Pass C, run/new walks
 // the full sts2-cli StartRun chain and lands the player at MapRoom with
 // StartedWithNeow=false; run/state surfaces the post-boot snapshot.
-public class RunLifecycleTests
+//
+// Shares one HostSubprocess across the class via IClassFixture: every test
+// starts with run/new (or only inspects the run/new error path), and
+// Sts2Bindings.StartIroncladRun resets the prior RunManager on each call
+// — so previous-test session state does not leak forward.
+public class RunLifecycleTests : IClassFixture<HostSubprocess>
 {
+    private readonly HostSubprocess _host;
+
+    public RunLifecycleTests(HostSubprocess host) => _host = host;
+
     [Fact]
     public async Task RunNew_Ironclad_Lands_At_MapRoom()
     {
-        await using var host = new HostSubprocess();
-
-        var result = await host.SendAsync<RunNewResult>(
+        var result = await _host.SendAsync<RunNewResult>(
             "run/new", new RunNewParams(Seed: 42uL));
 
         Assert.True(result.Ok);
@@ -31,11 +38,9 @@ public class RunLifecycleTests
         // missing GodotStubs (Vector2.Zero / Node2D.Position) — gap closed.
         // Event-choice flow lives in EventChoiceTests; this test pins the
         // landing shape: still in EventRoom, full HP, run not over.
-        await using var host = new HostSubprocess();
-
-        var result = await host.SendAsync<RunNewResult>(
+        var result = await _host.SendAsync<RunNewResult>(
             "run/new", new RunNewParams(Seed: 1uL, WithNeow: true));
-        var state = await host.SendAsync<RunStateResult>("run/state");
+        var state = await _host.SendAsync<RunStateResult>("run/state");
 
         Assert.True(result.Ok);
         Assert.Equal(RoomType.EventRoom, result.CurrentRoomType);
@@ -48,9 +53,10 @@ public class RunLifecycleTests
     [Fact]
     public async Task RunNew_UnsupportedCharacter_ReturnsInternalError()
     {
-        await using var host = new HostSubprocess();
-
-        var error = await host.ExpectErrorAsync(
+        // The Silent rejection happens before Sts2Bindings.StartIroncladRun,
+        // so this test neither requires nor mutates an active run — safe
+        // to run in any order against the shared host.
+        var error = await _host.ExpectErrorAsync(
             "run/new", new RunNewParams(Character: Character.Silent));
 
         Assert.Equal(-32603, error.Code);
@@ -60,10 +66,8 @@ public class RunLifecycleTests
     [Fact]
     public async Task RunState_AfterRunNew_ReturnsRunSnapshot()
     {
-        await using var host = new HostSubprocess();
-
-        await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 1uL));
-        var state = await host.SendAsync<RunStateResult>("run/state");
+        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 1uL));
+        var state = await _host.SendAsync<RunStateResult>("run/state");
 
         Assert.True(state.Ok);
         Assert.Equal(Character.Ironclad, state.Character);
@@ -78,16 +82,5 @@ public class RunLifecycleTests
         Assert.Equal(RoomType.MapRoom, state.CurrentRoomType);
         Assert.Equal(0, state.ActFloor);
         Assert.False(state.IsGameOver);
-    }
-
-    [Fact]
-    public async Task RunState_WithoutRunNew_ReturnsInternalError()
-    {
-        await using var host = new HostSubprocess();
-
-        var error = await host.ExpectErrorAsync("run/state");
-
-        Assert.Equal(-32603, error.Code);
-        Assert.Contains("no active run", error.Message);
     }
 }

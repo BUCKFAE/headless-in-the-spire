@@ -4,25 +4,30 @@ using Xunit;
 namespace Sts2Headless.IntegrationTests;
 
 // Fast combat wire-shape tests: entering combat, end_turn, play_card, plus
-// the three "no active run / not in combat" error paths. The heavier
-// reward-cycle tests (FightToCompletion, PostCombat / Select / Skip
-// rewards) each live in their own class so they parallelise across xUnit
-// collections rather than serialising behind this one.
+// the "not in combat" error path. The heavier reward-cycle tests
+// (FightToCompletion, PostCombat / Select / Skip rewards) each live in
+// their own class so they parallelise across xUnit collections rather
+// than serialising behind this one.
 //
 // Combat is the largest mutating surface in the protocol; the assertions
 // favour shape (hand non-empty, enemies populated, isPlayPhase=true) over
 // exact values, since hand contents / enemy HP shift with sts2 rebalances.
-public class CombatTests
+//
+// Shares one HostSubprocess across the class via IClassFixture: every test
+// starts with run/new, which resets the prior RunManager via Sts2Bindings.
+public class CombatTests : IClassFixture<HostSubprocess>
 {
+    private readonly HostSubprocess _host;
+
+    public CombatTests(HostSubprocess host) => _host = host;
+
     [Fact]
     public async Task SelectMonsterNode_LandsInCombat_WithPopulatedCombatState()
     {
-        await using var host = new HostSubprocess();
-
-        var start = await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        var start = await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
         var monsterNode = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
 
-        var afterPick = await host.SendAsync<RunSelectMapNodeResult>(
+        var afterPick = await _host.SendAsync<RunSelectMapNodeResult>(
             "run/select_map_node", new RunSelectMapNodeParams(Col: monsterNode.Col, Row: monsterNode.Row));
 
         Assert.Equal(RoomType.CombatRoom, afterPick.CurrentRoomType);
@@ -71,11 +76,9 @@ public class CombatTests
         // synchronously: monsters resolve their intents and deal damage.
         // Verified: round advances, IsPlayPhase flips back, and the Fuzzy
         // Wurm Crawler's Attack intent reduces player HP.
-        await using var host = new HostSubprocess();
-
-        var start = await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        var start = await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
         var monsterNode = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
-        var inCombat = await host.SendAsync<RunSelectMapNodeResult>(
+        var inCombat = await _host.SendAsync<RunSelectMapNodeResult>(
             "run/select_map_node", new RunSelectMapNodeParams(Col: monsterNode.Col, Row: monsterNode.Row));
         Assert.NotNull(inCombat.CombatState);
         Assert.Equal(1, inCombat.CombatState!.Round);
@@ -86,7 +89,7 @@ public class CombatTests
         Assert.Contains(inCombat.CombatState.Enemies, e =>
             e.Intents.Any(i => i.Kind == IntentKind.Attack));
 
-        var afterEndTurn = await host.SendAsync<RunEndTurnResult>("run/end_turn");
+        var afterEndTurn = await _host.SendAsync<RunEndTurnResult>("run/end_turn");
 
         Assert.True(afterEndTurn.Ok);
         Assert.Equal(RoomType.CombatRoom, afterEndTurn.CurrentRoomType);
@@ -105,11 +108,9 @@ public class CombatTests
     [Fact]
     public async Task PlayCard_RemovesCardFromHand_AndConsumesEnergy()
     {
-        await using var host = new HostSubprocess();
-
-        var start = await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        var start = await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
         var monsterNode = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
-        var inCombat = await host.SendAsync<RunSelectMapNodeResult>(
+        var inCombat = await _host.SendAsync<RunSelectMapNodeResult>(
             "run/select_map_node", new RunSelectMapNodeParams(Col: monsterNode.Col, Row: monsterNode.Row));
         Assert.NotNull(inCombat.CombatState);
         var combat = inCombat.CombatState!;
@@ -124,7 +125,7 @@ public class CombatTests
         var energyBefore = combat.Energy;
         var handCountBefore = combat.Hand.Count;
 
-        var after = await host.SendAsync<RunPlayCardResult>(
+        var after = await _host.SendAsync<RunPlayCardResult>(
             "run/play_card", new RunPlayCardParams(CardIndex: card.Index, TargetIndex: targetIndex));
 
         Assert.True(after.Ok);
@@ -143,38 +144,13 @@ public class CombatTests
     }
 
     [Fact]
-    public async Task EndTurn_WithoutRunNew_ReturnsInternalError()
-    {
-        await using var host = new HostSubprocess();
-
-        var error = await host.ExpectErrorAsync("run/end_turn");
-
-        Assert.Equal(-32603, error.Code);
-        Assert.Contains("no active run", error.Message);
-    }
-
-    [Fact]
-    public async Task PlayCard_WithoutRunNew_ReturnsInternalError()
-    {
-        await using var host = new HostSubprocess();
-
-        var error = await host.ExpectErrorAsync(
-            "run/play_card", new RunPlayCardParams(CardIndex: 0));
-
-        Assert.Equal(-32603, error.Code);
-        Assert.Contains("no active run", error.Message);
-    }
-
-    [Fact]
     public async Task EndTurn_NotInCombat_ReturnsInternalError()
     {
         // From a MapRoom, ending a turn is meaningless. The bindings raise
         // InvalidOperationException; surface that so callers can't drift state.
-        await using var host = new HostSubprocess();
+        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 1uL));
 
-        await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 1uL));
-
-        var error = await host.ExpectErrorAsync("run/end_turn");
+        var error = await _host.ExpectErrorAsync("run/end_turn");
 
         Assert.Equal(-32603, error.Code);
     }

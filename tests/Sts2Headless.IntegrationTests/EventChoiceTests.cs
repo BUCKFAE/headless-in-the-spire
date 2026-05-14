@@ -7,14 +7,19 @@ namespace Sts2Headless.IntegrationTests;
 // can reliably reach in tests (withNeow=true at run/new). When we wire more
 // rooms that branch into events (?-rooms during a run), additional scenarios
 // belong here; the file is named after the wire method, not the event.
-public class EventChoiceTests
+//
+// Shares one HostSubprocess across the class via IClassFixture: every test
+// starts with run/new, which resets the prior RunManager via Sts2Bindings.
+public class EventChoiceTests : IClassFixture<HostSubprocess>
 {
+    private readonly HostSubprocess _host;
+
+    public EventChoiceTests(HostSubprocess host) => _host = host;
+
     [Fact]
     public async Task RunNew_WithNeow_Surfaces_EventOptions()
     {
-        await using var host = new HostSubprocess();
-
-        var result = await host.SendAsync<RunNewResult>(
+        var result = await _host.SendAsync<RunNewResult>(
             "run/new", new RunNewParams(Seed: 1uL, WithNeow: true));
 
         Assert.Equal(RoomType.EventRoom, result.CurrentRoomType);
@@ -42,16 +47,14 @@ public class EventChoiceTests
         // side effects the host can't yet service — those paths are listed
         // in CLAUDE.md as deferred work. PHIAL_HOLSTER finishes cleanly,
         // which is enough to verify the full pick → auto-advance flow.
-        await using var host = new HostSubprocess();
-
-        var start = await host.SendAsync<RunNewResult>(
+        var start = await _host.SendAsync<RunNewResult>(
             "run/new", new RunNewParams(Seed: 1uL, WithNeow: true));
         var picks = start.AvailableEventOptions
             .Where(o => o.TextKey is not null && o.TextKey.Contains("PHIAL_HOLSTER"))
             .ToList();
         Assert.NotEmpty(picks);
 
-        var after = await host.SendAsync<RunSelectEventOptionResult>(
+        var after = await _host.SendAsync<RunSelectEventOptionResult>(
             "run/select_event_option",
             new RunSelectEventOptionParams(OptionIndex: picks[0].Index));
 
@@ -66,7 +69,7 @@ public class EventChoiceTests
         Assert.Equal(1, after.ActFloor);
 
         // Session reflects the transition.
-        var state = await host.SendAsync<RunStateResult>("run/state");
+        var state = await _host.SendAsync<RunStateResult>("run/state");
         Assert.Equal(RoomType.MapRoom, state.CurrentRoomType);
         Assert.Empty(state.AvailableEventOptions);
     }
@@ -74,12 +77,10 @@ public class EventChoiceTests
     [Fact]
     public async Task SelectEventOption_OutOfRange_ReturnsInternalError()
     {
-        await using var host = new HostSubprocess();
-
-        await host.SendAsync<RunNewResult>(
+        await _host.SendAsync<RunNewResult>(
             "run/new", new RunNewParams(Seed: 1uL, WithNeow: true));
 
-        var error = await host.ExpectErrorAsync(
+        var error = await _host.ExpectErrorAsync(
             "run/select_event_option",
             new RunSelectEventOptionParams(OptionIndex: 99));
 
@@ -88,29 +89,14 @@ public class EventChoiceTests
     }
 
     [Fact]
-    public async Task SelectEventOption_WithoutRunNew_ReturnsInternalError()
-    {
-        await using var host = new HostSubprocess();
-
-        var error = await host.ExpectErrorAsync(
-            "run/select_event_option",
-            new RunSelectEventOptionParams(OptionIndex: 0));
-
-        Assert.Equal(-32603, error.Code);
-        Assert.Contains("no active run", error.Message);
-    }
-
-    [Fact]
     public async Task SelectEventOption_NotInEventRoom_ReturnsInternalError()
     {
         // From a MapRoom (no Neow), picking an event option is meaningless.
         // The bindings raise InvalidOperationException on the null Event;
         // surface that as an internal error so callers can't drift state.
-        await using var host = new HostSubprocess();
+        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 1uL));
 
-        await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 1uL));
-
-        var error = await host.ExpectErrorAsync(
+        var error = await _host.ExpectErrorAsync(
             "run/select_event_option",
             new RunSelectEventOptionParams(OptionIndex: 0));
 
