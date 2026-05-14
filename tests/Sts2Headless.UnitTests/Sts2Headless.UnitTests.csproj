@@ -7,9 +7,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="JsonSchema.Net" Version="7.3.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- OpenRPC meta-schema + its json-schema-tools meta dependency (AD-5).
+         Embedded so the validation test runs hermetically — no network fetch
+         at test time. Re-snapshot from:
+           https://github.com/open-rpc/meta-schema (openrpc-meta-schema.json)
+           https://meta.json-schema.tools/         (json-schema-tools-meta.json) -->
+    <EmbeddedResource Include="Resources/openrpc-meta-schema.json" />
+    <EmbeddedResource Include="Resources/json-schema-tools-meta.json" />
   </ItemGroup>
 
   <ItemGroup>

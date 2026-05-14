@@ -77,13 +77,20 @@ existing schema, and no community templates to crib from.
 
 ### Spec status
 
-OpenRPC is at **1.4.1** (2026-02-25), with active patch cadence. Maintained
-by the `open-rpc` GitHub org under Apache-2.0. Originally sponsored by ETC
-Labs and adjacent to the Ethereum execution-apis ecosystem (EIP-1901). The
-spec is stable, backwards-compatible per its own SemVer rule, and not at
+OpenRPC's spec text is at **1.4.1** (2026-02-25), with active patch cadence.
+Maintained by the `open-rpc` GitHub org under Apache-2.0. Originally sponsored
+by ETC Labs and adjacent to the Ethereum execution-apis ecosystem (EIP-1901).
+The spec is stable, backwards-compatible per its own SemVer rule, and not at
 risk of disappearing — but adoption outside Web3 is thin, and tooling
 reflects that. Deep on TypeScript and Rust, shallow on Python, near-zero on
 Kotlin / JVM and .NET.
+
+The **published meta-schema** (`@open-rpc/meta-schema@1.14.9`, the artefact
+every validator consumes) lags the spec text: its `openrpc` enum lists
+versions only through `1.3.2`. We therefore emit `"openrpc": "1.3.2"` so the
+meta-schema validation passes today. Bump alongside the next meta-schema
+snapshot once the enum catches up — there are no shape differences between
+1.3.x and 1.4.x that affect our document.
 
 References:
 
@@ -189,7 +196,7 @@ shapes.
   identifiers differently (typical: `/` → `_`, or nested namespace).
   Pin per-language behaviour with an integration test on the first
   generated client.
-- **Notifications.** OpenRPC 1.4.x handles these by making `result`
+- **Notifications.** OpenRPC 1.3.x handles these by making `result`
   optional ("If undefined, the method MUST only be used as a
   notification" — [open-rpc/spec#230 / PR #368](https://github.com/open-rpc/spec/issues/230)).
   Wire side is already covered by our `Notification` record; codegen
@@ -210,7 +217,7 @@ shapes.
 
 ## Sources
 
-- [OpenRPC Specification (1.4.x)](https://spec.open-rpc.org/)
+- [OpenRPC Specification (1.3.x)](https://spec.open-rpc.org/)
 - [open-rpc/spec releases](https://github.com/open-rpc/spec/releases)
 - [open-rpc/meta-schema](https://github.com/open-rpc/meta-schema)
 - [open-rpc/generator](https://github.com/open-rpc/generator)

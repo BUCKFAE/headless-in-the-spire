@@ -28,7 +28,12 @@ namespace Sts2Headless.SchemaExport;
 
 internal static class OpenRpcEmitter
 {
-    private const string OpenRpcVersion = "1.4.1";
+    // The OpenRPC spec is at 1.4.x, but the published @open-rpc/meta-schema
+    // package (the artefact every tool actually validates against) only
+    // enumerates up through 1.3.2. Pin to 1.3.2 so the meta-schema unit test
+    // passes today; bump alongside the meta-schema snapshot when its enum
+    // catches up.
+    private const string OpenRpcVersion = "1.3.2";
     private const string SchemasRefPrefix = "#/components/schemas/";
 
     public static JsonObject Emit(string gameVersion)
