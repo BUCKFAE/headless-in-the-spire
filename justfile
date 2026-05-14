@@ -73,6 +73,10 @@ list-members fqn: build
 stdio: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --stdio
 
+# Regenerate protocol/openrpc.json from Sts2Headless.Protocol records (AD-5).
+export-schema: build
+    @dotnet run --project src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj --no-build
+
 # Remove all bin/ and obj/ build artifacts.
 clean:
     @dotnet clean Sts2Headless.slnx

@@ -54,12 +54,16 @@ src/
   Sts2Headless.Runtime/        lib — vendor resolver, sts2 load, sync ctx,
                                      Harmony hang patches, bootstrap walker.
                                      Everything that talks to a live sts2.dll.
-  Sts2Headless.Protocol/       lib — JSON-RPC-style envelope + method records
+  Sts2Headless.Protocol/       lib — JSON-RPC-style envelope, method records,
+                                     MethodCatalog (single source of truth).
+  Sts2Headless.SchemaExport/   exe — emits protocol/openrpc.json from Protocol
+                                     records (AD-5). Run via `just export-schema`.
   GodotStubs/                  lib — no-op GodotSharp.dll replacement (grown on demand)
 tests/
   Sts2Headless.Runtime.Tests/  xUnit — bootstrap regression, AD-4 invariant
 Sts2Headless.slnx              solution at repo root
 scripts/                       bootstrap shell scripts (bash)
+protocol/openrpc.json          generated wire-protocol schema (AD-5)
 vendor/                        game DLLs (gitignored; populated by `just pull-game-libs`)
 GAME_VERSION                   pinned version string + SHA-256 of vendor/sts2.dll
 ```

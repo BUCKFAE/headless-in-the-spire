@@ -17,7 +17,7 @@ public static class HostMethods
 {
     public static IReadOnlyDictionary<string, StdioHost.Handler> Build(string repoRoot, Sts2Bindings bindings, Session session)
     {
-        return new Dictionary<string, StdioHost.Handler>
+        var dict = new Dictionary<string, StdioHost.Handler>
         {
             ["host/ping"] = TypedNoParams(() => Ping(repoRoot)),
             ["run/new"] = Typed<RunNewParams, RunNewResult>(p => RunNew(bindings, session, p)),
@@ -35,6 +35,12 @@ public static class HostMethods
             // would silently bypass.
             ["debug/give_relic"] = Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, session, p)),
         };
+        // AD-5: catalogue is the source of truth shared with the schema
+        // emitter. A method registered here without an entry — or vice
+        // versa — fails startup rather than silently drifting the wire
+        // from `protocol/openrpc.json`.
+        MethodCatalog.AssertParity(dict.Keys);
+        return dict;
     }
 
     // Public for unit tests: doesn't touch sts2 bindings, only reads

@@ -3,6 +3,7 @@
     <Project Path="src/GodotStubs/GodotStubs.csproj" />
     <Project Path="src/Sts2Headless.Protocol/Sts2Headless.Protocol.csproj" />
     <Project Path="src/Sts2Headless.Runtime/Sts2Headless.Runtime.csproj" />
+    <Project Path="src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj" />
     <Project Path="src/Sts2Headless/Sts2Headless.csproj" />
   </Folder>
   <Folder Name="/tests/">

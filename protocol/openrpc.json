@@ -1,0 +1,1197 @@
+{
+  "openrpc": "1.4.1",
+  "info": {
+    "title": "headless-in-the-spire",
+    "version": "<fill-in-from-game-credits-screen>",
+    "description": "Wire protocol for the headless-in-the-spire runner. NDJSON over stdio with a JSON-RPC envelope (AD-2). Schema generated from C# records in Sts2Headless.Protocol (AD-5)."
+  },
+  "methods": [
+    {
+      "name": "host/ping",
+      "summary": "Liveness check. Returns the pinned game version and SHA-256 (AD-3).",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/HostPingResult"
+        }
+      }
+    },
+    {
+      "name": "run/new",
+      "summary": "Start a new run. Defaults: Ironclad, seed=1, withNeow=false.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunNewParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunNewResult"
+        }
+      }
+    },
+    {
+      "name": "run/state",
+      "summary": "Read the current run snapshot.",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunStateResult"
+        }
+      }
+    },
+    {
+      "name": "run/select_map_node",
+      "summary": "Enter the map node at (col, row).",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunSelectMapNodeParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunSelectMapNodeResult"
+        }
+      }
+    },
+    {
+      "name": "run/select_event_option",
+      "summary": "Pick an option on the current event room.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunSelectEventOptionParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunSelectEventOptionResult"
+        }
+      }
+    },
+    {
+      "name": "run/end_turn",
+      "summary": "End the player's turn in the active combat.",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunEndTurnResult"
+        }
+      }
+    },
+    {
+      "name": "run/play_card",
+      "summary": "Play a card from the current hand.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunPlayCardParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunPlayCardResult"
+        }
+      }
+    },
+    {
+      "name": "run/select_reward",
+      "summary": "Claim a pending post-combat reward.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunSelectRewardParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunSelectRewardResult"
+        }
+      }
+    },
+    {
+      "name": "run/skip_reward",
+      "summary": "Skip a skippable pending reward.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunSkipRewardParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunSkipRewardResult"
+        }
+      }
+    },
+    {
+      "name": "debug/give_relic",
+      "summary": "Test affordance — grant a relic via RelicCmd.Obtain (engine path).",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugGiveRelicParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugGiveRelicResult"
+        }
+      }
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Card": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "integer"
+          },
+          "canPlay": {
+            "type": "boolean"
+          },
+          "targetType": {
+            "$ref": "#/components/schemas/TargetType"
+          }
+        },
+        "required": [
+          "index",
+          "id",
+          "cost",
+          "canPlay",
+          "targetType"
+        ]
+      },
+      "CardRewardOption": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "id",
+          "cost"
+        ]
+      },
+      "Character": {
+        "enum": [
+          "ironclad",
+          "silent",
+          "defect",
+          "watcher",
+          "regent",
+          "necrobinder"
+        ]
+      },
+      "CombatState": {
+        "type": "object",
+        "properties": {
+          "round": {
+            "type": "integer"
+          },
+          "energy": {
+            "type": "integer"
+          },
+          "maxEnergy": {
+            "type": "integer"
+          },
+          "playerBlock": {
+            "type": "integer"
+          },
+          "isPlayPhase": {
+            "type": "boolean"
+          },
+          "isInProgress": {
+            "type": "boolean"
+          },
+          "drawPileCount": {
+            "type": "integer"
+          },
+          "discardPileCount": {
+            "type": "integer"
+          },
+          "hand": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Card"
+            }
+          },
+          "enemies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Enemy"
+            }
+          },
+          "playerPowers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Power"
+            }
+          }
+        },
+        "required": [
+          "round",
+          "energy",
+          "maxEnergy",
+          "playerBlock",
+          "isPlayPhase",
+          "isInProgress",
+          "drawPileCount",
+          "discardPileCount",
+          "hand",
+          "enemies",
+          "playerPowers"
+        ]
+      },
+      "DebugGiveRelicParams": {
+        "type": "object",
+        "properties": {
+          "relicId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "relicId"
+        ]
+      },
+      "DebugGiveRelicResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "relicId": {
+            "type": "string"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "maxHp": {
+            "type": "integer"
+          },
+          "gold": {
+            "type": "integer"
+          },
+          "deckSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "relicId",
+          "hp",
+          "maxHp",
+          "gold",
+          "deckSize"
+        ]
+      },
+      "Enemy": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "monsterId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "maxHp": {
+            "type": "integer"
+          },
+          "block": {
+            "type": "integer"
+          },
+          "intendsAttack": {
+            "type": "boolean"
+          },
+          "intents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Intent"
+            }
+          },
+          "powers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Power"
+            }
+          }
+        },
+        "required": [
+          "index",
+          "monsterId",
+          "hp",
+          "maxHp",
+          "block",
+          "intendsAttack",
+          "intents",
+          "powers"
+        ]
+      },
+      "EventOption": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "textKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "isLocked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "index",
+          "textKey",
+          "isLocked"
+        ]
+      },
+      "HostPingResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "gameVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gameSha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "ok",
+          "gameVersion",
+          "gameSha256"
+        ]
+      },
+      "Intent": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/IntentKind"
+          },
+          "damage": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "hits": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "block": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "damage",
+          "hits",
+          "block"
+        ]
+      },
+      "IntentKind": {
+        "enum": [
+          "Unknown",
+          "Attack",
+          "Defend",
+          "Buff",
+          "Debuff",
+          "Sleep",
+          "Stun",
+          "Escape",
+          "Magic",
+          "AttackDefend",
+          "AttackBuff",
+          "AttackDebuff",
+          "StrongDebuff"
+        ]
+      },
+      "MapNode": {
+        "type": "object",
+        "properties": {
+          "col": {
+            "type": "integer"
+          },
+          "row": {
+            "type": "integer"
+          },
+          "type": {
+            "$ref": "#/components/schemas/MapNodeType"
+          }
+        },
+        "required": [
+          "col",
+          "row",
+          "type"
+        ]
+      },
+      "MapNodeType": {
+        "enum": [
+          "Unknown",
+          "Monster",
+          "Elite",
+          "Event",
+          "RestSite",
+          "Treasure",
+          "Merchant",
+          "Boss"
+        ]
+      },
+      "Power": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "amount"
+        ]
+      },
+      "RewardKind": {
+        "enum": [
+          "unknown",
+          "card",
+          "gold",
+          "relic",
+          "potion"
+        ]
+      },
+      "RewardOption": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RewardKind"
+          },
+          "canSkip": {
+            "type": "boolean"
+          },
+          "goldAmount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          },
+          "potionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          },
+          "relicId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          },
+          "cards": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CardRewardOption"
+            },
+            "default": null
+          }
+        },
+        "required": [
+          "index",
+          "kind",
+          "canSkip"
+        ]
+      },
+      "RewardsState": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RewardOption"
+            }
+          }
+        },
+        "required": [
+          "available"
+        ]
+      },
+      "RoomType": {
+        "enum": [
+          "Unknown",
+          "MapRoom",
+          "EventRoom",
+          "CombatRoom",
+          "RestSiteRoom",
+          "MerchantRoom",
+          "TreasureRoom",
+          "BossRoom"
+        ]
+      },
+      "RunEndTurnResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "combatState": {
+            "$ref": "#/components/schemas/CombatState"
+          },
+          "rewardsState": {
+            "$ref": "#/components/schemas/RewardsState"
+          }
+        },
+        "required": [
+          "ok",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "combatState",
+          "rewardsState"
+        ]
+      },
+      "RunNewParams": {
+        "type": "object",
+        "properties": {
+          "character": {
+            "enum": [
+              "ironclad",
+              "silent",
+              "defect",
+              "watcher",
+              "regent",
+              "necrobinder",
+              null
+            ],
+            "default": null
+          },
+          "seed": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          },
+          "withNeow": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "default": null
+          }
+        }
+      },
+      "RunNewResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "character": {
+            "$ref": "#/components/schemas/Character"
+          },
+          "seed": {
+            "type": "integer"
+          },
+          "playerType": {
+            "type": "string"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "combatState": {
+            "$ref": "#/components/schemas/CombatState"
+          },
+          "rewardsState": {
+            "$ref": "#/components/schemas/RewardsState"
+          }
+        },
+        "required": [
+          "ok",
+          "character",
+          "seed",
+          "playerType",
+          "currentRoomType",
+          "availableMapNodes",
+          "availableEventOptions",
+          "combatState",
+          "rewardsState"
+        ]
+      },
+      "RunPlayCardParams": {
+        "type": "object",
+        "properties": {
+          "cardIndex": {
+            "type": "integer"
+          },
+          "targetIndex": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "cardIndex"
+        ]
+      },
+      "RunPlayCardResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "cardIndex": {
+            "type": "integer"
+          },
+          "targetIndex": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "combatState": {
+            "$ref": "#/components/schemas/CombatState"
+          },
+          "rewardsState": {
+            "$ref": "#/components/schemas/RewardsState"
+          }
+        },
+        "required": [
+          "ok",
+          "cardIndex",
+          "targetIndex",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "combatState",
+          "rewardsState"
+        ]
+      },
+      "RunSelectEventOptionParams": {
+        "type": "object",
+        "properties": {
+          "optionIndex": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "optionIndex"
+        ]
+      },
+      "RunSelectEventOptionResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "optionIndex": {
+            "type": "integer"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "combatState": {
+            "$ref": "#/components/schemas/CombatState"
+          },
+          "rewardsState": {
+            "$ref": "#/components/schemas/RewardsState"
+          }
+        },
+        "required": [
+          "ok",
+          "optionIndex",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "combatState",
+          "rewardsState"
+        ]
+      },
+      "RunSelectMapNodeParams": {
+        "type": "object",
+        "properties": {
+          "col": {
+            "type": "integer"
+          },
+          "row": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "col",
+          "row"
+        ]
+      },
+      "RunSelectMapNodeResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "col": {
+            "type": "integer"
+          },
+          "row": {
+            "type": "integer"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "combatState": {
+            "$ref": "#/components/schemas/CombatState"
+          },
+          "rewardsState": {
+            "$ref": "#/components/schemas/RewardsState"
+          }
+        },
+        "required": [
+          "ok",
+          "col",
+          "row",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "combatState",
+          "rewardsState"
+        ]
+      },
+      "RunSelectRewardParams": {
+        "type": "object",
+        "properties": {
+          "rewardIndex": {
+            "type": "integer"
+          },
+          "cardIndex": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "rewardIndex"
+        ]
+      },
+      "RunSelectRewardResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "rewardIndex": {
+            "type": "integer"
+          },
+          "cardIndex": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "combatState": {
+            "$ref": "#/components/schemas/CombatState"
+          },
+          "rewardsState": {
+            "$ref": "#/components/schemas/RewardsState"
+          }
+        },
+        "required": [
+          "ok",
+          "rewardIndex",
+          "cardIndex",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "combatState",
+          "rewardsState"
+        ]
+      },
+      "RunSkipRewardParams": {
+        "type": "object",
+        "properties": {
+          "rewardIndex": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rewardIndex"
+        ]
+      },
+      "RunSkipRewardResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "rewardIndex": {
+            "type": "integer"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "combatState": {
+            "$ref": "#/components/schemas/CombatState"
+          },
+          "rewardsState": {
+            "$ref": "#/components/schemas/RewardsState"
+          }
+        },
+        "required": [
+          "ok",
+          "rewardIndex",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "combatState",
+          "rewardsState"
+        ]
+      },
+      "RunStateResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "character": {
+            "enum": [
+              "ironclad",
+              "silent",
+              "defect",
+              "watcher",
+              "regent",
+              "necrobinder",
+              null
+            ]
+          },
+          "seed": {
+            "type": "integer"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "maxHp": {
+            "type": "integer"
+          },
+          "gold": {
+            "type": "integer"
+          },
+          "deckSize": {
+            "type": "integer"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "combatState": {
+            "$ref": "#/components/schemas/CombatState"
+          },
+          "rewardsState": {
+            "$ref": "#/components/schemas/RewardsState"
+          }
+        },
+        "required": [
+          "ok",
+          "character",
+          "seed",
+          "hp",
+          "maxHp",
+          "gold",
+          "deckSize",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "availableMapNodes",
+          "availableEventOptions",
+          "combatState",
+          "rewardsState"
+        ]
+      },
+      "TargetType": {
+        "enum": [
+          "Unknown",
+          "None",
+          "AnyEnemy",
+          "AllEnemies",
+          "Self",
+          "AnyAlly",
+          "AllAllies",
+          "Caster"
+        ]
+      }
+    }
+  }
+}

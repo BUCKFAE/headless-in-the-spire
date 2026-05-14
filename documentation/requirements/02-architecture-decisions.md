@@ -322,18 +322,31 @@ the full ecosystem and tooling survey behind this decision.
 
 OpenRPC is the canonical schema description format for the wire protocol.
 
-A single C# tool walks the records in `Sts2Headless.Protocol.Methods` and
-emits `protocol/openrpc.json`. The artefact is checked in (so contributors
-without a .NET build can regenerate language bindings) and validated against
-`open-rpc/meta-schema` in CI. The emitter sits on top of .NET 10's
-`System.Text.Json.Schema.JsonSchemaExporter` and adds the method-catalogue
-layer on top — realistic size ~300–400 LOC for the current method set.
+A single C# tool, `src/Sts2Headless.SchemaExport/`, walks the records in
+`Sts2Headless.Protocol.Methods` and emits `protocol/openrpc.json`. The
+artefact is checked in (so contributors without a .NET build can regenerate
+language bindings) and validated against `open-rpc/meta-schema` in CI. The
+emitter sits on top of .NET 10's `System.Text.Json.Schema.JsonSchemaExporter`
+and adds the method-catalogue layer on top — realistic size ~300–400 LOC for
+the current method set.
+
+The wire name ↔ params/result type mapping is centralised in
+`Sts2Headless.Protocol.MethodCatalog`. Both the host dispatch table
+(`HostMethods.Build`) and the schema emitter read from it; the host asserts
+parity at startup so the catalogue can't drift from the registered handlers.
 
 All language bindings derive from `protocol/openrpc.json`:
 
-- **Python**: `datamodel-code-generator` for DTOs (`msgspec` /
-  `dataclasses` / `pydantic v2` / `TypedDict` — picked at integration time)
-  plus an in-repo dispatch template.
+- **Python**: package name **`headless-in-the-spire`** on PyPI (import
+  `headless_in_the_spire`). DTOs emitted by `datamodel-code-generator`
+  targeting **pydantic v2**; method dispatch wraps the subprocess transport
+  via an in-repo template. Lives at `clients/python/headless-in-the-spire/`.
+- **Python (agents)**: separate sibling package
+  **`headless-in-the-spire-agents`** at
+  `clients/python/headless-in-the-spire-agents/`. Depends on the client
+  package; carries algorithm dependencies (numpy / torch / etc.) so the
+  thin client doesn't. Independent release cadence: algorithm churn does
+  not force a new wire client.
 - **Kotlin**: an in-repo template component for `open-rpc/generator`,
   written once. Likely the first OpenRPC Kotlin generator in the ecosystem;
   upstream contribution if the template lands cleanly.
