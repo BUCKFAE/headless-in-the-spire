@@ -56,13 +56,20 @@ public enum RoomType
 // Map-node types we've seen sts2's MapPoint.PointType report. Distinct from
 // RoomType: this is the *kind* of node painted on the act map (Monster,
 // Elite, …), whereas RoomType is the runtime room you land in after picking
-// the node (Elite resolves to CombatRoom, etc.). Same Unknown-fallback
-// discipline as RoomType — grow the enum as integration tests surface new
-// names rather than widening the parser.
+// the node (Elite resolves to CombatRoom, etc.). Grow the enum as integration
+// tests surface new PointType names rather than widening the parser.
 //
-// Observed so far: Monster (act 0 starting nodes). Elite/Event/RestSite/
-// Treasure/Merchant/Boss are speculative — left in to document the schema
-// callers can expect, validated when the corresponding nodes actually appear.
+// Unknown is the in-game "?" marker — sts2's PointType.Unknown literally
+// names the mystery node whose destination room is rolled on entry (can
+// resolve to EventRoom, CombatRoom, …). Don't read Unknown as "parser
+// fallback": it's a real, intentional map-node type. If we ever need a
+// separate sentinel for unmapped PointType values, add `Unmapped` and update
+// the fallback in Sts2Bindings.ToMapNode().
+//
+// Observed so far: Monster (row > 0 from start), Unknown (row 2+ mystery
+// rooms). Elite/Event/RestSite/Treasure/Merchant/Boss are speculative —
+// left in to document the schema callers can expect, validated when the
+// corresponding nodes actually appear.
 [JsonConverter(typeof(JsonStringEnumConverter<MapNodeType>))]
 public enum MapNodeType
 {

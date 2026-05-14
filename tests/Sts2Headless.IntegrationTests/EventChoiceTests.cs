@@ -3,10 +3,17 @@ using Xunit;
 
 namespace Sts2Headless.IntegrationTests;
 
-// run/select_event_option — the Neow blessing is currently the only event we
-// can reliably reach in tests (withNeow=true at run/new). When we wire more
-// rooms that branch into events (?-rooms during a run), additional scenarios
-// belong here; the file is named after the wire method, not the event.
+// run/select_event_option — Neow blessing plus in-run `?`-rooms (sts2's
+// PointType.Unknown nodes resolve into an EventRoom on entry, surfacing
+// SunkenStatue / Wellspring / etc.). File is named after the wire method
+// rather than the event, since both routes share the same select-option
+// surface.
+//
+// In-run events require LocPatches' EventOption.AddLocVars / ToString
+// suppressions; without those the ctor NREs on character-asset loc vars
+// (Texture2D / StringName fields that ResourceLoader can't populate in
+// headless mode). Neow sidesteps that path because its option text-keys
+// don't reference the null vars.
 //
 // Shares one HostSubprocess across the class via IClassFixture: every test
 // starts with run/new, which resets the prior RunManager via Sts2Bindings.
@@ -101,5 +108,47 @@ public class EventChoiceTests : IClassFixture<HostSubprocess>
             new RunSelectEventOptionParams(OptionIndex: 0));
 
         Assert.Equal(-32603, error.Code);
+    }
+
+    [Fact]
+    public async Task QuestionMarkRoom_LandsInEventRoom_AndOptionPickAdvances()
+    {
+        // Seed 1's row-2 layout after the first combat exposes a `?`-node
+        // (MapNodeType.Unknown / sts2 PointType.Unknown) at (col 2, row 2).
+        // Stepping on it makes sts2 roll the destination → SunkenStatue
+        // EventRoom for this seed (other seeds may roll the same Unknown
+        // into a CombatRoom instead — `?` is intentionally non-deterministic
+        // across seeds, deterministic within one). The patches in LocPatches
+        // let the EventOption ctor run without NRE-ing on character-texture
+        // loc vars; without them _currentOptions stays empty and this test
+        // would surface no options. Picking option 0 (GrabSword) auto-
+        // advances back to MapRoom — same wire contract as the Neow
+        // PHIAL_HOLSTER path.
+        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 1uL));
+        var afterCombat = await MapHelpers.WalkPastFirstCombat(_host);
+        var mystery = afterCombat.AvailableMapNodes.First(n => n.Type == MapNodeType.Unknown);
+
+        var afterPick = await _host.SendAsync<RunSelectMapNodeResult>(
+            "run/select_map_node", new RunSelectMapNodeParams(Col: mystery.Col, Row: mystery.Row));
+
+        Assert.Equal(RoomType.EventRoom, afterPick.CurrentRoomType);
+        Assert.Equal(2, afterPick.AvailableEventOptions.Count);
+        // Both options should carry a SunkenStatue text-key; the engine
+        // generates them via SunkenStatue.GenerateInitialOptions() →
+        // EventOption ctors with text-keys like
+        // SUNKEN_STATUE.pages.INITIAL.options.GRAB_SWORD/DIVE_INTO_WATER.
+        Assert.All(afterPick.AvailableEventOptions, o =>
+        {
+            Assert.False(string.IsNullOrEmpty(o.TextKey));
+            Assert.Contains("SUNKEN_STATUE", o.TextKey!);
+        });
+
+        var afterChoose = await _host.SendAsync<RunSelectEventOptionResult>(
+            "run/select_event_option", new RunSelectEventOptionParams(OptionIndex: 0));
+
+        Assert.True(afterChoose.Ok);
+        Assert.Equal(RoomType.MapRoom, afterChoose.CurrentRoomType);
+        Assert.Empty(afterChoose.AvailableEventOptions);
+        Assert.NotEmpty(afterChoose.AvailableMapNodes);
     }
 }
