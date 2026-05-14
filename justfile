@@ -77,6 +77,10 @@ stdio: build
 export-schema: build
     @dotnet run --project src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj --no-build
 
+# Regenerate the Python client's pydantic DTOs from protocol/openrpc.json (AD-5).
+generate-python:
+    @bash scripts/generate-python-models.sh
+
 # Remove all bin/ and obj/ build artifacts.
 clean:
     @dotnet clean Sts2Headless.slnx
