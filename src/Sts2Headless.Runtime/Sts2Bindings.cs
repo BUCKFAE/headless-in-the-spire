@@ -17,7 +17,7 @@ namespace Sts2Headless.Runtime;
 // Wire-facing types (RunHandle, RunSnapshot) live in RunHandle.cs; the
 // reflection helper InvocationPlan lives in InvocationPlan.cs.
 
-public sealed class Sts2Bindings
+public sealed partial class Sts2Bindings
 {
     public Assembly Sts2 { get; }
 
@@ -30,6 +30,12 @@ public sealed class Sts2Bindings
     private readonly InvocationPlan _runStateCreateForTest;
     private readonly PropertyInfo _runManagerInstance;
     private readonly Type _netServiceType;
+    // Multiplayer-aware lookups (LocalContext.GetMe, RunHistory.GetPlayerStats,
+    // CardReward.OnSelectWrapper) walk LocalContext.NetId to find the local
+    // player. Without it they throw "Local player not found"; with it the
+    // natural async chains in EndTurn / reward selection complete cleanly.
+    // sts2-cli mirrors this at RunSimulator.cs:253-255.
+    private readonly MemberInfo _localContextNetIdMember;
     private readonly InvocationPlan _runManagerSetUpTest;
     private readonly PropertyInfo _runStateExtraFields;
     private readonly PropertyInfo _extraFieldsStartedWithNeow;
@@ -46,6 +52,10 @@ public sealed class Sts2Bindings
     private readonly PropertyInfo _playerGold;
     private readonly PropertyInfo _playerCreature;
     private readonly PropertyInfo _playerDeck;
+    // Player.NetId — anchor for LocalContext alignment. Multiplayer lookups
+    // ride on the contract that LocalContext.NetId == Player.NetId for the
+    // local player.
+    private readonly PropertyInfo _playerNetId;
     private readonly PropertyInfo _creatureCurrentHp;
     private readonly PropertyInfo _creatureMaxHp;
     private readonly PropertyInfo _deckCards;
@@ -169,6 +179,7 @@ public sealed class Sts2Bindings
         _runStateCreateForTest = s.RunStateCreateForTest;
         _runManagerInstance = s.RunManagerInstance;
         _netServiceType = s.NetServiceType;
+        _localContextNetIdMember = s.LocalContextNetIdMember;
         _runManagerSetUpTest = s.RunManagerSetUpTest;
         _runStateExtraFields = s.RunStateExtraFields;
         _extraFieldsStartedWithNeow = s.ExtraFieldsStartedWithNeow;
@@ -181,6 +192,7 @@ public sealed class Sts2Bindings
         _playerGold = s.PlayerGold;
         _playerCreature = s.PlayerCreature;
         _playerDeck = s.PlayerDeck;
+        _playerNetId = s.PlayerNetId;
         _creatureCurrentHp = s.CreatureCurrentHp;
         _creatureMaxHp = s.CreatureMaxHp;
         _deckCards = s.DeckCards;
@@ -275,14 +287,34 @@ public sealed class Sts2Bindings
     // instead of MapRoom. Callers can then drive run/select_event_option
     // to dismiss the event; LocPatches + the Texture2D / StringName stubs
     // are what let the event populate options in the first place.
-    public RunHandle StartIroncladRun(ulong seed, bool withNeow = false)
+    public RunHandle StartIroncladRun(ulong seed, bool withNeow = false, ulong? playerNetIdOverride = null)
     {
         // A new run cannot inherit pending rewards from a previous one — the
         // reward-set objects belong to the prior RunManager state and become
         // invalid after the second run/new wipes that state.
         _pendingRewards = null;
 
-        var player = _createIroncladRun.Invoke(null, new object?[] { _unlockStateAll, seed })
+        // Player.CreateForNewRun's second ulong is the player's NetId, not the
+        // run seed (the seed lives on RunState — see CreateForTest below).
+        // Default: pass `seed` so each test run sees a distinct NetId, then
+        // align LocalContext.NetId to player.NetId so LocalContext.GetMe (the
+        // most common multiplayer-aware lookup) resolves.
+        //
+        // Override: callers that want sts2-cli's "everything is player 1"
+        // contract (NetSingleplayerGameService.NetId is a baked 1uL — keying
+        // ActionQueueSet, RewardSynchronizer, etc. — and Player.NetId must
+        // match) pass playerNetIdOverride: 1uL. The probe-natural-chain
+        // tooling drives this path to surface gaps.
+        //
+        // Note: some engine paths read netService.NetId directly (a read-only
+        // baked 1uL) rather than LocalContext, so RunHistory keyed on
+        // player.NetId can mismatch those callers when the seed is used as
+        // NetId. ClaimCardReward bypasses those engine paths with direct
+        // deck mutation; OnSkipped / non-card OnSelectWrapper are wrapped
+        // best-effort. Fixing this for real is what the override (and the
+        // Phase-2 work it informs) is about.
+        var playerNetId = playerNetIdOverride ?? seed;
+        var player = _createIroncladRun.Invoke(null, new object?[] { _unlockStateAll, playerNetId })
             ?? throw new InvalidOperationException("Player.CreateForNewRun returned null");
 
         // CreateForTest takes IReadOnlyList<Player> — pass a strongly-typed
@@ -309,12 +341,14 @@ public sealed class Sts2Bindings
             ["gameService"] = netService,
         });
 
-        // We deliberately do NOT set LocalContext.NetId here. Wiring it
-        // breaks the existing end-turn flow (the natural chain partially
-        // converges and our retry loop over-fires, advancing multiple
-        // rounds per call). The reward path bypasses LocalContext entirely
-        // by using direct mutation commands (CardPileCmd.Add etc.) — see
-        // ClaimCardReward / SelectReward.
+        // Mirror sts2-cli's RunSimulator.cs:255: align LocalContext.NetId to
+        // the local player's NetId. With Player.NetId = NetSingleplayerGame-
+        // Service.NetId = 1uL above, the engine's multiplayer-aware lookups
+        // (LocalContext.GetMe, RunHistory.GetPlayerStats, CardReward.OnSelect-
+        // Wrapper) all resolve to this single player.
+        var resolvedNetId = _playerNetId.GetValue(player)
+            ?? throw new InvalidOperationException("Player.NetId returned null");
+        WriteLocalContextNetId(resolvedNetId);
 
         var extra = _runStateExtraFields.GetValue(runState)
             ?? throw new InvalidOperationException("RunState.ExtraFields was null");
@@ -722,10 +756,12 @@ public sealed class Sts2Bindings
     // ActionExecutor twice and posts continuations to the sync context; we
     // drive it to the next player turn by alternating Pump (drains posted
     // continuations) with DrainActionExecutor (awaits FinishedExecutingActions).
-    // The SwitchFromPlayerToEnemySide direct-call is a last-resort fallback
-    // if pumping doesn't converge — kept around because earlier behaviour
-    // relied on it, and skipping the enemy side entirely is at least a
-    // non-deadlocked degraded path.
+    //
+    // Even with LocalContext wired, the natural chain hits Godot/null gaps
+    // we don't fully stub (NDamageNumVfx, CardPileCmd.Shuffle), so we keep
+    // the SwitchFromPlayerToEnemySide fallback: it sidesteps the chain by
+    // calling the side-switch directly. Multiple retries push through the
+    // enemy turn → next player turn cycle one cycle leg at a time.
     public void EndTurn(RunHandle handle)
     {
         if (_playerCmdEndTurn is null)
@@ -751,12 +787,10 @@ public sealed class Sts2Bindings
         var result = _playerCmdEndTurn.Invoke(null, args);
         if (result is Task t) t.GetAwaiter().GetResult();
 
-        // Phase 1: short pump. Under the current bootstrap (LocalContext
-        // unwired by design — see StartIroncladRun), the natural chain
-        // throws "Local player not found" inside LocalContext.GetMe almost
-        // immediately. The pump exists to drive the inline sync context
-        // forward in case some future setup makes the chain work; today it
-        // just falls through fast.
+        // Phase 1: short pump. With LocalContext wired, the natural chain
+        // advances some way before tripping on missing Godot surface deep in
+        // the enemy-turn / setup-player-turn path. A short pump lets quick
+        // cases converge.
         var converged = PumpUntilNextPlayerTurn(handle, cm, roundBefore, deadlineIterations: 50);
 
         // Phase 2: drive side-switching ourselves. SwitchFromPlayerToEnemy
@@ -1040,11 +1074,13 @@ public sealed class Sts2Bindings
         }
         else
         {
-            // Non-card rewards (gold, potion, relic): try the engine's
-            // OnSelectWrapper path. It may throw on multiplayer-aware
-            // lookups (LocalContext.GetMe) under our setup; treat as
-            // best-effort. The reward still gets removed from the pending
-            // list so the caller can keep advancing.
+            // Non-card rewards (gold, potion, relic): the engine's
+            // OnSelectWrapper credits gold / grants potion or relic, but it
+            // also walks netService.NetId-keyed bookkeeping that doesn't
+            // match our seed-derived Player.NetId. Best-effort: log and move
+            // on so the wire's "this reward was consumed" semantics hold
+            // even when the engine throws. Follow-up alongside the
+            // netService NetId backing-field write.
             try { InvokeOnSelectWrapper(reward); }
             catch (Exception ex)
             {
@@ -1078,11 +1114,11 @@ public sealed class Sts2Bindings
 
         if (_cardRewardOnSkipped is not null)
         {
-            // Best-effort: OnSkipped touches RunHistory, which throws on
-            // hardcoded "Player ID 1" lookups under our setup. The wire
-            // semantics ("skip = don't add card") still hold even if the
-            // engine listener cycle fails, since we never invoke
-            // CardPileCmd.Add in the skip path.
+            // Best-effort: OnSkipped touches RunHistory.GetPlayerStats keyed
+            // on netService.NetId, which is a read-only 1uL — so a seed-
+            // derived Player.NetId leaves RunHistory's stats keyed on the
+            // wrong id. The wire semantics ("skip = don't add card") still
+            // hold since we never invoke CardPileCmd.Add in the skip path.
             try
             {
                 var result = _cardRewardOnSkipped.Invoke(reward, Array.Empty<object?>());
@@ -1112,15 +1148,15 @@ public sealed class Sts2Bindings
 
         var picked = cards[cardIndex];
 
-        // sts2-cli line 1205: direct deck mutation via CardPileCmd. Avoids
-        // CardReward.OnSelectWrapper, which would route through
-        // LocalContext.GetMe and throw under our setup.
-        // Direct deck mutation. CardPileCmd.Add (the engine's official path)
-        // NREs on call here because its internals walk PlayerChoiceContext /
-        // LocalContext, neither of which is wired in our setup. Adding to the
-        // Deck.Cards list directly skips the engine's listener/animation
-        // pipeline (relics that trigger on card-obtain won't fire) but the
-        // post-condition the wire promises ("card is in the deck") holds.
+        // Direct deck mutation. The engine's CardPileCmd.Add path (which
+        // sts2-cli uses) NREs internally because PlayerChoiceContext and the
+        // shuffle-on-empty logic walk pieces of context our setup doesn't
+        // fully wire — Player.NetId / netService.NetId / RunHistory don't
+        // all agree, see StartIroncladRun. Direct mutation skips the engine's
+        // listener/animation pipeline (relics that trigger on card-obtain
+        // won't fire) but the post-condition the wire promises ("card is in
+        // the deck") holds. Tracked as a follow-up alongside the netService
+        // NetId backing-field write.
         var deck = _playerDeck.GetValue(handle.Player)
             ?? throw new InvalidOperationException("Player.Deck was null");
         var cardsObj = _deckCards.GetValue(deck)
@@ -1129,9 +1165,10 @@ public sealed class Sts2Bindings
             throw new InvalidOperationException($"Deck.Cards is not list-shaped (got {cardsObj.GetType().Name})");
         deckList.Add(picked);
 
-        // Notify the engine the card was obtained (achievements, listeners,
-        // multiplayer sync). Best-effort: a throw here doesn't undo the deck
-        // add. sts2-cli swallows similar exceptions on this path.
+        // Best-effort: notify the engine the card was obtained (achievements,
+        // multiplayer sync). Catches because SyncLocalObtainedCard can NRE
+        // under our partial multiplayer wiring; deck-add is the source of
+        // truth and stays in place either way.
         if (_runManagerRewardSynchronizer is not null && _rewardSyncSyncLocalObtainedCard is not null)
         {
             try
@@ -1344,6 +1381,25 @@ public sealed class Sts2Bindings
         prop.SetValue(coord, value);
     }
 
+    // LocalContext.NetId is exposed as either a static property or a static
+    // field depending on the game version. The Bind layer captures whichever
+    // it found; this helper hides the discriminator at call sites.
+    private void WriteLocalContextNetId(object netId)
+    {
+        switch (_localContextNetIdMember)
+        {
+            case PropertyInfo p:
+                p.SetValue(null, netId);
+                break;
+            case FieldInfo f:
+                f.SetValue(null, netId);
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"LocalContext.NetId binding is neither PropertyInfo nor FieldInfo (got {_localContextNetIdMember.GetType().Name})");
+        }
+    }
+
     // Diagnostic shortcut: create a Player without booting a full run. Used
     // by --probe-run-state. Wire callers should use StartIroncladRun instead.
     public object CreateIroncladRun(ulong seed) =>
@@ -1377,6 +1433,17 @@ public sealed class Sts2Bindings
 
         var netServiceType = Require(sts2, "MegaCrit.Sts2.Core.Multiplayer.NetSingleplayerGameService");
 
+        // LocalContext is a static type; its NetId is settable through either
+        // a property or a public field. Prefer property + setter; fall back to
+        // a public static field. Type-mismatch (NetId vs ulong vs custom NetId
+        // struct) is OK — we just hand back the value read off netService.NetId,
+        // which by construction has the right runtime type.
+        var localContextType = Require(sts2, "MegaCrit.Sts2.Core.Multiplayer.LocalContext");
+        MemberInfo localContextNetIdMember =
+            (MemberInfo?)localContextType.GetProperty("NetId", BindingFlags.Public | BindingFlags.Static)
+            ?? localContextType.GetField("NetId", BindingFlags.Public | BindingFlags.Static)
+            ?? throw new InvalidOperationException($"{localContextType.FullName}.NetId (static property or field) not found");
+
         var setUpTest = SoleOverload(runManagerType, "SetUpTest");
         var generateRooms = NoArgInstance(runManagerType, "GenerateRooms");
         var launch = NoArgInstance(runManagerType, "Launch");
@@ -1391,6 +1458,7 @@ public sealed class Sts2Bindings
         var playerGold = RequireProperty(playerType, "Gold");
         var playerCreature = RequireProperty(playerType, "Creature");
         var playerDeck = RequireProperty(playerType, "Deck");
+        var playerNetId = RequireProperty(playerType, "NetId");
         var creatureCurrentHp = RequireProperty(playerCreature.PropertyType, "CurrentHp");
         var creatureMaxHp = RequireProperty(playerCreature.PropertyType, "MaxHp");
         var deckCards = RequireProperty(playerDeck.PropertyType, "Cards");
@@ -1475,9 +1543,10 @@ public sealed class Sts2Bindings
         return new Sts2Bindings(sts2, new BindingState(
             playerType, createIroncladRun, unlockAll,
             new InvocationPlan(createForTest), runManagerInstance, netServiceType,
+            localContextNetIdMember,
             setUpTest, extraFields, startedWithNeow,
             generateRooms, launch, finalize, enterAct, enterMapCoord, mapCoordType,
-            playerGold, playerCreature, playerDeck,
+            playerGold, playerCreature, playerDeck, playerNetId,
             creatureCurrentHp, creatureMaxHp, deckCards,
             currentRoom, actFloor, isGameOver,
             runStateMap, runStateCurrentMapCoord, mapStartingMapPoint, mapGetPoint,
@@ -1847,10 +1916,11 @@ public sealed class Sts2Bindings
     private sealed record BindingState(
         Type PlayerType, MethodInfo CreateIroncladRun, object UnlockStateAll,
         InvocationPlan RunStateCreateForTest, PropertyInfo RunManagerInstance, Type NetServiceType,
+        MemberInfo LocalContextNetIdMember,
         InvocationPlan RunManagerSetUpTest, PropertyInfo RunStateExtraFields, PropertyInfo ExtraFieldsStartedWithNeow,
         MethodInfo RunManagerGenerateRooms, MethodInfo RunManagerLaunch, MethodInfo RunManagerFinalizeStartingRelics,
         InvocationPlan RunManagerEnterAct, InvocationPlan RunManagerEnterMapCoord, Type MapCoordType,
-        PropertyInfo PlayerGold, PropertyInfo PlayerCreature, PropertyInfo PlayerDeck,
+        PropertyInfo PlayerGold, PropertyInfo PlayerCreature, PropertyInfo PlayerDeck, PropertyInfo PlayerNetId,
         PropertyInfo CreatureCurrentHp, PropertyInfo CreatureMaxHp, PropertyInfo DeckCards,
         PropertyInfo RunStateCurrentRoom, PropertyInfo RunStateActFloor, PropertyInfo RunStateIsGameOver,
         PropertyInfo RunStateMap, PropertyInfo RunStateCurrentMapCoord, PropertyInfo MapStartingMapPoint,

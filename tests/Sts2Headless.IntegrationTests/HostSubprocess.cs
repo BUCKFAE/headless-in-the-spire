@@ -41,6 +41,19 @@ public sealed class HostSubprocess : IAsyncDisposable
 
         _proc = Process.Start(psi)
             ?? throw new InvalidOperationException("failed to start headless host subprocess");
+
+        // Drain stderr asynchronously so a chatty host doesn't block on a full
+        // pipe buffer. When STS2_HEADLESS_DEBUG is set, mirror to the test's
+        // stderr so debug lines surface in test output.
+        _ = Task.Run(async () =>
+        {
+            var debug = Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null;
+            string? line;
+            while ((line = await _proc.StandardError.ReadLineAsync()) is not null)
+            {
+                if (debug) Console.Error.WriteLine($"[host] {line}");
+            }
+        });
     }
 
     // Send a request, expect a successful response (envelope.error == null),

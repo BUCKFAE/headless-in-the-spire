@@ -31,6 +31,11 @@ if (args.Contains("--probe-run-state"))
     return ProbeRunStateCommand.Run(vendorDir);
 }
 
+if (args.Contains("--probe-natural-chain"))
+{
+    return ProbeNaturalChainCommand.Run(vendorDir, repoRoot);
+}
+
 if (args.Contains("--stdio"))
 {
     var preamble = RuntimeBootstrap.Run(vendorDir);
