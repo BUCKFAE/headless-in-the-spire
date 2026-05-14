@@ -26,6 +26,13 @@ public class GodotObject
     //   return an awaiter that's already complete so the chain doesn't park.
     public SignalAwaiter ToSignal(GodotObject source, StringName signal)
         => new(source, signal, this);
+
+    // from: AtlasManager.GetSprite (and AutoSlay/WaitHelper paths) call
+    //   GodotObject.IsInstanceValid to check whether a cached node was freed
+    //   by Godot. We hold references so nothing is "freed"; returning true
+    //   keeps the cached value path. Surfaced once Engine.GetMainLoop became
+    //   non-null and unblocked the surrounding code.
+    public static bool IsInstanceValid(GodotObject? _) => true;
 }
 
 public class Node : GodotObject
@@ -57,9 +64,25 @@ public class Node : GodotObject
     //   is enough for the chain to type-check and complete.
     public Tween CreateTween() => new();
     public SceneTree? GetTree() => null;
-    public Viewport? GetViewport() => null;
+
+    // from: NDamageNumVfx.Create reads
+    //   ((Node)SceneTree.Root).GetViewport().GetVisibleRect() during enemy
+    //   attacks. Real Godot returns the ancestor Viewport; in headless we
+    //   return a singleton stub so the chain falls through to GetVisibleRect
+    //   (which yields Rect2.Zero → Vector2.Zero spawn pos → TestMode short-
+    //   circuit in Create(Vector2, int)). Other callers (NScrollableContainer,
+    //   NPotionHolder, …) are GUI-only and never execute under our drive.
+    private static readonly Viewport _stubViewport = new();
+    public Viewport? GetViewport() => _stubViewport;
     public bool IsInsideTree() => false;
     public void QueueFree() { }
+
+    // from: CardPileCmd.Shuffle gates Cmd.Wait on
+    //   waitTimeAccumulator >= ((Node)SceneTree.Root).GetProcessDeltaTime().
+    //   Cmd.Wait is Harmony-patched to no-op in headless, so the gate value
+    //   doesn't matter; 0.0 keeps the comparison `acc >= 0` always true and
+    //   matches the "no frame elapsed" reality.
+    public double GetProcessDeltaTime() => 0.0;
 }
 
 public class CanvasItem : Node

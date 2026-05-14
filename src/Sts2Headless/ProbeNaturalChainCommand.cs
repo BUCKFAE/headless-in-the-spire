@@ -48,17 +48,11 @@ internal static class ProbeNaturalChainCommand
         // Use a fixed seed so the probe is reproducible run-over-run. The
         // catalog should change only when the engine version, our stubs, or
         // the natural chain itself changes — not from RNG noise.
-        //
-        // Pass playerNetIdOverride: 1uL so Player.NetId matches NetSingle-
-        // playerGameService.NetId from the start. Aligning post-hoc (after
-        // RunManager.SetUpTest has already populated ActionQueueSet keyed
-        // by the seed-derived NetId) would leave ActionQueueSet stale — the
-        // first probe iteration hit exactly that gap.
         var seed = 42uL;
         Console.WriteLine($"  starting run (seed={seed}, NetId=1)...");
 
         RunHandle handle;
-        try { handle = bindings.StartIroncladRun(seed, playerNetIdOverride: 1uL); }
+        try { handle = bindings.StartIroncladRun(seed); }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"  StartIroncladRun threw: {Diagnostics.Describe(Diagnostics.Unwrap(ex))}");

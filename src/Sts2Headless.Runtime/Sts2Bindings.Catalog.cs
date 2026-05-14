@@ -36,37 +36,6 @@ public sealed partial class Sts2Bindings
         // way to see them is to tee the engine's stderr stream.
         string CapturedStderr);
 
-    // Force Player.NetId = 1uL and realign LocalContext.NetId. Mirrors sts2-cli
-    // RunSimulator.cs:253-255 and Player.CreateForNewRun<T>(unlockState, 1uL).
-    // The seed-derived NetId we pass to Player.CreateForNewRun is convenient
-    // for test isolation but fights the engine's multiplayer-aware paths,
-    // which key on netService.NetId (a baked 1uL).
-    //
-    // Player.NetId's setter is non-public; fall back to writing the auto-
-    // property backing field directly when no setter is exposed.
-    public void AlignNetIdsToOne(RunHandle handle)
-    {
-        ulong one = 1uL;
-
-        var setter = _playerNetId.GetSetMethod(nonPublic: true);
-        if (setter is not null)
-        {
-            setter.Invoke(handle.Player, new object?[] { one });
-        }
-        else
-        {
-            var backing = handle.Player.GetType().GetField(
-                "<NetId>k__BackingField",
-                BindingFlags.Instance | BindingFlags.NonPublic);
-            if (backing is null)
-                throw new InvalidOperationException(
-                    "Player.NetId has neither a setter nor a discoverable auto-property backing field");
-            backing.SetValue(handle.Player, one);
-        }
-
-        WriteLocalContextNetId(one);
-    }
-
     // Fire PlayerCmd.EndTurn(player, false) and pump the natural chain — no
     // ForceSwitchToEnemySide fallback. Each pump iteration is wrapped in a
     // try/catch that records exceptions and continues, so a single run yields

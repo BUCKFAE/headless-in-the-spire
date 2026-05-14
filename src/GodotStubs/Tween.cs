@@ -120,7 +120,14 @@ public static class Engine
     public static int MaxFps { get; set; } = 60;
     public static double GetFramesPerSecond() => 60.0;
     public static GodotObject? GetSingleton(StringName _) => null;
-    public static MainLoop? GetMainLoop() => null;
+
+    // from: NDamageNumVfx.Create casts the result to SceneTree, then reads
+    //   .Root.GetViewport().GetVisibleRect(). Returning null NREs the cast.
+    //   ActionExecutor / CombatState also do `(SceneTree)Engine.GetMainLoop()`
+    //   and `((GodotObject)Engine.GetMainLoop()).ToSignal(...)`. A singleton
+    //   stub satisfies all of them; nothing reads back from the tree.
+    private static readonly SceneTree _mainLoop = new();
+    public static MainLoop? GetMainLoop() => _mainLoop;
     public static string GetArchitectureName() => "x86_64";
 }
 

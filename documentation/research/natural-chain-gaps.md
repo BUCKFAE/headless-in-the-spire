@@ -6,87 +6,12 @@ Re-run after every stub addition; the goal is **0 unique gaps** with TerminalSta
 
 ## summary
 
-- TerminalState: `deadline`
-- Converged: `False`
-- Pump iterations: `100`
+- TerminalState: `next-player-turn`
+- Converged: `True`
+- Pump iterations: `1`
 - Total exceptions caught (synchronous): `0`
 - Unique synchronous gaps: `0`
 
-## engine-logged gaps (caught & swallowed by sts2)
+## ✓ no gaps — natural chain runs end-to-end
 
-These are exceptions the engine catches inside `TaskHelper.LogTaskExceptions` (or similar) and writes to its logger. They never propagate through our reflection invoke, but they DO indicate the chain is broken — fix them in the same way as synchronous gaps.
-
-### E1.
-
-```
-[godot:err] [ERROR] System.NullReferenceException: Object reference not set to an instance of an object.
-   at MegaCrit.Sts2.Core.Nodes.Vfx.NDamageNumVfx.Create(Creature target, Int32 damage, Boolean requireInteractable)
-   at MegaCrit.Sts2.Core.Nodes.Vfx.NDamageNumVfx.Create(Creature target, DamageResult result)
-   at MegaCrit.Sts2.Core.Commands.CreatureCmd.Damage(PlayerChoiceContext choiceContext, IEnumerable`1 targets, Decimal amount, ValueProp props, Creature dealer, CardModel cardSource)
-   at MegaCrit.Sts2.Core.Commands.Builders.AttackCommand.Execute(PlayerChoiceContext choiceContext)
-   at MegaCrit.Sts2.Core.Models.Monsters.FuzzyWurmCrawler.AcidGoop(IReadOnlyList`1 targets)
-   at MegaCrit.Sts2.Core.MonsterMoves.MonsterMoveStateMachine.MoveState.PerformMove(IEnumerable`1 targets)
-   at MegaCrit.Sts2.Core.Models.MonsterModel.PerformMove()
-   at MegaCrit.Sts2.Core.Entities.Creatures.Creature.TakeTurn()
-   at MegaCrit.Sts2.Core.Combat.CombatManager.ExecuteEnemyTurn(Func`1 actionDuringEnemyTurn)
-   at MegaCrit.Sts2.Core.Combat.CombatManager.StartTurn(Func`1 actionDuringEnemyTurn)
-   at MegaCrit.Sts2.Core.Combat.CombatManager.SwitchFromPlayerToEnemySide(Func`1 actionDuringEnemyTurn)
-   at MegaCrit.Sts2.Core.Combat.CombatManager.AfterAllPlayersReadyToBeginEnemyTurn(Func`1 actionDuringEnemyTurn)
-   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
-   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
-   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
-   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
-   at MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(Task task)
-   at MegaCrit.Sts2.Core.Combat.CombatManager.SetReadyToBeginEnemyTurn(Player player, Func`1 actionDuringEnemyTurn)
-   at MegaCrit.Sts2.Core.GameActions.ReadyToBeginEnemyTurnAction.ExecuteAction()
-   at MegaCrit.Sts2.Core.GameActions.GameAction.Execute()
-   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
-   at MegaCrit.Sts2.Core.GameActions.GameAction.Execute()
-   at MegaCrit.Sts2.Core.GameActions.ActionExecutor.ExecuteActions()
-   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
-   at MegaCrit.Sts2.Core.GameActions.ActionExecutor.ExecuteActions()
-   at MegaCrit.Sts2.Core.GameActions.ActionExecutor.ActionQueueChanged()
-   at MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSet.EnqueueWithoutSynchronizing(GameAction gameAction)
-   at MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSynchronizer.EnqueueAction(GameAction action, UInt64 actionOwnerId)
-   at MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSynchronizer.RequestEnqueue(GameAction action)
-   at MegaCrit.Sts2.Core.Combat.CombatManager.AfterAllPlayersReadyToEndTurn(Func`1 actionDuringEnemyTurn)
-   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[TStateMachine](TStateMachine& stateMachine)
-   at MegaCrit.Sts2.Core.Combat.CombatManager.AfterAllPlayersReadyToEndTurn(Func`1 actionDuringEnemyTurn)
-   at MegaCrit.Sts2.Core.Combat.CombatManager.SetReadyToEndTurn(Player player, Boolean canBackOut, Func`1 actionDuringEnemyTurn)
-   at MegaCrit.Sts2.Core.Commands.PlayerCmd.EndTurn(Player player, Boolean canBackOut, Func`1 actionDuringEnemyTurn)
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
-   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
-   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
-   at Sts2Headless.Runtime.Sts2Bindings.EndTurnAndCatalog(RunHandle handle, Int32 maxIterations) in /home/julians/Documents/slay-the-spire-2/headless-in-the-spire/src/Sts2Headless.Runtime/Sts2Bindings.Catalog.cs:line 122
-   at Sts2Headless.ProbeNaturalChainCommand.Run(String vendorDir, String repoRoot) in /home/julians/Documents/slay-the-spire-2/headless-in-the-spire/src/Sts2Headless/ProbeNaturalChainCommand.cs:line 98
-   at Program.<Main>$(String[] args) in /home/julians/Documents/slay-the-spire-2/headless-in-the-spire/src/Sts2Headless/Program.cs:line 36
-
-[godot:err]   at MegaCrit.Sts2.Core.Logging.ConsoleLogPrinter.Print(LogLevel logLevel, String text, Int32 skipFrames)
-[godot:err]   at MegaCrit.Sts2.Core.Logging.Logger.LogMessage(LogLevel level, LogType type, String text, Int32 skipFrames)
-[godot:err]   at MegaCrit.Sts2.Core.Logging.Logger.LogMessage(LogLevel level, String text, Int32 skipFrames)
-[godot:err]   at MegaCrit.Sts2.Core.Logging.Logger.Error(String text, Int32 skipFrames)
-[godot:err]   at MegaCrit.Sts2.Core.Logging.Log.Error(String text, Int32 skipFrames)
-[godot:err]   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
-[godot:err]   at MegaCrit.Sts2.Core.Helpers.TaskHelper.LogTaskExceptions(Task task)
-[godot:err]   at MegaCrit.Sts2.Core.Helpers.TaskHelper.RunSafely(Task task)
-[godot:err]   at MegaCrit.Sts2.Core.Combat.CombatManager.SetReadyToBeginEnemyTurn(Player player, Func`1 actionDuringEnemyTurn)
-[godot:err]   at MegaCrit.Sts2.Core.GameActions.ReadyToBeginEnemyTurnAction.ExecuteAction()
-[godot:err]   at MegaCrit.Sts2.Core.GameActions.GameAction.Execute()
-[godot:err]   at MegaCrit.Sts2.Core.GameActions.GameAction.Execute()
-[godot:err]   at MegaCrit.Sts2.Core.GameActions.ActionExecutor.ExecuteActions()
-[godot:err]   at MegaCrit.Sts2.Core.GameActions.ActionExecutor.ExecuteActions()
-[godot:err]   at MegaCrit.Sts2.Core.GameActions.ActionExecutor.ActionQueueChanged()
-[godot:err]   at MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSet.EnqueueWithoutSynchronizing(GameAction gameAction)
-[godot:err]   at MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSynchronizer.EnqueueAction(GameAction action, UInt64 actionOwnerId)
-[godot:err]   at MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSynchronizer.RequestEnqueue(GameAction action)
-[godot:err]   at MegaCrit.Sts2.Core.Combat.CombatManager.AfterAllPlayersReadyToEndTurn(Func`1 actionDuringEnemyTurn)
-[godot:err]   at MegaCrit.Sts2.Core.Combat.CombatManager.AfterAllPlayersReadyToEndTurn(Func`1 actionDuringEnemyTurn)
-[godot:err]   at MegaCrit.Sts2.Core.Combat.CombatManager.SetReadyToEndTurn(Player player, Boolean canBackOut, Func`1 actionDuringEnemyTurn)
-[godot:err]   at MegaCrit.Sts2.Core.Commands.PlayerCmd.EndTurn(Player player, Boolean canBackOut, Func`1 actionDuringEnemyTurn)
-```
-
-## (no synchronous exceptions surfaced)
-
-All gaps were swallowed by sts2's internal exception handlers (see above). Fix those first — synchronous exceptions will likely follow.
-
+Phase 2 is complete for this scenario. Extend the probe to cover reward paths and other combat scenarios before declaring it done.

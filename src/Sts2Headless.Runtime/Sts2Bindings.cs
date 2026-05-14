@@ -287,7 +287,7 @@ public sealed partial class Sts2Bindings
     // instead of MapRoom. Callers can then drive run/select_event_option
     // to dismiss the event; LocPatches + the Texture2D / StringName stubs
     // are what let the event populate options in the first place.
-    public RunHandle StartIroncladRun(ulong seed, bool withNeow = false, ulong? playerNetIdOverride = null)
+    public RunHandle StartIroncladRun(ulong seed, bool withNeow = false)
     {
         // A new run cannot inherit pending rewards from a previous one — the
         // reward-set objects belong to the prior RunManager state and become
@@ -296,24 +296,14 @@ public sealed partial class Sts2Bindings
 
         // Player.CreateForNewRun's second ulong is the player's NetId, not the
         // run seed (the seed lives on RunState — see CreateForTest below).
-        // Default: pass `seed` so each test run sees a distinct NetId, then
-        // align LocalContext.NetId to player.NetId so LocalContext.GetMe (the
-        // most common multiplayer-aware lookup) resolves.
-        //
-        // Override: callers that want sts2-cli's "everything is player 1"
-        // contract (NetSingleplayerGameService.NetId is a baked 1uL — keying
-        // ActionQueueSet, RewardSynchronizer, etc. — and Player.NetId must
-        // match) pass playerNetIdOverride: 1uL. The probe-natural-chain
-        // tooling drives this path to surface gaps.
-        //
-        // Note: some engine paths read netService.NetId directly (a read-only
-        // baked 1uL) rather than LocalContext, so RunHistory keyed on
-        // player.NetId can mismatch those callers when the seed is used as
-        // NetId. ClaimCardReward bypasses those engine paths with direct
-        // deck mutation; OnSkipped / non-card OnSelectWrapper are wrapped
-        // best-effort. Fixing this for real is what the override (and the
-        // Phase-2 work it informs) is about.
-        var playerNetId = playerNetIdOverride ?? seed;
+        // We pass 1uL — sts2-cli's "everything is player 1" contract.
+        // NetSingleplayerGameService.NetId is a baked 1uL (read-only) and
+        // keys the engine's multiplayer-aware paths (ActionQueueSet, Reward-
+        // Synchronizer, RunHistory). With Player.NetId = LocalContext.NetId
+        // = netService.NetId = 1uL, the natural enemy-turn / reward chains
+        // run end-to-end without our manual fallbacks intervening.
+        // (probe-natural-chain proved this; see natural-chain-gaps.md.)
+        const ulong playerNetId = 1uL;
         var player = _createIroncladRun.Invoke(null, new object?[] { _unlockStateAll, playerNetId })
             ?? throw new InvalidOperationException("Player.CreateForNewRun returned null");
 

@@ -120,7 +120,11 @@ public class SceneTree : MainLoop
         public static readonly StringName ProcessFrame = new("process_frame");
     }
 
-    public Window? Root => null;
+    // from: NDamageNumVfx.Create + AutoSlay/CardPileCmd cast SceneTree.Root
+    //   to Node and walk into .GetViewport(). A null Root NREs every caller;
+    //   a singleton Window satisfies the chain (nothing reads back).
+    private static readonly Window _root = new();
+    public Window? Root => _root;
     public SceneTreeTimer CreateTimer(double _) => new();
 }
 
