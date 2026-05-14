@@ -91,12 +91,6 @@ godot_stubs_version="${godot_stubs_version%.0}"
 protocol="$(sed -n 's/^\/\/ AD-2: \([^ ]*\).*/\1/p' "$ROOT/src/Sts2Headless.Protocol/Envelope.cs" | head -n 1)"
 [[ -n "$protocol" ]] || die "protocol marker not found in Envelope.cs"
 
-vendor_message="tracked"
-vendor_color="red"
-if ! git -C "$ROOT" ls-files --error-unmatch vendor/sts2.dll >/dev/null 2>&1; then
-    vendor_message="local only"
-    vendor_color="orange"
-fi
 
 write_badge dotnet ".NET" "$dotnet_version" "512BD4" "dotnet" "white"
 write_badge csharp "C#" "$lang_version" "239120" "csharp" "white"
@@ -104,7 +98,6 @@ write_badge xunit "xUnit" "$xunit_version" "5E2B97"
 write_badge tests "tests" "$total_count" "blue"
 write_badge godot-stubs "Godot stubs" "$godot_stubs_version" "478CBF" "godotengine" "white"
 write_badge protocol "protocol" "$protocol" "0f766e"
-write_badge vendor-dlls "vendor DLLs" "$vendor_message" "$vendor_color"
 
 printf 'Counted %s tests (%s unit, %s integration)\n' \
     "$total_count" "$unit_count" "$integration_count"

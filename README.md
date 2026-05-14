@@ -7,7 +7,6 @@
 ![Tests](.github/badges/tests.svg)
 ![Godot stubs](.github/badges/godot-stubs.svg)
 ![Protocol](.github/badges/protocol.svg)
-![Vendor DLLs](.github/badges/vendor-dlls.svg)
 
 A custom headless runner for **Slay the Spire 2**. It loads the real game logic
 out-of-game and drives it programmatically for deterministic testing, automation,
