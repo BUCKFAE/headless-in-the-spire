@@ -35,15 +35,34 @@ for testing, AI experimentation, and replay recording.
 
 Per-machine config lives in `.env` (copy from `.env.example`). The only
 required variable is `STS2_GAME_DIR` — the directory containing the local
-`sts2.dll`. Then:
+`sts2.dll`. Two host tools must be on PATH: `dotnet` (the .NET SDK) and
+`uv` (Python toolchain manager). uv is the only Python-side prerequisite —
+it downloads its own managed CPython per `.python-version`.
 
 ```
-just setup    # validate + copy game DLLs into vendor/
-just build    # compile the solution
-just run      # smoke-test the host
+just setup    # validate STS2 install, copy DLLs to vendor/, create uv .venv
+just build    # compile the C# solution
+just test     # C# unit + integration + Python suites
 ```
 
 `just --list` shows everything; recipes are in `justfile`.
+
+### Python toolchain
+
+- **Manager:** `uv` everywhere. Don't reach for `pip`, `python -m venv`,
+  `pipx`, or `poetry` — they all create state that uv doesn't track.
+- **Version:** pinned to **Python 3.13** by `.python-version` (read by uv
+  automatically). The matching `requires-python = ">=3.13"` is duplicated in
+  both `pyproject.toml` (workspace root) and
+  `clients/python/headless-in-the-spire/pyproject.toml` — bump in lockstep.
+- **Workspace:** root `pyproject.toml` is a uv workspace; members live under
+  `clients/python/`. A single `.venv` at the repo root serves every member.
+- **Adding a dependency:** `uv add <pkg>` from inside the member directory
+  for runtime deps; `uv add --dev <pkg>` at the repo root for shared dev
+  tooling (datamodel-code-generator, pytest, ruff). Either way, **commit
+  the resulting `uv.lock`** — reproducibility relies on it.
+- **Running code:** `uv run <cmd>` from anywhere in the repo. Don't activate
+  the venv manually for one-off scripts; let `uv run` do the resolution.
 
 ## Project layout
 
@@ -66,6 +85,11 @@ scripts/                       bootstrap shell scripts (bash)
 protocol/openrpc.json          generated wire-protocol schema (AD-5)
 vendor/                        game DLLs (gitignored; populated by `just pull-game-libs`)
 GAME_VERSION                   pinned version string + SHA-256 of vendor/sts2.dll
+pyproject.toml                 uv workspace root (no installable package itself)
+uv.lock                        resolved Python deps — committed for reproducibility
+.python-version                pinned Python toolchain (read by uv)
+clients/python/
+  headless-in-the-spire/       wire client — generated pydantic v2 DTOs + transport
 ```
 
 ## Conventions

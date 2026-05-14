@@ -1,0 +1,35 @@
+# Workspace root for the Python side of headless-in-the-spire.
+#
+# The C# host (sts2.dll loader, NDJSON stdio server) lives in `src/` and is
+# built with `dotnet`. This file governs the Python client(s) under
+# `clients/python/`, which are uv workspace members. A single .venv at the
+# repo root (created by `uv sync` / `just setup`) installs every workspace
+# member editable, plus the shared dev tooling listed below.
+#
+# Python toolchain: pinned to 3.13 via `.python-version` (uv reads it
+# automatically and downloads a managed CPython if the host lacks one).
+# See AD-5 in documentation/requirements/02-architecture-decisions.md.
+
+[project]
+name = "headless-in-the-spire-workspace"
+version = "0.0.0"
+description = "Workspace root for headless-in-the-spire's Python clients."
+requires-python = ">=3.13"
+
+[tool.uv]
+# This project itself is a meta-package: it exists to anchor the workspace
+# and group dev tooling, not to be installed. uv treats it as a virtual
+# project — no build backend, no wheel.
+package = false
+
+[tool.uv.workspace]
+members = ["clients/python/headless-in-the-spire"]
+
+[dependency-groups]
+# Shared dev tooling across every workspace member. Pulled in by
+# `uv sync` automatically (default groups include `dev`).
+dev = [
+    "datamodel-code-generator[http]>=0.26",
+    "pytest>=8",
+    "ruff>=0.6",
+]

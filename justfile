@@ -13,10 +13,11 @@ default:
 
 # ── Local setup ───────────────────────────────────────────────────────────
 
-# Verify STS2_GAME_DIR and copy game DLLs
+# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv.
 setup:
     just validate-sts2-installation
     just pull-game-libs
+    just sync-python
 
 # Verify STS2_GAME_DIR points at a real STS2 install with the required DLLs.
 validate-sts2-installation:
@@ -25,6 +26,11 @@ validate-sts2-installation:
 # Copy game DLLs from STS2_GAME_DIR into ./vendor (first-run bootstrap; see AD-3).
 pull-game-libs:
     @bash scripts/pull-game-libs.sh
+
+# Create / refresh the uv workspace .venv at the repo root (Python clients + dev tooling).
+sync-python:
+    @bash scripts/check-uv.sh
+    @uv sync --all-packages
 
 # Clone reference projects (currently sts2-cli) into external-tools/.
 clone-external-tools:
@@ -79,7 +85,8 @@ export-schema: build
 
 # Regenerate the Python client's pydantic DTOs from protocol/openrpc.json (AD-5).
 generate-python:
-    @bash scripts/generate-python-models.sh
+    @bash scripts/check-uv.sh
+    @uv run python clients/python/headless-in-the-spire/scripts/generate_models.py
 
 # Remove all bin/ and obj/ build artifacts.
 clean:
@@ -96,5 +103,10 @@ test-unit:
 test-integration:
     @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
 
-# Run both suites.
-test: test-unit test-integration
+# Run the Python client tests via the uv workspace .venv.
+test-python:
+    @bash scripts/check-uv.sh
+    @uv run pytest clients/python/headless-in-the-spire/tests/
+
+# Run every test suite (C# unit + integration + Python).
+test: test-unit test-integration test-python

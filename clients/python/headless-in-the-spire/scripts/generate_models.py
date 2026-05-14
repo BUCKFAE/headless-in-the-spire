@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """Generate pydantic v2 DTOs from protocol/openrpc.json.
 
-datamodel-code-generator doesn't natively understand OpenRPC, so we lift the
-`components/schemas` block out into a plain JSON Schema document with
-top-level `definitions/`, rewriting every `#/components/schemas/X` ref to
-`#/definitions/X`. The generator handles the rest.
+datamodel-code-generator doesn't natively understand OpenRPC, so we wrap
+`components/schemas` in a minimal OpenAPI 3 document and let the generator's
+OpenAPI parser walk it. Wire `$ref`s already point at
+`#/components/schemas/...`, which is the OpenAPI shape too — no rewrite.
 
-Run from anywhere — paths are anchored at the repo root, located by walking
-up to find `GAME_VERSION`.
+Invoked via the just recipe:
 
-    python scripts/generate_models.py [--check]
+    just generate-python              # regenerate _models.py
+    just generate-python -- --check   # CI / pre-commit drift detection
 
-`--check` regenerates into a tempfile and diffs against the committed
-`_models.py` (for CI / pre-commit drift detection).
+Paths are anchored at the repo root, located by walking up to `GAME_VERSION`.
 """
 
 from __future__ import annotations
@@ -109,14 +108,18 @@ def main() -> int:
     openrpc = json.loads(openrpc_path.read_text())
     lifted = build_lifted_schema(openrpc)
 
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tf:
-        json.dump(lifted, tf)
-        schema_tmp = Path(tf.name)
+    # Use a fixed-name tempfile under the system temp dir. datamodel-codegen
+    # stamps the input filename into the generated header (`# filename: ...`)
+    # — a tempfile.NamedTemporaryFile would make every run differ by that
+    # line alone and defeat `--check`. The fixed name lives in the system
+    # temp dir so concurrent runs in different repos don't clash with the
+    # repo path; that's good enough determinism for our drift check.
+    schema_tmp = Path(tempfile.gettempdir()) / "headless-in-the-spire-openrpc.json"
+    schema_tmp.write_text(json.dumps(lifted))
 
     try:
         if args.check:
-            with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as out:
-                gen_tmp = Path(out.name)
+            gen_tmp = Path(tempfile.gettempdir()) / "headless-in-the-spire-_models.py"
             run_generator(schema_tmp, gen_tmp)
             generated = gen_tmp.read_text()
             committed = target_path.read_text() if target_path.exists() else ""

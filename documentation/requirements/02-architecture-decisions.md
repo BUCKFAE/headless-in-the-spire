@@ -357,6 +357,21 @@ OpenAPI is **not** dual-published. Anyone who wants OpenAPI can derive it
 from `openrpc.json` themselves; we do not bake the protocol misrepresentation
 into our canonical contract.
 
+**Python toolchain pin.** The Python clients are managed as a single
+[`uv`](https://docs.astral.sh/uv/) workspace rooted at the repo's
+`pyproject.toml`, with members under `clients/python/`. Python itself is
+pinned to **3.13** via `.python-version` (uv downloads a managed CPython
+if the host lacks one), and `requires-python = ">=3.13"` is mirrored in
+both the workspace root and each member. A single `.venv/` at the repo
+root serves every member; `uv.lock` is committed for reproducible
+installs. `just setup` runs `uv sync --all-packages`; `just generate-python`
+and `just test-python` go through `uv run`. We pick uv over pip/poetry/pipx
+because (a) it manages the Python toolchain itself, removing a class of
+"works on my machine" failures; (b) workspace support is first-class, so
+the agents package can drop in next to the wire client without bespoke
+plumbing; (c) it's the fastest of the modern options and is what the
+broader Python tooling ecosystem has converged on.
+
 **Consequences**
 
 - The schema artefact accurately describes the wire protocol. No HTTP

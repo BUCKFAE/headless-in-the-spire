@@ -3,6 +3,11 @@
 Thin Python wrapper around the [headless-in-the-spire](../../..) C# runner for
 Slay the Spire 2.
 
+This package is a member of the repo-root [uv workspace](../../../pyproject.toml).
+Toolchain prerequisites: [`uv`](https://docs.astral.sh/uv/) on PATH; uv
+takes care of Python itself (3.13, pinned by `.python-version` at the repo
+root) and every dev tool.
+
 DTOs in `headless_in_the_spire._models` are generated from
 [`protocol/openrpc.json`](../../../protocol/openrpc.json) (AD-5) via
 `datamodel-code-generator` and vendored in. The transport
@@ -15,35 +20,42 @@ from headless_in_the_spire import Client
 from headless_in_the_spire._models import Character, RunNewParams
 
 with Client.spawn() as c:
-    print(c.host_ping().version)
+    print(c.host_ping().game_version)
     state = c.run_new(RunNewParams(character=Character.ironclad, seed=1))
-    print(state.room_type)
+    print(state.current_room_type)
 ```
 
 ## Installation (dev)
 
+From the repo root:
+
 ```sh
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -e ".[dev]"
+just setup       # if you haven't yet — also handles game-DLL bootstrap
+just test-python # run this package's tests via uv
 ```
+
+`just setup` runs `uv sync --all-packages`, which creates `.venv` at the
+repo root and installs every workspace member editable plus the shared dev
+group. Don't bring your own `pip`/`virtualenv` — uv tracks all state.
 
 ## Regenerating DTOs
 
-After `protocol/openrpc.json` changes, run from the repo root:
+After `protocol/openrpc.json` changes, from the repo root:
 
 ```sh
 just generate-python
 ```
 
-That invokes `scripts/generate_models.py` in this package, which rewrites
-`#/components/schemas/X` → `#/definitions/X` and pipes the result through
-`datamodel-code-generator` (`--output-model-type pydantic_v2.BaseModel`).
+That executes `scripts/generate_models.py` via `uv run`, which wraps
+`components/schemas` in a minimal OpenAPI 3 doc and pipes it through
+`datamodel-code-generator` (`--output-model-type pydantic_v2.BaseModel`,
+`--target-python-version 3.10`, `--allow-population-by-field-name`).
 
-The output (`src/headless_in_the_spire/_models.py`) is committed so users can
-`pip install` without the dev toolchain. CI does **not** currently regenerate
-on every build — the C# side enforces `Methods.cs` ↔ `MethodCatalog` parity
-plus a `protocol/openrpc.json` drift check; this package follows on the
+The output (`src/headless_in_the_spire/_models.py`) is committed so
+downstream consumers can `pip install` (or `uv pip install`) without the
+dev toolchain. CI does **not** currently regenerate on every build — the
+C# side enforces `Methods.cs` ↔ `MethodCatalog` parity plus a
+`protocol/openrpc.json` drift check; this package follows on the
 human-reviewed bump.
 
 ## Package boundary
