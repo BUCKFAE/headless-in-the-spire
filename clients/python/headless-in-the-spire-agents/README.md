@@ -1,40 +1,51 @@
 # headless-in-the-spire-agents
 
-Algorithms and drivers built on top of the
-[`headless-in-the-spire`](../headless-in-the-spire/) Python wire client.
+Python-side **user tools** for driving runs through the
+[`headless-in-the-spire`](../headless-in-the-spire/) wire client.
+
+Behavioral source-of-truth lives in C# — canonical agents, drivers,
+scenarios, and regression tests are authored in `src/Sts2Headless.Agents/`
+and the C# test trees per
+[AD-6](../../../documentation/requirements/02-architecture-decisions.md).
+This package does **not** author canonical agents and is **not** part of
+the regression net.
+
+What it *does* offer:
+
+- A small action algebra + run loop so engineers can prototype against
+  the wire from Python without rebuilding the dispatch boilerplate.
+- A reference `GreedyAgent` illustrating the shape — useful for
+  exercising the Python client end-to-end, not for "this is how greedy
+  is supposed to play" (that question is answered by the C# reference).
+- Parity-test scaffolding (future) — given a recorded scenario, assert
+  the Python client reproduces the C#-canonical outcome.
 
 This package depends on the wire client via the in-repo uv workspace
-(`{ workspace = true }` in `pyproject.toml`). The boundary exists so that
+(`{ workspace = true }` in `pyproject.toml`). The boundary exists so
 algorithm-side dependencies (numpy, torch, RL libraries, …) don't leak
-into the thin client — see AD-5 in
-[`documentation/requirements/02-architecture-decisions.md`](../../../documentation/requirements/02-architecture-decisions.md).
+into the thin client.
 
-## Scope
+## Where things live
 
-Where this package owns code:
-
-- Strategy implementations (greedy, minmax, MCTS, …).
-- Run drivers that loop over `Client` methods to play full runs.
-- Fitness/eval utilities for comparing strategies.
-- Replay/trace analysis.
-
-Where it does **not** own code:
-
-- Anything that talks to the wire directly belongs in the
-  `headless-in-the-spire` package (`Client`, `Transport`, generated DTOs).
-- Anything that touches `sts2.dll` belongs in the C# host.
+| Concern | Home |
+| --- | --- |
+| Canonical agents (greedy, MCTS, replay re-executor) | `src/Sts2Headless.Agents/` (C#) |
+| Scenarios / regression tests | C# unit / integration / end-to-end suites |
+| Python wire client | `clients/python/headless-in-the-spire/` |
+| Python user-side run loop + reference agent | this package |
+| Python parity tests against C# canon | `tests/` here (parity only — never behavioral) |
 
 ## Layout
 
 ```
-src/headless_in_the_spire_agents/   # package source (empty for now)
-tests/                              # pytest suite
+src/headless_in_the_spire_agents/
+  actions.py         # Action algebra (PlayCard, EndTurn, …)
+  state.py           # GameSnapshot Protocol + Phase detection
+  agent.py           # Agent Protocol + HeuristicAgent convenience base
+  driver.py          # play_run loop + apply_action dispatch
+  agents/greedy.py   # Reference GreedyAgent (illustrative, not canonical)
+tests/                # unit tests of the Python layer (no live host)
 ```
-
-No interface is committed yet: a stable `Agent` shape will fall out of
-the second concrete algorithm, not the first. Until then, each algorithm
-defines its own entry points and we promote shared abstractions in a
-later commit.
 
 ## Running tests
 

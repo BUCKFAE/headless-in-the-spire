@@ -1,0 +1,58 @@
+"""Action algebra agents emit — one frozen dataclass per legal host call.
+
+Agents return `Action`s; the driver maps each one to the matching
+`Client.run_*` method. Keeping the action vocabulary separate from the
+generated wire DTOs means agent code never imports `_models`, and a
+codegen rename doesn't churn every agent.
+"""
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True, slots=True)
+class PlayCard:
+    """Play a card from hand, optionally targeting a specific enemy."""
+
+    card_index: int
+    target_index: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class EndTurn:
+    """End the player's turn in combat."""
+
+
+@dataclass(frozen=True, slots=True)
+class SelectMapNode:
+    """Pick the next room from the act map."""
+
+    col: int
+    row: int
+
+
+@dataclass(frozen=True, slots=True)
+class SelectEventOption:
+    """Choose an option presented by an event room."""
+
+    option_index: int
+
+
+@dataclass(frozen=True, slots=True)
+class SelectReward:
+    """Claim a pending reward. `card_index` is required for card rewards
+    (the index into `RewardOption.cards`) and ignored otherwise."""
+
+    reward_index: int
+    card_index: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SkipReward:
+    """Skip a skippable reward (card rewards; never gold/relic/potion)."""
+
+    reward_index: int
+
+
+# Closed union — agents always return one of these. Pyright checks
+# match-statement exhaustiveness against this alias.
+type Action = PlayCard | EndTurn | SelectMapNode | SelectEventOption | SelectReward | SkipReward
