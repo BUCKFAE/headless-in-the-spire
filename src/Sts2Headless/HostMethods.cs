@@ -79,7 +79,8 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             CombatState: s.CombatState,
-            RewardsState: s.RewardsState);
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
     }
 
     private static RunStateResult RunState(Sts2Bindings bindings, Session session)
@@ -102,7 +103,8 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             CombatState: s.CombatState,
-            RewardsState: s.RewardsState);
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
     }
 
     private static RunSelectMapNodeResult RunSelectMapNode(Sts2Bindings bindings, Session session, RunSelectMapNodeParams? @params)
@@ -126,7 +128,8 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             CombatState: s.CombatState,
-            RewardsState: s.RewardsState);
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
     }
 
     private static RunSelectEventOptionResult RunSelectEventOption(Sts2Bindings bindings, Session session, RunSelectEventOptionParams? @params)
@@ -149,7 +152,8 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             CombatState: s.CombatState,
-            RewardsState: s.RewardsState);
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
     }
 
     private static RunEndTurnResult RunEndTurn(Sts2Bindings bindings, Session session)
@@ -169,7 +173,8 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             CombatState: s.CombatState,
-            RewardsState: s.RewardsState);
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
     }
 
     private static RunPlayCardResult RunPlayCard(Sts2Bindings bindings, Session session, RunPlayCardParams? @params)
@@ -193,7 +198,8 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             CombatState: s.CombatState,
-            RewardsState: s.RewardsState);
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
     }
 
     private static RunSelectRewardResult RunSelectReward(Sts2Bindings bindings, Session session, RunSelectRewardParams? @params)
@@ -217,7 +223,8 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             CombatState: s.CombatState,
-            RewardsState: s.RewardsState);
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
     }
 
     private static RunSkipRewardResult RunSkipReward(Sts2Bindings bindings, Session session, RunSkipRewardParams? @params)
@@ -240,7 +247,8 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             CombatState: s.CombatState,
-            RewardsState: s.RewardsState);
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
     }
 
     private static DebugGiveRelicResult DebugGiveRelic(Sts2Bindings bindings, Session session, DebugGiveRelicParams? @params)

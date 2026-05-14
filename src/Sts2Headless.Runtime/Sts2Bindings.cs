@@ -57,6 +57,13 @@ public sealed partial class Sts2Bindings
     private readonly PropertyInfo _playerGold;
     private readonly PropertyInfo _playerCreature;
     private readonly PropertyInfo _playerDeck;
+    // Player.Relics — the run-scoped relic bag (starter relic + everything
+    // obtained mid-run). Soft-bound: a missing property surfaces an empty
+    // list on snapshots rather than failing bootstrap. The relic element's
+    // Id property is discovered at bind time so ReadRelics can avoid per-
+    // entry GetProperty calls.
+    private readonly PropertyInfo? _playerRelics;
+    private readonly PropertyInfo? _relicId;
     // Player.NetId — anchor for LocalContext alignment. Multiplayer lookups
     // ride on the contract that LocalContext.NetId == Player.NetId for the
     // local player.
@@ -214,6 +221,8 @@ public sealed partial class Sts2Bindings
         _playerGold = s.PlayerGold;
         _playerCreature = s.PlayerCreature;
         _playerDeck = s.PlayerDeck;
+        _playerRelics = s.PlayerRelics;
+        _relicId = s.RelicId;
         _playerNetId = s.PlayerNetId;
         _creatureCurrentHp = s.CreatureCurrentHp;
         _creatureMaxHp = s.CreatureMaxHp;
@@ -455,7 +464,10 @@ public sealed partial class Sts2Bindings
         // Surface whenever non-empty regardless of room.
         var rewardsState = ReadRewardsState();
 
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, combatState, rewardsState);
+        // Relics are run-scoped, not room-scoped: surface on every snapshot.
+        var relics = ReadRelics(handle);
+
+        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, combatState, rewardsState, relics);
     }
 
     // Project the stashed list of pending rewards into the wire DTO. Returns
@@ -655,6 +667,27 @@ public sealed partial class Sts2Bindings
             var id = ReadEntryId(_powerId, power) ?? power.GetType().Name;
             var amount = _powerAmount is not null ? Convert.ToInt32(_powerAmount.GetValue(power)) : 0;
             result.Add(new Power(id, amount));
+        }
+        return result;
+    }
+
+    // Walk Player.Relics into the wire shape. Mirrors ReadPowers's discipline:
+    // a missing element falls back to the runtime class name so a relic with
+    // no readable Id still surfaces (with a useful identifier in tests). The
+    // walk is tolerant of a null collection — relics are run-scoped state and
+    // the snapshot path runs even before the engine has populated Player.
+    private IReadOnlyList<Relic> ReadRelics(RunHandle handle)
+    {
+        if (_playerRelics is null) return Array.Empty<Relic>();
+        var relicsObj = _playerRelics.GetValue(handle.Player);
+        if (relicsObj is not System.Collections.IEnumerable enumerable) return Array.Empty<Relic>();
+
+        var result = new List<Relic>();
+        foreach (var relic in enumerable)
+        {
+            if (relic is null) continue;
+            var id = ReadEntryId(_relicId, relic) ?? relic.GetType().Name;
+            result.Add(new Relic(id));
         }
         return result;
     }
@@ -1447,6 +1480,20 @@ public sealed partial class Sts2Bindings
         var playerCreature = RequireProperty(playerType, "Creature");
         var playerDeck = RequireProperty(playerType, "Deck");
         var playerNetId = RequireProperty(playerType, "NetId");
+
+        // Player.Relics is soft-bound: element type and its Id property are
+        // discovered through reachability. Missing pieces degrade to an
+        // empty Relics list on snapshots rather than failing bootstrap.
+        var playerRelics = playerType.GetProperty("Relics", BindingFlags.Public | BindingFlags.Instance);
+        PropertyInfo? relicIdProp = null;
+        if (playerRelics is not null)
+        {
+            var relicElementType = ExtractElementType(playerRelics.PropertyType);
+            if (relicElementType is not null)
+            {
+                relicIdProp = relicElementType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+            }
+        }
         var creatureCurrentHp = RequireProperty(playerCreature.PropertyType, "CurrentHp");
         var creatureMaxHp = RequireProperty(playerCreature.PropertyType, "MaxHp");
         var deckCards = RequireProperty(playerDeck.PropertyType, "Cards");
@@ -1535,6 +1582,7 @@ public sealed partial class Sts2Bindings
             setUpTest, isInProgress, cleanUp, extraFields, startedWithNeow,
             generateRooms, launch, finalize, enterAct, enterMapCoord, mapCoordType,
             playerGold, playerCreature, playerDeck, playerNetId,
+            playerRelics, relicIdProp,
             creatureCurrentHp, creatureMaxHp, deckCards,
             currentRoom, actFloor, isGameOver,
             runStateMap, runStateCurrentMapCoord, mapStartingMapPoint, mapGetPoint,
@@ -1975,6 +2023,7 @@ public sealed partial class Sts2Bindings
         MethodInfo RunManagerGenerateRooms, MethodInfo RunManagerLaunch, MethodInfo RunManagerFinalizeStartingRelics,
         InvocationPlan RunManagerEnterAct, InvocationPlan RunManagerEnterMapCoord, Type MapCoordType,
         PropertyInfo PlayerGold, PropertyInfo PlayerCreature, PropertyInfo PlayerDeck, PropertyInfo PlayerNetId,
+        PropertyInfo? PlayerRelics, PropertyInfo? RelicId,
         PropertyInfo CreatureCurrentHp, PropertyInfo CreatureMaxHp, PropertyInfo DeckCards,
         PropertyInfo RunStateCurrentRoom, PropertyInfo RunStateActFloor, PropertyInfo RunStateIsGameOver,
         PropertyInfo RunStateMap, PropertyInfo RunStateCurrentMapCoord, PropertyInfo MapStartingMapPoint,

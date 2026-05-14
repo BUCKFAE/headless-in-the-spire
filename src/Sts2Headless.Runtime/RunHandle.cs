@@ -22,6 +22,9 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 // CombatState is the combat read-out; null unless CurrentRoomType == CombatRoom.
 // RewardsState carries the post-combat reward decisions when the engine has
 // any unclaimed; null whenever the wire has nothing pending for the caller.
+// Relics is the player's bag (starter relic + everything obtained mid-run),
+// surfaced on every snapshot since relics are run-scoped state rather than
+// room-scoped (unlike combatState / rewardsState).
 public sealed record RunSnapshot(
     int CurrentHp,
     int MaxHp,
@@ -33,4 +36,5 @@ public sealed record RunSnapshot(
     IReadOnlyList<MapNode> AvailableMapNodes,
     IReadOnlyList<EventOption> AvailableEventOptions,
     CombatState? CombatState,
-    RewardsState? RewardsState);
+    RewardsState? RewardsState,
+    IReadOnlyList<Relic> Relics);

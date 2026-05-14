@@ -533,6 +533,17 @@
           "amount"
         ]
       },
+      "Relic": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
       "RewardKind": {
         "enum": [
           "unknown",
@@ -653,6 +664,12 @@
           },
           "rewardsState": {
             "$ref": "#/components/schemas/RewardsState"
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
           }
         },
         "required": [
@@ -664,7 +681,8 @@
           "availableMapNodes",
           "availableEventOptions",
           "combatState",
-          "rewardsState"
+          "rewardsState",
+          "relics"
         ]
       },
       "RunNewParams": {
@@ -731,6 +749,12 @@
           },
           "rewardsState": {
             "$ref": "#/components/schemas/RewardsState"
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
           }
         },
         "required": [
@@ -742,7 +766,8 @@
           "availableMapNodes",
           "availableEventOptions",
           "combatState",
-          "rewardsState"
+          "rewardsState",
+          "relics"
         ]
       },
       "RunPlayCardParams": {
@@ -807,6 +832,12 @@
           },
           "rewardsState": {
             "$ref": "#/components/schemas/RewardsState"
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
           }
         },
         "required": [
@@ -820,7 +851,8 @@
           "availableMapNodes",
           "availableEventOptions",
           "combatState",
-          "rewardsState"
+          "rewardsState",
+          "relics"
         ]
       },
       "RunSelectEventOptionParams": {
@@ -872,6 +904,12 @@
           },
           "rewardsState": {
             "$ref": "#/components/schemas/RewardsState"
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
           }
         },
         "required": [
@@ -884,7 +922,8 @@
           "availableMapNodes",
           "availableEventOptions",
           "combatState",
-          "rewardsState"
+          "rewardsState",
+          "relics"
         ]
       },
       "RunSelectMapNodeParams": {
@@ -943,6 +982,12 @@
           },
           "rewardsState": {
             "$ref": "#/components/schemas/RewardsState"
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
           }
         },
         "required": [
@@ -956,7 +1001,8 @@
           "availableMapNodes",
           "availableEventOptions",
           "combatState",
-          "rewardsState"
+          "rewardsState",
+          "relics"
         ]
       },
       "RunSelectRewardParams": {
@@ -1021,6 +1067,12 @@
           },
           "rewardsState": {
             "$ref": "#/components/schemas/RewardsState"
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
           }
         },
         "required": [
@@ -1034,7 +1086,8 @@
           "availableMapNodes",
           "availableEventOptions",
           "combatState",
-          "rewardsState"
+          "rewardsState",
+          "relics"
         ]
       },
       "RunSkipRewardParams": {
@@ -1086,6 +1139,12 @@
           },
           "rewardsState": {
             "$ref": "#/components/schemas/RewardsState"
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
           }
         },
         "required": [
@@ -1098,7 +1157,8 @@
           "availableMapNodes",
           "availableEventOptions",
           "combatState",
-          "rewardsState"
+          "rewardsState",
+          "relics"
         ]
       },
       "RunStateResult": {
@@ -1158,6 +1218,12 @@
           },
           "rewardsState": {
             "$ref": "#/components/schemas/RewardsState"
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
           }
         },
         "required": [
@@ -1174,7 +1240,8 @@
           "availableMapNodes",
           "availableEventOptions",
           "combatState",
-          "rewardsState"
+          "rewardsState",
+          "relics"
         ]
       },
       "TargetType": {

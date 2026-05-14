@@ -161,6 +161,14 @@ public sealed record Power(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("amount")] int Amount);
 
+// One relic carried by the player. Id is the game's stable relic key
+// (e.g. "BURNING_BLOOD"); clients translate to a localised name themselves.
+// Per-relic runtime state (DynamicVars: counters, charges, etc.) isn't
+// surfaced yet — adding fields here is non-breaking and should be driven
+// by a concrete caller need rather than mirroring the engine's full shape.
+public sealed record Relic(
+    [property: JsonPropertyName("id")] string Id);
+
 // One element of an enemy's NextMove. Damage is per-hit (multiply by Hits for
 // total); Block is the amount the enemy will gain. Kind is sts2's primary
 // IntentType bucket — combined kinds (AttackDefend, AttackBuff, …) keep their
@@ -315,7 +323,11 @@ public sealed record RunNewResult(
     // Pending post-combat rewards. Non-null when the engine has rewards the
     // caller hasn't yet selected/skipped — drives the run/select_reward and
     // run/skip_reward decisions. Null in every other state.
-    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    // Relics currently carried by the player. Includes the character's
+    // starter relic and anything obtained mid-run; order matches sts2's
+    // Player.Relics walk (acquisition order).
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
 
 // ── run/state ────────────────────────────────────────────────────────────
 
@@ -334,7 +346,8 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
-    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
 
 // ── run/select_map_node ──────────────────────────────────────────────────
 
@@ -353,7 +366,8 @@ public sealed record RunSelectMapNodeResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
-    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
 
 // ── run/select_event_option ──────────────────────────────────────────────
 
@@ -375,7 +389,8 @@ public sealed record RunSelectEventOptionResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
-    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
 
 // ── run/end_turn ─────────────────────────────────────────────────────────
 
@@ -391,7 +406,8 @@ public sealed record RunEndTurnResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
-    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
 
 // ── run/play_card ────────────────────────────────────────────────────────
 
@@ -413,7 +429,8 @@ public sealed record RunPlayCardResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
-    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
 
 // ── run/select_reward ────────────────────────────────────────────────────
 
@@ -438,7 +455,8 @@ public sealed record RunSelectRewardResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
-    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
 
 // ── run/skip_reward ──────────────────────────────────────────────────────
 
@@ -460,7 +478,8 @@ public sealed record RunSkipRewardResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
-    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
 
 // ── debug/give_relic ─────────────────────────────────────────────────────
 
