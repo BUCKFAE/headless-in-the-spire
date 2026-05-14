@@ -39,12 +39,13 @@ into the thin client.
 
 ```
 src/headless_in_the_spire_agents/
-  actions.py         # Action algebra (PlayCard, EndTurn, …)
-  state.py           # GameSnapshot Protocol + Phase detection
-  agent.py           # Agent Protocol + HeuristicAgent convenience base
-  driver.py          # play_run loop + apply_action dispatch
-  agents/greedy.py   # Reference GreedyAgent (illustrative, not canonical)
-tests/                # unit tests of the Python layer (no live host)
+  actions.py             # Action algebra (PlayCard, EndTurn, …)
+  state.py               # GameSnapshot Protocol + Phase detection
+  agent.py               # Agent Protocol + HeuristicAgent convenience base
+  driver.py              # play_run loop + apply_action dispatch
+  agents/greedy.py       # Reference GreedyAgent (illustrative, not canonical)
+  examples/greedy_run.py # Runnable: drive the host with GreedyAgent + log
+tests/                    # unit tests of the Python layer (no live host)
 ```
 
 ## Running tests
@@ -53,4 +54,20 @@ From the repo root:
 
 ```sh
 just test-python   # runs every workspace member's tests
+```
+
+## Running the example
+
+```sh
+uv run python -m headless_in_the_spire_agents.examples.greedy_run \
+    --character ironclad --seed 42 --max-steps 500
+```
+
+Spawns the C# host, starts a new run, and prints one line per step:
+
+```
+step=0000  floor=0  hp=80  phase=map      room=MapRoom      -> select_map_node(col=3, row=0)
+step=0001  floor=1  hp=80  phase=combat   room=CombatRoom   -> play_card(card=0, target=0)
+...
+--- end: terminated_by=game_over  steps=137  hp=0  floor=11  room=CombatRoom  game_over=True
 ```

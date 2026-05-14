@@ -63,8 +63,10 @@ def _make_result_like(snap: GameSnapshot) -> RunEndTurnResult:
         hp=snap.hp,
         available_map_nodes=snap.available_map_nodes,
         available_event_options=snap.available_event_options,
+        available_rest_site_options=[],
         combat_state=snap.combat_state,
         rewards_state=snap.rewards_state,
+        relics=[],
     )
 
 
@@ -106,8 +108,10 @@ class FakeClient:
             hp=s.hp,
             available_map_nodes=s.available_map_nodes,
             available_event_options=s.available_event_options,
+            available_rest_site_options=[],
             combat_state=s.combat_state,
             rewards_state=s.rewards_state,
+            relics=[],
         )
 
     def run_end_turn(self) -> RunEndTurnResult:
@@ -127,8 +131,10 @@ class FakeClient:
             hp=s.hp,
             available_map_nodes=s.available_map_nodes,
             available_event_options=s.available_event_options,
+            available_rest_site_options=[],
             combat_state=s.combat_state,
             rewards_state=s.rewards_state,
+            relics=[],
         )
 
     def run_select_event_option(
@@ -145,8 +151,10 @@ class FakeClient:
             hp=s.hp,
             available_map_nodes=s.available_map_nodes,
             available_event_options=s.available_event_options,
+            available_rest_site_options=[],
             combat_state=s.combat_state,
             rewards_state=s.rewards_state,
+            relics=[],
         )
 
     def run_select_reward(self, params: RunSelectRewardParams) -> RunSelectRewardResult:
@@ -162,8 +170,10 @@ class FakeClient:
             hp=s.hp,
             available_map_nodes=s.available_map_nodes,
             available_event_options=s.available_event_options,
+            available_rest_site_options=[],
             combat_state=s.combat_state,
             rewards_state=s.rewards_state,
+            relics=[],
         )
 
     def run_skip_reward(self, params: RunSkipRewardParams) -> RunSkipRewardResult:
@@ -178,8 +188,10 @@ class FakeClient:
             hp=s.hp,
             available_map_nodes=s.available_map_nodes,
             available_event_options=s.available_event_options,
+            available_rest_site_options=[],
             combat_state=s.combat_state,
             rewards_state=s.rewards_state,
+            relics=[],
         )
 
 

@@ -80,10 +80,16 @@ class HeuristicAgent:
             case Phase.terminal:
                 raise NoLegalActionError("game over — no action available", state)
             case Phase.unknown:
+                combat_in_progress = (
+                    state.combat_state.is_in_progress if state.combat_state is not None else None
+                )
+                rewards_count = (
+                    len(state.rewards_state.available) if state.rewards_state is not None else 0
+                )
                 raise NoLegalActionError(
                     f"no legal action: room={state.current_room_type.value}, "
-                    f"combat_in_progress={state.combat_state.is_in_progress}, "
-                    f"rewards={len(state.rewards_state.available)}",
+                    f"combat_in_progress={combat_in_progress}, "
+                    f"rewards={rewards_count}",
                     state,
                 )
 
@@ -108,8 +114,9 @@ class HeuristicAgent:
         raise NoLegalActionError("event phase with no unlocked options", state)
 
     def decide_rewards(self, state: GameSnapshot) -> Action:
-        if not state.rewards_state.available:
-            raise NoLegalActionError("rewards phase with empty list", state)
+        # Reached only when current_phase returned Phase.rewards, which
+        # already confirmed rewards_state is non-null and non-empty.
+        assert state.rewards_state is not None
         head = state.rewards_state.available[0]
         if head.kind is RewardKind.card and head.cards:
             return SelectReward(reward_index=head.index, card_index=head.cards[0].index)

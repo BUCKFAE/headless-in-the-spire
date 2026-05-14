@@ -40,6 +40,8 @@ _NEEDS_ENEMY_TARGET: frozenset[TargetType] = frozenset({TargetType.any_enemy})
 
 class GreedyAgent(HeuristicAgent):
     def decide_combat(self, state: GameSnapshot) -> Action:
+        # Dispatched only when Phase.combat, which guarantees combat_state.
+        assert state.combat_state is not None
         combat = state.combat_state
         playable = [c for c in combat.hand if c.can_play and c.cost <= combat.energy]
         if not playable:
@@ -51,6 +53,8 @@ class GreedyAgent(HeuristicAgent):
         return PlayCard(card_index=card.index, target_index=target)
 
     def decide_rewards(self, state: GameSnapshot) -> Action:
+        # Dispatched only when Phase.rewards, which guarantees rewards_state.
+        assert state.rewards_state is not None
         rewards = state.rewards_state.available
         if not rewards:
             raise NoLegalActionError("rewards phase with empty list", state)

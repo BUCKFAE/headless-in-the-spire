@@ -42,8 +42,8 @@ class GameSnapshot(Protocol):
     current_room_type: RoomType
     available_map_nodes: list[MapNode]
     available_event_options: list[EventOption]
-    combat_state: CombatState
-    rewards_state: RewardsState
+    combat_state: CombatState | None
+    rewards_state: RewardsState | None
 
 
 class Phase(Enum):
@@ -74,9 +74,13 @@ def current_phase(state: GameSnapshot) -> Phase:
     """
     if state.is_game_over:
         return Phase.terminal
-    if state.rewards_state.available:
+    if state.rewards_state is not None and state.rewards_state.available:
         return Phase.rewards
-    if state.current_room_type is RoomType.combat_room and state.combat_state.is_in_progress:
+    if (
+        state.current_room_type is RoomType.combat_room
+        and state.combat_state is not None
+        and state.combat_state.is_in_progress
+    ):
         return Phase.combat
     if state.current_room_type is RoomType.map_room and state.available_map_nodes:
         return Phase.map
