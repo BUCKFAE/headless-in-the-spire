@@ -3,6 +3,11 @@ set dotenv-load
 BUILD_CORES := "auto"
 MSBUILD_MAX_CPU := if BUILD_CORES == "auto" { "-maxcpucount" } else { "-maxcpucount:" + BUILD_CORES }
 
+# xUnit max parallel test threads. Local default is 0 ("# of CPU cores"); CI
+# should export XUNIT_THREADS=2 (or similar) to cap host-subprocess fan-out.
+# Passed through to xUnit via the RunSettings CLI override.
+XUNIT_THREADS := env_var_or_default("XUNIT_THREADS", "0")
+
 default:
     @just --list
 
@@ -73,7 +78,7 @@ test-unit:
 
 # Run the integration suite (loads vendor/sts2.dll; run `just setup` first).
 test-integration:
-    @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo
+    @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
 
 # Run both suites.
 test: test-unit test-integration
