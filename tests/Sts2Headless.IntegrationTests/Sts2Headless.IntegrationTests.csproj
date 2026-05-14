@@ -25,6 +25,11 @@
          passing test. -->
     <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+    <!-- Agents is used as a test driver to set up multi-room state (e.g.
+         "walk forward until standing on a rest site"). Per AD-6 the agent
+         is the canonical greedy driver — integration tests reuse it rather
+         than duplicating the greedy logic and drifting from the e2e suite. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
     <!-- GodotStubs builds as GodotSharp.dll and must be present next to the
          test binaries so sts2.dll's references resolve. -->
     <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />

@@ -62,7 +62,7 @@ public sealed class GreedyAgent : IAgent
             // who want the agent to fight the boss let it through.
             RoomType.CombatRoom or RoomType.BossRoom => StepCombatAsync(host, s),
             RoomType.EventRoom => StepEventAsync(host, s),
-            RoomType.RestSiteRoom => throw NoWireExitYet("rest site"),
+            RoomType.RestSiteRoom => StepRestSiteAsync(host, s),
             RoomType.MerchantRoom => throw NoWireExitYet("merchant"),
             RoomType.TreasureRoom => throw NoWireExitYet("treasure"),
             _ => throw new InvalidOperationException(
@@ -88,11 +88,11 @@ public sealed class GreedyAgent : IAgent
                 "a row with no legal moves.");
         }
         // Bias the pick toward rooms the agent can actually handle. Lower
-        // priority numbers are preferred. RestSite/Merchant/Treasure are
+        // priority numbers are preferred. Merchant/Treasure are still
         // deprioritised below routable rooms — but if those are the *only*
-        // options on the row (e.g. the rest row before the boss), the agent
-        // will still pick one and fail at StepAsync with a "wire call missing"
-        // message that names the exact gap.
+        // options on the row, the agent will still pick one and fail at
+        // StepAsync with a "wire call missing" message that names the exact
+        // gap. RestSite is routable now (HEAL exits cleanly).
         static int Priority(MapNodeType t) => t switch
         {
             MapNodeType.Monster => 0,
@@ -100,7 +100,7 @@ public sealed class GreedyAgent : IAgent
             MapNodeType.Event => 2,
             MapNodeType.Unknown => 3,   // sts2's "?" rooms — resolve on entry
             MapNodeType.Boss => 4,
-            MapNodeType.RestSite => 100,
+            MapNodeType.RestSite => 5,
             MapNodeType.Merchant => 100,
             MapNodeType.Treasure => 100,
             _ => 200,
@@ -141,6 +141,45 @@ public sealed class GreedyAgent : IAgent
 
         var ended = await host.SendAsync<RunEndTurnResult>("run/end_turn");
         return await DrainRewardsAsync(host, ended.RewardsState);
+    }
+
+    private static async Task<RunStateResult> StepRestSiteAsync(ITransport host, RunStateResult s)
+    {
+        if (s.AvailableRestSiteOptions.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "GreedyAgent: in RestSiteRoom but availableRestSiteOptions is empty. " +
+                "This usually means the engine has already accepted a pick and the room is " +
+                "mid-transition — the next re-snapshot should flip CurrentRoomType to MapRoom.");
+        }
+        // Preference order:
+        //   1. HEAL — always exits to MapRoom cleanly via the engine's auto-
+        //      advance, so the agent makes forward progress.
+        //   2. Any other enabled option that isn't SMITH — DIG, recovery, etc.
+        //      may be safe; we cross our fingers and let the failure name the
+        //      next gap if not.
+        //   3. SMITH — last resort. Will stall on the card-select sub-flow
+        //      we haven't wired yet, but at least the failure points at a
+        //      concrete next slice.
+        var pick = s.AvailableRestSiteOptions.FirstOrDefault(o =>
+                       o.IsEnabled
+                       && string.Equals(o.OptionId, "HEAL", StringComparison.OrdinalIgnoreCase))
+                   ?? s.AvailableRestSiteOptions.FirstOrDefault(o =>
+                       o.IsEnabled
+                       && !string.Equals(o.OptionId, "SMITH", StringComparison.OrdinalIgnoreCase))
+                   ?? s.AvailableRestSiteOptions.FirstOrDefault(o => o.IsEnabled);
+
+        if (pick is null)
+        {
+            throw new InvalidOperationException(
+                "GreedyAgent: in RestSiteRoom but no enabled options surfaced. " +
+                $"Options seen: [{string.Join(", ", s.AvailableRestSiteOptions.Select(o => $"{o.OptionId}({(o.IsEnabled ? "on" : "off")})"))}].");
+        }
+
+        await host.SendAsync<RunSelectRestSiteOptionResult>(
+            "run/select_rest_site_option",
+            new RunSelectRestSiteOptionParams(OptionIndex: pick.Index));
+        return await host.SendAsync<RunStateResult>("run/state");
     }
 
     private static async Task<RunStateResult> StepEventAsync(ITransport host, RunStateResult s)

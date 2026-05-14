@@ -19,6 +19,9 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 // position; empty when the player isn't standing on the map.
 // AvailableEventOptions are the current-page picks for an active Event;
 // empty unless CurrentRoomType == EventRoom.
+// AvailableRestSiteOptions mirrors that pattern for RestSiteRoom — empty
+// unless the player is standing on a rest site, otherwise carries the
+// engine's option list (HEAL/SMITH/…).
 // CombatState is the combat read-out; null unless CurrentRoomType == CombatRoom.
 // RewardsState carries the post-combat reward decisions when the engine has
 // any unclaimed; null whenever the wire has nothing pending for the caller.
@@ -35,6 +38,7 @@ public sealed record RunSnapshot(
     bool IsGameOver,
     IReadOnlyList<MapNode> AvailableMapNodes,
     IReadOnlyList<EventOption> AvailableEventOptions,
+    IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     CombatState? CombatState,
     RewardsState? RewardsState,
     IReadOnlyList<Relic> Relics);

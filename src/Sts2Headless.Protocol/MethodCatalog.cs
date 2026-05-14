@@ -49,6 +49,11 @@ public static class MethodCatalog
             ResultType: typeof(RunSelectEventOptionResult),
             Summary: "Pick an option on the current event room."),
 
+        new("run/select_rest_site_option",
+            ParamsType: typeof(RunSelectRestSiteOptionParams),
+            ResultType: typeof(RunSelectRestSiteOptionResult),
+            Summary: "Pick an option on the current rest site (HEAL, SMITH, …). HEAL exits to MapRoom; SMITH branches into card-select which is not wired yet."),
+
         new("run/end_turn",
             ParamsType: null,
             ResultType: typeof(RunEndTurnResult),

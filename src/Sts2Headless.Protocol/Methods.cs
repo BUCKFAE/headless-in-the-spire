@@ -161,6 +161,18 @@ public sealed record Power(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("amount")] int Amount);
 
+// One choice offered by a rest site. OptionId is the engine's stable
+// identifier ("HEAL", "SMITH", "DIG", …); IsEnabled mirrors the engine's
+// per-option availability (HEAL is disabled at full HP, SMITH at empty deck,
+// etc.). Clients should branch on OptionId for icon/label, on IsEnabled for
+// clickability. Unknown OptionId strings are passed through verbatim — we
+// don't enum the option space yet because new relics can introduce them
+// mid-game (Lantern, Toolbox, …).
+public sealed record RestSiteOption(
+    [property: JsonPropertyName("index")] int Index,
+    [property: JsonPropertyName("optionId")] string OptionId,
+    [property: JsonPropertyName("isEnabled")] bool IsEnabled);
+
 // One relic carried by the player. Id is the game's stable relic key
 // (e.g. "BURNING_BLOOD"); clients translate to a localised name themselves.
 // Per-relic runtime state (DynamicVars: counters, charges, etc.) isn't
@@ -319,6 +331,7 @@ public sealed record RunNewResult(
     // wire's room gating mirrors availableMapNodes / availableEventOptions —
     // clients should branch on currentRoomType, not on whether this field
     // is non-null).
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     // Pending post-combat rewards. Non-null when the engine has rewards the
     // caller hasn't yet selected/skipped — drives the run/select_reward and
@@ -345,6 +358,7 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("isGameOver")] bool IsGameOver,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -365,6 +379,7 @@ public sealed record RunSelectMapNodeResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -388,6 +403,38 @@ public sealed record RunSelectEventOptionResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+
+// ── run/select_rest_site_option ──────────────────────────────────────────
+
+// optionIndex matches the RestSiteOption.Index returned by the most recent
+// snapshot when the current room is a RestSiteRoom. Picking a disabled
+// option is allowed by the wire layer — sts2's RestSiteSynchronizer is what
+// gates enabled/disabled — but a disabled pick is a likely no-op and the
+// next snapshot's AvailableRestSiteOptions tells the caller whether the
+// state advanced.
+//
+// HEAL exits the rest site to MapRoom cleanly. SMITH (and any other option
+// that branches into a card-selection sub-flow) leaves the player blocked
+// on a card-select wire surface we have not built yet; callers picking
+// SMITH today will see CurrentRoomType stay at RestSiteRoom with an empty
+// AvailableRestSiteOptions list. Routing through SMITH is the next slice.
+public sealed record RunSelectRestSiteOptionParams(
+    [property: JsonPropertyName("optionIndex")] int OptionIndex);
+
+public sealed record RunSelectRestSiteOptionResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("optionIndex")] int OptionIndex,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -405,6 +452,7 @@ public sealed record RunEndTurnResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -428,6 +476,7 @@ public sealed record RunPlayCardResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -454,6 +503,7 @@ public sealed record RunSelectRewardResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -477,6 +527,7 @@ public sealed record RunSkipRewardResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);

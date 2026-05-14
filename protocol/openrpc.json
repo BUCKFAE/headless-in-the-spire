@@ -91,6 +91,26 @@
       }
     },
     {
+      "name": "run/select_rest_site_option",
+      "summary": "Pick an option on the current rest site (HEAL, SMITH, …). HEAL exits to MapRoom; SMITH branches into card-select which is not wired yet.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunSelectRestSiteOptionParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunSelectRestSiteOptionResult"
+        }
+      }
+    },
+    {
       "name": "run/end_turn",
       "summary": "End the player's turn in the active combat.",
       "paramStructure": "by-name",
@@ -544,6 +564,25 @@
           "id"
         ]
       },
+      "RestSiteOption": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "optionId": {
+            "type": "string"
+          },
+          "isEnabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "index",
+          "optionId",
+          "isEnabled"
+        ]
+      },
       "RewardKind": {
         "enum": [
           "unknown",
@@ -659,6 +698,12 @@
               "$ref": "#/components/schemas/EventOption"
             }
           },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
           "combatState": {
             "$ref": "#/components/schemas/CombatState"
           },
@@ -680,6 +725,7 @@
           "hp",
           "availableMapNodes",
           "availableEventOptions",
+          "availableRestSiteOptions",
           "combatState",
           "rewardsState",
           "relics"
@@ -744,6 +790,12 @@
               "$ref": "#/components/schemas/EventOption"
             }
           },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
           "combatState": {
             "$ref": "#/components/schemas/CombatState"
           },
@@ -765,6 +817,7 @@
           "currentRoomType",
           "availableMapNodes",
           "availableEventOptions",
+          "availableRestSiteOptions",
           "combatState",
           "rewardsState",
           "relics"
@@ -827,6 +880,12 @@
               "$ref": "#/components/schemas/EventOption"
             }
           },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
           "combatState": {
             "$ref": "#/components/schemas/CombatState"
           },
@@ -850,6 +909,7 @@
           "hp",
           "availableMapNodes",
           "availableEventOptions",
+          "availableRestSiteOptions",
           "combatState",
           "rewardsState",
           "relics"
@@ -899,6 +959,12 @@
               "$ref": "#/components/schemas/EventOption"
             }
           },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
           "combatState": {
             "$ref": "#/components/schemas/CombatState"
           },
@@ -921,6 +987,7 @@
           "hp",
           "availableMapNodes",
           "availableEventOptions",
+          "availableRestSiteOptions",
           "combatState",
           "rewardsState",
           "relics"
@@ -977,6 +1044,12 @@
               "$ref": "#/components/schemas/EventOption"
             }
           },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
           "combatState": {
             "$ref": "#/components/schemas/CombatState"
           },
@@ -1000,6 +1073,85 @@
           "hp",
           "availableMapNodes",
           "availableEventOptions",
+          "availableRestSiteOptions",
+          "combatState",
+          "rewardsState",
+          "relics"
+        ]
+      },
+      "RunSelectRestSiteOptionParams": {
+        "type": "object",
+        "properties": {
+          "optionIndex": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "optionIndex"
+        ]
+      },
+      "RunSelectRestSiteOptionResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "optionIndex": {
+            "type": "integer"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
+          "combatState": {
+            "$ref": "#/components/schemas/CombatState"
+          },
+          "rewardsState": {
+            "$ref": "#/components/schemas/RewardsState"
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "optionIndex",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "availableRestSiteOptions",
           "combatState",
           "rewardsState",
           "relics"
@@ -1062,6 +1214,12 @@
               "$ref": "#/components/schemas/EventOption"
             }
           },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
           "combatState": {
             "$ref": "#/components/schemas/CombatState"
           },
@@ -1085,6 +1243,7 @@
           "hp",
           "availableMapNodes",
           "availableEventOptions",
+          "availableRestSiteOptions",
           "combatState",
           "rewardsState",
           "relics"
@@ -1134,6 +1293,12 @@
               "$ref": "#/components/schemas/EventOption"
             }
           },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
           "combatState": {
             "$ref": "#/components/schemas/CombatState"
           },
@@ -1156,6 +1321,7 @@
           "hp",
           "availableMapNodes",
           "availableEventOptions",
+          "availableRestSiteOptions",
           "combatState",
           "rewardsState",
           "relics"
@@ -1213,6 +1379,12 @@
               "$ref": "#/components/schemas/EventOption"
             }
           },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
           "combatState": {
             "$ref": "#/components/schemas/CombatState"
           },
@@ -1239,6 +1411,7 @@
           "isGameOver",
           "availableMapNodes",
           "availableEventOptions",
+          "availableRestSiteOptions",
           "combatState",
           "rewardsState",
           "relics"

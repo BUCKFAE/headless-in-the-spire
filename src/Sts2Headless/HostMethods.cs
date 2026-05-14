@@ -24,6 +24,7 @@ public static class HostMethods
             ["run/state"] = TypedNoParams(() => RunState(bindings, session)),
             ["run/select_map_node"] = Typed<RunSelectMapNodeParams, RunSelectMapNodeResult>(p => RunSelectMapNode(bindings, session, p)),
             ["run/select_event_option"] = Typed<RunSelectEventOptionParams, RunSelectEventOptionResult>(p => RunSelectEventOption(bindings, session, p)),
+            ["run/select_rest_site_option"] = Typed<RunSelectRestSiteOptionParams, RunSelectRestSiteOptionResult>(p => RunSelectRestSiteOption(bindings, session, p)),
             ["run/end_turn"] = TypedNoParams(() => RunEndTurn(bindings, session)),
             ["run/play_card"] = Typed<RunPlayCardParams, RunPlayCardResult>(p => RunPlayCard(bindings, session, p)),
             ["run/select_reward"] = Typed<RunSelectRewardParams, RunSelectRewardResult>(p => RunSelectReward(bindings, session, p)),
@@ -78,6 +79,7 @@ public static class HostMethods
             CurrentRoomType: s.CurrentRoomType,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -102,6 +104,7 @@ public static class HostMethods
             IsGameOver: s.IsGameOver,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -127,6 +130,7 @@ public static class HostMethods
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -151,6 +155,32 @@ public static class HostMethods
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
+    }
+
+    private static RunSelectRestSiteOptionResult RunSelectRestSiteOption(Sts2Bindings bindings, Session session, RunSelectRestSiteOptionParams? @params)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new ArgumentException("run/select_rest_site_option requires params {optionIndex}");
+
+        bindings.SelectRestSiteOption(run, args.OptionIndex);
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunSelectRestSiteOptionResult(
+            Ok: true,
+            OptionIndex: args.OptionIndex,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -172,6 +202,7 @@ public static class HostMethods
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -197,6 +228,7 @@ public static class HostMethods
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -222,6 +254,7 @@ public static class HostMethods
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -246,6 +279,7 @@ public static class HostMethods
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);

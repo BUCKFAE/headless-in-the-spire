@@ -98,6 +98,17 @@ public sealed partial class Sts2Bindings
     private readonly MethodInfo? _runManagerEnterRoom;
     private readonly Type? _mapRoomType;
 
+    // ── Rest-site surface ────────────────────────────────────────────────
+    // All soft-bound: if the engine moves the rest-site shape, the host still
+    // boots and the wire just reports an empty AvailableRestSiteOptions on
+    // every rest-site snapshot. SelectRestSiteOption throws against a null
+    // binding so callers see the gap rather than a silent no-op.
+    private readonly PropertyInfo? _runManagerRestSiteSynchronizer;
+    private readonly MethodInfo? _restSiteSyncChooseLocalOption;
+    private readonly PropertyInfo? _restSiteRoomOptions;
+    private readonly PropertyInfo? _restSiteOptionOptionId;
+    private readonly PropertyInfo? _restSiteOptionIsEnabled;
+
     // ── Combat surface ──────────────────────────────────────────────────
     // All members soft-bound (nullable): if the game version we pin against
     // ever moves combat to a different shape, the host still boots and just
@@ -249,6 +260,11 @@ public sealed partial class Sts2Bindings
         _runManagerProceedFromTerminalRewards = s.RunManagerProceedFromTerminalRewards;
         _runManagerEnterRoom = s.RunManagerEnterRoom;
         _mapRoomType = s.MapRoomType;
+        _runManagerRestSiteSynchronizer = s.RunManagerRestSiteSynchronizer;
+        _restSiteSyncChooseLocalOption = s.RestSiteSyncChooseLocalOption;
+        _restSiteRoomOptions = s.RestSiteRoomOptions;
+        _restSiteOptionOptionId = s.RestSiteOptionOptionId;
+        _restSiteOptionIsEnabled = s.RestSiteOptionIsEnabled;
         var c = s.Combat;
         _combatManagerInstance = c.CombatManagerInstance;
         _combatManagerIsInProgress = c.CombatManagerIsInProgress;
@@ -451,6 +467,13 @@ public sealed partial class Sts2Bindings
             ? ReadAvailableEventOptions(handle.RunManager)
             : Array.Empty<EventOption>();
 
+        // Same room-scoped gating for rest-site options. Outside a
+        // RestSiteRoom the engine's options list is either null or stale
+        // from a previous rest; surface only when we're actually there.
+        var availableRestSiteOptions = roomType == RoomType.RestSiteRoom
+            ? ReadAvailableRestSiteOptions(handle.RunState)
+            : Array.Empty<RestSiteOption>();
+
         // Same gating discipline for combat: only read when sts2 has a live
         // combat (room == CombatRoom). Outside, CombatManager.Instance may be
         // null or carry stale state and PlayerCombatState is undefined.
@@ -467,7 +490,7 @@ public sealed partial class Sts2Bindings
         // Relics are run-scoped, not room-scoped: surface on every snapshot.
         var relics = ReadRelics(handle);
 
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, combatState, rewardsState, relics);
+        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, availableRestSiteOptions, combatState, rewardsState, relics);
     }
 
     // Project the stashed list of pending rewards into the wire DTO. Returns
@@ -756,6 +779,99 @@ public sealed partial class Sts2Bindings
             result.Add(new EventOption(i, textKey, isLocked));
         }
         return result;
+    }
+
+    // Walk RunState.CurrentRoom (cast to RestSiteRoom) → Options and shape
+    // each option into the wire record. Mirrors sts2-cli's RestSiteState
+    // reduced to the data fields we surface.
+    //
+    // Returns [] when the binding never resolved, the current room isn't a
+    // RestSiteRoom (defence in depth — callers gate by RoomType already), or
+    // the engine cleared Options after a pick. An empty list while standing
+    // on a RestSiteRoom is the engine's "decision already made, advance to
+    // map" signal — handled by sts2-cli via ForceToMap; we leave the wire
+    // honest about the state and let the next caller drive the transition.
+    private IReadOnlyList<RestSiteOption> ReadAvailableRestSiteOptions(object runState)
+    {
+        if (_restSiteRoomOptions is null) return Array.Empty<RestSiteOption>();
+        var room = _runStateCurrentRoom.GetValue(runState);
+        if (room is null) return Array.Empty<RestSiteOption>();
+        if (_restSiteRoomOptions.DeclaringType is null
+            || !_restSiteRoomOptions.DeclaringType.IsInstanceOfType(room))
+        {
+            return Array.Empty<RestSiteOption>();
+        }
+        if (_restSiteRoomOptions.GetValue(room) is not System.Collections.IList options
+            || options.Count == 0)
+        {
+            return Array.Empty<RestSiteOption>();
+        }
+        var result = new List<RestSiteOption>(options.Count);
+        for (var i = 0; i < options.Count; i++)
+        {
+            var opt = options[i];
+            if (opt is null) continue;
+            var optionId = _restSiteOptionOptionId?.GetValue(opt) as string ?? opt.GetType().Name;
+            var isEnabled = _restSiteOptionIsEnabled is not null
+                && (bool)(_restSiteOptionIsEnabled.GetValue(opt) ?? false);
+            result.Add(new RestSiteOption(i, optionId, isEnabled));
+        }
+        return result;
+    }
+
+    // Fire RunManager.RestSiteSynchronizer.ChooseLocalOption(optionIndex)
+    // and pump the sync context so synchronous follow-ups complete inside
+    // the call. SMITH branches into card-selection which we have no wire
+    // for yet — that call hangs on the engine's GetSelectedCardReward
+    // future and the caller will see CurrentRoomType stuck at RestSiteRoom
+    // on the next snapshot.
+    //
+    // After non-SMITH picks (HEAL, future DIG, …), sts2 clears the room's
+    // Options list but doesn't auto-transition to MapRoom — sts2-cli's
+    // ForceToMap pattern covers this. Mirror it: if Options is empty after
+    // the synchronous call, drive the engine through
+    // ProceedFromTerminalRewardsScreen → EnterRoom(MapRoom) so the next
+    // wire snapshot reports MapRoom, the post-rest contract callers rely on.
+    public void SelectRestSiteOption(RunHandle handle, int optionIndex)
+    {
+        if (_runManagerRestSiteSynchronizer is null || _restSiteSyncChooseLocalOption is null)
+        {
+            throw new InvalidOperationException(
+                "rest-site binding not resolved at boot — RestSiteSynchronizer.ChooseLocalOption is missing. " +
+                "Either the engine moved the type or the bootstrap walk did not surface it.");
+        }
+        var sync = _runManagerRestSiteSynchronizer.GetValue(handle.RunManager)
+            ?? throw new InvalidOperationException("RunManager.RestSiteSynchronizer was null");
+        var result = _restSiteSyncChooseLocalOption.Invoke(sync, new object?[] { optionIndex });
+        if (result is Task t) t.GetAwaiter().GetResult();
+        _syncCtx?.Pump();
+
+        // Auto-advance after HEAL / DIG / etc. — when Options is empty the
+        // engine has accepted the pick but left CurrentRoom on RestSite.
+        // SMITH leaves the room pending a card-select; we leave that alone
+        // so a future card-select wire can resume it.
+        if (_restSiteRoomOptions is not null && _runManagerEnterRoom is not null && _mapRoomType is not null)
+        {
+            var room = _runStateCurrentRoom.GetValue(handle.RunState);
+            if (room is not null
+                && _restSiteRoomOptions.DeclaringType is not null
+                && _restSiteRoomOptions.DeclaringType.IsInstanceOfType(room))
+            {
+                var options = _restSiteRoomOptions.GetValue(room) as System.Collections.IList;
+                if (options is null || options.Count == 0)
+                {
+                    try
+                    {
+                        var mapRoom = Activator.CreateInstance(_mapRoomType)
+                            ?? throw new InvalidOperationException($"{_mapRoomType.FullName} default ctor returned null");
+                        var enter = _runManagerEnterRoom.Invoke(handle.RunManager, new[] { mapRoom });
+                        if (enter is Task et) et.GetAwaiter().GetResult();
+                        _syncCtx?.Pump();
+                    }
+                    catch { /* sts2-cli also swallows — caller will see RestSiteRoom remains and can recover */ }
+                }
+            }
+        }
     }
 
     // Fire EventOption.Chosen() for the option at `optionIndex` on the
@@ -1575,6 +1691,40 @@ public sealed partial class Sts2Bindings
         var combat = BindCombat(sts2, runManagerType, playerType, playerCreature.PropertyType);
         var rewards = BindRewards(sts2, runManagerType, playerType);
 
+        // Rest-site surface. Each piece is soft-bound: the host still boots
+        // even if RestSiteSynchronizer or RestSiteRoom moves, the wire just
+        // surfaces an empty AvailableRestSiteOptions list and SelectRestSite-
+        // Option throws when called against a null binding. Walks:
+        //   RunManager.RestSiteSynchronizer.ChooseLocalOption(optionIndex)
+        //   RestSiteRoom.Options → element type → OptionId / IsEnabled
+        var runManagerRestSiteSync = runManagerType.GetProperty("RestSiteSynchronizer", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo? restSiteSyncChooseLocalOption = null;
+        if (runManagerRestSiteSync is not null)
+        {
+            var restSyncType = runManagerRestSiteSync.PropertyType;
+            restSiteSyncChooseLocalOption = restSyncType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m => m.Name == "ChooseLocalOption"
+                    && m.GetParameters().Length == 1
+                    && m.GetParameters()[0].ParameterType == typeof(int));
+        }
+        PropertyInfo? restSiteRoomOptions = null;
+        PropertyInfo? restSiteOptionOptionId = null;
+        PropertyInfo? restSiteOptionIsEnabled = null;
+        var restSiteRoomLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Rooms.RestSiteRoom");
+        if (restSiteRoomLookup.Found && restSiteRoomLookup.Type is not null)
+        {
+            restSiteRoomOptions = restSiteRoomLookup.Type.GetProperty("Options", BindingFlags.Public | BindingFlags.Instance);
+            if (restSiteRoomOptions is not null)
+            {
+                var optionElementType = ExtractElementType(restSiteRoomOptions.PropertyType);
+                if (optionElementType is not null)
+                {
+                    restSiteOptionOptionId = optionElementType.GetProperty("OptionId", BindingFlags.Public | BindingFlags.Instance);
+                    restSiteOptionIsEnabled = optionElementType.GetProperty("IsEnabled", BindingFlags.Public | BindingFlags.Instance);
+                }
+            }
+        }
+
         return new Sts2Bindings(sts2, new BindingState(
             playerType, createIroncladRun, unlockAll,
             new InvocationPlan(createForTest), runManagerInstance, netServiceType,
@@ -1591,6 +1741,8 @@ public sealed partial class Sts2Bindings
             runManagerEventSync, eventSyncGetLocalEvent, eventIsFinished, eventCurrentOptions,
             eventOptionTextKey, eventOptionIsLocked, eventOptionChosen,
             proceedFromTerminalRewards, enterRoom, mapRoomType2,
+            runManagerRestSiteSync, restSiteSyncChooseLocalOption,
+            restSiteRoomOptions, restSiteOptionOptionId, restSiteOptionIsEnabled,
             combat, rewards), syncCtx);
     }
 
@@ -2033,6 +2185,8 @@ public sealed partial class Sts2Bindings
         PropertyInfo EventIsFinished, PropertyInfo EventCurrentOptions,
         PropertyInfo? EventOptionTextKey, PropertyInfo EventOptionIsLocked, MethodInfo EventOptionChosen,
         MethodInfo? RunManagerProceedFromTerminalRewards, MethodInfo? RunManagerEnterRoom, Type? MapRoomType,
+        PropertyInfo? RunManagerRestSiteSynchronizer, MethodInfo? RestSiteSyncChooseLocalOption,
+        PropertyInfo? RestSiteRoomOptions, PropertyInfo? RestSiteOptionOptionId, PropertyInfo? RestSiteOptionIsEnabled,
         CombatBindings Combat, RewardBindings Rewards);
 
     // Post-combat reward surface. Soft-bound — if RewardsSet (or its members)
