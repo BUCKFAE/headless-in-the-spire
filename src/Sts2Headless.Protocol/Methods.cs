@@ -454,3 +454,23 @@ public sealed record RunSkipRewardResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState);
+
+// ── debug/give_relic ─────────────────────────────────────────────────────
+
+// Test affordance — grants a relic to the active player via the engine
+// path (RelicCmd.Obtain, the same path RelicReward.OnSelectWrapper uses).
+// Lives in the `debug/` namespace to make its purpose explicit: regression
+// tests use this to inject relics with observable on-event side effects
+// (e.g. LuckyFysh's +15 gold on AfterCardChangedPiles) so the test can pin
+// engine-pipeline behaviour that direct mutation would silently bypass.
+public sealed record DebugGiveRelicParams(
+    [property: JsonPropertyName("relicId")] string RelicId);
+
+public sealed record DebugGiveRelicResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("relicId")] string RelicId,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("maxHp")] int MaxHp,
+    [property: JsonPropertyName("gold")] int Gold,
+    [property: JsonPropertyName("deckSize")] int DeckSize);
+

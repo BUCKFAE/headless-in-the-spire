@@ -28,6 +28,12 @@ public static class HostMethods
             ["run/play_card"] = Typed<RunPlayCardParams, RunPlayCardResult>(p => RunPlayCard(bindings, session, p)),
             ["run/select_reward"] = Typed<RunSelectRewardParams, RunSelectRewardResult>(p => RunSelectReward(bindings, session, p)),
             ["run/skip_reward"] = Typed<RunSkipRewardParams, RunSkipRewardResult>(p => RunSkipReward(bindings, session, p)),
+            // Test affordance — grants a relic to the active player via the
+            // engine path (RelicCmd.Obtain). Used by the relic-listener
+            // regression tests to pin engine-pipeline side effects (e.g.
+            // LuckyFysh's +15 gold on card-obtain) that direct deck mutation
+            // would silently bypass.
+            ["debug/give_relic"] = Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, session, p)),
         };
     }
 
@@ -229,6 +235,27 @@ public static class HostMethods
             AvailableEventOptions: s.AvailableEventOptions,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState);
+    }
+
+    private static DebugGiveRelicResult DebugGiveRelic(Sts2Bindings bindings, Session session, DebugGiveRelicParams? @params)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new ArgumentException("debug/give_relic requires params {relicId}");
+        if (string.IsNullOrWhiteSpace(args.RelicId))
+            throw new ArgumentException("debug/give_relic relicId must be non-empty");
+
+        bindings.GiveRelic(run, args.RelicId);
+
+        var s = bindings.ReadSnapshot(run);
+        return new DebugGiveRelicResult(
+            Ok: true,
+            RelicId: args.RelicId,
+            Hp: s.CurrentHp,
+            MaxHp: s.MaxHp,
+            Gold: s.Gold,
+            DeckSize: s.DeckSize);
     }
 
     // Adapter that turns a typed Func<TParams?, TResult> into the JsonNode-

@@ -162,6 +162,15 @@ public sealed partial class Sts2Bindings
     private readonly MethodInfo? _cardPileCmdAdd;
     private readonly object? _pileTypeDeckValue;
 
+    // RelicCmd.Obtain(model, player) + ModelDb.GetById<RelicModel>(ModelId)
+    // — engine path for granting a relic mid-run. Used only by the
+    // debug/give_relic test affordance; soft-bound so the host still boots
+    // without it.
+    private readonly MethodInfo? _relicCmdObtain;
+    private readonly MethodInfo? _modelDbGetByIdRelic;
+    private readonly ConstructorInfo? _modelIdCtor;
+    private readonly MethodInfo? _relicModelToMutable;
+
     // Mutable post-combat reward state. Generated lazily once combat ends
     // (see EnsurePendingRewards); consumed by SelectReward / SkipReward.
     // Single-slot to match the single-active-run host model. Cleared on
@@ -286,6 +295,10 @@ public sealed partial class Sts2Bindings
         _rewardSyncSyncLocalObtainedCard = r.RewardSyncSyncLocalObtainedCard;
         _cardPileCmdAdd = r.CardPileCmdAdd;
         _pileTypeDeckValue = r.PileTypeDeckValue;
+        _relicCmdObtain = r.RelicCmdObtain;
+        _modelDbGetByIdRelic = r.ModelDbGetByIdRelic;
+        _modelIdCtor = r.ModelIdCtor;
+        _relicModelToMutable = r.RelicModelToMutable;
     }
 
     // Full sts2-cli StartRun chain, condensed. Returns a triple the wire
@@ -1017,14 +1030,13 @@ public sealed partial class Sts2Bindings
         }
     }
 
-    // Claim the reward at `rewardIndex` in the latest snapshot. For Card-kind
-    // rewards, `cardIndex` is required and picks which inner card to add to
-    // the deck (followed by a SyncLocalObtainedCard so the engine's listeners
-    // observe the obtain). For non-card rewards the engine's OnSelectWrapper
-    // is the only thing we need to fire — gold credits to the player, the
-    // potion lands in the slot, etc. Removing the entry from _pendingRewards
-    // happens last so a throw from OnSelectWrapper doesn't lose the wire's
-    // view of the pending decision.
+    // Claim the reward at `rewardIndex` in the latest snapshot. Card-kind
+    // rewards take `cardIndex` and route through CardPileCmd.Add (which fans
+    // out to obtain-listeners — relics like Ceramic Fish observe it). Non-card
+    // rewards run the engine's OnSelectWrapper (gold credit, potion grant,
+    // relic obtain). Both paths propagate exceptions; --probe-rewards-natural-
+    // chain (seed=42) confirmed the natural chain runs gap-free with NetIds
+    // aligned, so safety nets here would only mask future regressions.
     public void SelectReward(RunHandle handle, int rewardIndex, int? cardIndex)
     {
         if (_pendingRewards is null || _pendingRewards.Count == 0)
@@ -1043,19 +1055,8 @@ public sealed partial class Sts2Bindings
         }
         else
         {
-            // Non-card rewards (gold, potion, relic): the engine's
-            // OnSelectWrapper credits gold / grants potion or relic, but it
-            // also walks netService.NetId-keyed bookkeeping that doesn't
-            // match our seed-derived Player.NetId. Best-effort: log and move
-            // on so the wire's "this reward was consumed" semantics hold
-            // even when the engine throws. Follow-up alongside the
-            // netService NetId backing-field write.
-            try { InvokeOnSelectWrapper(reward); }
-            catch (Exception ex)
-            {
-                if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
-                    Console.Error.WriteLine($"[rewards] non-card OnSelectWrapper threw: {ex.GetType().Name}: {ex.Message}");
-            }
+            InvokeOnSelectWrapper(reward);
+            _syncCtx?.Pump();
         }
 
         _pendingRewards.RemoveAt(rewardIndex);
@@ -1083,21 +1084,9 @@ public sealed partial class Sts2Bindings
 
         if (_cardRewardOnSkipped is not null)
         {
-            // Best-effort: OnSkipped touches RunHistory.GetPlayerStats keyed
-            // on netService.NetId, which is a read-only 1uL — so a seed-
-            // derived Player.NetId leaves RunHistory's stats keyed on the
-            // wrong id. The wire semantics ("skip = don't add card") still
-            // hold since we never invoke CardPileCmd.Add in the skip path.
-            try
-            {
-                var result = _cardRewardOnSkipped.Invoke(reward, Array.Empty<object?>());
-                if (result is Task t) t.GetAwaiter().GetResult();
-            }
-            catch (Exception ex)
-            {
-                if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
-                    Console.Error.WriteLine($"[rewards] OnSkipped threw: {ex.GetType().Name}: {ex.Message}");
-            }
+            var result = _cardRewardOnSkipped.Invoke(reward, Array.Empty<object?>());
+            if (result is Task t) t.GetAwaiter().GetResult();
+            _syncCtx?.Pump();
         }
 
         _pendingRewards.RemoveAt(rewardIndex);
@@ -1117,39 +1106,25 @@ public sealed partial class Sts2Bindings
 
         var picked = cards[cardIndex];
 
-        // Direct deck mutation. The engine's CardPileCmd.Add path (which
-        // sts2-cli uses) NREs internally because PlayerChoiceContext and the
-        // shuffle-on-empty logic walk pieces of context our setup doesn't
-        // fully wire — Player.NetId / netService.NetId / RunHistory don't
-        // all agree, see StartIroncladRun. Direct mutation skips the engine's
-        // listener/animation pipeline (relics that trigger on card-obtain
-        // won't fire) but the post-condition the wire promises ("card is in
-        // the deck") holds. Tracked as a follow-up alongside the netService
-        // NetId backing-field write.
-        var deck = _playerDeck.GetValue(handle.Player)
-            ?? throw new InvalidOperationException("Player.Deck was null");
-        var cardsObj = _deckCards.GetValue(deck)
-            ?? throw new InvalidOperationException("Deck.Cards was null");
-        if (cardsObj is not System.Collections.IList deckList)
-            throw new InvalidOperationException($"Deck.Cards is not list-shaped (got {cardsObj.GetType().Name})");
-        deckList.Add(picked);
+        // Engine path: CardPileCmd.Add(card, PileType.Deck). Routes through
+        // the listener pipeline (relic on-card-obtain hooks fire), unlike a
+        // direct deck.Add which bypasses listeners. Probe-rewards-natural-
+        // chain proved this runs gap-free with NetIds aligned (Phase 2).
+        if (_cardPileCmdAdd is null || _pileTypeDeckValue is null)
+            throw new InvalidOperationException("CardPileCmd.Add or PileType.Deck not bound — cannot route card-obtain through engine");
+        var paramCount = _cardPileCmdAdd.GetParameters().Length;
+        var args = new object?[paramCount];
+        args[0] = picked;
+        args[1] = _pileTypeDeckValue;
+        for (var i = 2; i < paramCount; i++) args[i] = Type.Missing;
+        var addResult = _cardPileCmdAdd.Invoke(null, args);
+        if (addResult is Task addTask) addTask.GetAwaiter().GetResult();
+        _syncCtx?.Pump();
 
-        // Best-effort: notify the engine the card was obtained (achievements,
-        // multiplayer sync). Catches because SyncLocalObtainedCard can NRE
-        // under our partial multiplayer wiring; deck-add is the source of
-        // truth and stays in place either way.
         if (_runManagerRewardSynchronizer is not null && _rewardSyncSyncLocalObtainedCard is not null)
         {
-            try
-            {
-                var sync = _runManagerRewardSynchronizer.GetValue(handle.RunManager);
-                if (sync is not null) _rewardSyncSyncLocalObtainedCard.Invoke(sync, new[] { picked });
-            }
-            catch (Exception ex)
-            {
-                if (Environment.GetEnvironmentVariable("STS2_HEADLESS_DEBUG") is not null)
-                    Console.Error.WriteLine($"[rewards] SyncLocalObtainedCard threw: {ex.GetType().Name}: {ex.Message}");
-            }
+            var sync = _runManagerRewardSynchronizer.GetValue(handle.RunManager);
+            if (sync is not null) _rewardSyncSyncLocalObtainedCard.Invoke(sync, new[] { picked });
         }
     }
 
@@ -1167,6 +1142,37 @@ public sealed partial class Sts2Bindings
               ?? _rewardOnSelectWrapper;
         var result = mi.Invoke(reward, Array.Empty<object?>());
         if (result is Task t) t.GetAwaiter().GetResult();
+    }
+
+    // Test affordance: grant `relicId` to the player via the engine path
+    // (RelicCmd.Obtain). Mirrors what RelicReward.OnSelectWrapper does
+    // when the player picks a relic from a treasure room — the relic ends
+    // up in Player.Relics with proper Owner / subscription wiring, so
+    // AfterCardChangedPiles hooks fire on subsequent card-obtains. The
+    // wire layer exposes this as `debug/give_relic` for regression tests
+    // (see RelicListenerTests.SelectCardReward_FiresLuckyFyshOnObtain).
+    public void GiveRelic(RunHandle handle, string relicId)
+    {
+        if (_relicCmdObtain is null || _modelDbGetByIdRelic is null || _modelIdCtor is null)
+            throw new InvalidOperationException("RelicCmd.Obtain / ModelDb.GetById<RelicModel> / ModelId(string,string) not bound — debug/give_relic unavailable");
+
+        var modelId = _modelIdCtor.Invoke(new object?[] { "RELIC", relicId });
+        var canonical = _modelDbGetByIdRelic.Invoke(null, new[] { modelId })
+            ?? throw new InvalidOperationException($"ModelDb.GetById<RelicModel>(\"{relicId}\") returned null — unknown relic id");
+        // ModelDb hands back an immutable canonical model; RelicCmd.Obtain
+        // requires a per-run mutable copy or it throws CanonicalModelException.
+        var relicModel = _relicModelToMutable is not null
+            ? (_relicModelToMutable.Invoke(canonical, null) ?? canonical)
+            : canonical;
+
+        var paramCount = _relicCmdObtain.GetParameters().Length;
+        var args = new object?[paramCount];
+        args[0] = relicModel;
+        args[1] = handle.Player;
+        for (var i = 2; i < paramCount; i++) args[i] = Type.Missing;
+        var obtainResult = _relicCmdObtain.Invoke(null, args);
+        if (obtainResult is Task t) t.GetAwaiter().GetResult();
+        _syncCtx?.Pump();
     }
 
     private void AdvanceAfterRewardsConsumed(RunHandle handle)
@@ -1634,6 +1640,45 @@ public sealed partial class Sts2Bindings
             catch { /* enum value renamed — leave null, catalog will report it */ }
         }
 
+        // RelicCmd.Obtain(relicModel, player) + ModelDb.GetById<RelicModel>(ModelId)
+        // — engine path for granting a relic to the player after the run has
+        // started. Used by debug/give_relic to inject regression-test fixtures
+        // (e.g. on-card-obtain relics like LuckyFysh) without simulating a
+        // treasure room. Soft-bound: the host still boots if any piece is
+        // missing, but debug/give_relic surfaces an error.
+        MethodInfo? relicCmdObtain = null;
+        MethodInfo? modelDbGetByIdRelic = null;
+        ConstructorInfo? modelIdCtor = null;
+        MethodInfo? relicModelToMutable = null;
+        var relicModelLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Models.RelicModel");
+        var modelDbLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Models.ModelDb");
+        var modelIdLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Models.ModelId");
+        var relicCmdLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Commands.RelicCmd");
+        if (relicModelLookup.Found && modelDbLookup.Found && modelIdLookup.Found && relicCmdLookup.Found)
+        {
+            modelIdCtor = modelIdLookup.Type!.GetConstructors()
+                .FirstOrDefault(c =>
+                {
+                    var ps = c.GetParameters();
+                    return ps.Length == 2 && ps[0].ParameterType == typeof(string) && ps[1].ParameterType == typeof(string);
+                });
+            var getByIdGeneric = modelDbLookup.Type!.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .FirstOrDefault(m => m.Name == "GetById" && m.IsGenericMethodDefinition && m.GetParameters().Length == 1);
+            if (getByIdGeneric is not null)
+                modelDbGetByIdRelic = getByIdGeneric.MakeGenericMethod(relicModelLookup.Type!);
+            relicCmdObtain = relicCmdLookup.Type!.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .FirstOrDefault(m =>
+                {
+                    if (m.Name != "Obtain" || m.IsGenericMethod) return false;
+                    var ps = m.GetParameters();
+                    return ps.Length >= 2 && ps[0].ParameterType == relicModelLookup.Type && ps[1].ParameterType == playerType;
+                });
+            // Canonical models from ModelDb are immutable; ToMutable() returns
+            // a per-run instance that's safe to pass into RelicCmd.Obtain.
+            // Without it the engine throws CanonicalModelException.
+            relicModelToMutable = relicModelLookup.Type!.GetMethod("ToMutable", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
+        }
+
         return new RewardBindings(
             rewardsSetCtor, withRewardsFromRoom, generateWithoutOffering,
             rewardOnSelectWrapper,
@@ -1642,7 +1687,9 @@ public sealed partial class Sts2Bindings
             potionRewardType, potionRewardPotionId,
             relicRewardType, relicRewardRelicId,
             rewardSync, syncLocalObtainedCard,
-            cardPileCmdAdd, pileTypeDeckValue);
+            cardPileCmdAdd, pileTypeDeckValue,
+            relicCmdObtain, modelDbGetByIdRelic, modelIdCtor,
+            relicModelToMutable);
     }
 
     // Combat discovery. Every step is soft — if something doesn't resolve we
@@ -1941,7 +1988,9 @@ public sealed partial class Sts2Bindings
         Type? RelicRewardType, PropertyInfo? RelicRewardRelicId,
         PropertyInfo? RunManagerRewardSynchronizer,
         MethodInfo? RewardSyncSyncLocalObtainedCard,
-        MethodInfo? CardPileCmdAdd, object? PileTypeDeckValue);
+        MethodInfo? CardPileCmdAdd, object? PileTypeDeckValue,
+        MethodInfo? RelicCmdObtain, MethodInfo? ModelDbGetByIdRelic, ConstructorInfo? ModelIdCtor,
+        MethodInfo? RelicModelToMutable);
 
     // Combat surface is grouped to keep BindingState's positional ctor scannable.
     // Every member is nullable: combat is opt-in at read time (snapshot returns
