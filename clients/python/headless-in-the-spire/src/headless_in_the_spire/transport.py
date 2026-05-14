@@ -10,8 +10,7 @@ returns raw `dict` results. The typed wrapper in `client.py` handles
 pydantic (de)serialisation.
 """
 
-from __future__ import annotations
-
+import contextlib
 import json
 import os
 import queue
@@ -22,8 +21,8 @@ import threading
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
-
+from types import TracebackType
+from typing import Any, Self, cast
 
 # Default subprocess command components. Two forms:
 #   1. HEADLESS_IN_THE_SPIRE_HOST=/path/to/binary  → run that binary directly.
@@ -52,6 +51,10 @@ class Notification:
     params: dict[str, Any] | None
 
 
+def _default_stderr_sink(line: str) -> None:
+    print(f"[host stderr] {line}", file=sys.stderr)
+
+
 class Transport:
     """Subprocess NDJSON pipe to the C# host.
 
@@ -63,7 +66,7 @@ class Transport:
 
     def __init__(
         self,
-        process: subprocess.Popen,
+        process: subprocess.Popen[str],
         *,
         stderr_log: Callable[[str], None] | None = None,
     ) -> None:
@@ -75,17 +78,19 @@ class Transport:
 
         self._next_id = 1
         self._lock = threading.Lock()
-        self._pending: dict[int, queue.SimpleQueue] = {}
+        self._pending: dict[int, queue.SimpleQueue[_PendingResponse]] = {}
         self._notifications: queue.SimpleQueue[Notification] = queue.SimpleQueue()
         self._subscribers: list[Callable[[Notification], None]] = []
         self._closed = threading.Event()
         self._reader = threading.Thread(
-            target=self._read_loop, name="hits-transport-reader", daemon=True,
+            target=self._read_loop,
+            name="hits-transport-reader",
+            daemon=True,
         )
         self._reader.start()
 
         if self._stderr is not None:
-            sink = stderr_log or (lambda line: print(f"[host stderr] {line}", file=sys.stderr))
+            sink: Callable[[str], None] = stderr_log or _default_stderr_sink
             self._stderr_thread = threading.Thread(
                 target=self._stderr_loop,
                 args=(sink,),
@@ -101,14 +106,14 @@ class Transport:
         cls,
         cmd: Sequence[str] | None = None,
         *,
-        cwd: str | os.PathLike | None = None,
+        cwd: str | os.PathLike[str] | None = None,
         env: Mapping[str, str] | None = None,
         stderr_log: Callable[[str], None] | None = None,
-    ) -> "Transport":
+    ) -> Self:
         if cmd is None:
             cmd = _default_command(cwd)
 
-        proc = subprocess.Popen(
+        proc: subprocess.Popen[str] = subprocess.Popen(
             list(cmd),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -134,7 +139,7 @@ class Transport:
         with self._lock:
             request_id = self._next_id
             self._next_id += 1
-            inbox: queue.SimpleQueue = queue.SimpleQueue()
+            inbox: queue.SimpleQueue[_PendingResponse] = queue.SimpleQueue()
             self._pending[request_id] = inbox
 
         envelope: dict[str, Any] = {"id": request_id, "method": method}
@@ -160,17 +165,22 @@ class Transport:
             raise TransportClosedError(
                 f"host exited before responding to id={request_id} ({response.reason})",
             )
-        assert isinstance(response, dict)
-        if (err := response.get("error")) is not None:
+        raw_err = response.get("error")
+        if isinstance(raw_err, dict):
+            err = cast("dict[str, Any]", raw_err)
             raise JsonRpcError(
                 code=int(err.get("code", -32603)),
                 message=str(err.get("message", "")),
                 data=err.get("data"),
             )
-        result = response.get("result")
-        if result is not None and not isinstance(result, dict):
-            raise RuntimeError(f"expected object result, got {type(result).__name__}")
-        return result
+        raw_result = response.get("result")
+        if raw_result is None:
+            return None
+        if not isinstance(raw_result, dict):
+            raise RuntimeError(
+                f"expected object result, got {type(raw_result).__name__}",
+            )
+        return cast("dict[str, Any]", raw_result)
 
     def subscribe(self, callback: Callable[[Notification], None]) -> Callable[[], None]:
         """Register a callback for server-push notifications. Returns an
@@ -179,11 +189,8 @@ class Transport:
             self._subscribers.append(callback)
 
         def unsubscribe() -> None:
-            with self._lock:
-                try:
-                    self._subscribers.remove(callback)
-                except ValueError:
-                    pass
+            with self._lock, contextlib.suppress(ValueError):
+                self._subscribers.remove(callback)
 
         return unsubscribe
 
@@ -191,10 +198,8 @@ class Transport:
         """Close stdin (signalling EOF), wait for the host to exit, return its
         return code. Falls back to kill() after `timeout`."""
         if self._stdin is not None:
-            try:
+            with contextlib.suppress(BrokenPipeError, ValueError):
                 self._stdin.close()
-            except (BrokenPipeError, ValueError):
-                pass
         try:
             rc = self._process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -203,10 +208,15 @@ class Transport:
         self._mark_closed()
         return rc
 
-    def __enter__(self) -> "Transport":
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.close()
 
     # ── Internals ─────────────────────────────────────────────────────────
@@ -219,7 +229,7 @@ class Transport:
                 if not line:
                     continue
                 try:
-                    msg = json.loads(line)
+                    parsed: object = json.loads(line)
                 except json.JSONDecodeError:
                     # Lines we can't parse are logged but don't break the loop;
                     # the host should never emit them on stdout, but a stray
@@ -227,10 +237,15 @@ class Transport:
                     print(f"[host stdout, unparseable] {line!r}", file=sys.stderr)
                     continue
 
-                if not isinstance(msg, dict):
+                if not isinstance(parsed, dict):
                     continue
+                # The wire is plain JSON: keys are always strings, values
+                # are arbitrary. Pyright can't infer that from `isinstance`
+                # alone, so we re-bind to a typed alias.
+                msg = cast("dict[str, Any]", parsed)
 
-                if (request_id := msg.get("id")) is not None and isinstance(request_id, int):
+                request_id = msg.get("id")
+                if isinstance(request_id, int):
                     with self._lock:
                         inbox = self._pending.get(request_id)
                     if inbox is not None:
@@ -244,7 +259,7 @@ class Transport:
                 if isinstance(method, str):
                     note = Notification(
                         method=method,
-                        params=params if isinstance(params, dict) else None,
+                        params=cast("dict[str, Any]", params) if isinstance(params, dict) else None,
                     )
                     self._notifications.put(note)
                     with self._lock:
@@ -280,7 +295,12 @@ class _ReaderDied:
     reason: str
 
 
-def _default_command(cwd: str | os.PathLike | None) -> list[str]:
+# Things a request's inbox can carry: either the response envelope (a dict
+# parsed off the wire) or a sentinel saying the reader thread is gone.
+_PendingResponse = dict[str, Any] | _ReaderDied
+
+
+def _default_command(cwd: str | os.PathLike[str] | None) -> list[str]:
     """Pick the host command:
 
     1. `HEADLESS_IN_THE_SPIRE_HOST` env var → that binary, plus `--stdio`.

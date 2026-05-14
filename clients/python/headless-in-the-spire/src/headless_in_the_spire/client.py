@@ -1,25 +1,25 @@
 """Typed `Client` over the subprocess transport.
 
 One method per `MethodCatalog` entry on the C# side. Wire names map to
-Python identifiers via a pinned table (`_METHOD_NAMES`) so a future codegen
+Python identifiers via a pinned table (`METHOD_NAMES`) so a future codegen
 behavioural change can't silently rename the public API; if `MethodCatalog`
 gains an entry, an integration test will fail until this table is updated.
 
 DTOs in `_models` are generated; everything in this module is hand-rolled.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
-from typing import Any
+from types import TracebackType
+from typing import Any, Self
+
+from pydantic import BaseModel
 
 from headless_in_the_spire import _models as m
 from headless_in_the_spire.transport import Transport
 
-
 # Wire-name ↔ Python-identifier mapping. Mirrors MethodCatalog on the C#
 # side. Adding a method here is a deliberate review step.
-_METHOD_NAMES: dict[str, str] = {
+METHOD_NAMES: dict[str, str] = {
     "host/ping": "host_ping",
     "run/new": "run_new",
     "run/state": "run_state",
@@ -33,16 +33,12 @@ _METHOD_NAMES: dict[str, str] = {
 }
 
 
-def _dump(params: Any) -> Mapping[str, Any] | None:
+def _dump(params: BaseModel | None) -> Mapping[str, Any] | None:
     """Serialise a pydantic params model to wire-shape dict (camelCase
     aliases, drop unset fields)."""
     if params is None:
         return None
-    if hasattr(params, "model_dump"):
-        return params.model_dump(by_alias=True, exclude_unset=True, mode="json")
-    if isinstance(params, Mapping):
-        return dict(params)
-    raise TypeError(f"unsupported params type {type(params).__name__}")
+    return params.model_dump(by_alias=True, exclude_unset=True, mode="json")
 
 
 class Client:
@@ -58,7 +54,7 @@ class Client:
         self._transport = transport
 
     @classmethod
-    def spawn(cls, **kwargs: Any) -> "Client":
+    def spawn(cls, **kwargs: Any) -> Self:
         """Spawn the host subprocess and wrap it in a Client. `kwargs` are
         forwarded to `Transport.spawn` (e.g. `cwd=`, `cmd=`)."""
         return cls(Transport.spawn(**kwargs))
@@ -70,10 +66,15 @@ class Client:
     def close(self) -> int | None:
         return self._transport.close()
 
-    def __enter__(self) -> "Client":
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.close()
 
     # ── Generated-style dispatch helpers ──────────────────────────────────
@@ -86,7 +87,10 @@ class Client:
         return m.HostPingResult.model_validate(result)
 
     def run_new(
-        self, params: m.RunNewParams | None = None, *, timeout: float | None = None,
+        self,
+        params: m.RunNewParams | None = None,
+        *,
+        timeout: float | None = None,
     ) -> m.RunNewResult:
         result = self._transport.call("run/new", _dump(params), timeout=timeout)
         return m.RunNewResult.model_validate(result)
@@ -96,16 +100,24 @@ class Client:
         return m.RunStateResult.model_validate(result)
 
     def run_select_map_node(
-        self, params: m.RunSelectMapNodeParams, *, timeout: float | None = None,
+        self,
+        params: m.RunSelectMapNodeParams,
+        *,
+        timeout: float | None = None,
     ) -> m.RunSelectMapNodeResult:
         result = self._transport.call("run/select_map_node", _dump(params), timeout=timeout)
         return m.RunSelectMapNodeResult.model_validate(result)
 
     def run_select_event_option(
-        self, params: m.RunSelectEventOptionParams, *, timeout: float | None = None,
+        self,
+        params: m.RunSelectEventOptionParams,
+        *,
+        timeout: float | None = None,
     ) -> m.RunSelectEventOptionResult:
         result = self._transport.call(
-            "run/select_event_option", _dump(params), timeout=timeout,
+            "run/select_event_option",
+            _dump(params),
+            timeout=timeout,
         )
         return m.RunSelectEventOptionResult.model_validate(result)
 
@@ -114,25 +126,37 @@ class Client:
         return m.RunEndTurnResult.model_validate(result)
 
     def run_play_card(
-        self, params: m.RunPlayCardParams, *, timeout: float | None = None,
+        self,
+        params: m.RunPlayCardParams,
+        *,
+        timeout: float | None = None,
     ) -> m.RunPlayCardResult:
         result = self._transport.call("run/play_card", _dump(params), timeout=timeout)
         return m.RunPlayCardResult.model_validate(result)
 
     def run_select_reward(
-        self, params: m.RunSelectRewardParams, *, timeout: float | None = None,
+        self,
+        params: m.RunSelectRewardParams,
+        *,
+        timeout: float | None = None,
     ) -> m.RunSelectRewardResult:
         result = self._transport.call("run/select_reward", _dump(params), timeout=timeout)
         return m.RunSelectRewardResult.model_validate(result)
 
     def run_skip_reward(
-        self, params: m.RunSkipRewardParams, *, timeout: float | None = None,
+        self,
+        params: m.RunSkipRewardParams,
+        *,
+        timeout: float | None = None,
     ) -> m.RunSkipRewardResult:
         result = self._transport.call("run/skip_reward", _dump(params), timeout=timeout)
         return m.RunSkipRewardResult.model_validate(result)
 
     def debug_give_relic(
-        self, params: m.DebugGiveRelicParams, *, timeout: float | None = None,
+        self,
+        params: m.DebugGiveRelicParams,
+        *,
+        timeout: float | None = None,
     ) -> m.DebugGiveRelicResult:
         result = self._transport.call("debug/give_relic", _dump(params), timeout=timeout)
         return m.DebugGiveRelicResult.model_validate(result)

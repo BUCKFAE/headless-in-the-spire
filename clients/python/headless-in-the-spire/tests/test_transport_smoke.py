@@ -6,8 +6,6 @@ available — keeps this file unit-suite-friendly while still letting devs
 verify the slice end-to-end.
 """
 
-from __future__ import annotations
-
 import os
 import shutil
 from pathlib import Path
@@ -45,7 +43,6 @@ def test_host_ping_round_trips() -> None:
 
 @pytest.mark.skipif(not _host_available(), reason="no host binary and no dotnet+project")
 def test_unknown_method_returns_jsonrpc_error() -> None:
-    with Client.spawn(cwd=_repo_root()) as c:
-        with pytest.raises(JsonRpcError) as exc_info:
-            c.transport.call("nope/does_not_exist", None, timeout=60.0)
+    with Client.spawn(cwd=_repo_root()) as c, pytest.raises(JsonRpcError) as exc_info:
+        c.transport.call("nope/does_not_exist", None, timeout=60.0)
     assert exc_info.value.code == -32601  # JSON-RPC "method not found"

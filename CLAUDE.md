@@ -120,3 +120,23 @@ clients/python/
   output. Multi-line comments are clipped.
 - Don't reference `external-tools/` in code — it's a research clone of
   `wuhao21/sts2-cli` for reading only, gitignored, and may be absent.
+
+### Python rules
+
+- **Every function and every parameter is type-annotated.** No untyped
+  signatures, including private helpers and tests. Pyright runs in strict
+  mode (`just typecheck-python`); ruff's `ANN` ruleset catches missing
+  annotations before pyright does. Return-type annotations on
+  `def test_xxx()` are exempted via ruff's per-file-ignores — pytest gives
+  us the return-type contract for free.
+- **No `from __future__ import annotations`.** We're on Python 3.13;
+  modern syntax (`X | Y`, `list[int]`, `Self`) is native. The future import
+  turns *every* annotation into a string, which silently breaks runtime
+  introspection used by pydantic, dataclasses, typer, and anything calling
+  `typing.get_type_hints()`. Self-references go through `typing.Self`;
+  genuine forward refs use a `TYPE_CHECKING`-gated import. The generator
+  passes `--disable-future-imports` so even regenerated DTOs stay clean.
+- **Lint + format + typecheck before commit.** `just lint-python` (ruff
+  check + format --check), `just typecheck-python` (pyright strict),
+  `just test-python` (pytest). The `just test` umbrella runs all three
+  plus the C# suites.

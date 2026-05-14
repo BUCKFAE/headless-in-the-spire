@@ -14,14 +14,13 @@ Invoked via the just recipe:
 Paths are anchored at the repo root, located by walking up to `GAME_VERSION`.
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any
 
 
 def locate_repo_root(start: Path) -> Path:
@@ -31,7 +30,7 @@ def locate_repo_root(start: Path) -> Path:
     raise SystemExit("could not locate repo root (no GAME_VERSION found upwards)")
 
 
-def build_lifted_schema(openrpc: dict) -> dict:
+def build_lifted_schema(openrpc: dict[str, Any]) -> dict[str, Any]:
     """Lift OpenRPC's components.schemas into a minimal OpenAPI 3.0 document.
 
     We wrap the schemas in OpenAPI shape (not raw JSON Schema with
@@ -42,7 +41,8 @@ def build_lifted_schema(openrpc: dict) -> dict:
     `$ref`s in openrpc.json already point at `#/components/schemas/...`, which
     is also the OpenAPI form, so no rewrite is needed.
     """
-    schemas = openrpc.get("components", {}).get("schemas", {})
+    components: dict[str, Any] = openrpc.get("components", {})
+    schemas: dict[str, Any] = components.get("schemas", {})
     if not schemas:
         raise SystemExit("openrpc.json has no components.schemas")
     return {
@@ -70,7 +70,11 @@ def run_generator(schema_path: Path, output_path: Path) -> None:
         "--output-model-type",
         "pydantic_v2.BaseModel",
         "--target-python-version",
-        "3.10",
+        "3.13",
+        # CLAUDE.md: never emit `from __future__ import annotations`. We're
+        # pinned to 3.13; native `X | Y` and `list[int]` work without it, and
+        # eager annotations keep pydantic / runtime introspection honest.
+        "--disable-future-imports",
         "--use-schema-description",
         "--use-field-description",
         "--snake-case-field",
@@ -105,7 +109,7 @@ def main() -> int:
         / "_models.py"
     )
 
-    openrpc = json.loads(openrpc_path.read_text())
+    openrpc: dict[str, Any] = json.loads(openrpc_path.read_text())
     lifted = build_lifted_schema(openrpc)
 
     # Use a fixed-name tempfile under the system temp dir. datamodel-codegen

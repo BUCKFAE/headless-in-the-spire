@@ -30,6 +30,76 @@ members = ["clients/python/headless-in-the-spire"]
 # `uv sync` automatically (default groups include `dev`).
 dev = [
     "datamodel-code-generator[http]>=0.26",
+    "pyright>=1.1.380",
     "pytest>=8",
     "ruff>=0.6",
 ]
+
+# ── Ruff (lint + format) ─────────────────────────────────────────────────
+# Workspace-wide. Single source of truth — every member inherits these
+# rules (ruff walks up to the nearest pyproject.toml with a [tool.ruff]
+# table).
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = [
+    # Generated artefact; deliberately not subject to our style rules.
+    "clients/python/headless-in-the-spire/src/headless_in_the_spire/_models.py",
+]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",         # pycodestyle errors / warnings
+    "F",              # pyflakes
+    "I",              # isort
+    "UP",             # pyupgrade — keep us on modern syntax
+    "B",              # flake8-bugbear — likely bugs
+    "ANN",            # flake8-annotations — type-hint coverage
+    "FA",             # flake8-future-annotations — flag uses, never adds
+    "SIM",            # flake8-simplify
+    "RET",            # flake8-return — unify return styles
+    "PTH",            # flake8-use-pathlib — prefer pathlib over os.path
+    "PIE",            # flake8-pie — small wins
+    "RUF",            # ruff-specific
+]
+ignore = [
+    "ANN401",  # allow `Any` — the JSON-RPC envelope deals in untyped payloads
+               # at the seam between dict[str, Any] and pydantic models;
+               # forcing a typed wrapper there hides intent rather than helps.
+    "E501",    # long lines are caught by `ruff format` when avoidable; the
+               # hard cap is line-length above, not a separate diagnostic.
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests don't need return-type annotations on `def test_xxx()`.
+"**/tests/**" = ["ANN201", "ANN202"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["headless_in_the_spire"]
+
+# ── Pyright (type checker) ──────────────────────────────────────────────
+# Strict mode at the workspace root; the same caveats live in CLAUDE.md.
+# Per-project overrides go in each member's pyproject.toml under
+# [tool.pyright] if ever needed.
+[tool.pyright]
+include = ["clients/python"]
+exclude = [
+    "**/__pycache__",
+    "**/.venv",
+]
+# _models.py is generated but NOT excluded: pyright needs to parse it to
+# resolve attribute types in the rest of the package and the tests. Style
+# lint of the generated file is suppressed via ruff's extend-exclude
+# (above) instead.
+# Point pyright at the uv workspace .venv so it resolves pydantic, pytest,
+# and the editable-installed `headless_in_the_spire` package. Without these
+# every import surfaces as `reportMissingImports`.
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
+pythonPlatform = "Linux"
+typeCheckingMode = "strict"
+reportMissingTypeStubs = "warning"
+# pydantic's generated __init__ params drive a lot of false positives in
+# pure-strict mode; keep them informational rather than errors.
+reportCallIssue = "warning"

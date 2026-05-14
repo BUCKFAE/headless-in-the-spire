@@ -25,12 +25,8 @@ path = "src/headless_in_the_spire/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/headless_in_the_spire"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py313"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+# Ruff and pyright are configured at the workspace root pyproject.toml so
+# every Python member shares the same rules; no per-package overrides yet.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

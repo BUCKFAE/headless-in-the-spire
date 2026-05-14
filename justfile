@@ -108,5 +108,22 @@ test-python:
     @bash scripts/check-uv.sh
     @uv run pytest clients/python/headless-in-the-spire/tests/
 
-# Run every test suite (C# unit + integration + Python).
-test: test-unit test-integration test-python
+# Lint Python (ruff check + ruff format --check). Workspace-wide.
+lint-python:
+    @bash scripts/check-uv.sh
+    @uv run ruff check clients/python/
+    @uv run ruff format --check clients/python/
+
+# Auto-fix Python (ruff check --fix + ruff format).
+fix-python:
+    @bash scripts/check-uv.sh
+    @uv run ruff check --fix clients/python/
+    @uv run ruff format clients/python/
+
+# Static type-check Python with pyright (strict mode).
+typecheck-python:
+    @bash scripts/check-uv.sh
+    @uv run pyright
+
+# Run every test suite (C# unit + integration + Python) plus lint + typecheck.
+test: test-unit test-integration test-python lint-python typecheck-python
