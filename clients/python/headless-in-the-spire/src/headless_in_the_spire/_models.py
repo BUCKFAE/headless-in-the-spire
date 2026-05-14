@@ -44,12 +44,30 @@ class DebugGiveRelicResult(BaseModel):
     deck_size: Annotated[int, Field(alias="deckSize")]
 
 
+class DebugSetHpParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    hp: int
+    max_hp: Annotated[int | None, Field(alias="maxHp")] = None
+
+
+class DebugSetHpResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    hp: int
+    max_hp: Annotated[int, Field(alias="maxHp")]
+    is_game_over: Annotated[bool, Field(alias="isGameOver")]
+
+
 class EventOption(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     index: int
-    text_key: Annotated[str | None, Field(alias="textKey")]
+    text_key: Annotated[str | None, Field(alias="textKey")] = None
     is_locked: Annotated[bool, Field(alias="isLocked")]
 
 
@@ -58,8 +76,8 @@ class HostPingResult(BaseModel):
         populate_by_name=True,
     )
     ok: bool
-    game_version: Annotated[str | None, Field(alias="gameVersion")]
-    game_sha256: Annotated[str | None, Field(alias="gameSha256")]
+    game_version: Annotated[str | None, Field(alias="gameVersion")] = None
+    game_sha256: Annotated[str | None, Field(alias="gameSha256")] = None
 
 
 class IntentKind(Enum):
@@ -95,6 +113,22 @@ class Power(BaseModel):
     )
     id: str
     amount: int
+
+
+class Relic(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: str
+
+
+class RestSiteOption(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    index: int
+    option_id: Annotated[str, Field(alias="optionId")]
+    is_enabled: Annotated[bool, Field(alias="isEnabled")]
 
 
 class RewardKind(Enum):
@@ -168,6 +202,13 @@ class RunSelectMapNodeParams(BaseModel):
     row: int
 
 
+class RunSelectRestSiteOptionParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    option_index: Annotated[int, Field(alias="optionIndex")]
+
+
 class RunSelectRewardParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -210,9 +251,9 @@ class Intent(BaseModel):
         populate_by_name=True,
     )
     kind: IntentKind
-    damage: int | None
-    hits: int | None
-    block: int | None
+    damage: int | None = None
+    hits: int | None = None
+    block: int | None = None
 
 
 class MapNode(BaseModel):
@@ -229,7 +270,7 @@ class Enemy(BaseModel):
         populate_by_name=True,
     )
     index: int
-    monster_id: Annotated[str | None, Field(alias="monsterId")]
+    monster_id: Annotated[str | None, Field(alias="monsterId")] = None
     hp: int
     max_hp: Annotated[int, Field(alias="maxHp")]
     block: int
@@ -268,8 +309,12 @@ class RunEndTurnResult(BaseModel):
     available_event_options: Annotated[
         list[EventOption], Field(alias="availableEventOptions")
     ]
-    combat_state: Annotated[CombatState, Field(alias="combatState")]
-    rewards_state: Annotated[RewardsState, Field(alias="rewardsState")]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
 
 
 class RunNewResult(BaseModel):
@@ -285,8 +330,12 @@ class RunNewResult(BaseModel):
     available_event_options: Annotated[
         list[EventOption], Field(alias="availableEventOptions")
     ]
-    combat_state: Annotated[CombatState, Field(alias="combatState")]
-    rewards_state: Annotated[RewardsState, Field(alias="rewardsState")]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
 
 
 class RunPlayCardResult(BaseModel):
@@ -295,7 +344,7 @@ class RunPlayCardResult(BaseModel):
     )
     ok: bool
     card_index: Annotated[int, Field(alias="cardIndex")]
-    target_index: Annotated[int | None, Field(alias="targetIndex")]
+    target_index: Annotated[int | None, Field(alias="targetIndex")] = None
     current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
     act_floor: Annotated[int, Field(alias="actFloor")]
     is_game_over: Annotated[bool, Field(alias="isGameOver")]
@@ -304,8 +353,12 @@ class RunPlayCardResult(BaseModel):
     available_event_options: Annotated[
         list[EventOption], Field(alias="availableEventOptions")
     ]
-    combat_state: Annotated[CombatState, Field(alias="combatState")]
-    rewards_state: Annotated[RewardsState, Field(alias="rewardsState")]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
 
 
 class RunSelectEventOptionResult(BaseModel):
@@ -322,8 +375,12 @@ class RunSelectEventOptionResult(BaseModel):
     available_event_options: Annotated[
         list[EventOption], Field(alias="availableEventOptions")
     ]
-    combat_state: Annotated[CombatState, Field(alias="combatState")]
-    rewards_state: Annotated[RewardsState, Field(alias="rewardsState")]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
 
 
 class RunSelectMapNodeResult(BaseModel):
@@ -341,17 +398,20 @@ class RunSelectMapNodeResult(BaseModel):
     available_event_options: Annotated[
         list[EventOption], Field(alias="availableEventOptions")
     ]
-    combat_state: Annotated[CombatState, Field(alias="combatState")]
-    rewards_state: Annotated[RewardsState, Field(alias="rewardsState")]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
 
 
-class RunSelectRewardResult(BaseModel):
+class RunSelectRestSiteOptionResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     ok: bool
-    reward_index: Annotated[int, Field(alias="rewardIndex")]
-    card_index: Annotated[int | None, Field(alias="cardIndex")]
+    option_index: Annotated[int, Field(alias="optionIndex")]
     current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
     act_floor: Annotated[int, Field(alias="actFloor")]
     is_game_over: Annotated[bool, Field(alias="isGameOver")]
@@ -360,8 +420,35 @@ class RunSelectRewardResult(BaseModel):
     available_event_options: Annotated[
         list[EventOption], Field(alias="availableEventOptions")
     ]
-    combat_state: Annotated[CombatState, Field(alias="combatState")]
-    rewards_state: Annotated[RewardsState, Field(alias="rewardsState")]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
+
+
+class RunSelectRewardResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    reward_index: Annotated[int, Field(alias="rewardIndex")]
+    card_index: Annotated[int | None, Field(alias="cardIndex")] = None
+    current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
+    act_floor: Annotated[int, Field(alias="actFloor")]
+    is_game_over: Annotated[bool, Field(alias="isGameOver")]
+    hp: int
+    available_map_nodes: Annotated[list[MapNode], Field(alias="availableMapNodes")]
+    available_event_options: Annotated[
+        list[EventOption], Field(alias="availableEventOptions")
+    ]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
 
 
 class RunSkipRewardResult(BaseModel):
@@ -378,8 +465,12 @@ class RunSkipRewardResult(BaseModel):
     available_event_options: Annotated[
         list[EventOption], Field(alias="availableEventOptions")
     ]
-    combat_state: Annotated[CombatState, Field(alias="combatState")]
-    rewards_state: Annotated[RewardsState, Field(alias="rewardsState")]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
 
 
 class RunStateResult(BaseModel):
@@ -387,7 +478,7 @@ class RunStateResult(BaseModel):
         populate_by_name=True,
     )
     ok: bool
-    character: Character | None
+    character: Character | None = None
     seed: int
     hp: int
     max_hp: Annotated[int, Field(alias="maxHp")]
@@ -400,5 +491,9 @@ class RunStateResult(BaseModel):
     available_event_options: Annotated[
         list[EventOption], Field(alias="availableEventOptions")
     ]
-    combat_state: Annotated[CombatState, Field(alias="combatState")]
-    rewards_state: Annotated[RewardsState, Field(alias="rewardsState")]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
