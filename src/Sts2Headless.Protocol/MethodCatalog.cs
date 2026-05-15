@@ -85,6 +85,11 @@ public static class MethodCatalog
             ResultType: typeof(RunPlayCardResult),
             Summary: "Play a card from the current hand."),
 
+        new("run/use_potion",
+            ParamsType: typeof(RunUsePotionParams),
+            ResultType: typeof(RunUsePotionResult),
+            Summary: "Drink a potion from the player's belt. potionIndex is the wire index into ownedPotions; targetIndex is required for AnyEnemy potions and ignored otherwise."),
+
         new("run/select_reward",
             ParamsType: typeof(RunSelectRewardParams),
             ResultType: typeof(RunSelectRewardResult),

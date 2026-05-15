@@ -31,6 +31,9 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 // Relics is the player's bag (starter relic + everything obtained mid-run),
 // surfaced on every snapshot since relics are run-scoped state rather than
 // room-scoped (unlike combatState / rewardsState).
+// OwnedPotions is the player's potion belt — same run-scoped lifetime as
+// relics. Empty slots are omitted (no nulls); positions in this list
+// reflect the engine's slot order so run/use_potion can index into it.
 public sealed record RunSnapshot(
     int CurrentHp,
     int MaxHp,
@@ -45,4 +48,5 @@ public sealed record RunSnapshot(
     IReadOnlyList<MerchantItem> AvailableMerchantItems,
     CombatState? CombatState,
     RewardsState? RewardsState,
-    IReadOnlyList<Relic> Relics);
+    IReadOnlyList<Relic> Relics,
+    IReadOnlyList<OwnedPotion> OwnedPotions);

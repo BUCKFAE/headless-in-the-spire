@@ -64,6 +64,14 @@ public sealed partial class Sts2Bindings
     // entry GetProperty calls.
     private readonly PropertyInfo? _playerRelics;
     private readonly PropertyInfo? _relicId;
+    // Potion bag: read PotionSlots (IReadOnlyList<PotionModel>, with nulls
+    // for empty slots) to surface OwnedPotions; EnqueueManualUse + the
+    // PotionModel.TargetType drive run/use_potion. Player.Creature (used
+    // for self-target potions) is already bound non-nullably above.
+    private readonly PropertyInfo? _playerPotionSlots;
+    private readonly PropertyInfo? _potionTargetType;
+    private readonly PropertyInfo? _potionPassesUsabilityCheck;
+    private readonly MethodInfo? _potionEnqueueManualUse;
     // Player.NetId — anchor for LocalContext alignment. Multiplayer lookups
     // ride on the contract that LocalContext.NetId == Player.NetId for the
     // local player.
@@ -302,6 +310,10 @@ public sealed partial class Sts2Bindings
         _playerDeck = s.PlayerDeck;
         _playerRelics = s.PlayerRelics;
         _relicId = s.RelicId;
+        _playerPotionSlots = s.PlayerPotionSlots;
+        _potionTargetType = s.PotionTargetType;
+        _potionPassesUsabilityCheck = s.PotionPassesUsabilityCheck;
+        _potionEnqueueManualUse = s.PotionEnqueueManualUse;
         _playerNetId = s.PlayerNetId;
         _creatureCurrentHp = s.CreatureCurrentHp;
         _creatureMaxHp = s.CreatureMaxHp;
@@ -608,8 +620,11 @@ public sealed partial class Sts2Bindings
 
         // Relics are run-scoped, not room-scoped: surface on every snapshot.
         var relics = ReadRelics(handle);
+        // Potion belt is run-scoped too; empty slots are filtered out so
+        // callers index against a dense list.
+        var ownedPotions = ReadOwnedPotions(handle);
 
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, combatState, rewardsState, relics);
+        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, combatState, rewardsState, relics, ownedPotions);
     }
 
     // Project the stashed list of pending rewards into the wire DTO. Returns
@@ -853,6 +868,88 @@ public sealed partial class Sts2Bindings
             result.Add(new Relic(id));
         }
         return result;
+    }
+
+    // Read Player.PotionSlots into the wire DTO. Empty slots (null entries
+    // in the engine list) are skipped — the wire indices are dense, so a
+    // caller's `potionIndex` always lands on a real potion. The potion id
+    // we surface is the engine type's short name (e.g. "BlockPotion") since
+    // PotionModel doesn't expose a stable string id; callers translate to
+    // human-readable names themselves.
+    private IReadOnlyList<OwnedPotion> ReadOwnedPotions(RunHandle handle)
+    {
+        if (_playerPotionSlots is null) return Array.Empty<OwnedPotion>();
+        var slotsObj = _playerPotionSlots.GetValue(handle.Player);
+        if (slotsObj is not System.Collections.IEnumerable slots) return Array.Empty<OwnedPotion>();
+
+        var result = new List<OwnedPotion>();
+        var idx = 0;
+        foreach (var potion in slots)
+        {
+            if (potion is null) { idx++; continue; }
+            var id = potion.GetType().Name;
+            var target = _potionTargetType?.GetValue(potion) is { } tt
+                ? ParseEnum<TargetType>(tt)
+                : TargetType.Unknown;
+            var canUse = _potionPassesUsabilityCheck?.GetValue(potion) is bool b ? b : true;
+            result.Add(new OwnedPotion(idx, id, target, canUse));
+            idx++;
+        }
+        return result;
+    }
+
+    // Use a potion via the engine's manual-use path. Mirrors play_card's
+    // shape: potionIndex is the wire index into ReadOwnedPotions (which
+    // skips empty slots — *not* the underlying PotionSlots index), and
+    // targetIndex is required when the potion's TargetType is AnyEnemy.
+    // For self / non-targeted potions, the player's own Creature is
+    // passed as the target (the engine ignores it for those usages).
+    public void UsePotion(RunHandle handle, int potionIndex, int? targetIndex)
+    {
+        if (_playerPotionSlots is null || _potionEnqueueManualUse is null || _potionTargetType is null)
+            throw new InvalidOperationException(
+                "Sts2Bindings: potion surface not bound — Player.PotionSlots / EnqueueManualUse missing on this dll");
+
+        var slotsObj = _playerPotionSlots.GetValue(handle.Player)
+            ?? throw new InvalidOperationException("Sts2Bindings: Player.PotionSlots returned null");
+        if (slotsObj is not System.Collections.IEnumerable slots)
+            throw new InvalidOperationException("Sts2Bindings: Player.PotionSlots is not enumerable");
+
+        object? potion = null;
+        var idx = 0;
+        foreach (var p in slots)
+        {
+            if (p is null) { idx++; continue; }
+            if (idx == potionIndex) { potion = p; break; }
+            idx++;
+        }
+        if (potion is null)
+            throw new ArgumentOutOfRangeException(nameof(potionIndex),
+                $"no potion at wire index {potionIndex} (bag is dense after skipping empty slots)");
+
+        // Pick the target Creature. AnyEnemy → indexed enemy (using the
+        // same resolver play_card uses, so the targetIndex semantics are
+        // identical). Self / other → the player's own creature (engine
+        // ignores the target field for those usages).
+        var target = ParseEnum<TargetType>(_potionTargetType.GetValue(potion));
+        object targetCreature;
+        if (target == TargetType.AnyEnemy)
+        {
+            targetCreature = ResolveAnyEnemyTarget(targetIndex)
+                ?? throw new InvalidOperationException(
+                    targetIndex is null
+                        ? "potion targets AnyEnemy but no targetIndex was supplied"
+                        : $"targetIndex {targetIndex} is not a live enemy");
+        }
+        else
+        {
+            targetCreature = _playerCreature.GetValue(handle.Player)
+                ?? throw new InvalidOperationException("Player.Creature is null");
+        }
+
+        _potionEnqueueManualUse.Invoke(potion, new[] { targetCreature });
+        DrainActionExecutor(handle);
+        AutoAdvancePostCombat(handle);
     }
 
     // Read the .Entry string off an Id-shaped object (sts2 wraps stable ids in
@@ -2250,6 +2347,26 @@ public sealed partial class Sts2Bindings
                 relicIdProp = relicElementType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
             }
         }
+
+        // Player.PotionSlots is also soft-bound: missing → empty OwnedPotions
+        // and run/use_potion throws a typed WireException at call time. The
+        // PotionModel element type carries TargetType (reuses the same enum
+        // as cards) and EnqueueManualUse(Creature) — the engine path
+        // RunPlayer.OnSelectActiveItem uses for in-combat potion drinks.
+        var playerPotionSlots = playerType.GetProperty("PotionSlots", BindingFlags.Public | BindingFlags.Instance);
+        PropertyInfo? potionTargetType = null;
+        PropertyInfo? potionPassesUsabilityCheck = null;
+        MethodInfo? potionEnqueueManualUse = null;
+        if (playerPotionSlots is not null)
+        {
+            var potionElementType = ExtractElementType(playerPotionSlots.PropertyType);
+            if (potionElementType is not null)
+            {
+                potionTargetType = potionElementType.GetProperty("TargetType", BindingFlags.Public | BindingFlags.Instance);
+                potionPassesUsabilityCheck = potionElementType.GetProperty("PassesCustomUsabilityCheck", BindingFlags.Public | BindingFlags.Instance);
+                potionEnqueueManualUse = potionElementType.GetMethod("EnqueueManualUse", BindingFlags.Public | BindingFlags.Instance);
+            }
+        }
         var creatureCurrentHp = RequireProperty(playerCreature.PropertyType, "CurrentHp");
         var creatureMaxHp = RequireProperty(playerCreature.PropertyType, "MaxHp");
         // Backing fields for direct write (debug/set_hp). sts2-cli's
@@ -2512,6 +2629,8 @@ public sealed partial class Sts2Bindings
             generateRooms, launch, finalize, enterAct, enterMapCoord, mapCoordType,
             playerGold, playerCreature, playerDeck, playerNetId,
             playerRelics, relicIdProp,
+            playerPotionSlots, potionTargetType,
+            potionPassesUsabilityCheck, potionEnqueueManualUse,
             creatureCurrentHp, creatureMaxHp,
             creatureCurrentHpField, creatureMaxHpField,
             deckCards,
@@ -2990,6 +3109,8 @@ public sealed partial class Sts2Bindings
         InvocationPlan RunManagerEnterAct, InvocationPlan RunManagerEnterMapCoord, Type MapCoordType,
         PropertyInfo PlayerGold, PropertyInfo PlayerCreature, PropertyInfo PlayerDeck, PropertyInfo PlayerNetId,
         PropertyInfo? PlayerRelics, PropertyInfo? RelicId,
+        PropertyInfo? PlayerPotionSlots, PropertyInfo? PotionTargetType,
+        PropertyInfo? PotionPassesUsabilityCheck, MethodInfo? PotionEnqueueManualUse,
         PropertyInfo CreatureCurrentHp, PropertyInfo CreatureMaxHp,
         FieldInfo? CreatureCurrentHpField, FieldInfo? CreatureMaxHpField,
         PropertyInfo DeckCards,

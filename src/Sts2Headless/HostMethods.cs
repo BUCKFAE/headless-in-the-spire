@@ -30,6 +30,7 @@ public static class HostMethods
             ["run/leave_merchant_room"] = TypedNoParams(() => RunLeaveMerchantRoom(bindings, session)),
             ["run/end_turn"] = TypedNoParams(() => RunEndTurn(bindings, session)),
             ["run/play_card"] = Typed<RunPlayCardParams, RunPlayCardResult>(p => RunPlayCard(bindings, session, p)),
+            ["run/use_potion"] = Typed<RunUsePotionParams, RunUsePotionResult>(p => RunUsePotion(bindings, session, p)),
             ["run/select_reward"] = Typed<RunSelectRewardParams, RunSelectRewardResult>(p => RunSelectReward(bindings, session, p)),
             ["run/skip_reward"] = Typed<RunSkipRewardParams, RunSkipRewardResult>(p => RunSkipReward(bindings, session, p)),
             // AD-7: every debug/* method is wrapped by GateDebug. With
@@ -105,7 +106,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunStateResult RunState(Sts2Bindings bindings, Session session)
@@ -131,7 +133,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunSelectMapNodeResult RunSelectMapNode(Sts2Bindings bindings, Session session, RunSelectMapNodeParams? @params)
@@ -158,7 +161,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunSelectEventOptionResult RunSelectEventOption(Sts2Bindings bindings, Session session, RunSelectEventOptionParams? @params)
@@ -184,7 +188,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunSelectRestSiteOptionResult RunSelectRestSiteOption(Sts2Bindings bindings, Session session, RunSelectRestSiteOptionParams? @params)
@@ -210,7 +215,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunLeaveTreasureRoomResult RunLeaveTreasureRoom(Sts2Bindings bindings, Session session)
@@ -233,7 +239,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunBuyMerchantItemResult RunBuyMerchantItem(Sts2Bindings bindings, Session session, RunBuyMerchantItemParams? @params)
@@ -286,7 +293,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunLeaveMerchantRoomResult RunLeaveMerchantRoom(Sts2Bindings bindings, Session session)
@@ -309,7 +317,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunEndTurnResult RunEndTurn(Sts2Bindings bindings, Session session)
@@ -332,7 +341,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunPlayCardResult RunPlayCard(Sts2Bindings bindings, Session session, RunPlayCardParams? @params)
@@ -359,7 +369,36 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
+    }
+
+    private static RunUsePotionResult RunUsePotion(Sts2Bindings bindings, Session session, RunUsePotionParams? @params)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new ArgumentException("run/use_potion requires params {potionIndex, targetIndex?}");
+
+        bindings.UsePotion(run, args.PotionIndex, args.TargetIndex);
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunUsePotionResult(
+            Ok: true,
+            PotionIndex: args.PotionIndex,
+            TargetIndex: args.TargetIndex,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState,
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunSelectRewardResult RunSelectReward(Sts2Bindings bindings, Session session, RunSelectRewardParams? @params)
@@ -386,7 +425,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static RunSkipRewardResult RunSkipReward(Sts2Bindings bindings, Session session, RunSkipRewardParams? @params)
@@ -412,7 +452,8 @@ public static class HostMethods
             AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
-            Relics: s.Relics);
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
     }
 
     private static DebugSetHpResult DebugSetHp(Sts2Bindings bindings, Session session, DebugSetHpParams? @params)

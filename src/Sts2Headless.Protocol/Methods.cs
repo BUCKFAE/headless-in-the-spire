@@ -226,6 +226,20 @@ public sealed record MerchantItem(
 public sealed record Relic(
     [property: JsonPropertyName("id")] string Id);
 
+// One potion in a player's belt slot. Index is the slot position (pass
+// back via run/use_potion.potionIndex); empty slots are omitted entirely
+// rather than surfaced as nulls. Id is the engine's stable potion class
+// name (e.g. "BlockPotion", "EnergyPotion"); TargetType drives whether
+// targetIndex is required on use (AnyEnemy → required; Self / None →
+// ignored). CanUse reflects sts2's PassesCustomUsabilityCheck — most
+// potions are always usable in combat, but a handful (FoulPotion etc.)
+// gate themselves by run state.
+public sealed record OwnedPotion(
+    [property: JsonPropertyName("index")] int Index,
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("targetType")] TargetType TargetType,
+    [property: JsonPropertyName("canUse")] bool CanUse);
+
 // One element of an enemy's NextMove. Damage is per-hit (multiply by Hits for
 // total); Block is the amount the enemy will gain. Kind is sts2's primary
 // IntentType bucket — combined kinds (AttackDefend, AttackBuff, …) keep their
@@ -386,7 +400,8 @@ public sealed record RunNewResult(
     // Relics currently carried by the player. Includes the character's
     // starter relic and anything obtained mid-run; order matches sts2's
     // Player.Relics walk (acquisition order).
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/state ────────────────────────────────────────────────────────────
 
@@ -408,7 +423,8 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/select_map_node ──────────────────────────────────────────────────
 
@@ -430,7 +446,8 @@ public sealed record RunSelectMapNodeResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/select_event_option ──────────────────────────────────────────────
 
@@ -455,7 +472,8 @@ public sealed record RunSelectEventOptionResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/select_rest_site_option ──────────────────────────────────────────
 
@@ -487,7 +505,8 @@ public sealed record RunSelectRestSiteOptionResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/leave_treasure_room ──────────────────────────────────────────────
 
@@ -517,7 +536,8 @@ public sealed record RunLeaveTreasureRoomResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/end_turn ─────────────────────────────────────────────────────────
 
@@ -536,7 +556,8 @@ public sealed record RunEndTurnResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/play_card ────────────────────────────────────────────────────────
 
@@ -561,7 +582,8 @@ public sealed record RunPlayCardResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/select_reward ────────────────────────────────────────────────────
 
@@ -589,7 +611,8 @@ public sealed record RunSelectRewardResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/skip_reward ──────────────────────────────────────────────────────
 
@@ -614,7 +637,8 @@ public sealed record RunSkipRewardResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/buy_merchant_item ────────────────────────────────────────────────
 
@@ -642,7 +666,8 @@ public sealed record RunBuyMerchantItemResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── run/leave_merchant_room ──────────────────────────────────────────────
 
@@ -667,7 +692,37 @@ public sealed record RunLeaveMerchantRoomResult(
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
-    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
+
+// ── run/use_potion ───────────────────────────────────────────────────────
+
+// potionIndex matches the OwnedPotion.Index returned by the most recent
+// snapshot. targetIndex is required when the potion's TargetType is
+// AnyEnemy and is otherwise ignored; the index matches
+// combatState.enemies (alive-only). Using a potion outside combat is
+// permitted by the engine for some potions (e.g. Strength persists into
+// the next fight) but agents should generally hold off until in-combat.
+public sealed record RunUsePotionParams(
+    [property: JsonPropertyName("potionIndex")] int PotionIndex,
+    [property: JsonPropertyName("targetIndex")] int? TargetIndex = null);
+
+public sealed record RunUsePotionResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("potionIndex")] int PotionIndex,
+    [property: JsonPropertyName("targetIndex")] int? TargetIndex,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
 // ── debug/give_relic ─────────────────────────────────────────────────────
 

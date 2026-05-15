@@ -88,12 +88,12 @@
   → play card [0] target=0
   - rewards offered:
     - [0] gold 12g  canSkip=False
-    - [1] potion potion=`POTION.ENERGY_POTION (30639779)`  canSkip=False
+    - [1] potion potion=`POTION.ENERGY_POTION (46888886)`  canSkip=False
     - [2] card cards=[`BODY_SLAM`(cost=1), `TREMBLE`(cost=1), `SWORD_BOOMERANG`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=71 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.ENERGY_POTION (30639779)`  canSkip=False
+    - [0] potion potion=`POTION.ENERGY_POTION (46888886)`  canSkip=False
     - [1] card cards=[`BODY_SLAM`(cost=1), `TREMBLE`(cost=1), `SWORD_BOOMERANG`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=71 room=CombatRoom
@@ -651,12 +651,12 @@
   → play card [0] target=0
   - rewards offered:
     - [0] gold 18g  canSkip=False
-    - [1] potion potion=`POTION.ENTROPIC_BREW (21774588)`  canSkip=False
+    - [1] potion potion=`POTION.ENTROPIC_BREW (52645056)`  canSkip=False
     - [2] card cards=[`UPPERCUT`(cost=2), `ARMAMENTS`(cost=1), `STONE_ARMOR`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=54 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.ENTROPIC_BREW (21774588)`  canSkip=False
+    - [0] potion potion=`POTION.ENTROPIC_BREW (52645056)`  canSkip=False
     - [1] card cards=[`UPPERCUT`(cost=2), `ARMAMENTS`(cost=1), `STONE_ARMOR`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=54 room=CombatRoom
@@ -855,12 +855,12 @@
   → play card [0] target=0
   - rewards offered:
     - [0] gold 13g  canSkip=False
-    - [1] potion potion=`POTION.COLORLESS_POTION (50226059)`  canSkip=False
+    - [1] potion potion=`POTION.COLORLESS_POTION (57870399)`  canSkip=False
     - [2] card cards=[`TRUE_GRIT`(cost=1), `SECOND_WIND`(cost=1), `ARMAMENTS`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=64 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.COLORLESS_POTION (50226059)`  canSkip=False
+    - [0] potion potion=`POTION.COLORLESS_POTION (57870399)`  canSkip=False
     - [1] card cards=[`TRUE_GRIT`(cost=1), `SECOND_WIND`(cost=1), `ARMAMENTS`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=64 room=CombatRoom
@@ -1095,12 +1095,12 @@
   → end_turn → round transition
   - rewards offered:
     - [0] gold 11g  canSkip=False
-    - [1] potion potion=`POTION.BLOCK_POTION (51071544)`  canSkip=False
+    - [1] potion potion=`POTION.BLOCK_POTION (22885177)`  canSkip=False
     - [2] card cards=[`TAUNT`(cost=1), `ARMAMENTS`(cost=1), `BLOOD_WALL`(cost=2)]  canSkip=True
 
   → claim reward [0] → hp=0 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.BLOCK_POTION (51071544)`  canSkip=False
+    - [0] potion potion=`POTION.BLOCK_POTION (22885177)`  canSkip=False
     - [1] card cards=[`TAUNT`(cost=1), `ARMAMENTS`(cost=1), `BLOOD_WALL`(cost=2)]  canSkip=True
 
   → claim reward [0] → hp=0 room=CombatRoom

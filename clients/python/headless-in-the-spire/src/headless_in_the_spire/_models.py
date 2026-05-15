@@ -239,6 +239,14 @@ class RunSkipRewardParams(BaseModel):
     reward_index: Annotated[int, Field(alias="rewardIndex")]
 
 
+class RunUsePotionParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    potion_index: Annotated[int, Field(alias="potionIndex")]
+    target_index: Annotated[int | None, Field(alias="targetIndex")] = None
+
+
 class TargetType(Enum):
     unknown = "Unknown"
     none = "None"
@@ -292,6 +300,16 @@ class MerchantItem(BaseModel):
     card_id: Annotated[str | None, Field(alias="cardId")] = None
     relic_id: Annotated[str | None, Field(alias="relicId")] = None
     potion_id: Annotated[str | None, Field(alias="potionId")] = None
+
+
+class OwnedPotion(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    index: int
+    id: str
+    target_type: Annotated[TargetType, Field(alias="targetType")]
+    can_use: Annotated[bool, Field(alias="canUse")]
 
 
 class Enemy(BaseModel):
@@ -348,6 +366,7 @@ class RunBuyMerchantItemResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunEndTurnResult(BaseModel):
@@ -372,6 +391,7 @@ class RunEndTurnResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunLeaveMerchantRoomResult(BaseModel):
@@ -396,6 +416,7 @@ class RunLeaveMerchantRoomResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunLeaveTreasureRoomResult(BaseModel):
@@ -420,6 +441,7 @@ class RunLeaveTreasureRoomResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunNewResult(BaseModel):
@@ -444,6 +466,7 @@ class RunNewResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunPlayCardResult(BaseModel):
@@ -470,6 +493,7 @@ class RunPlayCardResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunSelectEventOptionResult(BaseModel):
@@ -495,6 +519,7 @@ class RunSelectEventOptionResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunSelectMapNodeResult(BaseModel):
@@ -521,6 +546,7 @@ class RunSelectMapNodeResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunSelectRestSiteOptionResult(BaseModel):
@@ -546,6 +572,7 @@ class RunSelectRestSiteOptionResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunSelectRewardResult(BaseModel):
@@ -572,6 +599,7 @@ class RunSelectRewardResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunSkipRewardResult(BaseModel):
@@ -597,6 +625,7 @@ class RunSkipRewardResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunStateResult(BaseModel):
@@ -626,3 +655,31 @@ class RunStateResult(BaseModel):
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
+
+
+class RunUsePotionResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    potion_index: Annotated[int, Field(alias="potionIndex")]
+    target_index: Annotated[int | None, Field(alias="targetIndex")] = None
+    current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
+    act_floor: Annotated[int, Field(alias="actFloor")]
+    is_game_over: Annotated[bool, Field(alias="isGameOver")]
+    hp: int
+    available_map_nodes: Annotated[list[MapNode], Field(alias="availableMapNodes")]
+    available_event_options: Annotated[
+        list[EventOption], Field(alias="availableEventOptions")
+    ]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]

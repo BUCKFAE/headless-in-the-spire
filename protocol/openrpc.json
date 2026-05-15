@@ -187,6 +187,26 @@
       }
     },
     {
+      "name": "run/use_potion",
+      "summary": "Drink a potion from the player's belt. potionIndex is the wire index into ownedPotions; targetIndex is required for AnyEnemy potions and ignored otherwise.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunUsePotionParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunUsePotionResult"
+        }
+      }
+    },
+    {
       "name": "run/select_reward",
       "summary": "Claim a pending post-combat reward.",
       "paramStructure": "by-name",
@@ -695,6 +715,29 @@
           "card_removal"
         ]
       },
+      "OwnedPotion": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "targetType": {
+            "$ref": "#/components/schemas/TargetType"
+          },
+          "canUse": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "index",
+          "id",
+          "targetType",
+          "canUse"
+        ]
+      },
       "Power": {
         "type": "object",
         "properties": {
@@ -906,6 +949,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -919,7 +968,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunEndTurnResult": {
@@ -989,6 +1039,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -1001,7 +1057,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunLeaveMerchantRoomResult": {
@@ -1071,6 +1128,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -1083,7 +1146,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunLeaveTreasureRoomResult": {
@@ -1153,6 +1217,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -1165,7 +1235,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunNewParams": {
@@ -1264,6 +1335,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -1276,7 +1353,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunPlayCardParams": {
@@ -1373,6 +1451,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -1386,7 +1470,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunSelectEventOptionParams": {
@@ -1470,6 +1555,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -1483,7 +1574,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunSelectMapNodeParams": {
@@ -1574,6 +1666,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -1588,7 +1686,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunSelectRestSiteOptionParams": {
@@ -1672,6 +1771,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -1685,7 +1790,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunSelectRewardParams": {
@@ -1782,6 +1888,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -1795,7 +1907,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunSkipRewardParams": {
@@ -1879,6 +1992,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -1892,7 +2011,8 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunStateResult": {
@@ -1984,6 +2104,12 @@
             "items": {
               "$ref": "#/components/schemas/Relic"
             }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
           }
         },
         "required": [
@@ -2000,7 +2126,125 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
-          "relics"
+          "relics",
+          "ownedPotions"
+        ]
+      },
+      "RunUsePotionParams": {
+        "type": "object",
+        "properties": {
+          "potionIndex": {
+            "type": "integer"
+          },
+          "targetIndex": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "potionIndex"
+        ]
+      },
+      "RunUsePotionResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "potionIndex": {
+            "type": "integer"
+          },
+          "targetIndex": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
+          "combatState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewardsState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "potionIndex",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "availableRestSiteOptions",
+          "availableMerchantItems",
+          "relics",
+          "ownedPotions"
         ]
       },
       "TargetType": {
