@@ -98,6 +98,16 @@ public class Node : GodotObject
     //   Godot's signature; we don't enforce here so any T resolves.
     public T? GetNode<T>(NodePath _) where T : class => null;
     public Node? GetNode(NodePath _) => null;
+
+    // from: SPINY_TOAD's Buff intent (Act 2 seed 42 floor 8) calls
+    //   Node.GetChildren(includeInternal). Real Godot returns the live
+    //   child list; in headless the node has no children, so an empty
+    //   collection lets the iteration short-circuit without NREs.
+    public Collections.Array<Node> GetChildren(bool _ = false) => new();
+    // No scene tree in headless → no nodes are ancestors of anything,
+    // every node is its own root, no parent to fetch.
+    public bool IsAncestorOf(Node _) => false;
+    public Node? GetParent() => null;
 }
 
 public class CanvasItem : Node

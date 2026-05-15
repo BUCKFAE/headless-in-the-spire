@@ -91,6 +91,20 @@ public class PropertyTweener : Tweener
     public new class MethodName : Tweener.MethodName { }
     public new class PropertyName : Tweener.PropertyName { }
     public new class SignalName : Tweener.SignalName { }
+
+    // from: SPINY_TOAD's Buff intent (and likely many other monster move
+    // animations) chains tweener configuration via the fluent Godot 4
+    // PropertyTweener API. The methods below are all no-ops that return
+    // `this` so the chain compiles and runs without animating anything.
+    // Headless has no animation pipeline; these stubs only need to satisfy
+    // the metadata + the chain's `this`-return contract.
+    public PropertyTweener From(Variant _) => this;
+    public PropertyTweener FromCurrent() => this;
+    public PropertyTweener AsRelative() => this;
+    public PropertyTweener SetEase(Tween.EaseType _) => this;
+    public PropertyTweener SetTrans(Tween.TransitionType _) => this;
+    public PropertyTweener SetDelay(double _) => this;
+    public PropertyTweener SetCustomInterpolator(Callable _) => this;
 }
 public class MethodTweener : Tweener
 {

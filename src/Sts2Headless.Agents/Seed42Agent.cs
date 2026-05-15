@@ -111,6 +111,7 @@ public sealed class Seed42Agent : IAgent
         CancellationToken ct = default)
     {
         var state = await host.SendAsync<RunStateResult>("run/state");
+        var stall = new StallDetector();
         for (var step = 0; !stopWhen(state); step++)
         {
             ct.ThrowIfCancellationRequested();
@@ -127,9 +128,11 @@ public sealed class Seed42Agent : IAgent
                     $"Seed42Agent: exceeded {MaxSteps} steps without matching stop condition.");
             }
             state = await StepAsync(host, state);
+            stall.Observe(state);
         }
         return state;
     }
+
 
     private static Task<RunStateResult> StepAsync(ITransport host, RunStateResult s) =>
         s.CurrentRoomType switch

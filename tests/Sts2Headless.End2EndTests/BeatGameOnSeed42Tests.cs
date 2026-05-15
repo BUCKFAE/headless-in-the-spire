@@ -34,7 +34,7 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         _output = output;
     }
 
-    [Fact(Skip = "blocked on Act 2+ engine hangs (e.g. ESCAPE_ARTIST_POWER on THIEVING_HOPPER). Lift skip once HangPatches covers the failing monsters.")]
+    [Fact(Skip = "Still chasing Act 2/3 monster-move hangs. The StallDetector catches each new one in ~10 seconds (see fingerprint in the failure message), then we add a Harmony patch in HangPatches.cs. Currently stops at Act 2 floor 12 on BOWLBUG_ROCK's move body. Lift the skip once IsVictory is reachable.")]
     [Trait("category", "diagnostic")]
     public async Task Seed42Agent_Ironclad_WinsTheGame_WithMaxHpCheat()
     {

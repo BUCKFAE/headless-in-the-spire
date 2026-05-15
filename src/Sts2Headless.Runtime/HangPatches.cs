@@ -39,6 +39,8 @@ public static class HangPatches
             PatchTalkCmdPlay(harmony, sts2),
             PatchCardSelectCmdFactories(harmony, sts2),
             PatchVantomDismemberMove(harmony, sts2),
+            PatchEscapeArtistPowerAfterTurnEnd(harmony, sts2),
+            PatchThievingHopperMoves(harmony, sts2),
         ];
     }
 
@@ -241,6 +243,94 @@ public static class HangPatches
                 sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported value-type return)");
                 continue;
             }
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
+    // EscapeArtistPower carries an AfterTurnEnd hook (PlayerChoiceContext,
+    // CombatSide) → Task. THIEVING_HOPPER (Act 2 enemy) ships with
+    // ESCAPE_ARTIST_POWER:5; when the player ends their turn, the enemy
+    // turn pipeline awaits this hook, and the hook hangs in headless.
+    // Observed in DiagnoseAct2WalkTests on seed 42, Act 2 floor 3: every
+    // subsequent run/end_turn returns a snapshot with combat still in
+    // progress (the engine never flips back to play phase), and the
+    // agent enters an infinite end-turn loop.
+    //
+    // Patch shape: same as the CardSelectCmd.From* and Vantom.DismemberMove
+    // patches — replace the body with `Task.CompletedTask`. The power
+    // simply doesn't fire its AfterTurnEnd effect in headless. The damage-
+    // cap behaviour (the part the agent's drain strategy actually cares
+    // about) lives on SlipperyPower.ModifyDamageCap, which is unaffected.
+    private static PatchOutcome PatchEscapeArtistPowerAfterTurnEnd(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Models.Powers.EscapeArtistPower.AfterTurnEnd";
+        var powerType = sts2.GetType("MegaCrit.Sts2.Core.Models.Powers.EscapeArtistPower");
+        if (powerType is null)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "type EscapeArtistPower not found");
+        }
+
+        var methods = powerType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => m.Name == "AfterTurnEnd"
+                        && typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
+            .ToArray();
+        if (methods.Length == 0)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "no Task-returning AfterTurnEnd method on EscapeArtistPower");
+        }
+
+        var prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
+    // ThievingHopper (Act 2 enemy on seed 42 floor 3) carries five move
+    // methods on the monster type — ThieveryMove, NabMove, HatTrickMove,
+    // FlutterMove, EscapeMove. After patching EscapeArtistPower.AfterTurnEnd
+    // the agent's end-turn still produced an infinite end-turn loop, so the
+    // hang is in the move-execution body (same shape as Vantom.DismemberMove
+    // in Act 1) rather than the post-turn power hook. Discovered via
+    // DiagnoseAct2WalkTests on seed 42, Act 2 floor 3.
+    //
+    // Patch shape: replace every Task-returning Move body with
+    // Task.CompletedTask. The hopper still threatens the agent via wire-
+    // surfaced intent damage (the engine reports its NextMove correctly),
+    // but the actual move execution is a no-op — the enemy turn unblocks
+    // and the engine flips back to play phase. With the 999/999 HP cheat
+    // the agent doesn't actually take damage anyway, so the loss of move
+    // effects is acceptable for the goal-state multi-act drive.
+    private static PatchOutcome PatchThievingHopperMoves(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper.*Move";
+        var monsterType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper");
+        if (monsterType is null)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "type ThievingHopper not found");
+        }
+
+        var moveNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "ThieveryMove", "NabMove", "HatTrickMove", "FlutterMove", "EscapeMove",
+        };
+        var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => moveNames.Contains(m.Name) && typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
+            .ToArray();
+        if (methods.Length == 0)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "no Task-returning Move methods on ThievingHopper");
+        }
+
+        var prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
             harmony.Patch(m, prefix: new HarmonyMethod(prefix));
             sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
         }

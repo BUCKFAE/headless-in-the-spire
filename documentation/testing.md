@@ -59,6 +59,27 @@ Per-test cost: tens of seconds. Runs in `just test` for now; may move to a
 test here is usually a regression in *the stitching* — combat→reward→map
 transitions, multi-call invariants, or determinism.**
 
+### Wrap long-running drives in `StallDetector`
+
+A multi-act drive iterates tens of thousands of wire round-trips; if any
+one of them hangs (a monster move method NREs internally, the exception
+is swallowed by sts2's `TaskHelper.LogTaskExceptions`, the engine ends
+up half-transitioned), the symptom on the wire is "every subsequent
+snapshot is identical." Naive tests detect this only after the whole
+cancellation budget expires — minutes for what's effectively an instant
+failure.
+
+`src/Sts2Headless.Agents/StallDetector.cs` is the reusable watchdog:
+fingerprint each snapshot (room + act/floor + hp/gold/deck + combat
+round/phase/energy/block/hand + per-enemy hp/powers); throw when K
+consecutive snapshots have an identical fingerprint. Default threshold
+8 catches hangs within ~8 seconds. New agents added under
+`src/Sts2Headless.Agents/` should construct one and call `Observe` after
+every step. The thrown `StallDetectedException` carries the fingerprint,
+which points the operator at the exact combat / enemy / power that's
+stuck — pair with `HangPatches.cs` to add a Harmony prefix that no-ops
+the hanging method.
+
 ## Where things live
 
 | Concern | Home |
