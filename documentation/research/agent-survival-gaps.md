@@ -14,19 +14,37 @@ the next agent-survival slice has a starting point.
 
 ## summary
 
-After the 2026-05-15 combat-stall fix + VFX-stub follow-up:
+After the 2026-05-15 combat-stall fix, VFX-stub follow-up, and the
+card-select-screen recovery slice:
 
-- **0/25 seeds stall in combat** (was 19/25 before the fix).
-- 18/25 seeds reach a legitimate game-over inside the 20-floor budget —
-  forward progress is real; the greedy agent just dies to standard
-  encounters because it doesn't plan energy.
-- 7/25 seeds NRE inside an event-room handler. Single bug class —
-  the engine tries to load a card-select scene
-  (`simple_card_select_screen.tscn` or `deck_upgrade_select_screen.tscn`)
-  via `ResourceLoader.Load`, gets back null from our stub, and NREs
-  inside `NSimpleCardSelectScreen.Create` or
-  `NDeckUpgradeSelectScreen.ShowScreen`. Affected events so far:
-  `RoomFullOfCheese.Gorge`, `SapphireSeed.Eat`.
+- **22/25 seeds reach a legitimate game-over** inside the 20-floor
+  budget. Forward progress is real; the greedy agent just dies to
+  standard encounters because it doesn't plan energy.
+- **0/25 seeds host-die on a card-select NRE** (was 7/25 after the
+  combat-stall fix). `Sts2Bindings.SelectEventOption` now wraps
+  `EventOption.Chosen()` in a try-catch; on failure the bindings
+  fire `AutoAdvanceFinishedEvent`'s `EnterRoom(MapRoom)` fallback so
+  the player lands back on the map with no event effect applied. The
+  bug class itself is unfixed (the engine still NREs inside the model
+  layer) but it no longer aborts the host.
+- **3/25 seeds (18, 22, 23) hit a late-floor combat stall** on monsters
+  the agent didn't previously reach. Seed 18 stalls on `KIN_FOLLOWER`
+  at floor 17, seeds 22 and 23 stall on `VANTOM` after the agent
+  survives further into Act 1 than before. Both show the same
+  half-transitioned shape as the resolved combat-stall pattern
+  (`IsInProgress=True`, `IsPlayPhase=False`, energy 0/3, hand empty) —
+  the natural next slice is `just probe-combat-stall 18` and another
+  pass of stub growth.
+
+Affected events that exercise the recovery path (each one has the same
+shape: chosen option's handler awaits a `CardSelectCmd.From*` factory,
+the factory's pre-first-await `Create()` synchronously NREs on
+`ResourceLoader.Load(...) == null`, the engine NREs again at the model
+layer's null-collection dereference): `RoomFullOfCheese.Gorge`,
+`SapphireSeed.Eat`, `SelfHelpBook.ReadPassage`, `WoodCarvings.*`,
+`Wellspring.Bathe`, `AromaOfChaos.MaintainControl`, and possibly more —
+the agent now picks the last unlocked option in events, so some events
+land on a safe option instead of triggering recovery.
 
 The combat-stall pattern documented in earlier revisions of this file
 ("agent calls end_turn repeatedly with `IsPlayPhase=false`, hand=0,
@@ -78,13 +96,11 @@ The fix bundles three classes of change:
    for whenever a new combat-stall regression surfaces — `Method not
    found:` in the stderr names the next stub gap.
 
-## remaining gaps (next slices)
+## what the card-select-screen NRE actually was (recovered, not fixed)
 
-### A. card-select-screen NREs (7 seeds)
-
-Seeds 11, 12, 14, 17, 22, 23, 24 trip a `NullReferenceException` inside
-an event handler whose chosen option opens a card-select screen. The
-engine path is:
+Seeds 11, 12, 14, 17, 22, 23, 24 tripped a `NullReferenceException`
+inside an event handler whose chosen option opens a card-select screen.
+The engine path is:
 
 ```
 EventOption.Chosen()
@@ -98,24 +114,48 @@ EventOption.Chosen()
 `Asset not cached: res://scenes/screens/card_selection/*.tscn` in the
 log preceding the NRE is the smoking gun.
 
-**Next-slice starting points** (pick one):
+The fix bundles three pieces of slightly different shapes:
 
-1. Harmony-patch `CardSelectCmd.*` and/or the `Show*Screen` methods to
-   no-op (same shape as the resolved `TalkCmd.Play` patch). Caller code
-   needs to tolerate a null result — most do, since real Godot returns
-   null when the scene hasn't loaded yet. The risk: some events
-   short-circuit on the cmd's return value to apply their gameplay
-   effect (e.g. SapphireSeed.Eat → "did the player actually upgrade a
-   card?"). A blanket no-op skips the gameplay effect, not just the UI.
+1. **`HangPatches.PatchCardSelectCmdFactories`** — every
+   `MegaCrit.Sts2.Core.Commands.CardSelectCmd.From*` factory is
+   `static async Task<CardSelectCmd>` whose pre-first-await body calls
+   the screen-`Create` that NREs. A Harmony prefix returns
+   `Task.FromResult<CardSelectCmd>(default)` and skips the original.
+   Without this patch the NRE bubbles synchronously past the async
+   state machine and aborts the host; with it, the caller's await
+   yields null and the dereference NRE lands at the event-model layer.
 
-2. Teach `GreedyAgent.StepEventAsync` to *avoid* options whose chosen
-   handler is known to crash. Stable option ids would make this
-   tractable; otherwise the agent would have to discover the crash by
-   try/snapshot/rollback, which isn't supported by the wire.
+2. **`GreedyAgent.StepEventAsync`** now picks the *last* unlocked
+   option. By sts2 convention the "leave / decline / safe" choice
+   tends to be last (e.g. `ROOM_FULL_OF_CHEESE.SEARCH` after `.GORGE`),
+   so for a fraction of affected events the agent threads through a
+   handler that doesn't card-select at all. Not robust — some events
+   have the broken option last (`SELF_HELP_BOOK.READ_PASSAGE`,
+   `WELLSPRING.BATHE`, `WOOD_CARVINGS.TORUS`) — but it's a cheap
+   heuristic that costs nothing on the failure path.
 
-3. Build a minimal "headless `Show*Screen` stand-in" — a Harmony patch
-   that returns a stub screen object whose tween/await chain resolves
-   immediately. Most invasive but preserves the gameplay effect.
+3. **`Sts2Bindings.SelectEventOption` recovery** — the real fix.
+   `_eventOptionChosen.Invoke(...)` is wrapped in try-catch; on
+   exception we still call `AutoAdvanceFinishedEvent`, whose
+   `EnterRoom(MapRoom)` fallback flips the room type even if
+   `IsFinished` is still false. The bindings then verify the room
+   actually left `EventRoom`; if not, the original exception is
+   re-thrown wrapped in an `InvalidOperationException`. Net effect:
+   any event whose handler crashes mid-`Chosen` becomes a no-effect
+   "land back on the map" instead of a host-killing exception.
+
+The gameplay effects of broken events are entirely skipped — neither
+HP cost nor reward applies. That's the right tradeoff for an
+agent-survival fix; the engine remains in a self-consistent state and
+the agent can keep walking the run.
+
+**Future slice — proper card-select screen stand-in.** If/when an
+end-to-end test wants the event's gameplay effect to land (e.g. "after
+picking SAPPHIRE_SEED.EAT, the deck contains the chosen upgrade"), the
+right answer is option 3 from the earlier sketch: stub
+`NSimpleCardSelectScreen.Create` / `NDeckUpgradeSelectScreen.ShowScreen`
+to return a screen whose "selected" field is pre-populated with a
+default pick. Until such a test exists, the recovery path is enough.
 
 ### B. `EventRoom` with no surfaced options (1 seed in prior scan)
 

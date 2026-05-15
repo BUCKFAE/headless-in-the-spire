@@ -58,9 +58,17 @@ internal static class ProbeCombatStallCommand
         // surfaces here unwrapped (that's diagnostic value).
         var startFloor = snap.ActFloor;
         var safety = 0;
+        var lastLoggedRoom = RoomType.Unknown;
+        var lastLoggedFloor = -1;
         while (safety++ < 2000)
         {
             snap = bindings.ReadSnapshot(handle);
+            if (snap.CurrentRoomType != lastLoggedRoom || snap.ActFloor != lastLoggedFloor)
+            {
+                Console.WriteLine($"  enter floor={snap.ActFloor} room={snap.CurrentRoomType} hp={snap.CurrentHp}/{snap.MaxHp} options={snap.AvailableEventOptions.Count}");
+                lastLoggedRoom = snap.CurrentRoomType;
+                lastLoggedFloor = snap.ActFloor;
+            }
             if (snap.IsGameOver) { Console.WriteLine($"  GAME-OVER floor={snap.ActFloor}"); return 0; }
             if (snap.ActFloor - startFloor >= floorBudget)
             {
@@ -92,7 +100,14 @@ internal static class ProbeCombatStallCommand
                         Console.WriteLine($"  EVENT-NO-OPTIONS floor={snap.ActFloor}");
                         return 0;
                     }
-                    bindings.SelectEventOption(handle, snap.AvailableEventOptions[0].Index);
+                    Console.WriteLine("    event options: "
+                        + string.Join(" | ", snap.AvailableEventOptions.Select(o =>
+                            $"[{o.Index}{(o.IsLocked ? " locked" : "")}] {o.TextKey}")));
+                    // Match GreedyAgent.StepEventAsync's "pick last unlocked"
+                    // policy so the probe and the agent traverse the same path.
+                    var pick = snap.AvailableEventOptions.LastOrDefault(o => !o.IsLocked)
+                        ?? snap.AvailableEventOptions[^1];
+                    bindings.SelectEventOption(handle, pick.Index);
                     break;
                 default:
                     Console.WriteLine($"  unhandled room {snap.CurrentRoomType} floor={snap.ActFloor}");

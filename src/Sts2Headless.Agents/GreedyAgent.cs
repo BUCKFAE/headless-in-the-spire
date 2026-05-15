@@ -216,11 +216,20 @@ public sealed class GreedyAgent : IAgent
                 "or this event auto-resolves and the wire surface hasn't routed " +
                 "around it yet.");
         }
-        // Pick the first unlocked option; fall back to index 0 if every option
-        // is locked (sts2 will refuse the click silently, the loop's safety
-        // counter catches the stall, and the error message names the room).
-        var pick = s.AvailableEventOptions.FirstOrDefault(o => !o.IsLocked)
-            ?? s.AvailableEventOptions[0];
+        // Pick the LAST unlocked option. By convention sts2 events put the
+        // "Leave" / "Decline" choice last; the earlier options are
+        // "Engage / Gorge / Eat" variants that route through CardSelectCmd
+        // factories (Load("res://scenes/screens/card_selection/*.tscn") returns
+        // null in headless → NRE inside the event-model body, swallowed
+        // before the room can transition). Picking last sidesteps the
+        // broken UI chain at the cost of skipping every event's positive
+        // reward — acceptable for a "forward progress" agent, since the
+        // greedy agent has no model for evaluating event tradeoffs anyway.
+        // If a future event has its decline last AND we still want the
+        // engaging path, this becomes the slice that needs a smarter agent
+        // or a generic wire stand-in for card-select screens.
+        var pick = s.AvailableEventOptions.LastOrDefault(o => !o.IsLocked)
+            ?? s.AvailableEventOptions[^1];
         var resp = await host.SendAsync<RunSelectEventOptionResult>(
             "run/select_event_option",
             new RunSelectEventOptionParams(OptionIndex: pick.Index));

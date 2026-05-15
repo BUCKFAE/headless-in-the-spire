@@ -37,6 +37,7 @@ public static class HangPatches
             PatchCmdWait(harmony, sts2),
             PatchWaitUntilQueueIsEmpty(harmony, sts2),
             PatchTalkCmdPlay(harmony, sts2),
+            PatchCardSelectCmdFactories(harmony, sts2),
         ];
     }
 
@@ -123,6 +124,61 @@ public static class HangPatches
         return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
     }
 
+    // Defensive backstop for any code path that calls CardSelectCmd.From*
+    // factories in headless. Each factory is `static async Task<CardSelectCmd>`
+    // and synchronously calls NSimpleCardSelectScreen.Create /
+    // NDeckUpgradeSelectScreen.ShowScreen *before* the first await — which
+    // Load() the .tscn from the Godot asset cache (empty in headless) and
+    // NRE on the null result. Since the throw is pre-first-await, it
+    // surfaces synchronously, bubbles out of run/select_event_option, and
+    // aborts the host:
+    //
+    //   System.NullReferenceException
+    //     at NSimpleCardSelectScreen.Create(IReadOnlyList`1, CardSelectorPrefs)
+    //     at CardSelectCmd.FromSimpleGridForRewards(...)
+    //     at RoomFullOfCheese.Gorge()
+    //     at EventOption.Chosen()
+    //
+    // Patch shape: prefix returns Task.FromResult<TInner>(default) where
+    // TInner is the unwrapped return type. The caller awaits a null
+    // CardSelectCmd — most existing callers then dereference it and NRE
+    // *again* at the event-model layer. The agent-side fix
+    // (GreedyAgent.StepEventAsync prefers the last unlocked option, which
+    // is conventionally "Leave" / "Decline") avoids those handlers
+    // entirely. This patch remains as defense in depth: if a wire
+    // consumer or future agent picks a gorge-style option, the
+    // synchronous host-killing NRE is replaced with a softer
+    // null-deref-in-handler that an integration test can attribute to
+    // the event rather than the bridge.
+    private static PatchOutcome PatchCardSelectCmdFactories(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Commands.CardSelectCmd.From*";
+        var cmdType = sts2.GetType("MegaCrit.Sts2.Core.Commands.CardSelectCmd");
+        if (cmdType is null)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "type MegaCrit.Sts2.Core.Commands.CardSelectCmd not found");
+        }
+
+        var methods = cmdType.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+            .Where(m => !m.IsSpecialName
+                        && m.Name.StartsWith("From", StringComparison.Ordinal)
+                        && typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
+            .ToArray();
+        if (methods.Length == 0)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "no Task-returning From* methods on CardSelectCmd");
+        }
+
+        var prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
     private static PatchOutcome PatchWaitUntilQueueIsEmpty(Harmony harmony, Assembly sts2)
     {
         const string name = "WaitUntilQueueIsEmptyOrWaitingOnNonPlayerDrivenAction";
@@ -178,6 +234,30 @@ public static class HangPatches
     private static bool ReturnNullPrefix(ref object? __result)
     {
         __result = null;
+        return false;
+    }
+
+    // Generic "skip original, return a completed Task with default result"
+    // prefix for `async Task<T>` factories whose pre-first-await body NREs
+    // in headless (CardSelectCmd.From*). For non-generic Task it returns
+    // Task.CompletedTask; for Task<T> it returns Task.FromResult<T>(default).
+    // The factories' callers `await` the result, so the synchronous NRE
+    // becomes a normal `null` await. Harmony injects __originalMethod so
+    // the prefix can introspect the actual return type per call site.
+    private static bool ReturnDefaultTaskPrefix(ref System.Threading.Tasks.Task __result, MethodBase __originalMethod)
+    {
+        var rt = ((MethodInfo)__originalMethod).ReturnType;
+        if (!rt.IsGenericType || rt.GetGenericTypeDefinition() != typeof(System.Threading.Tasks.Task<>))
+        {
+            __result = System.Threading.Tasks.Task.CompletedTask;
+            return false;
+        }
+        var inner = rt.GetGenericArguments()[0];
+        var fromResult = typeof(System.Threading.Tasks.Task)
+            .GetMethod(nameof(System.Threading.Tasks.Task.FromResult), BindingFlags.Public | BindingFlags.Static)!
+            .MakeGenericMethod(inner);
+        var defaultValue = inner.IsValueType ? Activator.CreateInstance(inner) : null;
+        __result = (System.Threading.Tasks.Task)fromResult.Invoke(null, [defaultValue])!;
         return false;
     }
 }

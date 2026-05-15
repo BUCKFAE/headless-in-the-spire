@@ -1404,22 +1404,57 @@ public sealed partial class Sts2Bindings
             ?? throw new InvalidOperationException($"event option at index {optionIndex} was null");
 
         // Chosen() is synchronous in the no-card-reward case (Neow's GAIN
-        // OBOL etc.). For options that branch into card selection, the call
-        // would block on GetSelectedCardReward — that path is not yet on the
-        // wire, so callers picking such options will hang. Documented gap.
-        var result = _eventOptionChosen.Invoke(option, null);
-        if (result is Task t) t.GetAwaiter().GetResult();
+        // OBOL etc.). Options that branch into card selection
+        // (CardSelectCmd.From*, NSimpleCardSelectScreen.Create) load .tscn
+        // assets that aren't present in headless — Create returns null,
+        // the event-model body NREs (or throws ArgumentNullException via
+        // LINQ on a null collection downstream). HangPatches turns the
+        // factory NRE into `await null`, but the model-layer dereference
+        // still throws. Rather than let one bad option kill the host,
+        // catch the exception and force-advance the room: AutoAdvance's
+        // EnterRoom(MapRoom) fallback flips the room type even when
+        // IsFinished is still false. The player keeps their pre-event HP/
+        // gold (the event's gameplay effect is partially or wholly
+        // skipped), the agent continues. This is identical-shape recovery
+        // to what AutoAdvance already does post-successful-pick; the
+        // try-catch just extends it to "engine threw mid-Chosen."
+        Exception? chosenError = null;
+        try
+        {
+            var result = _eventOptionChosen.Invoke(option, null);
+            if (result is Task t) t.GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            chosenError = ex.InnerException ?? ex;
+        }
 
         // sts2-cli pattern: after the event finishes, the game still leaves
         // CurrentRoom as the EventRoom until something nudges the next
         // transition. Without this, the wire reports CurrentRoomType=EventRoom
         // forever and the caller has no way to leave. Mirror sts2-cli's force-
         // transition (ProceedFromTerminalRewardsScreen → EnterRoom(MapRoom))
-        // so a successful pick lands the player back on the map.
+        // so a successful pick — or a recovered failure — lands the player
+        // back on the map.
         var nowFinished = (bool)_eventIsFinished.GetValue(localEvent)!;
-        if (nowFinished)
+        if (nowFinished || chosenError is not null)
         {
             AutoAdvanceFinishedEvent(handle.RunManager, handle.RunState);
+        }
+
+        if (chosenError is not null)
+        {
+            // Verify the recovery actually moved us off EventRoom; if not
+            // the engine is in a state we can't reason about and surfacing
+            // the original exception is the honest answer.
+            var currentName = _runStateCurrentRoom.GetValue(handle.RunState)?.GetType().Name;
+            if (currentName == "EventRoom")
+            {
+                throw new InvalidOperationException(
+                    $"EventOption.Chosen() threw and AutoAdvance failed to leave EventRoom. " +
+                    $"Original error: {chosenError.GetType().Name}: {chosenError.Message}",
+                    chosenError);
+            }
         }
     }
 
