@@ -1,9 +1,8 @@
-from headless_in_the_spire_agents import HeuristicAgent, GameSnapshot, Action, EndTurn
+from headless_in_the_spire_agents import Action, EndTurn, GameSnapshot, HeuristicAgent
 
 
 class SimpleRuleBasedAgent(HeuristicAgent):
-
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def decide_combat(self, state: GameSnapshot) -> Action:
@@ -16,7 +15,6 @@ class SimpleRuleBasedAgent(HeuristicAgent):
         if self._incoming_damage(state) > state.combat_state.player_block:
             raise NotImplementedError("Play card with most block")
 
-
         raise NotImplementedError()
 
     @staticmethod
@@ -25,7 +23,7 @@ class SimpleRuleBasedAgent(HeuristicAgent):
         incoming_damage = 0
         for enemy in state.combat_state.enemies:
             for enemy_intent in enemy.intents:
-                incoming_damage += enemy_intent.damage
+                incoming_damage += enemy_intent.damage or 0
         return incoming_damage
 
     @staticmethod
@@ -33,6 +31,4 @@ class SimpleRuleBasedAgent(HeuristicAgent):
         assert state.combat_state
         if state.combat_state.energy == 0:
             return False
-        if any(c.can_play for c in state.combat_state.hand):
-            return False
-        return True
+        return any(c.can_play for c in state.combat_state.hand)
