@@ -31,6 +31,7 @@ METHOD_NAMES: dict[str, str] = {
     "run/leave_merchant_room": "run_leave_merchant_room",
     "run/end_turn": "run_end_turn",
     "run/play_card": "run_play_card",
+    "run/use_potion": "run_use_potion",
     "run/select_reward": "run_select_reward",
     "run/skip_reward": "run_skip_reward",
     "debug/give_relic": "debug_give_relic",
@@ -176,6 +177,15 @@ class Client:
     ) -> m.RunPlayCardResult:
         result = self._transport.call("run/play_card", _dump(params), timeout=timeout)
         return m.RunPlayCardResult.model_validate(result)
+
+    def run_use_potion(
+        self,
+        params: m.RunUsePotionParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.RunUsePotionResult:
+        result = self._transport.call("run/use_potion", _dump(params), timeout=timeout)
+        return m.RunUsePotionResult.model_validate(result)
 
     def run_select_reward(
         self,

@@ -173,9 +173,10 @@ unsurfaced event. Re-investigate only if the symptom re-appears.
 ## what the boss test still needs
 
 `ReachAct1BossTests.GreedyAgent_Ironclad_ReachesAct1BossRoom_OnFixedSeed`
-now passes — the boss-room stop signal landed in this revision. The
-remaining loose end is the agent-survival concern below; the boss-room
-detection itself is closed.
+and `BeatAct1BossOnSeed42Tests.Seed42Agent_Ironclad_BeatsVantom_WithMaxHpCheat`
+both pass — the agent reaches and kills VANTOM on seed 42 (with the
+maxHp=999 cheat). The remaining loose end is a fair-start win; the
+boss-room detection and combat-state surface are closed.
 
 ### resolved: boss-room stop signal
 
@@ -203,15 +204,42 @@ null" on its very first read. Fix is one line: gate combat-state reads on
 `Seed42ReconTests` driving the greedy agent through to the act boss —
 without this fix the boss combat itself was unobservable.
 
-### still open: agent survival to the boss
+### resolved: Seed42Agent beats VANTOM (cheat-mode)
 
-The greedy agent doesn't survive the early-Act-1 combats long enough to
-reach floor 17 from every seed even with heal-between-rooms. The
-in-process probe shows seed 42 game-overs at floor 8 (probe biases
-toward Monster nodes and skips rest sites); the `ReachAct1BossTests`
-path uses `GreedyAgent.StepMapAsync`'s richer routing (including rest
-sites) plus debug-set_hp resurrection inside the test loop, and that's
-enough for seed 42 to reach the boss. A smarter agent — or extra heals
-between rounds inside a combat, not just between rooms — would be
-needed to consistently reach the boss on arbitrary seeds. *Separate
-slice from "fix the combat stall."*
+`BeatAct1BossOnSeed42Tests.Seed42Agent_Ironclad_BeatsVantom_WithMaxHpCheat`
+drives the new `Seed42Agent` from `run/new` through the full seed-42
+path, kills VANTOM in 12 rounds, and lands at floor 17 with no game-over.
+The agent's combat play is unmodified; the only artificial input is a
+`debug/set_hp(999, 999)` call at run start that papers over two
+remaining engine gaps (Phrog+wriggler elite HP burn; the hp=0
+select_reward NRE). End-to-end proof the wire + agent + engine reach
+the boss cleanly with intent damage, potions, and SLIPPERY-aware
+combat all wired through.
+
+Engine surface that landed this slice:
+- `BossRoom` snapshot now carries `combatState` (was `null` — gate fix).
+- AttackIntent damage/hits surfaced on the wire via `DamageCalc:Func<int>`
+  (returns Decimal in sts2, rounded to int wire-side).
+- `run/use_potion` + `ownedPotions` snapshot field — agent can drink
+  Block/Regen/Strength/etc. potions mid-combat.
+
+### still open: fair-start agent (no maxHp cheat)
+
+A "real" seed-42 win without the HP cheat is gated on two things:
+
+1. **Floor-8 elite survivability.** Phrog → 4 wrigglers burns ~60 HP
+   from a starter Ironclad deck. Seed42Agent reaches floor 15 on a fair
+   start (was floor 9 before potion use) but the floor-15 Fogmog fight
+   still wipes the remaining HP because the bag is empty of healing
+   potions by then. A smarter combat AI (one-ply simulation,
+   damage-EV ranking instead of the current priority queue) is the
+   likely fix.
+
+2. **hp=0 select_reward NRE.** When the player ends a combat at hp=0
+   (engine doesn't game-over at zero), the next card-add to the deck
+   triggers an internal NRE. Symptom-only fix: catch the throw in
+   `Sts2Bindings.SelectReward` and skip the card. Real fix: figure out
+   what engine state is misaligned at hp=0 mid-reward.
+
+Neither blocks the boss-beating slice — both are agent-skill or
+follow-up engine work for a separate iteration.

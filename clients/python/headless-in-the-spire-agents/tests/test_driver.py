@@ -68,6 +68,7 @@ def _make_result_like(snap: GameSnapshot) -> RunEndTurnResult:
         combat_state=snap.combat_state,
         rewards_state=snap.rewards_state,
         relics=[],
+        owned_potions=[],
     )
 
 
@@ -114,6 +115,7 @@ class FakeClient:
             combat_state=s.combat_state,
             rewards_state=s.rewards_state,
             relics=[],
+            owned_potions=[],
         )
 
     def run_end_turn(self) -> RunEndTurnResult:
@@ -138,6 +140,7 @@ class FakeClient:
             combat_state=s.combat_state,
             rewards_state=s.rewards_state,
             relics=[],
+            owned_potions=[],
         )
 
     def run_select_event_option(
@@ -159,6 +162,7 @@ class FakeClient:
             combat_state=s.combat_state,
             rewards_state=s.rewards_state,
             relics=[],
+            owned_potions=[],
         )
 
     def run_select_reward(self, params: RunSelectRewardParams) -> RunSelectRewardResult:
@@ -179,6 +183,7 @@ class FakeClient:
             combat_state=s.combat_state,
             rewards_state=s.rewards_state,
             relics=[],
+            owned_potions=[],
         )
 
     def run_skip_reward(self, params: RunSkipRewardParams) -> RunSkipRewardResult:
@@ -198,6 +203,7 @@ class FakeClient:
             combat_state=s.combat_state,
             rewards_state=s.rewards_state,
             relics=[],
+            owned_potions=[],
         )
 
 

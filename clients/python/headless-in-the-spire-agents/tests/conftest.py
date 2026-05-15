@@ -132,6 +132,7 @@ def build_snapshot(
         combat_state=combat if combat is not None else empty_combat(),
         rewards_state=rewards if rewards is not None else empty_rewards(),
         relics=[],
+        owned_potions=[],
     )
 
 
