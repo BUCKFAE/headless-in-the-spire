@@ -25,3 +25,9 @@ __pycache__/
 .mypy_cache/
 dist/
 build/
+
+## IntelliJ
+.idea
+
+## MacOS
+.DS_Store
