@@ -12,8 +12,12 @@ namespace Sts2Headless.Agents;
 //   * In combat: priority queue per turn. Bash for Vulnerable before
 //     committing energy to Strikes. Defends when incoming damage exceeds
 //     a HP-relative threshold. Otherwise pour energy into damage.
-//   * On rewards: pick cards by `CardEffects.DraftScore` rather than
-//     skipping. Skip only when every offering is at-or-below neutral.
+//   * On rewards: pick cards by the agent's own `DraftScore` table
+//     (below) rather than skipping. Skip only when every offering is
+//     at-or-below neutral. Headless-unsafe cards (HeadButt, ARMAMENTS —
+//     anything `CardMechanics.IsHeadlessUnsafe`) are filtered out
+//     before scoring, regardless of how attractive the card would be
+//     in a normal client.
 //   * On map / events / rest sites: same as GreedyAgent (path is mostly
 //     linear on this seed, events are picked last-unlocked, rest-site
 //     heal).
@@ -27,6 +31,79 @@ public sealed class Seed42Agent : IAgent
 {
     private const int MaxSteps = 4000;
     private const int MaxRewardsDrain = 50;
+
+    // Seed-42 + Ironclad + agent-specific desirability scores for the
+    // card pool the recon surfaces. Lives next to the agent (not in
+    // CardMechanics) because the score depends on *this* agent's
+    // strategy — the defensive-stance bias, the SLIPPERY-drain plan,
+    // the boss target — and would mean something different to a
+    // different agent. Scale is roughly -3..+5, neutral = 0.
+    //
+    // CardMechanics.IsHeadlessUnsafe cards (Headbutt, Burning Pact,
+    // Armaments) get a strong negative score here so the reward picker
+    // skips them when possible. The engine-compat fact lives on the
+    // card; the "how strongly do I want to avoid this" weighting is an
+    // agent decision.
+    private static readonly Dictionary<string, int> SeedFourtyTwoDraftScores = new(StringComparer.Ordinal)
+    {
+        // Starter — neutral; we already own them.
+        ["STRIKE_IRONCLAD"] = 0,
+        ["DEFEND_IRONCLAD"] = 0,
+        ["BASH"]            = 0,
+
+        // F2 picks. Body Slam synergises with the defensive stance the
+        // agent leans on (Phrog floor-8 → 4-wriggler turn-cycle); a
+        // "3 defends → Body Slam ~16" turn out-damages SWORD_BOOMERANG
+        // on a healthy block deck. Sword's per-hit 3 damage is mid-range
+        // but it's a useful SLIPPERY drain (3 stacks per cost-1).
+        ["BODY_SLAM"]       = 4,
+        ["SWORD_BOOMERANG"] = 3,
+        ["TREMBLE"]         = -2, // sts2 loss-of-control status
+
+        // F4 picks. Expect-A-Fight is a power card — keep neutral until
+        // the wire surfaces power dynamics.
+        ["EXPECT_A_FIGHT"]  = 1,
+
+        // F5 picks. Bludgeon is the boss-killing card on this path:
+        // 32 single-target damage, cost 3, SLIPPERY-5 still leaves
+        // 27 landing per swing. Highest priority pick.
+        ["BLUDGEON"]        = 5,
+        ["THUNDERCLAP"]     = 2,
+        ["BULLY"]           = 0,
+
+        // F8 elite picks — neutral; we're short Act 1.
+        ["DISMANTLE"]       = 0,
+        ["CASCADE"]         = 0,
+
+        // F9 picks. Uppercut cleanly pierces SLIPPERY (single-hit) and
+        // stacks Vuln + Weak — excellent vs bosses. Stone Armor is a
+        // mild power; we keep it positive but low.
+        ["UPPERCUT"]        = 4,
+        ["STONE_ARMOR"]     = 2,
+
+        // F12 picks. True Grit is solid block on the defensive stance.
+        // Second Wind is exhaust-dependent — neutral until we model it.
+        ["TRUE_GRIT"]       = 3,
+        ["SECOND_WIND"]     = 1,
+
+        // F15 picks. Blood Wall is good defensive offence.
+        ["BLOOD_WALL"]      = 3,
+        ["TAUNT"]           = 0,
+    };
+
+    // Strongly negative score for IsHeadlessUnsafe cards. The exact
+    // number matters: it must be below every legitimate "skip" threshold
+    // (the picker skips when every score ≤ 0) and below any conceivable
+    // neutral fallback, so that on a forced (CanSkip=false) pick we
+    // still take the *least* bad of multiple unsafe cards rather than a
+    // random index. -100 leaves headroom for sub-flag refinement later.
+    private const int HeadlessUnsafePenalty = -100;
+
+    private static int DraftScore(string cardId)
+    {
+        var penalty = CardMechanics.Get(cardId).IsHeadlessUnsafe ? HeadlessUnsafePenalty : 0;
+        return penalty + (SeedFourtyTwoDraftScores.TryGetValue(cardId, out var s) ? s : 0);
+    }
 
     public async Task<RunStateResult> DriveUntilAsync(
         ITransport host,
@@ -170,7 +247,7 @@ public sealed class Seed42Agent : IAgent
         if (s.OwnedPotions.Count == 0) return null;
         var enemies = combat.Enemies;
         var primaryTarget = enemies.OrderBy(e => e.Hp).First();
-        var incoming = CardEffects.IncomingDamage(combat);
+        var incoming = CombatHelpers.IncomingDamage(combat);
         var unblocked = Math.Max(0, incoming - combat.PlayerBlock);
 
         foreach (var potion in s.OwnedPotions)
@@ -205,7 +282,7 @@ public sealed class Seed42Agent : IAgent
                 // Drink if there's an unaffordable high-cost attack OR we'd
                 // play a card that obviously matters (we're below max HP).
                 var hasUnaffordable = combat.Hand.Any(c => c.CanPlay && c.Cost > combat.Energy
-                                                            && CardEffects.Get(c.Id).Damage > 0);
+                                                            && CardMechanics.Get(c.Id).Damage > 0);
                 return (hasUnaffordable && hp > maxHp / 4, target);
 
             case "RegenPotion":
@@ -275,7 +352,7 @@ public sealed class Seed42Agent : IAgent
         // strategy below treats it as a binary "drain mode" gate.
         var slipperyOnBoard = enemies.Any(e => e.Powers.Any(p => p.Id == "SLIPPERY_POWER"));
 
-        var incoming = CardEffects.IncomingDamage(combat);
+        var incoming = CombatHelpers.IncomingDamage(combat);
         var unblocked = Math.Max(0, incoming - combat.PlayerBlock);
         var hpPct = maxHp > 0 ? (double)hp / maxHp : 1.0;
 
@@ -288,7 +365,7 @@ public sealed class Seed42Agent : IAgent
         {
             var power = hand
                 .Where(c => c.CanPlay && c.Cost > 0 && c.Cost <= combat.Energy
-                            && CardEffects.Get(c.Id) is { Damage: 0, Block: 0, BlockToDamage: false }
+                            && CardMechanics.Get(c.Id) is { Damage: 0, Block: 0, BlockToDamage: false }
                             && c.TargetType == TargetType.Self)
                 .FirstOrDefault();
             if (power is not null)
@@ -310,8 +387,8 @@ public sealed class Seed42Agent : IAgent
         {
             var defendish = hand
                 .Where(c => c.CanPlay && c.Cost <= combat.Energy
-                            && CardEffects.Get(c.Id).Block > 0)
-                .OrderByDescending(c => CardEffects.Get(c.Id).Block)
+                            && CardMechanics.Get(c.Id).Block > 0)
+                .OrderByDescending(c => CardMechanics.Get(c.Id).Block)
                 .FirstOrDefault();
             if (defendish is not null)
                 return (defendish.Index, defendish.TargetType == TargetType.AnyEnemy ? primaryTarget.Index : (int?)null);
@@ -339,11 +416,11 @@ public sealed class Seed42Agent : IAgent
                 .Where(c => c.CanPlay && c.Cost <= combat.Energy)
                 .Where(c =>
                 {
-                    var eff = CardEffects.Get(c.Id);
+                    var eff = CardMechanics.Get(c.Id);
                     return eff.Damage > 0 || eff.BlockToDamage;
                 })
                 // hits per energy first (multi-hit cheap is gold), then cost asc
-                .OrderByDescending(c => CardEffects.Get(c.Id).Hits)
+                .OrderByDescending(c => CardMechanics.Get(c.Id).Hits)
                 .ThenBy(c => c.Cost)
                 .FirstOrDefault();
             if (drain is not null)
@@ -356,7 +433,7 @@ public sealed class Seed42Agent : IAgent
         // Step 4: pour energy into damage (post-SLIPPERY or non-SLIPPERY).
         var bestAttack = hand
             .Where(c => c.CanPlay && c.Cost <= combat.Energy)
-            .Select(c => (card: c, dmg: CardEffects.EstimateDamage(c, primaryTarget, combat)))
+            .Select(c => (card: c, dmg: CardMechanics.EstimateDamage(c, primaryTarget, combat)))
             .Where(t => t.dmg > 0)
             .OrderByDescending(t => t.dmg)
             .FirstOrDefault();
@@ -369,7 +446,7 @@ public sealed class Seed42Agent : IAgent
         // Step 5: burn off any playable card to cycle hand.
         var anyPlayable = hand
             .Where(c => c.CanPlay && c.Cost <= combat.Energy)
-            .OrderByDescending(c => CardEffects.Get(c.Id).Block)
+            .OrderByDescending(c => CardMechanics.Get(c.Id).Block)
             .FirstOrDefault();
         if (anyPlayable is not null)
         {
@@ -431,10 +508,15 @@ public sealed class Seed42Agent : IAgent
             {
                 // Pick the highest DraftScore option, OR skip if every
                 // option is at-or-below neutral and skipping is allowed.
-                // Forced (non-skippable) card rewards still take the best
-                // we can.
+                // Forced (non-skippable) card rewards still take the
+                // best we can. The DraftScore helper pushes
+                // CardMechanics.IsHeadlessUnsafe cards to a strongly
+                // negative score so they skip when possible, and are
+                // taken only as a last resort if every option is unsafe
+                // (which can still crash on play — but that's an engine-
+                // bug we want surfaced, not silently masked).
                 var ranked = pick.Cards?
-                    .Select(c => (idx: c.Index, score: CardEffects.Get(c.Id).DraftScore, id: c.Id))
+                    .Select(c => (idx: c.Index, score: DraftScore(c.Id), id: c.Id))
                     .OrderByDescending(t => t.score)
                     .ToList();
                 var best = ranked is { Count: > 0 } ? ranked[0] : (idx: 0, score: 0, id: "");
