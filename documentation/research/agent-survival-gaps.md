@@ -190,6 +190,19 @@ itself a "wire-level synthetic" so future readers don't go looking for a
 `BossRoom : Room` type that doesn't exist; `MapNodeType.Boss` is no
 longer marked speculative.
 
+### resolved: combatState was null in BossRoom
+
+A direct consequence of the wire-level synthetic. `BuildSnapshot` flipped
+the room label from `CombatRoom` to `BossRoom` *before* the combat-state
+read gate, which only fired on `roomType == CombatRoom`. The engine's
+actual room is still `CombatRoom` with a live `CombatManager.Instance`,
+but the wire returned `combatState: null` for every boss snapshot, so any
+agent stepping into the boss fight threw "in BossRoom but combatState is
+null" on its very first read. Fix is one line: gate combat-state reads on
+`roomType == CombatRoom || roomType == BossRoom`. Surfaced by
+`Seed42ReconTests` driving the greedy agent through to the act boss —
+without this fix the boss combat itself was unobservable.
+
 ### still open: agent survival to the boss
 
 The greedy agent doesn't survive the early-Act-1 combats long enough to

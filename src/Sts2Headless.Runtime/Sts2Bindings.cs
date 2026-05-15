@@ -581,7 +581,12 @@ public sealed partial class Sts2Bindings
         // Same gating discipline for combat: only read when sts2 has a live
         // combat (room == CombatRoom). Outside, CombatManager.Instance may be
         // null or carry stale state and PlayerCombatState is undefined.
-        var combatState = roomType == RoomType.CombatRoom
+        // BossRoom is the wire-level synthetic for CombatRoom-on-a-Boss-point
+        // (see the flip above); the engine's actual room is still CombatRoom
+        // with a live combat, so we must read combat state for it too — without
+        // this branch, callers entering the act-boss fight see combatState=null
+        // and any combat agent crashes on first read.
+        var combatState = (roomType == RoomType.CombatRoom || roomType == RoomType.BossRoom)
             ? ReadCombatState(handle)
             : null;
 
