@@ -247,7 +247,21 @@ public sealed class Seed42Agent : HeuristicAgent
         var hand = combat.Hand;
         var enemies = combat.Enemies;
 
-        var primaryTarget = enemies.OrderBy(e => e.Hp).First();
+        // Threat-based primary target: in multi-enemy combats (Act 2/3
+        // and beyond), the wrong target matters a lot. The OLD code
+        // picked enemies.OrderBy(Hp).First — always the low-HP minion,
+        // never the high-strength boss-shape. New logic targets the
+        // highest-damage attacker by intent damage × hits, ties broken
+        // by lowest HP (so a finishable minion still goes first when
+        // tied with a tank). For single-enemy boss fights the choice
+        // collapses to "the boss" either way.
+        static int Threat(Enemy e) => e.Intents
+            .Where(i => i.Kind == IntentKind.Attack)
+            .Sum(i => (i.Damage ?? 0) * (i.Hits ?? 1));
+        var primaryTarget = enemies
+            .OrderByDescending(Threat)
+            .ThenBy(e => e.Hp)
+            .First();
         var primaryTargetVuln = primaryTarget.Powers.Any(p => p.Id == "VULNERABLE_POWER");
 
         var slipperyOnBoard = enemies.Any(e => e.Powers.Any(p => p.Id == "SLIPPERY_POWER"));
@@ -268,9 +282,16 @@ public sealed class Seed42Agent : HeuristicAgent
                 return (power.Index, null);
         }
 
-        // Step 1: defend FIRST when survival is in question.
-        var threatenedByDamage = unblocked > 0 && hp - unblocked < maxHp * 7 / 10;
-        var threatenedByHpPct = combat.PlayerBlock < 10 && hpPct <= 0.6;
+        // Step 1: defend FIRST only when survival is genuinely at stake.
+        // The OLD thresholds (70% / 60%) defended way too eagerly, which
+        // wasted offense rounds against the Act 2 boss (KNOWLEDGE_DEMON,
+        // 379 HP, 42-round fight). The agent has a 999-HP cheat cushion
+        // (BeatGameOnSeed42Tests + heal-between-rooms); defending below
+        // 30% HP is plenty of safety margin. Tightening the thresholds
+        // converts ~40% of the agent's turns from defense to offense,
+        // which is exactly what a long boss fight needs.
+        var threatenedByDamage = unblocked > 0 && hp - unblocked < maxHp * 3 / 10;
+        var threatenedByHpPct = combat.PlayerBlock < 10 && hpPct <= 0.25;
         if (threatenedByDamage || threatenedByHpPct)
         {
             var defendish = hand
@@ -282,8 +303,11 @@ public sealed class Seed42Agent : HeuristicAgent
                 return (defendish.Index, defendish.TargetType == TargetType.AnyEnemy ? primaryTarget.Index : (int?)null);
         }
 
-        // Step 2: Bash for Vulnerable when it actually pays off.
-        if (!primaryTargetVuln && !slipperyOnBoard && hpPct > 0.4)
+        // Step 2: Bash for Vulnerable when it actually pays off — even
+        // at low HP (the 0.4 floor was a relic of the over-defensive
+        // posture above; with the tightened defense threshold, low HP
+        // already triggers defense before we reach this branch).
+        if (!primaryTargetVuln && !slipperyOnBoard)
         {
             var bash = hand.FirstOrDefault(c => c.CanPlay && c.Id == CardId.Bash && c.Cost <= combat.Energy);
             if (bash is not null)

@@ -34,7 +34,7 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         _output = output;
     }
 
-    [Fact(Skip = "Heal-between-rooms in place; agent now clears Act 1 + Act 2 boss (KNOWLEDGE_DEMON, 42-round fight) but takes the killing blow on the same turn as the boss kill. Needs (b) smarter combat targeting to shorten the boss fight, or further cheats (mid-combat heal / god-mode). Run: 14 heals, dies at floor 16 Act 2.")]
+    [Fact(Skip = "Smarter combat targeting in place; agent now clears Act 1 + Act 2 entirely and reaches Act 3 floor 7. New blocker: host-side NRE on run/play_card against SOUL_NEXUS (likely a death hook or power that NREs in headless). Investigation + patch in next slice.")]
     [Trait("category", "diagnostic")]
     public async Task Seed42Agent_Ironclad_WinsTheGame_WithMaxHpCheat()
     {
