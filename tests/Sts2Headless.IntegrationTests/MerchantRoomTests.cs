@@ -8,20 +8,15 @@ namespace Sts2Headless.IntegrationTests;
 // surfaces AvailableMerchantItems on every snapshot-bearing result, gated
 // to MerchantRoom (analogous to AvailableRestSiteOptions ↔ RestSiteRoom).
 //
-// Both tests are currently **[Skip]**'d because reaching a merchant from
-// run/new requires walking the GreedyAgent through multiple Act 1 rooms —
-// which depends on the agent surviving floors 7+. ReachAct1BossTests has
-// the same dependency and is currently flaky on the seeds we have. Lifting
-// the skip is a follow-up slice: either fix agent survivability or find a
-// short-path seed that lands on a merchant within the first 2–3 floors.
+// Seed picked from the diagnostic merchant-scan
+// (DiagnoseMerchantSeedScanTests, run after the 2026-05-15 combat-stall
+// fix): seed 13 lands a merchant on floor 3 after a single heal, the
+// shortest of the 5 surfacing seeds. If sts2 versions change the map
+// generator's PRNG and seed 13 no longer hits a merchant fast, re-run the
+// scan and pick a new short-path seed — that's a normal version-bump
+// chore, not a regression.
 //
-// The Skip is **not** because the wire/binding slice is incomplete — the
-// host serves run/buy_merchant_item and run/leave_merchant_room, the
-// snapshot carries availableMerchantItems on every MerchantRoom snapshot,
-// and a manual stdio session can exercise them end-to-end. We just need
-// a stable seed-discovery story before the assertions below are useful.
-//
-// Discipline (for when the tests come off skip):
+// Discipline:
 //   * Don't pin specific item ids (CardId / RelicId / PotionId) — sts2's
 //     merchant rolls are seed-derived and may change without us breaking.
 //     Assert shape (non-empty, every item has Cost ≥ 0, every item has a
@@ -46,7 +41,7 @@ public class MerchantRoomTests : IClassFixture<HostSubprocess>
     private async Task<RunStateResult> WalkToMerchantEntry()
     {
         await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 13uL));
 
         var transport = new HostSubprocessAgentTransport(_host);
         var agent = new GreedyAgent();
@@ -111,7 +106,7 @@ public class MerchantRoomTests : IClassFixture<HostSubprocess>
         return state; // unreachable
     }
 
-    [Fact(Skip = "merchant-walk requires agent-survival tuning; see class doc")]
+    [Fact]
     public async Task WalkToMerchant_SurfacesItems_WithStableShape()
     {
         var state = await WalkToMerchantEntry();
@@ -171,7 +166,7 @@ public class MerchantRoomTests : IClassFixture<HostSubprocess>
         Assert.Contains(MerchantKind.CardRemoval, kinds);
     }
 
-    [Fact(Skip = "merchant-walk requires agent-survival tuning; see class doc")]
+    [Fact]
     public async Task LeaveMerchant_ExitsTo_MapRoom()
     {
         var entry = await WalkToMerchantEntry();
