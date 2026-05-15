@@ -33,7 +33,11 @@ public class BeatAct1BossOnSeed42Tests : IClassFixture<HostSubprocess>
     // is a known engine gap (no patch yet); the former is an agent-skill
     // gap — needs better defence stacking through the floor-8 elite so
     // we enter floor 9 with more HP. Iteration is ongoing.
-    [Fact(Skip = "Agent dies at floor 9 Mawler post-elite; iteration ongoing — see agent-survival-gaps.md")]
+    // Skipped pending more agent work: agent now reaches floor 15 (was
+    // floor 9 before potion use) but dies vs Fogmog when the defensive
+    // potion bag is empty. The boss combat itself remains untested. See
+    // agent-survival-gaps.md for the open punch list.
+    [Fact(Skip = "Agent reaches floor 15 then dies vs Fogmog with empty potion bag; iteration ongoing")]
     [Trait("category", "diagnostic")]
     public async Task Seed42Agent_Ironclad_BeatsVantom_NoDebugHeals()
     {

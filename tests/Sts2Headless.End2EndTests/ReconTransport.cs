@@ -17,6 +17,7 @@ public sealed class ReconTransport(ITransport inner) : ITransport
     private RoomType _lastRoom = RoomType.Unknown;
     private int _combatRound = -1;
     private int _floorCombatCounter = 0;
+    private string _lastPotionDigest = "";
 
     public string Markdown => _md.ToString();
 
@@ -29,22 +30,23 @@ public sealed class ReconTransport(ITransport inner) : ITransport
 
     private void Record<T>(string method, object? @params, T result)
     {
-        (RoomType room, int hp, int maxHp, int floor, bool gameOver, CombatState? combat, RewardsState? rewards, IReadOnlyList<Relic>? relics, IReadOnlyList<MapNode>? nodes, IReadOnlyList<EventOption>? events)
+        (RoomType room, int hp, int maxHp, int floor, bool gameOver, CombatState? combat, RewardsState? rewards, IReadOnlyList<Relic>? relics, IReadOnlyList<MapNode>? nodes, IReadOnlyList<EventOption>? events, IReadOnlyList<OwnedPotion>? potions)
             = result switch
         {
-            RunStateResult s => (s.CurrentRoomType, s.Hp, s.MaxHp, s.ActFloor, s.IsGameOver, s.CombatState, s.RewardsState, s.Relics, s.AvailableMapNodes, s.AvailableEventOptions),
-            RunNewResult n => (n.CurrentRoomType, -1, -1, 1, false, n.CombatState, n.RewardsState, n.Relics, n.AvailableMapNodes, n.AvailableEventOptions),
-            RunSelectMapNodeResult m => (m.CurrentRoomType, m.Hp, -1, m.ActFloor, m.IsGameOver, m.CombatState, m.RewardsState, m.Relics, m.AvailableMapNodes, m.AvailableEventOptions),
-            RunSelectEventOptionResult eo => (eo.CurrentRoomType, eo.Hp, -1, eo.ActFloor, eo.IsGameOver, eo.CombatState, eo.RewardsState, eo.Relics, eo.AvailableMapNodes, eo.AvailableEventOptions),
-            RunPlayCardResult pc => (pc.CurrentRoomType, pc.Hp, -1, pc.ActFloor, pc.IsGameOver, pc.CombatState, pc.RewardsState, pc.Relics, pc.AvailableMapNodes, pc.AvailableEventOptions),
-            RunEndTurnResult et => (et.CurrentRoomType, et.Hp, -1, et.ActFloor, et.IsGameOver, et.CombatState, et.RewardsState, et.Relics, et.AvailableMapNodes, et.AvailableEventOptions),
-            RunSelectRewardResult sr => (sr.CurrentRoomType, sr.Hp, -1, sr.ActFloor, sr.IsGameOver, sr.CombatState, sr.RewardsState, sr.Relics, sr.AvailableMapNodes, sr.AvailableEventOptions),
-            RunSkipRewardResult sk => (sk.CurrentRoomType, sk.Hp, -1, sk.ActFloor, sk.IsGameOver, sk.CombatState, sk.RewardsState, sk.Relics, sk.AvailableMapNodes, sk.AvailableEventOptions),
-            RunSelectRestSiteOptionResult rs => (rs.CurrentRoomType, rs.Hp, -1, rs.ActFloor, rs.IsGameOver, rs.CombatState, rs.RewardsState, rs.Relics, rs.AvailableMapNodes, rs.AvailableEventOptions),
-            RunLeaveTreasureRoomResult lt => (lt.CurrentRoomType, lt.Hp, -1, lt.ActFloor, lt.IsGameOver, lt.CombatState, lt.RewardsState, lt.Relics, lt.AvailableMapNodes, lt.AvailableEventOptions),
-            RunLeaveMerchantRoomResult lm => (lm.CurrentRoomType, lm.Hp, -1, lm.ActFloor, lm.IsGameOver, lm.CombatState, lm.RewardsState, lm.Relics, lm.AvailableMapNodes, lm.AvailableEventOptions),
-            DebugSetHpResult hp2 => (RoomType.Unknown, hp2.Hp, hp2.MaxHp, -1, hp2.IsGameOver, null, null, null, null, null),
-            _ => (RoomType.Unknown, -2, -2, -2, false, null, null, null, null, null),
+            RunStateResult s => (s.CurrentRoomType, s.Hp, s.MaxHp, s.ActFloor, s.IsGameOver, s.CombatState, s.RewardsState, s.Relics, s.AvailableMapNodes, s.AvailableEventOptions, s.OwnedPotions),
+            RunNewResult n => (n.CurrentRoomType, -1, -1, 1, false, n.CombatState, n.RewardsState, n.Relics, n.AvailableMapNodes, n.AvailableEventOptions, n.OwnedPotions),
+            RunSelectMapNodeResult m => (m.CurrentRoomType, m.Hp, -1, m.ActFloor, m.IsGameOver, m.CombatState, m.RewardsState, m.Relics, m.AvailableMapNodes, m.AvailableEventOptions, m.OwnedPotions),
+            RunSelectEventOptionResult eo => (eo.CurrentRoomType, eo.Hp, -1, eo.ActFloor, eo.IsGameOver, eo.CombatState, eo.RewardsState, eo.Relics, eo.AvailableMapNodes, eo.AvailableEventOptions, eo.OwnedPotions),
+            RunPlayCardResult pc => (pc.CurrentRoomType, pc.Hp, -1, pc.ActFloor, pc.IsGameOver, pc.CombatState, pc.RewardsState, pc.Relics, pc.AvailableMapNodes, pc.AvailableEventOptions, pc.OwnedPotions),
+            RunEndTurnResult et => (et.CurrentRoomType, et.Hp, -1, et.ActFloor, et.IsGameOver, et.CombatState, et.RewardsState, et.Relics, et.AvailableMapNodes, et.AvailableEventOptions, et.OwnedPotions),
+            RunSelectRewardResult sr => (sr.CurrentRoomType, sr.Hp, -1, sr.ActFloor, sr.IsGameOver, sr.CombatState, sr.RewardsState, sr.Relics, sr.AvailableMapNodes, sr.AvailableEventOptions, sr.OwnedPotions),
+            RunSkipRewardResult sk => (sk.CurrentRoomType, sk.Hp, -1, sk.ActFloor, sk.IsGameOver, sk.CombatState, sk.RewardsState, sk.Relics, sk.AvailableMapNodes, sk.AvailableEventOptions, sk.OwnedPotions),
+            RunSelectRestSiteOptionResult rs => (rs.CurrentRoomType, rs.Hp, -1, rs.ActFloor, rs.IsGameOver, rs.CombatState, rs.RewardsState, rs.Relics, rs.AvailableMapNodes, rs.AvailableEventOptions, rs.OwnedPotions),
+            RunLeaveTreasureRoomResult lt => (lt.CurrentRoomType, lt.Hp, -1, lt.ActFloor, lt.IsGameOver, lt.CombatState, lt.RewardsState, lt.Relics, lt.AvailableMapNodes, lt.AvailableEventOptions, lt.OwnedPotions),
+            RunLeaveMerchantRoomResult lm => (lm.CurrentRoomType, lm.Hp, -1, lm.ActFloor, lm.IsGameOver, lm.CombatState, lm.RewardsState, lm.Relics, lm.AvailableMapNodes, lm.AvailableEventOptions, lm.OwnedPotions),
+            RunUsePotionResult up => (up.CurrentRoomType, up.Hp, -1, up.ActFloor, up.IsGameOver, up.CombatState, up.RewardsState, up.Relics, up.AvailableMapNodes, up.AvailableEventOptions, up.OwnedPotions),
+            DebugSetHpResult hp2 => (RoomType.Unknown, hp2.Hp, hp2.MaxHp, -1, hp2.IsGameOver, null, null, null, null, null, null),
+            _ => (RoomType.Unknown, -2, -2, -2, false, null, null, null, null, null, null),
         };
 
         // run/new — opening section.
@@ -109,6 +111,9 @@ public sealed class ReconTransport(ITransport inner) : ITransport
             case "run/play_card" when @params is RunPlayCardParams rpcp:
                 _md.AppendLine($"  → play card [{rpcp.CardIndex}]{(rpcp.TargetIndex is null ? "" : $" target={rpcp.TargetIndex}")}");
                 break;
+            case "run/use_potion" when @params is RunUsePotionParams rupp:
+                _md.AppendLine($"  → use potion [{rupp.PotionIndex}]{(rupp.TargetIndex is null ? "" : $" target={rupp.TargetIndex}")}");
+                break;
             case "run/end_turn":
                 _md.AppendLine($"  → end_turn → round transition");
                 break;
@@ -159,6 +164,17 @@ public sealed class ReconTransport(ITransport inner) : ITransport
             _md.AppendLine($"  - combat ended (hp={hp})");
             _md.AppendLine();
             _combatRound = -1;
+        }
+
+        // Bag state — only when it changes.
+        if (potions is not null)
+        {
+            var digest = potions.Count == 0 ? "(empty)" : string.Join(",", potions.Select(p => $"[{p.Index}]{p.Id}/{p.TargetType}"));
+            if (digest != _lastPotionDigest)
+            {
+                _md.AppendLine($"  - bag: {digest}");
+                _lastPotionDigest = digest;
+            }
         }
 
         // Rewards menu.

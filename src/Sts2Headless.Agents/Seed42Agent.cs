@@ -114,6 +114,20 @@ public sealed class Seed42Agent : IAgent
             return await DrainRewardsAsync(host, ended.RewardsState);
         }
 
+        // Step P: emergency potion drink. If we'd take a fatal hit next
+        // turn, drink a BlockPotion (or any high-block utility) before
+        // playing any card. Defensive potions are "free" — they don't
+        // consume energy — so they always beat spending energy on Defend
+        // when available.
+        var potionPick = ChoosePotion(combat, s, s.Hp, s.MaxHp);
+        if (potionPick is not null)
+        {
+            var pr = await host.SendAsync<RunUsePotionResult>(
+                "run/use_potion",
+                new RunUsePotionParams(PotionIndex: potionPick.Value.potionIndex, TargetIndex: potionPick.Value.targetIndex));
+            return await DrainRewardsAsync(host, pr.RewardsState);
+        }
+
         var pick = ChoosePlay(combat, s.Hp, s.MaxHp);
         if (pick is null)
         {
@@ -125,6 +139,98 @@ public sealed class Seed42Agent : IAgent
             "run/play_card",
             new RunPlayCardParams(CardIndex: pick.Value.cardIndex, TargetIndex: pick.Value.targetIndex));
         return await DrainRewardsAsync(host, resp.RewardsState);
+    }
+
+    // Decide whether to use a potion this tick. Returns the (potionIndex,
+    // targetIndex) to drink, or null to keep them in the bag.
+    //
+    // Trigger gates per potion id:
+    //   * BlockPotion: incoming damage would land >= 8 unblocked HP and HP
+    //     is at-or-below 50% maxHp. Saved for "this turn would otherwise
+    //     hurt a lot" — at full HP we'd rather hoard the cushion.
+    //   * EnergyPotion: hand has cost-2+ playable cards (e.g. BLUDGEON,
+    //     UPPERCUT) we can't afford this turn, AND a high-priority target
+    //     exists (low-HP enemy or boss). Burning energy when the deck
+    //     can't capitalise is a waste.
+    //   * Strength / Dexterity / Flex potions: round 1 only (long fight
+    //     ahead amortises the buff).
+    //   * EntropicBrew / utility: skip — too situational, agent doesn't
+    //     understand the random outputs.
+    private static (int potionIndex, int? targetIndex)? ChoosePotion(
+        CombatState combat, RunStateResult s, int hp, int maxHp)
+    {
+        if (s.OwnedPotions.Count == 0) return null;
+        var enemies = combat.Enemies;
+        var primaryTarget = enemies.OrderBy(e => e.Hp).First();
+        var incoming = CardEffects.IncomingDamage(combat);
+        var unblocked = Math.Max(0, incoming - combat.PlayerBlock);
+
+        foreach (var potion in s.OwnedPotions)
+        {
+            if (!potion.CanUse) continue;
+            var (shouldUse, targetIndex) = ShouldUsePotion(potion, combat, hp, maxHp, unblocked, primaryTarget);
+            if (shouldUse) return (potion.Index, targetIndex);
+        }
+        return null;
+    }
+
+    private static (bool, int?) ShouldUsePotion(
+        OwnedPotion potion, CombatState combat, int hp, int maxHp, int unblocked, Enemy primaryTarget)
+    {
+        // The wire TargetType currently parses Unknown for potions (the
+        // engine's enum strings don't match the wire's; a separate slice).
+        // Until that's fixed we hard-code targeting per known potion id:
+        // self-target potions pass null; damage potions pass primaryTarget.
+        var selfPotions = new[] { "BlockPotion", "EnergyPotion", "StrengthPotion",
+            "DexterityPotion", "FlexPotion", "FocusPotion", "RegenPotion",
+            "EntropicBrew", "ColorlessPotion", "SpeedPotion", "BloodPotion" };
+        var enemyPotions = new[] { "FirePotion", "PoisonPotion", "AttackPotion",
+            "WeakPotion", "VulnerablePotion" };
+        int? target = enemyPotions.Contains(potion.Id) ? primaryTarget.Index : (int?)null;
+
+        switch (potion.Id)
+        {
+            case "BlockPotion":
+                return (unblocked >= 8 && hp <= maxHp / 2, target);
+
+            case "EnergyPotion":
+                // Drink if there's an unaffordable high-cost attack OR we'd
+                // play a card that obviously matters (we're below max HP).
+                var hasUnaffordable = combat.Hand.Any(c => c.CanPlay && c.Cost > combat.Energy
+                                                            && CardEffects.Get(c.Id).Damage > 0);
+                return (hasUnaffordable && hp > maxHp / 4, target);
+
+            case "RegenPotion":
+                // Regen restores HP over a few turns; drink early when wounded
+                // (60% maxHp threshold) so the heal lands across the fight.
+                return (hp <= maxHp * 6 / 10 && combat.Round <= 3, target);
+
+            case "BloodPotion":
+                // Heal 20% maxHp instantly — drink when low HP.
+                return (hp < maxHp / 2, target);
+
+            case "StrengthPotion":
+            case "DexterityPotion":
+            case "FlexPotion":
+            case "FocusPotion":
+                // Round 1 only — buffs amortise over the fight.
+                return (combat.Round == 1, target);
+
+            case "FirePotion":
+            case "PoisonPotion":
+            case "AttackPotion":
+                // Damage potions: use on the lowest-HP enemy (likely kill).
+                return (primaryTarget.Hp <= 25, target);
+
+            case "WeakPotion":
+            case "VulnerablePotion":
+                // Debuff potions: cast on the primary threat at round 1.
+                return (combat.Round == 1, target);
+
+            default:
+                // EntropicBrew, unknown utility — hold.
+                return (false, null);
+        }
     }
 
     // Heart of the combat agent: pick a single (cardIndex, targetIndex)

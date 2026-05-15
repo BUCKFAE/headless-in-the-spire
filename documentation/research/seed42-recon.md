@@ -8,6 +8,7 @@
 
   - map options: (3,0):Monster, (0,1):Monster, (3,1):Monster, (5,1):Monster
 
+  - bag: (empty)
 ## Floor 2: CombatRoom  (hp=80)
 
 
@@ -97,6 +98,7 @@
     - [1] card cards=[`BODY_SLAM`(cost=1), `TREMBLE`(cost=1), `SWORD_BOOMERANG`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=71 room=CombatRoom
+  - bag: [0]EnergyPotion/Unknown
   - rewards offered:
     - [0] card cards=[`BODY_SLAM`(cost=1), `TREMBLE`(cost=1), `SWORD_BOOMERANG`(cost=1)]  canSkip=True
 
@@ -375,6 +377,7 @@
   - map options: (0,6):RestSite
 
   → pick event option [1] → MapRoom hp=72
+  - bag: [0]EnergyPotion/Unknown,[1]RegenPotion/Unknown
   - heal → hp=80/80
 
 ## Floor 7: RestSiteRoom  (hp=80)
@@ -660,6 +663,7 @@
     - [1] card cards=[`UPPERCUT`(cost=2), `ARMAMENTS`(cost=1), `STONE_ARMOR`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=54 room=CombatRoom
+  - bag: [0]EnergyPotion/Unknown,[1]RegenPotion/Unknown,[2]EntropicBrew/Self
   - rewards offered:
     - [0] card cards=[`UPPERCUT`(cost=2), `ARMAMENTS`(cost=1), `STONE_ARMOR`(cost=1)]  canSkip=True
 
