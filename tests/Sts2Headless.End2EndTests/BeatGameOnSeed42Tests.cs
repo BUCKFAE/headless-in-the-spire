@@ -5,24 +5,24 @@ using Xunit;
 
 namespace Sts2Headless.End2EndTests;
 
-// End-to-end forcing function: drive an Ironclad run on seed 42 from Neow
-// to victory with the 999/999 HP cheat keeping the agent alive through
-// any combat. The cheat is the same workaround
-// `BeatAct1BossOnSeed42Tests` uses — survival is not what we're testing;
-// the goal here is to prove the run can be *driven* through every act
-// transition and final-boss state to IsVictory=true.
+// End-to-end forcing function: drive an Ironclad run on seed 42 from
+// Neow to victory with the 999/999 HP cheat *plus* heal-between-rooms
+// keeping the agent alive across every combat. Survival is explicitly
+// not what we're testing; the goal is to prove the run can be *driven*
+// through every act transition and final-boss state to IsVictory=true.
 //
-// Status: blocked on at least one new engine hang — THIEVING_HOPPER's
-// ESCAPE_ARTIST_POWER turn stalls in an infinite end-turn loop in Act 2
-// (observed at seed-42 floor 3, recorded in
-// /tmp/seed42-postact1-walk.md). The same shape as the VANTOM/SLIPPERY
-// hang we patched for Act 1 (HangPatches.PatchVantomDismemberMove); a
-// per-monster Harmony patch is the likely fix. Until those patches
-// land, this test stays [Skip]ped so the goal assertion lives in the
-// codebase without permanently failing CI.
+// Two cheats stack:
+//   * debug/set_hp once at run start to push the cap to 999/999.
+//   * debug/set_hp again whenever the drive returns at a MapRoom with
+//     Hp < MaxHp. Mirrors the ReachAct1BossTests pattern. Without
+//     this second heal, the agent eats too much cumulative damage in
+//     multi-enemy combats (e.g. Act 2 floor 14 OVICOPTER + 3 TOUGH_EGGs
+//     ran 44 rounds and exhausted the 999 HP pool). With it, the agent
+//     enters every combat at full HP and the test can answer the
+//     question it actually exists to answer: is the wire/engine
+//     surface complete enough to drive a full run end-to-end?
 //
-// To run locally: drop the SkipAttribute below and `just test-cs` (or
-// invoke by filter). Trace lands at /tmp/seed42-game-walk.md regardless.
+// Trace lands at /tmp/seed42-game-walk.md.
 public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
 {
     private readonly HostSubprocess _host;
@@ -34,7 +34,7 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         _output = output;
     }
 
-    [Fact(Skip = "Still chasing Act 2/3 monster-move hangs. The StallDetector catches each new one in ~10 seconds (see fingerprint in the failure message), then we add a Harmony patch in HangPatches.cs. Currently stops at Act 2 floor 12 on BOWLBUG_ROCK's move body. Lift the skip once IsVictory is reachable.")]
+    [Fact(Skip = "Heal-between-rooms in place; agent now clears Act 1 + Act 2 boss (KNOWLEDGE_DEMON, 42-round fight) but takes the killing blow on the same turn as the boss kill. Needs (b) smarter combat targeting to shorten the boss fight, or further cheats (mid-combat heal / god-mode). Run: 14 heals, dies at floor 16 Act 2.")]
     [Trait("category", "diagnostic")]
     public async Task Seed42Agent_Ironclad_WinsTheGame_WithMaxHpCheat()
     {
@@ -56,15 +56,40 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
 
         Exception? error = null;
         RunStateResult? state = null;
+        var healCount = 0;
 
+        // Drive in waves: each wave runs until either victory, a wounded
+        // MapRoom (heal-needed), or game-over / stall. After a heal
+        // checkpoint, top up via debug/set_hp and continue.
         try
         {
-            var outcome = await AgentDriver.PlayRunAsync(
-                transport,
-                agent,
-                stopWhen: s => s.IsVictory,
-                ct: cts.Token);
-            state = outcome.FinalState;
+            while (true)
+            {
+                var outcome = await AgentDriver.PlayRunAsync(
+                    transport,
+                    agent,
+                    stopWhen: s => s.IsVictory
+                                    || (s.CurrentRoomType == RoomType.MapRoom && s.Hp < s.MaxHp),
+                    ct: cts.Token);
+                state = outcome.FinalState;
+
+                if (state.IsVictory) break;
+                if (outcome.TerminatedBy == TerminationReason.GameOver) break;
+
+                // Top up between rooms. Unbounded heals would mask a true
+                // regression (e.g. agent looping on a map it can't leave),
+                // so we cap at 200 — generous enough for a full run on
+                // seed 42 (~50-80 map rooms across three acts).
+                var heal = await transport.SendAsync<DebugSetHpResult>(
+                    "debug/set_hp", new DebugSetHpParams(Hp: state.MaxHp));
+                Assert.True(heal.Ok, "debug/set_hp returned ok=false during multi-act heal");
+                healCount++;
+                if (healCount >= 200)
+                {
+                    _output.WriteLine($"=== heal cap of 200 reached at act={state.CurrentActIndex} floor={state.ActFloor} — likely an agent loop, not a slow drive ===");
+                    break;
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -72,11 +97,11 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         }
 
         await File.WriteAllTextAsync("/tmp/seed42-game-walk.md", transport.Markdown);
-        _output.WriteLine($"log_chars={transport.Markdown.Length} state={(state is null ? "null" : $"room={state.CurrentRoomType} act={state.CurrentActIndex} floor={state.ActFloor} hp={state.Hp}/{state.MaxHp} victory={state.IsVictory} dead={state.IsDead}")}");
+        _output.WriteLine($"log_chars={transport.Markdown.Length} heals={healCount} state={(state is null ? "null" : $"room={state.CurrentRoomType} act={state.CurrentActIndex} floor={state.ActFloor} hp={state.Hp}/{state.MaxHp} victory={state.IsVictory} dead={state.IsDead}")}");
         if (error is not null) _output.WriteLine($"error: {error.GetType().Name}: {error.Message}");
 
         Assert.Null(error);
         Assert.NotNull(state);
-        Assert.True(state!.IsVictory, $"agent failed to win (final hp={state.Hp}/{state.MaxHp}, act={state.CurrentActIndex}, floor={state.ActFloor}, room={state.CurrentRoomType}, dead={state.IsDead})");
+        Assert.True(state!.IsVictory, $"agent failed to win (final hp={state.Hp}/{state.MaxHp}, act={state.CurrentActIndex}, floor={state.ActFloor}, room={state.CurrentRoomType}, dead={state.IsDead}, heals={healCount})");
     }
 }
