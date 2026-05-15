@@ -212,6 +212,13 @@ public sealed partial class Sts2Bindings
     private readonly PropertyInfo? _monsterIntendsToAttack;
     private readonly PropertyInfo? _nextMoveIntents;
     private readonly PropertyInfo? _intentIntentType;
+    // AttackIntent surface: damage is computed at read-time via the
+    // engine's modifier-aware DamageCalc func; repeats is the hit count.
+    // Both come from sts2's AttackIntent base — SingleAttackIntent and
+    // MultiAttackIntent (and DeathBlowIntent) inherit the props.
+    private readonly Type? _attackIntentType;
+    private readonly PropertyInfo? _attackIntentDamageCalc;
+    private readonly PropertyInfo? _attackIntentRepeats;
     private readonly MethodInfo? _playerCmdEndTurn;
     private readonly ConstructorInfo? _playCardActionCtor;
     private readonly PropertyInfo? _runManagerActionQueueSet;
@@ -389,6 +396,9 @@ public sealed partial class Sts2Bindings
         _monsterIntendsToAttack = c.MonsterIntendsToAttack;
         _nextMoveIntents = c.NextMoveIntents;
         _intentIntentType = c.IntentIntentType;
+        _attackIntentType = c.AttackIntentType;
+        _attackIntentDamageCalc = c.AttackIntentDamageCalc;
+        _attackIntentRepeats = c.AttackIntentRepeats;
         _playerCmdEndTurn = c.PlayerCmdEndTurn;
         _playCardActionCtor = c.PlayCardActionCtor;
         _runManagerActionQueueSet = c.RunManagerActionQueueSet;
@@ -780,11 +790,32 @@ public sealed partial class Sts2Bindings
         {
             if (intent is null) continue;
             var kind = ParseEnum<IntentKind>(_intentIntentType?.GetValue(intent));
-            // Damage / Hits / Block are not bound in this pass — sts2's AttackIntent
-            // requires PlayerCreatures to call GetTotalDamage and that's a deeper
-            // walk we haven't needed yet. Surface the kind only; numeric fields
-            // stay null until a caller asks for them.
-            result.Add(new Intent(kind, Damage: null, Hits: null, Block: null));
+            // AttackIntent (and subclasses SingleAttackIntent /
+            // MultiAttackIntent / DeathBlowIntent) carries a `DamageCalc:
+            // Func<int>` that produces the engine-side modifier-aware
+            // damage value (monster strength, player vulnerable etc.
+            // baked in). Repeats is the hit count. For non-attack intents
+            // these props don't exist — fall through with null.
+            int? damage = null;
+            int? hits = null;
+            if (_attackIntentType is not null && _attackIntentType.IsInstanceOfType(intent))
+            {
+                if (_attackIntentDamageCalc?.GetValue(intent) is Delegate calc)
+                {
+                    // sts2's DamageCalc returns Decimal (engine uses Decimal
+                    // for damage so percentage modifiers like Vulnerable's
+                    // +50% stay exact). Convert.ToInt32 rounds half-to-even,
+                    // matching sts2's own display path.
+                    try { damage = Convert.ToInt32(calc.DynamicInvoke()); }
+                    catch { damage = null; } // tolerate engine-side calc failures rather than aborting the snapshot
+                }
+                if (_attackIntentRepeats?.GetValue(intent) is int r) hits = r;
+            }
+            // DefendIntent's block value isn't surfaced on the engine
+            // type's public props (only IntentType). Leaving null is the
+            // honest read; agents that want defend amounts will need
+            // either a separate binding or a parsed-tip estimator.
+            result.Add(new Intent(kind, Damage: damage, Hits: hits, Block: null));
         }
         return result;
     }
@@ -2772,6 +2803,18 @@ public sealed partial class Sts2Bindings
             enemyIsAlive = null, enemyPowers = null;
         PropertyInfo? monsterNextMove = null, monsterId = null, monsterIntendsToAttack = null;
         PropertyInfo? nextMoveIntents = null, intentIntentType = null;
+        // sts2's Intent class hierarchy: AbstractIntent → {AttackIntent
+        // (abstract, has DamageCalc:Func<int> + Repeats:int), DefendIntent,
+        // BuffIntent, …}. AttackIntent's two concrete subclasses are
+        // SingleAttackIntent and MultiAttackIntent. DamageCalc is the
+        // engine-side, modifier-aware damage computation — invoking it
+        // yields the current expected damage including the monster's
+        // Strength and any player Vulnerable. Repeats is the hit count
+        // (1 for SingleAttackIntent, N for MultiAttackIntent). We resolve
+        // these on AttackIntent so both subclasses inherit the lookup.
+        Type? attackIntentType = null;
+        PropertyInfo? attackIntentDamageCalc = null;
+        PropertyInfo? attackIntentRepeats = null;
         if (csEnemies is not null)
         {
             var enemyType = ExtractElementType(csEnemies.PropertyType);
@@ -2799,6 +2842,13 @@ public sealed partial class Sts2Bindings
                         }
                     }
                 }
+            }
+
+            attackIntentType = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.MonsterMoves.Intents.AttackIntent").Type;
+            if (attackIntentType is not null)
+            {
+                attackIntentDamageCalc = attackIntentType.GetProperty("DamageCalc", BindingFlags.Public | BindingFlags.Instance);
+                attackIntentRepeats = attackIntentType.GetProperty("Repeats", BindingFlags.Public | BindingFlags.Instance);
             }
         }
 
@@ -2861,6 +2911,7 @@ public sealed partial class Sts2Bindings
             enemyMonster, enemyHp, enemyMax, enemyBlock, enemyIsAlive, enemyPowers,
             monsterNextMove, monsterId, monsterIntendsToAttack,
             nextMoveIntents, intentIntentType,
+            attackIntentType, attackIntentDamageCalc, attackIntentRepeats,
             playerCmdEndTurn, playCardActionType, playCardActionCtor,
             actionQueueSet, enqueueWithoutSync,
             actionExecutor, actionExecutorIsRunning, actionExecutorFinished);
@@ -3007,6 +3058,7 @@ public sealed partial class Sts2Bindings
         PropertyInfo? EnemyBlock, PropertyInfo? EnemyIsAlive, PropertyInfo? EnemyPowers,
         PropertyInfo? MonsterNextMove, PropertyInfo? MonsterId, PropertyInfo? MonsterIntendsToAttack,
         PropertyInfo? NextMoveIntents, PropertyInfo? IntentIntentType,
+        Type? AttackIntentType, PropertyInfo? AttackIntentDamageCalc, PropertyInfo? AttackIntentRepeats,
         MethodInfo? PlayerCmdEndTurn, Type? PlayCardActionType, ConstructorInfo? PlayCardActionCtor,
         PropertyInfo? RunManagerActionQueueSet, MethodInfo? ActionQueueSetEnqueueWithoutSynchronizing,
         PropertyInfo? RunManagerActionExecutor, PropertyInfo? ActionExecutorIsRunning,
