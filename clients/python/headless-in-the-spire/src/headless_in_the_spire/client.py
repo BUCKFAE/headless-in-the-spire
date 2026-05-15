@@ -25,11 +25,14 @@ METHOD_NAMES: dict[str, str] = {
     "run/state": "run_state",
     "run/select_map_node": "run_select_map_node",
     "run/select_event_option": "run_select_event_option",
+    "run/select_rest_site_option": "run_select_rest_site_option",
+    "run/leave_treasure_room": "run_leave_treasure_room",
     "run/end_turn": "run_end_turn",
     "run/play_card": "run_play_card",
     "run/select_reward": "run_select_reward",
     "run/skip_reward": "run_skip_reward",
     "debug/give_relic": "debug_give_relic",
+    "debug/set_hp": "debug_set_hp",
 }
 
 
@@ -121,6 +124,25 @@ class Client:
         )
         return m.RunSelectEventOptionResult.model_validate(result)
 
+    def run_select_rest_site_option(
+        self,
+        params: m.RunSelectRestSiteOptionParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.RunSelectRestSiteOptionResult:
+        result = self._transport.call(
+            "run/select_rest_site_option",
+            _dump(params),
+            timeout=timeout,
+        )
+        return m.RunSelectRestSiteOptionResult.model_validate(result)
+
+    def run_leave_treasure_room(
+        self, *, timeout: float | None = None
+    ) -> m.RunLeaveTreasureRoomResult:
+        result = self._transport.call("run/leave_treasure_room", None, timeout=timeout)
+        return m.RunLeaveTreasureRoomResult.model_validate(result)
+
     def run_end_turn(self, *, timeout: float | None = None) -> m.RunEndTurnResult:
         result = self._transport.call("run/end_turn", None, timeout=timeout)
         return m.RunEndTurnResult.model_validate(result)
@@ -160,3 +182,12 @@ class Client:
     ) -> m.DebugGiveRelicResult:
         result = self._transport.call("debug/give_relic", _dump(params), timeout=timeout)
         return m.DebugGiveRelicResult.model_validate(result)
+
+    def debug_set_hp(
+        self,
+        params: m.DebugSetHpParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugSetHpResult:
+        result = self._transport.call("debug/set_hp", _dump(params), timeout=timeout)
+        return m.DebugSetHpResult.model_validate(result)
