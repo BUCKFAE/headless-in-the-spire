@@ -40,11 +40,13 @@ public class RestSiteSnapshotTests : IClassFixture<HostSubprocess>
         var agent = new GreedyAgent();
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
-        return await agent.DriveUntilAsync(
+        var outcome = await AgentDriver.PlayRunAsync(
             transport,
+            agent,
             stopWhen: s => s.CurrentRoomType == RoomType.RestSiteRoom
                             && s.AvailableRestSiteOptions.Count > 0,
             ct: cts.Token);
+        return outcome.FinalState;
     }
 
     [Fact]

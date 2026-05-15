@@ -88,13 +88,14 @@ public class DiagnoseMerchantSeedScanTests : IClassFixture<HostSubprocess>
                     continue;
                 }
 
-                state = await agent.DriveUntilAsync(
+                state = (await AgentDriver.PlayRunAsync(
                     transport,
+                    agent,
                     stopWhen: s => s.CurrentRoomType == RoomType.MerchantRoom
                                     || s.IsGameOver
                                     || (s.CurrentRoomType == RoomType.MapRoom && s.Hp < s.MaxHp)
                                     || (s.CurrentRoomType == RoomType.MapRoom && s.ActFloor - startFloor >= floorBudget),
-                    ct: cts.Token);
+                    ct: cts.Token)).FinalState;
             }
             return $"step cap hit at floor {state.ActFloor}";
         }

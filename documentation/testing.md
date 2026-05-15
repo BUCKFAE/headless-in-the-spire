@@ -69,16 +69,16 @@ snapshot is identical." Naive tests detect this only after the whole
 cancellation budget expires — minutes for what's effectively an instant
 failure.
 
-`src/Sts2Headless.Agents/StallDetector.cs` is the reusable watchdog:
-fingerprint each snapshot (room + act/floor + hp/gold/deck + combat
-round/phase/energy/block/hand + per-enemy hp/powers); throw when K
-consecutive snapshots have an identical fingerprint. Default threshold
-8 catches hangs within ~8 seconds. New agents added under
-`src/Sts2Headless.Agents/` should construct one and call `Observe` after
-every step. The thrown `StallDetectedException` carries the fingerprint,
-which points the operator at the exact combat / enemy / power that's
-stuck — pair with `HangPatches.cs` to add a Harmony prefix that no-ops
-the hanging method.
+`src/Sts2Headless.Agents/StallDetector.cs` is the reusable watchdog,
+wired automatically by `AgentDriver.PlayRunAsync` — every IAgent gets
+stall detection for free, structurally impossible to forget. It
+fingerprints each snapshot (room + act/floor + hp/gold/deck + combat
+round/phase/energy/block/hand + per-enemy hp/powers) and throws
+`StallDetectedException` when K consecutive snapshots have an identical
+fingerprint. Default threshold 8 catches hangs within ~8 seconds. The
+exception's fingerprint message points the operator at the exact
+combat / enemy / power that's stuck — pair with `HangPatches.cs` to
+add a Harmony prefix that no-ops the hanging method.
 
 ## Where things live
 

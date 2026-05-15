@@ -49,11 +49,12 @@ public class ReachAct1BossTests : IClassFixture<HostSubprocess>
         var healCount = 0;
         while (true)
         {
-            state = await agent.DriveUntilAsync(
+            state = (await AgentDriver.PlayRunAsync(
                 transport,
+                agent,
                 stopWhen: s => s.CurrentRoomType == RoomType.BossRoom
                                 || (s.CurrentRoomType == RoomType.MapRoom && s.Hp < s.MaxHp),
-                ct: cts.Token);
+                ct: cts.Token)).FinalState;
 
             if (state.CurrentRoomType == RoomType.BossRoom) break;
 

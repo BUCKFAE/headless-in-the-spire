@@ -51,13 +51,15 @@ public class BeatAct1BossOnSeed42Tests : IClassFixture<HostSubprocess>
         {
             // Drive until either:
             //  - HP > 0 in a non-combat room past floor 17 (boss-beaten),
-            //  - the run reports game-over (throws inside DriveUntilAsync),
+            //  - the run reports game-over (RunOutcome with TerminationReason.GameOver),
             //  - 3-minute cancellation fires.
-            state = await agent.DriveUntilAsync(
+            var outcome = await AgentDriver.PlayRunAsync(
                 transport,
+                agent,
                 stopWhen: s => s.ActFloor >= 18
                                 || (s.ActFloor == 17 && s.CurrentRoomType == RoomType.MapRoom),
                 ct: cts.Token);
+            state = outcome.FinalState;
         }
         catch (Exception ex)
         {

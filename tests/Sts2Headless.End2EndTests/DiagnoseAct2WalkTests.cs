@@ -59,12 +59,15 @@ public class DiagnoseAct2WalkTests : IClassFixture<HostSubprocess>
         try
         {
             // Stop condition that never fires — we want to see how far the
-            // agent gets before something throws (IsGameOver, unhandled
-            // RoomType, step-budget overflow, cancellation).
-            state = await agent.DriveUntilAsync(
+            // agent gets before something throws (stall detection, unhandled
+            // RoomType, step-budget overflow, cancellation) or terminates
+            // naturally (IsGameOver returns via RunOutcome).
+            var outcome = await AgentDriver.PlayRunAsync(
                 transport,
+                agent,
                 stopWhen: _ => false,
                 ct: cts.Token);
+            state = outcome.FinalState;
         }
         catch (Exception ex)
         {

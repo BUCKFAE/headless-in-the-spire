@@ -102,7 +102,6 @@ internal static class GenerateCardIdsCommand
         sb.AppendLine("//   Do not edit by hand — re-run the generator after bumping the game pin.");
         sb.AppendLine("// </auto-generated>");
         sb.AppendLine("using System.Text.Json.Serialization;");
-        sb.AppendLine("using Sts2Headless.Protocol;");
         sb.AppendLine();
         sb.AppendLine("namespace Sts2Headless.Protocol.Methods;");
         sb.AppendLine();

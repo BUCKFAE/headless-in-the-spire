@@ -19,14 +19,19 @@ namespace Sts2Headless.Agents;
 // Bare timeouts on the test see minutes of empty round-trips before
 // they fire. The stall detector turns that into seconds.
 //
-// USAGE — wrap any agent's drive loop:
+// USAGE — automatic via AgentDriver:
 //
-//     var stall = new StallDetector();
-//     for (var step = 0; !stopWhen(state); step++)
-//     {
-//         state = await StepAsync(host, state);
-//         stall.Observe(state);
-//     }
+// Agents implement IAgent.Decide(state) → AgentAction. AgentDriver
+// constructs a StallDetector internally and calls Observe() after
+// every dispatched action. The detector cannot be forgotten or
+// bypassed by an agent implementation.
+//
+// To customise the threshold or share an instance across runs, pass
+// one explicitly:
+//
+//     var stall = new StallDetector(maxIdentical: 16);
+//     var outcome = await AgentDriver.PlayRunAsync(host, agent,
+//         stallDetector: stall, ...);
 //
 // FINGERPRINT — these fields change on every legitimate progression
 // step, so an identical fingerprint across K calls is a stall:
@@ -58,11 +63,10 @@ namespace Sts2Headless.Agents;
 //     completes. Threshold 8 should ride over this — the next state
 //     read brings the new nodes.
 //
-// EXTENDING TO OTHER AGENTS — Seed42Agent is the first consumer.
-// GreedyAgent (regression baseline) is intentionally left without the
-// detector so its long-standing test expectations don't shift; any
-// new agent should wire StallDetector in at construction time and
-// throw on tripped.
+// EXTENDING TO OTHER AGENTS — nothing to do. Every IAgent run through
+// AgentDriver.PlayRunAsync gets a StallDetector wired automatically.
+// New agents inherit the watchdog from the framework; they cannot
+// opt out short of bypassing the driver.
 public sealed class StallDetector
 {
     public const int DefaultMaxIdentical = 8;

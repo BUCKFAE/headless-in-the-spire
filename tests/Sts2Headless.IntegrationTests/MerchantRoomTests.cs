@@ -93,12 +93,13 @@ public class MerchantRoomTests : IClassFixture<HostSubprocess>
                 }
             }
 
-            state = await agent.DriveUntilAsync(
+            state = (await AgentDriver.PlayRunAsync(
                 transport,
+                agent,
                 stopWhen: s => s.CurrentRoomType == RoomType.MerchantRoom
                                 || (s.CurrentRoomType == RoomType.MapRoom && s.ActFloor != lastFloor)
                                 || (s.CurrentRoomType == RoomType.MapRoom && s.Hp < s.MaxHp),
-                ct: cts.Token);
+                ct: cts.Token)).FinalState;
             lastFloor = state.ActFloor;
         }
 

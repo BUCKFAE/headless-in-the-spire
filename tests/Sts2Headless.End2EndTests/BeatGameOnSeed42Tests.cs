@@ -59,10 +59,12 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
 
         try
         {
-            state = await agent.DriveUntilAsync(
+            var outcome = await AgentDriver.PlayRunAsync(
                 transport,
+                agent,
                 stopWhen: s => s.IsVictory,
                 ct: cts.Token);
+            state = outcome.FinalState;
         }
         catch (Exception ex)
         {

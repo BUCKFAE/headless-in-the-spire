@@ -2,22 +2,35 @@ using Sts2Headless.Protocol.Methods;
 
 namespace Sts2Headless.Agents;
 
-// Drives a live run on a host until a caller-supplied stop condition fires.
-// Stateless across calls: every input the agent acts on lives on the
-// snapshots it gets back from the transport, so two concurrent runs can
-// share one agent instance without coordination.
+// The single method the agent driver speaks: snapshot → action.
+// Stateless from the protocol's perspective; carry state on `this` if
+// needed. Mirrors the Python `Agent` Protocol.
 //
-// The stop-condition lambda keeps the agent useful for several jobs without
-// embedding policy: "reach the boss room", "finish Act 1", "play until HP
-// drops below 20", "stop when the next reward is offered". The agent should
-// re-evaluate the stop condition after every snapshot it sees.
+// What an agent does NOT do:
+//   * Touch ITransport — the driver dispatches.
+//   * Loop — the driver loops.
+//   * Detect terminal / stall — the driver handles both.
+//   * Catch exceptions from the wire — the driver surfaces them.
 //
-// Returning the snapshot that matched the stop condition lets callers
-// inspect it without round-tripping run/state again.
+// What an agent DOES do:
+//   * Inspect the snapshot.
+//   * Return one AgentAction (or StopRun if it wants to bail).
+//
+// HeuristicAgent is the convenience base that splits Decide() into
+// per-phase hooks with sensible defaults; most rule-based agents
+// should inherit from it rather than implement IAgent directly.
 public interface IAgent
 {
-    Task<RunStateResult> DriveUntilAsync(
-        ITransport host,
-        Func<RunStateResult, bool> stopWhen,
-        CancellationToken ct = default);
+    AgentAction Decide(RunStateResult state);
+}
+
+public sealed class NoLegalActionException : InvalidOperationException
+{
+    public RunStateResult State { get; }
+
+    public NoLegalActionException(string message, RunStateResult state)
+        : base(message)
+    {
+        State = state;
+    }
 }

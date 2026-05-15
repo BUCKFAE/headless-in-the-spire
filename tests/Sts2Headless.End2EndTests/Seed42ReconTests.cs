@@ -53,18 +53,20 @@ public class Seed42ReconTests : IClassFixture<HostSubprocess>
         {
             while (true)
             {
-                state = await agent.DriveUntilAsync(
+                state = (await AgentDriver.PlayRunAsync(
                     recon,
+                    agent,
                     stopWhen: s => (!bossEntered && s.CurrentRoomType == RoomType.BossRoom)
                                     || (s.CurrentRoomType == RoomType.MapRoom && s.Hp < s.MaxHp),
-                    ct: cts.Token);
+                    ct: cts.Token)).FinalState;
 
                 if (state.CurrentRoomType == RoomType.BossRoom && !bossEntered)
                 {
-                    // Heal to full and let the next DriveUntilAsync pass push
+                    // Heal to full and let the next PlayRunAsync pass push
                     // into the boss combat. We pre-mark bossEntered so the
                     // stop condition no longer fires on BossRoom — the agent
-                    // will keep running until game-over throws.
+                    // will keep running until game-over (returned via the
+                    // outcome) or the stall detector trips.
                     var heal0 = await recon.SendAsync<DebugSetHpResult>(
                         "debug/set_hp", new DebugSetHpParams(Hp: state.MaxHp));
                     Assert.True(heal0.Ok);

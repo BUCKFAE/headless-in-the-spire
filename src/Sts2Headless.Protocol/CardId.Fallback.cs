@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using Sts2Headless.Protocol;
 
 namespace Sts2Headless.Protocol.Methods;
 
