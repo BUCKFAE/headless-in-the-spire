@@ -127,6 +127,7 @@ def build_snapshot(
         is_game_over=is_game_over,
         available_map_nodes=map_nodes if map_nodes is not None else [],
         available_event_options=event_options if event_options is not None else [],
+        available_merchant_items=[],
         available_rest_site_options=[],
         combat_state=combat if combat is not None else empty_combat(),
         rewards_state=rewards if rewards is not None else empty_rewards(),

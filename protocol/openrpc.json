@@ -123,6 +123,38 @@
       }
     },
     {
+      "name": "run/buy_merchant_item",
+      "summary": "Purchase a merchant item by its index in availableMerchantItems. Routes through MerchantEntry.OnTryPurchaseWrapper (engine path); insufficient gold or sold-out slot returns InvalidParams.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunBuyMerchantItemParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunBuyMerchantItemResult"
+        }
+      }
+    },
+    {
+      "name": "run/leave_merchant_room",
+      "summary": "Exit the current merchant room to MapRoom. No params — merchant rooms have no engine auto-exit, so callers explicitly drive the transition.",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunLeaveMerchantRoomResult"
+        }
+      }
+    },
+    {
       "name": "run/end_turn",
       "summary": "End the player's turn in the active combat.",
       "paramStructure": "by-name",
@@ -606,6 +638,63 @@
           "Boss"
         ]
       },
+      "MerchantItem": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MerchantKind"
+          },
+          "cost": {
+            "type": "integer"
+          },
+          "isStocked": {
+            "type": "boolean"
+          },
+          "isAffordable": {
+            "type": "boolean"
+          },
+          "cardId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          },
+          "relicId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          },
+          "potionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "index",
+          "kind",
+          "cost",
+          "isStocked",
+          "isAffordable"
+        ]
+      },
+      "MerchantKind": {
+        "enum": [
+          "unknown",
+          "card",
+          "relic",
+          "potion",
+          "card_removal"
+        ]
+      },
       "Power": {
         "type": "object",
         "properties": {
@@ -736,6 +825,103 @@
           "BossRoom"
         ]
       },
+      "RunBuyMerchantItemParams": {
+        "type": "object",
+        "properties": {
+          "itemIndex": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "itemIndex"
+        ]
+      },
+      "RunBuyMerchantItemResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "itemIndex": {
+            "type": "integer"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
+          "combatState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewardsState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "itemIndex",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "availableRestSiteOptions",
+          "availableMerchantItems",
+          "relics"
+        ]
+      },
       "RunEndTurnResult": {
         "type": "object",
         "properties": {
@@ -770,6 +956,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
             }
           },
           "combatState": {
@@ -808,6 +1000,89 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
+          "availableMerchantItems",
+          "relics"
+        ]
+      },
+      "RunLeaveMerchantRoomResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
+          "combatState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewardsState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "currentRoomType",
+          "actFloor",
+          "isGameOver",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "availableRestSiteOptions",
+          "availableMerchantItems",
           "relics"
         ]
       },
@@ -847,6 +1122,12 @@
               "$ref": "#/components/schemas/RestSiteOption"
             }
           },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -883,6 +1164,7 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
+          "availableMerchantItems",
           "relics"
         ]
       },
@@ -951,6 +1233,12 @@
               "$ref": "#/components/schemas/RestSiteOption"
             }
           },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -987,6 +1275,7 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
+          "availableMerchantItems",
           "relics"
         ]
       },
@@ -1053,6 +1342,12 @@
               "$ref": "#/components/schemas/RestSiteOption"
             }
           },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -1090,6 +1385,7 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
+          "availableMerchantItems",
           "relics"
         ]
       },
@@ -1143,6 +1439,12 @@
               "$ref": "#/components/schemas/RestSiteOption"
             }
           },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -1180,6 +1482,7 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
+          "availableMerchantItems",
           "relics"
         ]
       },
@@ -1240,6 +1543,12 @@
               "$ref": "#/components/schemas/RestSiteOption"
             }
           },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -1278,6 +1587,7 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
+          "availableMerchantItems",
           "relics"
         ]
       },
@@ -1331,6 +1641,12 @@
               "$ref": "#/components/schemas/RestSiteOption"
             }
           },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -1368,6 +1684,7 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
+          "availableMerchantItems",
           "relics"
         ]
       },
@@ -1434,6 +1751,12 @@
               "$ref": "#/components/schemas/RestSiteOption"
             }
           },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -1471,6 +1794,7 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
+          "availableMerchantItems",
           "relics"
         ]
       },
@@ -1524,6 +1848,12 @@
               "$ref": "#/components/schemas/RestSiteOption"
             }
           },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -1561,6 +1891,7 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
+          "availableMerchantItems",
           "relics"
         ]
       },
@@ -1622,6 +1953,12 @@
               "$ref": "#/components/schemas/RestSiteOption"
             }
           },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -1662,6 +1999,7 @@
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
+          "availableMerchantItems",
           "relics"
         ]
       },

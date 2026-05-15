@@ -22,6 +22,9 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 // AvailableRestSiteOptions mirrors that pattern for RestSiteRoom — empty
 // unless the player is standing on a rest site, otherwise carries the
 // engine's option list (HEAL/SMITH/…).
+// AvailableMerchantItems mirrors that pattern for MerchantRoom — empty
+// unless the player is standing on a merchant, otherwise carries the
+// inventory roll-up (cards / relics / potions / card-removal).
 // CombatState is the combat read-out; null unless CurrentRoomType == CombatRoom.
 // RewardsState carries the post-combat reward decisions when the engine has
 // any unclaimed; null whenever the wire has nothing pending for the caller.
@@ -39,6 +42,7 @@ public sealed record RunSnapshot(
     IReadOnlyList<MapNode> AvailableMapNodes,
     IReadOnlyList<EventOption> AvailableEventOptions,
     IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    IReadOnlyList<MerchantItem> AvailableMerchantItems,
     CombatState? CombatState,
     RewardsState? RewardsState,
     IReadOnlyList<Relic> Relics);

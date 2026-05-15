@@ -117,6 +117,39 @@ public sealed partial class Sts2Bindings
     private readonly PropertyInfo? _restSiteOptionOptionId;
     private readonly PropertyInfo? _restSiteOptionIsEnabled;
 
+    // ── Merchant-room surface ────────────────────────────────────────────
+    // Soft-bound: a missing piece degrades the merchant wire surface to
+    // "empty inventory list" on snapshots and "throws at call time" on the
+    // mutating paths (BuyMerchantItem, LeaveMerchantRoom) — the host still
+    // boots. The flow we drive:
+    //   MerchantRoom.Inventory (MerchantInventory)
+    //     .AllEntries (IEnumerable<MerchantEntry>) — stable iteration order
+    //       (CharacterCards → ColorlessCards → Relics → Potions → CardRemoval)
+    //   Per entry: Cost, EnoughGold (= IsAffordable), IsStocked.
+    //   Per kind: CardEntry.CreationResult.Card.Id, RelicEntry.Model.Id,
+    //             PotionEntry.Model.Id, CardRemovalEntry (no id).
+    //   Buy: MerchantEntry.OnTryPurchaseWrapper(inventory, ignoreCost=false).
+    //   Leave: RunManager.EnterRoom(new MapRoom()) — same pattern rest-site
+    //          and treasure use; the merchant has no auto-advance.
+    private readonly Type? _merchantRoomType;
+    private readonly PropertyInfo? _merchantRoomInventory;
+    private readonly PropertyInfo? _merchantInventoryAllEntries;
+    private readonly PropertyInfo? _merchantEntryCost;
+    private readonly PropertyInfo? _merchantEntryEnoughGold;
+    private readonly PropertyInfo? _merchantEntryIsStocked;
+    private readonly MethodInfo? _merchantEntryOnTryPurchaseWrapper;
+    private readonly Type? _merchantCardEntryType;
+    private readonly PropertyInfo? _merchantCardEntryCreationResult;
+    private readonly PropertyInfo? _cardCreationResultCard;
+    private readonly PropertyInfo? _cardModelId;
+    private readonly Type? _merchantRelicEntryType;
+    private readonly PropertyInfo? _merchantRelicEntryModel;
+    private readonly PropertyInfo? _relicModelId;
+    private readonly Type? _merchantPotionEntryType;
+    private readonly PropertyInfo? _merchantPotionEntryModel;
+    private readonly PropertyInfo? _potionModelId;
+    private readonly Type? _merchantCardRemovalEntryType;
+
     // ── Treasure-room surface ────────────────────────────────────────────
     // Soft-bound: each piece's absence degrades LeaveTreasureRoom to a
     // typed runtime error rather than failing host bootstrap. The flow is:
@@ -301,6 +334,24 @@ public sealed partial class Sts2Bindings
         _runManagerTreasureRoomRelicSync = s.RunManagerTreasureRoomRelicSync;
         _treasureSyncCurrentRelics = s.TreasureSyncCurrentRelics;
         _treasureSyncCompleteWithNoRelics = s.TreasureSyncCompleteWithNoRelics;
+        _merchantRoomType = s.MerchantRoomType;
+        _merchantRoomInventory = s.MerchantRoomInventory;
+        _merchantInventoryAllEntries = s.MerchantInventoryAllEntries;
+        _merchantEntryCost = s.MerchantEntryCost;
+        _merchantEntryEnoughGold = s.MerchantEntryEnoughGold;
+        _merchantEntryIsStocked = s.MerchantEntryIsStocked;
+        _merchantEntryOnTryPurchaseWrapper = s.MerchantEntryOnTryPurchaseWrapper;
+        _merchantCardEntryType = s.MerchantCardEntryType;
+        _merchantCardEntryCreationResult = s.MerchantCardEntryCreationResult;
+        _cardCreationResultCard = s.CardCreationResultCard;
+        _cardModelId = s.CardModelId;
+        _merchantRelicEntryType = s.MerchantRelicEntryType;
+        _merchantRelicEntryModel = s.MerchantRelicEntryModel;
+        _relicModelId = s.RelicModelId;
+        _merchantPotionEntryType = s.MerchantPotionEntryType;
+        _merchantPotionEntryModel = s.MerchantPotionEntryModel;
+        _potionModelId = s.PotionModelId;
+        _merchantCardRemovalEntryType = s.MerchantCardRemovalEntryType;
         var c = s.Combat;
         _combatManagerInstance = c.CombatManagerInstance;
         _combatManagerIsInProgress = c.CombatManagerIsInProgress;
@@ -510,6 +561,15 @@ public sealed partial class Sts2Bindings
             ? ReadAvailableRestSiteOptions(handle.RunState)
             : Array.Empty<RestSiteOption>();
 
+        // Same room-scoped gating for merchant items: only surface when
+        // standing in a merchant room. The MerchantInventory persists on
+        // the room instance after a buy (so re-reads pick up the now-
+        // unstocked entry), but it's still gated by RoomType to keep the
+        // wire honest — between rooms there's no inventory.
+        var availableMerchantItems = roomType == RoomType.MerchantRoom
+            ? ReadAvailableMerchantItems(handle.RunState)
+            : Array.Empty<MerchantItem>();
+
         // Same gating discipline for combat: only read when sts2 has a live
         // combat (room == CombatRoom). Outside, CombatManager.Instance may be
         // null or carry stale state and PlayerCombatState is undefined.
@@ -526,7 +586,7 @@ public sealed partial class Sts2Bindings
         // Relics are run-scoped, not room-scoped: surface on every snapshot.
         var relics = ReadRelics(handle);
 
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, availableRestSiteOptions, combatState, rewardsState, relics);
+        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, combatState, rewardsState, relics);
     }
 
     // Project the stashed list of pending rewards into the wire DTO. Returns
@@ -1082,6 +1142,235 @@ public sealed partial class Sts2Bindings
             }
             catch { /* caller will see TreasureRoom remains and can decide */ }
         }
+        DrainActionExecutor(handle);
+    }
+
+    // Walk MerchantRoom.Inventory.AllEntries and shape each entry into a
+    // wire MerchantItem. Returns [] when the merchant binding never
+    // resolved, the current room isn't a MerchantRoom (defence in depth),
+    // or AllEntries is null/empty. AllEntries is the engine's stable roll-
+    // up (CharacterCards → ColorlessCards → Relics → Potions → CardRemoval),
+    // so the wire's Index matches what the caller will see next read.
+    //
+    // An entry we can't classify into a known kind still surfaces as
+    // Unknown — the wire never silently hides an item even if the engine
+    // adds a new entry subtype.
+    private IReadOnlyList<MerchantItem> ReadAvailableMerchantItems(object runState)
+    {
+        if (_merchantRoomType is null || _merchantRoomInventory is null
+            || _merchantInventoryAllEntries is null
+            || _merchantEntryCost is null
+            || _merchantEntryEnoughGold is null
+            || _merchantEntryIsStocked is null)
+        {
+            return Array.Empty<MerchantItem>();
+        }
+        var room = _runStateCurrentRoom.GetValue(runState);
+        if (room is null || !_merchantRoomType.IsInstanceOfType(room))
+        {
+            return Array.Empty<MerchantItem>();
+        }
+        var inventory = _merchantRoomInventory.GetValue(room);
+        if (inventory is null) return Array.Empty<MerchantItem>();
+        if (_merchantInventoryAllEntries.GetValue(inventory) is not System.Collections.IEnumerable entries)
+        {
+            return Array.Empty<MerchantItem>();
+        }
+
+        var result = new List<MerchantItem>();
+        var index = 0;
+        foreach (var entry in entries)
+        {
+            if (entry is null) { index++; continue; }
+            var cost = (int)(_merchantEntryCost.GetValue(entry) ?? 0);
+            var enoughGold = (bool)(_merchantEntryEnoughGold.GetValue(entry) ?? false);
+            var isStocked = (bool)(_merchantEntryIsStocked.GetValue(entry) ?? false);
+            var (kind, cardId, relicId, potionId) = ClassifyMerchantEntry(entry);
+            result.Add(new MerchantItem(
+                Index: index,
+                Kind: kind,
+                Cost: cost,
+                IsStocked: isStocked,
+                IsAffordable: enoughGold,
+                CardId: cardId,
+                RelicId: relicId,
+                PotionId: potionId));
+            index++;
+        }
+        return result;
+    }
+
+    // Classify a MerchantEntry into its wire kind + extract the id. Each
+    // kind branch is gated on the subtype's binding being present; a kind
+    // we couldn't bind still returns Unknown so the entry stays selectable
+    // (the engine's purchase path doesn't care about our wire shape) but
+    // the caller can't pretend it knows what it is.
+    private (MerchantKind Kind, string? CardId, string? RelicId, string? PotionId)
+        ClassifyMerchantEntry(object entry)
+    {
+        if (_merchantCardEntryType is not null && _merchantCardEntryType.IsInstanceOfType(entry))
+        {
+            string? cardId = null;
+            if (_merchantCardEntryCreationResult is not null && _cardCreationResultCard is not null)
+            {
+                var creation = _merchantCardEntryCreationResult.GetValue(entry);
+                var cardModel = creation is null ? null : _cardCreationResultCard.GetValue(creation);
+                if (cardModel is not null) cardId = ReadEntryId(_cardModelId, cardModel);
+            }
+            return (MerchantKind.Card, cardId, null, null);
+        }
+        if (_merchantRelicEntryType is not null && _merchantRelicEntryType.IsInstanceOfType(entry))
+        {
+            string? relicId = null;
+            if (_merchantRelicEntryModel is not null)
+            {
+                var model = _merchantRelicEntryModel.GetValue(entry);
+                if (model is not null) relicId = ReadEntryId(_relicModelId, model);
+            }
+            return (MerchantKind.Relic, null, relicId, null);
+        }
+        if (_merchantPotionEntryType is not null && _merchantPotionEntryType.IsInstanceOfType(entry))
+        {
+            string? potionId = null;
+            if (_merchantPotionEntryModel is not null)
+            {
+                var model = _merchantPotionEntryModel.GetValue(entry);
+                if (model is not null) potionId = ReadEntryId(_potionModelId, model);
+            }
+            return (MerchantKind.Potion, null, null, potionId);
+        }
+        if (_merchantCardRemovalEntryType is not null && _merchantCardRemovalEntryType.IsInstanceOfType(entry))
+        {
+            // No item id — card removal is a service, identified solely by
+            // its kind. CardRemoval slots typically have IsStocked=false
+            // once consumed, which the wire surfaces via IsStocked.
+            return (MerchantKind.CardRemoval, null, null, null);
+        }
+        return (MerchantKind.Unknown, null, null, null);
+    }
+
+    // Drive a merchant purchase. Resolves the entry at `itemIndex` against
+    // MerchantInventory.AllEntries, then calls the entry's OnTryPurchase-
+    // Wrapper(inventory, ignoreCost=false). The wrapper is the engine's
+    // canonical purchase path; it gates affordability, marks the slot
+    // unstocked, deducts gold via the standard cmd, and fires on-obtain
+    // listeners for relics / potions / cards.
+    //
+    // The base method has 2 params; MerchantCardRemovalEntry overrides
+    // with a 3-arg form (adding `cancelable`). Reflection's virtual
+    // dispatch picks up the override against the runtime entry, so the
+    // base-arity MethodInfo we bound at boot routes correctly for either
+    // shape — but if the engine adds an entry kind with a different arity
+    // override, the failure mode is a TargetParameterCountException
+    // surfaced as InvalidOperationException to the caller. Validation
+    // failures (sold out, insufficient gold) surface as the wrapper's
+    // returned Task<bool> == false; the host handler converts that to
+    // WireException(InvalidParams) so generated clients see the right code.
+    public bool BuyMerchantItem(RunHandle handle, int itemIndex)
+    {
+        if (_merchantRoomType is null || _merchantRoomInventory is null
+            || _merchantInventoryAllEntries is null
+            || _merchantEntryOnTryPurchaseWrapper is null)
+        {
+            throw new InvalidOperationException(
+                "merchant binding not resolved at boot — MerchantRoom / Inventory / OnTryPurchaseWrapper missing. " +
+                "Either the engine moved a type or the bootstrap walk did not surface it.");
+        }
+        var room = _runStateCurrentRoom.GetValue(handle.RunState)
+            ?? throw new InvalidOperationException("RunState.CurrentRoom was null");
+        if (!_merchantRoomType.IsInstanceOfType(room))
+        {
+            throw new InvalidOperationException(
+                $"run/buy_merchant_item called but current room is {room.GetType().Name}, not MerchantRoom");
+        }
+        var inventory = _merchantRoomInventory.GetValue(room)
+            ?? throw new InvalidOperationException("MerchantRoom.Inventory was null");
+
+        if (_merchantInventoryAllEntries.GetValue(inventory) is not System.Collections.IEnumerable entries)
+        {
+            throw new InvalidOperationException("MerchantInventory.AllEntries was null or not enumerable");
+        }
+
+        object? picked = null;
+        var i = 0;
+        foreach (var e in entries)
+        {
+            if (i == itemIndex) { picked = e; break; }
+            i++;
+        }
+        if (picked is null)
+        {
+            throw new ArgumentOutOfRangeException(nameof(itemIndex),
+                $"itemIndex {itemIndex} not in MerchantInventory.AllEntries (count={i + 1}+)");
+        }
+
+        // Look the method up on the entry's runtime type so a subtype
+        // override (e.g. MerchantCardRemovalEntry's 3-arg form) is picked
+        // up. Fall back to the base if the lookup doesn't find a 2-arg form
+        // (covers an engine change that drops the base overload).
+        var purchaseFn = picked.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                            .FirstOrDefault(m => m.Name == "OnTryPurchaseWrapper" && m.GetParameters().Length == 2)
+                        ?? _merchantEntryOnTryPurchaseWrapper;
+
+        var result = purchaseFn.Invoke(picked, new object?[] { inventory, /* ignoreCost */ false });
+        if (result is Task<bool> tb)
+        {
+            var purchased = tb.GetAwaiter().GetResult();
+            _syncCtx?.Pump();
+            DrainActionExecutor(handle);
+            return purchased;
+        }
+        if (result is Task t)
+        {
+            t.GetAwaiter().GetResult();
+            _syncCtx?.Pump();
+            DrainActionExecutor(handle);
+            // Non-generic Task — assume success and let the caller verify
+            // via the post-buy snapshot's IsStocked flip.
+            return true;
+        }
+        _syncCtx?.Pump();
+        DrainActionExecutor(handle);
+        return true;
+    }
+
+    // Exit the current merchant room to MapRoom. Same pattern rest-site and
+    // treasure use: there's no engine auto-advance from a merchant, so we
+    // drive RunManager.EnterRoom(new MapRoom()) directly. A future
+    // purchasable that locks the merchant (none ship today) could add a
+    // pre-leave gate here; for now any in-progress buy completes
+    // synchronously and the room flips cleanly.
+    public void LeaveMerchantRoom(RunHandle handle)
+    {
+        if (_merchantRoomType is null)
+        {
+            throw new InvalidOperationException(
+                "merchant binding not resolved at boot — MerchantRoom type missing. " +
+                "Either the engine renamed it or the bootstrap walk did not surface it.");
+        }
+        var room = _runStateCurrentRoom.GetValue(handle.RunState)
+            ?? throw new InvalidOperationException("RunState.CurrentRoom was null");
+        if (!_merchantRoomType.IsInstanceOfType(room))
+        {
+            throw new InvalidOperationException(
+                $"run/leave_merchant_room called but current room is {room.GetType().Name}, not MerchantRoom");
+        }
+        if (_runManagerEnterRoom is null || _mapRoomType is null)
+        {
+            throw new InvalidOperationException(
+                "merchant exit path not resolved at boot — EnterRoom or MapRoom type missing.");
+        }
+
+        // Drain any pending engine work (a buy whose Task hadn't returned
+        // by the time the caller issues leave) before swapping rooms.
+        _syncCtx?.Pump();
+        DrainActionExecutor(handle);
+
+        var mapRoom = Activator.CreateInstance(_mapRoomType)
+            ?? throw new InvalidOperationException($"{_mapRoomType.FullName} default ctor returned null");
+        var enter = _runManagerEnterRoom.Invoke(handle.RunManager, new[] { mapRoom });
+        if (enter is Task et) et.GetAwaiter().GetResult();
+        _syncCtx?.Pump();
         DrainActionExecutor(handle);
     }
 
@@ -2015,6 +2304,109 @@ public sealed partial class Sts2Bindings
                 BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
         }
 
+        // Merchant-room surface. Soft-bound — a missing piece degrades the
+        // wire to "empty merchant items" / "buy/leave throw" rather than
+        // failing bootstrap. See the field-block comment above the
+        // _merchant* declarations for the discovered flow.
+        Type? merchantRoomType = null;
+        PropertyInfo? merchantRoomInventory = null;
+        var merchantRoomLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Rooms.MerchantRoom");
+        if (merchantRoomLookup.Found && merchantRoomLookup.Type is not null)
+        {
+            merchantRoomType = merchantRoomLookup.Type;
+            merchantRoomInventory = merchantRoomType.GetProperty("Inventory", BindingFlags.Public | BindingFlags.Instance);
+        }
+
+        PropertyInfo? merchantInventoryAllEntries = null;
+        Type? merchantEntryType = null;
+        PropertyInfo? merchantEntryCost = null;
+        PropertyInfo? merchantEntryEnoughGold = null;
+        PropertyInfo? merchantEntryIsStocked = null;
+        MethodInfo? merchantEntryOnTryPurchaseWrapper = null;
+        if (merchantRoomInventory is not null)
+        {
+            var inventoryType = merchantRoomInventory.PropertyType;
+            merchantInventoryAllEntries = inventoryType.GetProperty("AllEntries", BindingFlags.Public | BindingFlags.Instance);
+            // The element type of AllEntries (IEnumerable<MerchantEntry>) is
+            // the base MerchantEntry. Use it to bind the shared shape; the
+            // per-kind subtype lookups below cast against the entries the
+            // engine actually yields.
+            if (merchantInventoryAllEntries is not null)
+            {
+                var elementType = ExtractElementType(merchantInventoryAllEntries.PropertyType);
+                if (elementType is not null)
+                {
+                    merchantEntryType = elementType;
+                    merchantEntryCost = elementType.GetProperty("Cost", BindingFlags.Public | BindingFlags.Instance);
+                    merchantEntryEnoughGold = elementType.GetProperty("EnoughGold", BindingFlags.Public | BindingFlags.Instance);
+                    merchantEntryIsStocked = elementType.GetProperty("IsStocked", BindingFlags.Public | BindingFlags.Instance);
+                    // OnTryPurchaseWrapper is overloaded on the base (2-arg:
+                    // inventory, ignoreCost) and on MerchantCardRemovalEntry
+                    // (3-arg: inventory, ignoreCost, cancelable). Bind the
+                    // 2-arg form here; the buy path uses MethodBase.Invoke
+                    // against the entry's own type so a 3-arg override is
+                    // picked up via virtual dispatch on the runtime entry.
+                    merchantEntryOnTryPurchaseWrapper = elementType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                        .FirstOrDefault(m => m.Name == "OnTryPurchaseWrapper" && m.GetParameters().Length == 2);
+                }
+            }
+        }
+
+        Type? merchantCardEntryType = null;
+        PropertyInfo? merchantCardEntryCreationResult = null;
+        PropertyInfo? cardCreationResultCard = null;
+        PropertyInfo? cardModelId = null;
+        var cardEntryLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Entities.Merchant.MerchantCardEntry");
+        if (cardEntryLookup.Found && cardEntryLookup.Type is not null)
+        {
+            merchantCardEntryType = cardEntryLookup.Type;
+            merchantCardEntryCreationResult = merchantCardEntryType.GetProperty("CreationResult", BindingFlags.Public | BindingFlags.Instance);
+            if (merchantCardEntryCreationResult is not null)
+            {
+                var creationType = merchantCardEntryCreationResult.PropertyType;
+                cardCreationResultCard = creationType.GetProperty("Card", BindingFlags.Public | BindingFlags.Instance);
+                if (cardCreationResultCard is not null)
+                {
+                    cardModelId = cardCreationResultCard.PropertyType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+                }
+            }
+        }
+
+        Type? merchantRelicEntryType = null;
+        PropertyInfo? merchantRelicEntryModel = null;
+        PropertyInfo? relicModelId = null;
+        var relicEntryLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Entities.Merchant.MerchantRelicEntry");
+        if (relicEntryLookup.Found && relicEntryLookup.Type is not null)
+        {
+            merchantRelicEntryType = relicEntryLookup.Type;
+            merchantRelicEntryModel = merchantRelicEntryType.GetProperty("Model", BindingFlags.Public | BindingFlags.Instance);
+            if (merchantRelicEntryModel is not null)
+            {
+                relicModelId = merchantRelicEntryModel.PropertyType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+            }
+        }
+
+        Type? merchantPotionEntryType = null;
+        PropertyInfo? merchantPotionEntryModel = null;
+        PropertyInfo? potionModelId = null;
+        var potionEntryLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Entities.Merchant.MerchantPotionEntry");
+        if (potionEntryLookup.Found && potionEntryLookup.Type is not null)
+        {
+            merchantPotionEntryType = potionEntryLookup.Type;
+            merchantPotionEntryModel = merchantPotionEntryType.GetProperty("Model", BindingFlags.Public | BindingFlags.Instance);
+            if (merchantPotionEntryModel is not null)
+            {
+                potionModelId = merchantPotionEntryModel.PropertyType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+            }
+        }
+
+        Type? merchantCardRemovalEntryType = null;
+        var cardRemovalEntryLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Entities.Merchant.MerchantCardRemovalEntry");
+        if (cardRemovalEntryLookup.Found && cardRemovalEntryLookup.Type is not null)
+        {
+            merchantCardRemovalEntryType = cardRemovalEntryLookup.Type;
+        }
+
         return new Sts2Bindings(sts2, new BindingState(
             playerType, createIroncladRun, unlockAll,
             new InvocationPlan(createForTest), runManagerInstance, netServiceType,
@@ -2039,6 +2431,15 @@ public sealed partial class Sts2Bindings
             treasureRoomDoNormalRewards, treasureRoomDoExtraRewards,
             runManagerTreasureRoomRelicSync, treasureSyncCurrentRelics,
             treasureSyncCompleteWithNoRelics,
+            merchantRoomType, merchantRoomInventory,
+            merchantInventoryAllEntries,
+            merchantEntryCost, merchantEntryEnoughGold,
+            merchantEntryIsStocked, merchantEntryOnTryPurchaseWrapper,
+            merchantCardEntryType, merchantCardEntryCreationResult,
+            cardCreationResultCard, cardModelId,
+            merchantRelicEntryType, merchantRelicEntryModel, relicModelId,
+            merchantPotionEntryType, merchantPotionEntryModel, potionModelId,
+            merchantCardRemovalEntryType,
             combat, rewards), syncCtx);
     }
 
@@ -2489,6 +2890,15 @@ public sealed partial class Sts2Bindings
         MethodInfo? TreasureRoomDoNormalRewards, MethodInfo? TreasureRoomDoExtraRewards,
         PropertyInfo? RunManagerTreasureRoomRelicSync, PropertyInfo? TreasureSyncCurrentRelics,
         MethodInfo? TreasureSyncCompleteWithNoRelics,
+        Type? MerchantRoomType, PropertyInfo? MerchantRoomInventory,
+        PropertyInfo? MerchantInventoryAllEntries,
+        PropertyInfo? MerchantEntryCost, PropertyInfo? MerchantEntryEnoughGold,
+        PropertyInfo? MerchantEntryIsStocked, MethodInfo? MerchantEntryOnTryPurchaseWrapper,
+        Type? MerchantCardEntryType, PropertyInfo? MerchantCardEntryCreationResult,
+        PropertyInfo? CardCreationResultCard, PropertyInfo? CardModelId,
+        Type? MerchantRelicEntryType, PropertyInfo? MerchantRelicEntryModel, PropertyInfo? RelicModelId,
+        Type? MerchantPotionEntryType, PropertyInfo? MerchantPotionEntryModel, PropertyInfo? PotionModelId,
+        Type? MerchantCardRemovalEntryType,
         CombatBindings Combat, RewardBindings Rewards);
 
     // Post-combat reward surface. Soft-bound — if RewardsSet (or its members)

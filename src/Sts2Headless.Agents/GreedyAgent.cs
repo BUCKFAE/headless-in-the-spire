@@ -64,19 +64,13 @@ public sealed class GreedyAgent : IAgent
             RoomType.EventRoom => StepEventAsync(host, s),
             RoomType.RestSiteRoom => StepRestSiteAsync(host, s),
             RoomType.TreasureRoom => StepTreasureAsync(host, s),
-            RoomType.MerchantRoom => throw NoWireExitYet("merchant"),
+            RoomType.MerchantRoom => StepMerchantAsync(host, s),
             _ => throw new InvalidOperationException(
                 $"GreedyAgent: unhandled room type {s.CurrentRoomType}. " +
                 "This is either a new RoomType the wire surface added without " +
                 "a corresponding agent branch, or the room is Unknown — check " +
                 "the snapshot."),
         };
-
-    private static Exception NoWireExitYet(string roomLabel) =>
-        new NotSupportedException(
-            $"GreedyAgent reached a {roomLabel} room, but the wire protocol has no " +
-            "method to leave it yet. Add the corresponding run/* method (and its " +
-            "single-slice integration test) before this agent can route through here.");
 
     private static async Task<RunStateResult> StepMapAsync(ITransport host, RunStateResult s)
     {
@@ -88,11 +82,11 @@ public sealed class GreedyAgent : IAgent
                 "a row with no legal moves.");
         }
         // Bias the pick toward rooms the agent can actually handle. Lower
-        // priority numbers are preferred. Merchant/Treasure are still
-        // deprioritised below routable rooms — but if those are the *only*
-        // options on the row, the agent will still pick one and fail at
-        // StepAsync with a "wire call missing" message that names the exact
-        // gap. RestSite is routable now (HEAL exits cleanly).
+        // priority numbers are preferred. Merchant/Treasure are
+        // deprioritised because the greedy agent doesn't buy and doesn't
+        // value a chest detour — but both are routable (StepAsync handles
+        // them), so the agent will take them rather than throw if a row
+        // has nothing else on offer. RestSite is fully routable.
         static int Priority(MapNodeType t) => t switch
         {
             MapNodeType.Monster => 0,
@@ -179,6 +173,25 @@ public sealed class GreedyAgent : IAgent
         await host.SendAsync<RunSelectRestSiteOptionResult>(
             "run/select_rest_site_option",
             new RunSelectRestSiteOptionParams(OptionIndex: pick.Index));
+        return await host.SendAsync<RunStateResult>("run/state");
+    }
+
+    private static async Task<RunStateResult> StepMerchantAsync(ITransport host, RunStateResult s)
+    {
+        // Greedy semantics for merchant: never buy. Cards/relics/potions all
+        // cost gold and a "play whatever's in front of you" agent has no
+        // sense of which purchase pays off long-term. The deliberate
+        // greedy-but-cheap default mirrors the treasure-room "always claim"
+        // posture inverted — both are simple, both forward-progress, neither
+        // is smart. A buying agent is a separate slice.
+        //
+        // Skipping the merchant only requires run/leave_merchant_room; the
+        // inventory roll-up surfaced on `s.AvailableMerchantItems` is read-
+        // only here and informational for callers/tests, not the agent.
+        // The leave-result carries the post-leave snapshot fields, so we
+        // don't need a follow-up run/state — the response *is* the next
+        // turn's state once mapped back to RunStateResult.
+        _ = await host.SendAsync<RunLeaveMerchantRoomResult>("run/leave_merchant_room");
         return await host.SendAsync<RunStateResult>("run/state");
     }
 

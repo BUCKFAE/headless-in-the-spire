@@ -107,6 +107,14 @@ class MapNodeType(Enum):
     boss = "Boss"
 
 
+class MerchantKind(Enum):
+    unknown = "unknown"
+    card = "card"
+    relic = "relic"
+    potion = "potion"
+    card_removal = "card_removal"
+
+
 class Power(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -168,6 +176,13 @@ class RoomType(Enum):
     merchant_room = "MerchantRoom"
     treasure_room = "TreasureRoom"
     boss_room = "BossRoom"
+
+
+class RunBuyMerchantItemParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    item_index: Annotated[int, Field(alias="itemIndex")]
 
 
 class RunNewParams(BaseModel):
@@ -265,6 +280,20 @@ class MapNode(BaseModel):
     type: MapNodeType
 
 
+class MerchantItem(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    index: int
+    kind: MerchantKind
+    cost: int
+    is_stocked: Annotated[bool, Field(alias="isStocked")]
+    is_affordable: Annotated[bool, Field(alias="isAffordable")]
+    card_id: Annotated[str | None, Field(alias="cardId")] = None
+    relic_id: Annotated[str | None, Field(alias="relicId")] = None
+    potion_id: Annotated[str | None, Field(alias="potionId")] = None
+
+
 class Enemy(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -296,6 +325,31 @@ class CombatState(BaseModel):
     player_powers: Annotated[list[Power], Field(alias="playerPowers")]
 
 
+class RunBuyMerchantItemResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    item_index: Annotated[int, Field(alias="itemIndex")]
+    current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
+    act_floor: Annotated[int, Field(alias="actFloor")]
+    is_game_over: Annotated[bool, Field(alias="isGameOver")]
+    hp: int
+    available_map_nodes: Annotated[list[MapNode], Field(alias="availableMapNodes")]
+    available_event_options: Annotated[
+        list[EventOption], Field(alias="availableEventOptions")
+    ]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
+
+
 class RunEndTurnResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -311,6 +365,33 @@ class RunEndTurnResult(BaseModel):
     ]
     available_rest_site_options: Annotated[
         list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
+
+
+class RunLeaveMerchantRoomResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
+    act_floor: Annotated[int, Field(alias="actFloor")]
+    is_game_over: Annotated[bool, Field(alias="isGameOver")]
+    hp: int
+    available_map_nodes: Annotated[list[MapNode], Field(alias="availableMapNodes")]
+    available_event_options: Annotated[
+        list[EventOption], Field(alias="availableEventOptions")
+    ]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -333,6 +414,9 @@ class RunLeaveTreasureRoomResult(BaseModel):
     available_rest_site_options: Annotated[
         list[RestSiteOption], Field(alias="availableRestSiteOptions")
     ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -353,6 +437,9 @@ class RunNewResult(BaseModel):
     ]
     available_rest_site_options: Annotated[
         list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -377,6 +464,9 @@ class RunPlayCardResult(BaseModel):
     available_rest_site_options: Annotated[
         list[RestSiteOption], Field(alias="availableRestSiteOptions")
     ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -398,6 +488,9 @@ class RunSelectEventOptionResult(BaseModel):
     ]
     available_rest_site_options: Annotated[
         list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -422,6 +515,9 @@ class RunSelectMapNodeResult(BaseModel):
     available_rest_site_options: Annotated[
         list[RestSiteOption], Field(alias="availableRestSiteOptions")
     ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -443,6 +539,9 @@ class RunSelectRestSiteOptionResult(BaseModel):
     ]
     available_rest_site_options: Annotated[
         list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -467,6 +566,9 @@ class RunSelectRewardResult(BaseModel):
     available_rest_site_options: Annotated[
         list[RestSiteOption], Field(alias="availableRestSiteOptions")
     ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -488,6 +590,9 @@ class RunSkipRewardResult(BaseModel):
     ]
     available_rest_site_options: Annotated[
         list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -514,6 +619,9 @@ class RunStateResult(BaseModel):
     ]
     available_rest_site_options: Annotated[
         list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None

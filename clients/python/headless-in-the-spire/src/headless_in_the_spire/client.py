@@ -27,6 +27,8 @@ METHOD_NAMES: dict[str, str] = {
     "run/select_event_option": "run_select_event_option",
     "run/select_rest_site_option": "run_select_rest_site_option",
     "run/leave_treasure_room": "run_leave_treasure_room",
+    "run/buy_merchant_item": "run_buy_merchant_item",
+    "run/leave_merchant_room": "run_leave_merchant_room",
     "run/end_turn": "run_end_turn",
     "run/play_card": "run_play_card",
     "run/select_reward": "run_select_reward",
@@ -142,6 +144,25 @@ class Client:
     ) -> m.RunLeaveTreasureRoomResult:
         result = self._transport.call("run/leave_treasure_room", None, timeout=timeout)
         return m.RunLeaveTreasureRoomResult.model_validate(result)
+
+    def run_buy_merchant_item(
+        self,
+        params: m.RunBuyMerchantItemParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.RunBuyMerchantItemResult:
+        result = self._transport.call(
+            "run/buy_merchant_item",
+            _dump(params),
+            timeout=timeout,
+        )
+        return m.RunBuyMerchantItemResult.model_validate(result)
+
+    def run_leave_merchant_room(
+        self, *, timeout: float | None = None
+    ) -> m.RunLeaveMerchantRoomResult:
+        result = self._transport.call("run/leave_merchant_room", None, timeout=timeout)
+        return m.RunLeaveMerchantRoomResult.model_validate(result)
 
     def run_end_turn(self, *, timeout: float | None = None) -> m.RunEndTurnResult:
         result = self._transport.call("run/end_turn", None, timeout=timeout)

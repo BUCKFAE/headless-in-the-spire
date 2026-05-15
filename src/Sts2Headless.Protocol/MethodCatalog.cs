@@ -65,6 +65,16 @@ public static class MethodCatalog
             ResultType: typeof(RunLeaveTreasureRoomResult),
             Summary: "Open the chest in the current treasure room and exit to MapRoom. No params — chests have a single relic offering and the host auto-picks it via the engine's TreasureRoomRelicSynchronizer (greedy default; a future slice can split this into previewable pick/skip)."),
 
+        new("run/buy_merchant_item",
+            ParamsType: typeof(RunBuyMerchantItemParams),
+            ResultType: typeof(RunBuyMerchantItemResult),
+            Summary: "Purchase a merchant item by its index in availableMerchantItems. Routes through MerchantEntry.OnTryPurchaseWrapper (engine path); insufficient gold or sold-out slot returns InvalidParams."),
+
+        new("run/leave_merchant_room",
+            ParamsType: null,
+            ResultType: typeof(RunLeaveMerchantRoomResult),
+            Summary: "Exit the current merchant room to MapRoom. No params — merchant rooms have no engine auto-exit, so callers explicitly drive the transition."),
+
         new("run/end_turn",
             ParamsType: null,
             ResultType: typeof(RunEndTurnResult),

@@ -173,6 +173,44 @@ public sealed record RestSiteOption(
     [property: JsonPropertyName("optionId")] string OptionId,
     [property: JsonPropertyName("isEnabled")] bool IsEnabled);
 
+// Kind of item offered by a merchant room. Wire shape matches the entry's
+// engine type stripped of the "Merchant"/"Entry" prefix/suffix: MerchantCardEntry
+// → "card", MerchantRelicEntry → "relic", MerchantPotionEntry → "potion",
+// MerchantCardRemovalEntry → "card_removal". Same Unknown-fallback discipline
+// as RoomType — an unrecognised entry type still surfaces (so the wire never
+// silently hides a sold item) but with an opaque kind clients can't act on.
+[JsonConverter(typeof(JsonStringEnumConverter<MerchantKind>))]
+public enum MerchantKind
+{
+    [JsonStringEnumMemberName("unknown")] Unknown,
+    [JsonStringEnumMemberName("card")] Card,
+    [JsonStringEnumMemberName("relic")] Relic,
+    [JsonStringEnumMemberName("potion")] Potion,
+    [JsonStringEnumMemberName("card_removal")] CardRemoval,
+}
+
+// One item on offer at the current merchant. Index is the position in the
+// inventory's AllEntries roll-up (the engine's stable iteration order:
+// CharacterCards, ColorlessCards, Relics, Potions, CardRemoval); pass back
+// via run/buy_merchant_item.itemIndex.
+//
+// Cost is gold (already after sale modifiers — IsOnSale just describes the
+// price tag, not a separate discount the caller has to apply). IsStocked
+// false means the slot was sold this visit; IsAffordable mirrors the engine's
+// EnoughGold flag so callers don't recompute Player.Gold > Cost themselves.
+//
+// Kind-specific id fields are nullable — only the matching kind populates
+// its slot. CardRemoval has no item id (it's a service, not a thing).
+public sealed record MerchantItem(
+    [property: JsonPropertyName("index")] int Index,
+    [property: JsonPropertyName("kind")] MerchantKind Kind,
+    [property: JsonPropertyName("cost")] int Cost,
+    [property: JsonPropertyName("isStocked")] bool IsStocked,
+    [property: JsonPropertyName("isAffordable")] bool IsAffordable,
+    [property: JsonPropertyName("cardId")] string? CardId = null,
+    [property: JsonPropertyName("relicId")] string? RelicId = null,
+    [property: JsonPropertyName("potionId")] string? PotionId = null);
+
 // One relic carried by the player. Id is the game's stable relic key
 // (e.g. "BURNING_BLOOD"); clients translate to a localised name themselves.
 // Per-relic runtime state (DynamicVars: counters, charges, etc.) isn't
@@ -332,6 +370,7 @@ public sealed record RunNewResult(
     // clients should branch on currentRoomType, not on whether this field
     // is non-null).
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     // Pending post-combat rewards. Non-null when the engine has rewards the
     // caller hasn't yet selected/skipped — drives the run/select_reward and
@@ -359,6 +398,7 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -380,6 +420,7 @@ public sealed record RunSelectMapNodeResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -404,6 +445,7 @@ public sealed record RunSelectEventOptionResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -435,6 +477,7 @@ public sealed record RunSelectRestSiteOptionResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -464,6 +507,7 @@ public sealed record RunLeaveTreasureRoomResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -482,6 +526,7 @@ public sealed record RunEndTurnResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -506,6 +551,7 @@ public sealed record RunPlayCardResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -533,6 +579,7 @@ public sealed record RunSelectRewardResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
@@ -557,6 +604,60 @@ public sealed record RunSkipRewardResult(
     [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+
+// ── run/buy_merchant_item ────────────────────────────────────────────────
+
+// itemIndex matches the MerchantItem.Index returned by the most recent
+// snapshot when CurrentRoomType == MerchantRoom. The host routes the buy
+// through the entry's engine path (MerchantEntry.OnTryPurchaseWrapper);
+// engine-side guards (insufficient gold, already-sold slot) surface as
+// WireException(InvalidParams) so the caller sees a typed error rather
+// than a silent no-op. After a successful purchase the item flips to
+// IsStocked=false on the next snapshot; gold and relics/potions/deck are
+// reflected on the standard snapshot fields.
+public sealed record RunBuyMerchantItemParams(
+    [property: JsonPropertyName("itemIndex")] int ItemIndex);
+
+public sealed record RunBuyMerchantItemResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("itemIndex")] int ItemIndex,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);
+
+// ── run/leave_merchant_room ──────────────────────────────────────────────
+
+// A merchant room has no engine auto-exit (unlike rest-site HEAL which
+// flips the room itself). Calling this method drives the same pattern the
+// rest-site slice uses: EnterRoom(new MapRoom()) on the RunManager, which
+// reads CurrentRoomType back to MapRoom on the returned snapshot.
+//
+// No params — there's no decision to make on the way out beyond "leave".
+// A caller that wants to buy something first must call run/buy_merchant_item
+// before run/leave_merchant_room (purchasing in-room is unidirectional once
+// the player walks out).
+public sealed record RunLeaveMerchantRoomResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics);

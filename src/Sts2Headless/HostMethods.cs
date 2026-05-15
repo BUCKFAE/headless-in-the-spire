@@ -26,6 +26,8 @@ public static class HostMethods
             ["run/select_event_option"] = Typed<RunSelectEventOptionParams, RunSelectEventOptionResult>(p => RunSelectEventOption(bindings, session, p)),
             ["run/select_rest_site_option"] = Typed<RunSelectRestSiteOptionParams, RunSelectRestSiteOptionResult>(p => RunSelectRestSiteOption(bindings, session, p)),
             ["run/leave_treasure_room"] = TypedNoParams(() => RunLeaveTreasureRoom(bindings, session)),
+            ["run/buy_merchant_item"] = Typed<RunBuyMerchantItemParams, RunBuyMerchantItemResult>(p => RunBuyMerchantItem(bindings, session, p)),
+            ["run/leave_merchant_room"] = TypedNoParams(() => RunLeaveMerchantRoom(bindings, session)),
             ["run/end_turn"] = TypedNoParams(() => RunEndTurn(bindings, session)),
             ["run/play_card"] = Typed<RunPlayCardParams, RunPlayCardResult>(p => RunPlayCard(bindings, session, p)),
             ["run/select_reward"] = Typed<RunSelectRewardParams, RunSelectRewardResult>(p => RunSelectReward(bindings, session, p)),
@@ -100,6 +102,7 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -125,6 +128,7 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -151,6 +155,7 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -176,6 +181,7 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -201,6 +207,7 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -223,6 +230,83 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
+    }
+
+    private static RunBuyMerchantItemResult RunBuyMerchantItem(Sts2Bindings bindings, Session session, RunBuyMerchantItemParams? @params)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "run/buy_merchant_item requires params {itemIndex}");
+        if (args.ItemIndex < 0)
+        {
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"run/buy_merchant_item: itemIndex must be >= 0 (got {args.ItemIndex})");
+        }
+
+        bool purchased;
+        try
+        {
+            purchased = bindings.BuyMerchantItem(run, args.ItemIndex);
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            // Out-of-range index is a caller mistake — surface as
+            // InvalidParams so generated clients see the right code rather
+            // than a generic InternalError.
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
+        if (!purchased)
+        {
+            // The engine's OnTryPurchaseWrapper returns false when the
+            // purchase was refused (insufficient gold, already-sold slot,
+            // cancel signal). Convert to InvalidParams so the caller can
+            // distinguish "rejected for a reason" from "the slice broke".
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"run/buy_merchant_item: merchant rejected purchase at itemIndex={args.ItemIndex} " +
+                "(likely insufficient gold or already sold). Re-read availableMerchantItems for the current state.");
+        }
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunBuyMerchantItemResult(
+            Ok: true,
+            ItemIndex: args.ItemIndex,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState,
+            Relics: s.Relics);
+    }
+
+    private static RunLeaveMerchantRoomResult RunLeaveMerchantRoom(Sts2Bindings bindings, Session session)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+
+        bindings.LeaveMerchantRoom(run);
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunLeaveMerchantRoomResult(
+            Ok: true,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            IsGameOver: s.IsGameOver,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -245,6 +329,7 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -271,6 +356,7 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -297,6 +383,7 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
@@ -322,6 +409,7 @@ public static class HostMethods
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics);
