@@ -40,79 +40,85 @@ public static class CardMechanics
         // When the missing sub-flow is implemented, flip this to false.
         bool IsHeadlessUnsafe = false);
 
-    private static readonly Dictionary<string, Mechanics> Catalog = new(StringComparer.Ordinal)
+    private static readonly Dictionary<CardId, Mechanics> Catalog = new()
     {
         // ── Starter ────────────────────────────────────────────────────────
-        ["STRIKE_IRONCLAD"]  = new Mechanics(Damage: 6),
-        ["DEFEND_IRONCLAD"]  = new Mechanics(Block: 5),
+        [CardId.StrikeIronclad]  = new Mechanics(Damage: 6),
+        [CardId.DefendIronclad]  = new Mechanics(Block: 5),
         // Bash is the starter Vulnerable engine. Vulnerable=2 turns of "+50%
         // damage taken" on the target — pivotal vs single-target bosses
         // (VANTOM included).
-        ["BASH"]             = new Mechanics(Damage: 8, Vulnerable: 2),
+        [CardId.Bash]            = new Mechanics(Damage: 8, Vulnerable: 2),
 
         // ── Cards offered on seed 42's path ────────────────────────────────
         // F2 rewards.
         // Body Slam: damage = current player block, cost 1.
-        ["BODY_SLAM"]        = new Mechanics(BlockToDamage: true),
+        [CardId.BodySlam]        = new Mechanics(BlockToDamage: true),
         // Tremble is a sts2 status-shaped card (loss-of-control).
-        ["TREMBLE"]          = new Mechanics(),
+        [CardId.Tremble]         = new Mechanics(),
         // Sword Boomerang: 3 hits × 3 damage at random enemies.
-        ["SWORD_BOOMERANG"]  = new Mechanics(Damage: 3, Hits: 3, TargetsAllEnemies: false),
+        [CardId.SwordBoomerang]  = new Mechanics(Damage: 3, Hits: 3, TargetsAllEnemies: false),
 
         // F4 rewards.
         // Headbutt: 9 dmg + place a card from discard on top of draw pile.
         // The "place a card" side-effect routes through CardSelectCmd's
         // screen-create path, which NREs in headless. Marked unsafe until
         // the card-select screen stand-in lands.
-        ["HEADBUTT"]         = new Mechanics(Damage: 9, IsHeadlessUnsafe: true),
+        [CardId.Headbutt]        = new Mechanics(Damage: 9, IsHeadlessUnsafe: true),
         // Expect-A-Fight: a power card.
-        ["EXPECT_A_FIGHT"]   = new Mechanics(),
+        [CardId.ExpectAFight]    = new Mechanics(),
         // Burning Pact: exhaust 1 card, draw 2. The "exhaust 1 card" leg
         // is a hand-selection step → CardSelectCmd → screen-create NRE in
         // headless. Marked unsafe until a screen stand-in lands.
-        ["BURNING_PACT"]     = new Mechanics(IsHeadlessUnsafe: true),
+        [CardId.BurningPact]     = new Mechanics(IsHeadlessUnsafe: true),
 
         // F5 rewards.
-        ["BULLY"]            = new Mechanics(Damage: 8),
+        [CardId.Bully]           = new Mechanics(Damage: 8),
         // Thunderclap: 4 dmg AOE + 1 vuln AOE.
-        ["THUNDERCLAP"]      = new Mechanics(Damage: 4, TargetsAllEnemies: true, Vulnerable: 1),
+        [CardId.Thunderclap]     = new Mechanics(Damage: 4, TargetsAllEnemies: true, Vulnerable: 1),
         // Bludgeon: 32 single-target damage, cost 3.
-        ["BLUDGEON"]         = new Mechanics(Damage: 32),
+        [CardId.Bludgeon]        = new Mechanics(Damage: 32),
 
         // F8 (elite) rewards.
-        ["DISMANTLE"]        = new Mechanics(),
-        ["CASCADE"]          = new Mechanics(),
+        [CardId.Dismantle]       = new Mechanics(),
+        [CardId.Cascade]         = new Mechanics(),
 
         // F9 rewards.
         // Uppercut: 13 dmg + 1 Weak + 1 Vulnerable, cost 2.
-        ["UPPERCUT"]         = new Mechanics(Damage: 13, Weak: 1, Vulnerable: 1),
+        [CardId.Uppercut]        = new Mechanics(Damage: 13, Weak: 1, Vulnerable: 1),
         // Armaments: 5 block + upgrade a card in hand. The upgrade leg
         // routes through CardSelectCmd → headless screen-create NRE.
         // Marked unsafe until a screen stand-in lands.
-        ["ARMAMENTS"]        = new Mechanics(Block: 5, IsHeadlessUnsafe: true),
+        [CardId.Armaments]       = new Mechanics(Block: 5, IsHeadlessUnsafe: true),
         // Stone Armor: gain 1 plated armor (block at start of every turn).
         // Not yet modelled as block on the wire; the agent only cares that
         // it's a power-shaped card.
-        ["STONE_ARMOR"]      = new Mechanics(),
+        [CardId.StoneArmor]      = new Mechanics(),
 
         // F12 rewards.
-        ["TRUE_GRIT"]        = new Mechanics(Block: 7, Exhausts: true),
-        ["SECOND_WIND"]      = new Mechanics(),
+        [CardId.TrueGrit]        = new Mechanics(Block: 7, Exhausts: true),
+        [CardId.SecondWind]      = new Mechanics(),
 
         // F15 rewards.
-        ["TAUNT"]            = new Mechanics(),
+        [CardId.Taunt]           = new Mechanics(),
         // Blood Wall: 4 dmg + 6 block, cost 2.
-        ["BLOOD_WALL"]       = new Mechanics(Damage: 4, Block: 6),
+        [CardId.BloodWall]       = new Mechanics(Damage: 4, Block: 6),
 
         // ── Statuses surfaced in combat that the agent should ignore ───────
         // Infection is the Phrog-Parasite-applied status with cost -1 /
         // canPlay=false — unplayable by construction; modelled here only
         // so the lookup doesn't return null.
-        ["INFECTION"]        = new Mechanics(),
+        [CardId.Infection]       = new Mechanics(),
     };
 
-    public static Mechanics Get(string cardId) =>
+    public static Mechanics Get(CardId cardId) =>
         Catalog.TryGetValue(cardId, out var e) ? e : new Mechanics();
+
+    // Snapshot of every CardId for which Catalog has an explicit entry.
+    // CardMechanicsCoverageTests uses this (combined with the
+    // NotYetModelledCards set in the test) to assert nothing falls through
+    // the cracks when sts2 ships a new card.
+    public static IReadOnlyCollection<CardId> ModelledCardIds => Catalog.Keys;
 
     // Estimate damage dealt to the indexed target accounting for the
     // target's powers (Vulnerable on target, Weak on player, Strength on

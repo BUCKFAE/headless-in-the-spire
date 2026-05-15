@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
     <!-- Referenced so the AD-4 invariant test can inspect every production

@@ -66,7 +66,7 @@ public class CombatPowersTests : IClassFixture<HostSubprocess>
             "run/select_map_node", new RunSelectMapNodeParams(Col: monster.Col, Row: monster.Row));
         Assert.NotNull(inCombat.CombatState);
         var combat = inCombat.CombatState!;
-        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        var seenIds = new HashSet<CardId>();
 
         for (var turn = 0; turn < 8 && combat.IsInProgress && combat.IsPlayPhase; turn++)
         {
@@ -76,7 +76,7 @@ public class CombatPowersTests : IClassFixture<HostSubprocess>
                 c.CanPlay
                 && c.Cost <= combat.Energy
                 && c.TargetType == TargetType.AnyEnemy
-                && c.Id.Contains("BASH", StringComparison.OrdinalIgnoreCase));
+                && c.Id == CardId.Bash);
 
             if (bash is not null)
             {

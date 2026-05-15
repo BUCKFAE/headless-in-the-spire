@@ -257,7 +257,7 @@ public sealed record Intent(
 // whether targetIndex is required on play.
 public sealed record Card(
     [property: JsonPropertyName("index")] int Index,
-    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("id")] CardId Id,
     [property: JsonPropertyName("cost")] int Cost,
     [property: JsonPropertyName("canPlay")] bool CanPlay,
     [property: JsonPropertyName("targetType")] TargetType TargetType);
@@ -300,7 +300,7 @@ public enum RewardKind
 // helper can render either.
 public sealed record CardRewardOption(
     [property: JsonPropertyName("index")] int Index,
-    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("id")] CardId Id,
     [property: JsonPropertyName("cost")] int Cost);
 
 // One reward in the post-combat reward set. Index is the position in the

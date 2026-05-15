@@ -73,7 +73,18 @@ internal static class OpenRpcEmitter
         return asm.GetTypes()
             .Where(t => t.IsPublic
                 && t.Namespace == "Sts2Headless.Protocol.Methods"
-                && (t.IsEnum || t.IsClass))
+                && (t.IsEnum || t.IsClass)
+                // Static classes (compiler emits IsAbstract+IsSealed): no
+                // instance members, no wire shape — they're helpers like
+                // CardIdNames that don't belong in components/schemas.
+                && !(t.IsAbstract && t.IsSealed)
+                // [OpaqueWireString] enums (CardId today): the enum values
+                // are proprietary content sourced from vendor/sts2.dll and
+                // must not appear in committed wire artefacts. Skipping
+                // them from the hoist set keeps them out of
+                // components/schemas; TransformSchemaNode below replaces
+                // property-level references with `{"type": "string"}`.
+                && t.GetCustomAttribute<OpaqueWireStringAttribute>() is null)
             .ToHashSet();
     }
 
@@ -103,6 +114,18 @@ internal static class OpenRpcEmitter
                 // polymorphic bases, and PropertyInfo is null whenever we
                 // descend into array items.
                 if (ctx.Path.Length == 0) return StripSchemaDialect(node);
+
+                // OpaqueWireString-marked enum (CardId today) — render as
+                // bare string so the proprietary enum membership never lands
+                // in the committed schema. Same JsonStringEnumConverter on
+                // the C# side still maps wire strings to the typed enum at
+                // deserialise time; the schema just doesn't enumerate the
+                // values. See OpaqueWireStringAttribute for the rationale.
+                if (ctx.TypeInfo.Type.IsEnum
+                    && ctx.TypeInfo.Type.GetCustomAttribute<OpaqueWireStringAttribute>() is not null)
+                {
+                    return new JsonObject { ["type"] = "string" };
+                }
 
                 // Nested reference to another hoisted type → $ref it. Without
                 // this, JsonSchemaExporter inlines Card / Power / Intent at

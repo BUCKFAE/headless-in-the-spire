@@ -10,6 +10,16 @@ external-tools/
 # via GAME_VERSION (checked in) + a SHA-256 of the expected bytes.
 /vendor
 
+# Generated from vendor/sts2.dll's ModelDb.AllCards — a 577-name enum of
+# every card the game ships. The list itself is proprietary content
+# (same provenance as the DLL bytes it's derived from), so we treat it
+# like /vendor rather than protocol/openrpc.json: regenerate locally
+# via `just generate-card-ids` (run automatically by `just setup`).
+# CardId.Fallback.cs (committed) supplies a CardId.Unknown-only stub so
+# Protocol still compiles before the generator has produced the real
+# enum.
+/src/Sts2Headless.Protocol/CardId.g.cs
+
 # .NET build artifacts.
 bin/
 obj/

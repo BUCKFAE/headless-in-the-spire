@@ -25,7 +25,7 @@ public class CombatRewardShapeTests
         Assert.NotEmpty(card.Cards!);
         Assert.All(card.Cards!, c =>
         {
-            Assert.False(string.IsNullOrEmpty(c.Id), $"card option {c.Index} missing id");
+            Assert.NotEqual(CardId.Unknown, c.Id);
             Assert.True(c.Cost >= 0, $"card option {c.Index} negative cost {c.Cost}");
         });
     }

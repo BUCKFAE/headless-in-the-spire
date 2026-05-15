@@ -44,51 +44,51 @@ public sealed class Seed42Agent : IAgent
     // skips them when possible. The engine-compat fact lives on the
     // card; the "how strongly do I want to avoid this" weighting is an
     // agent decision.
-    private static readonly Dictionary<string, int> SeedFourtyTwoDraftScores = new(StringComparer.Ordinal)
+    private static readonly Dictionary<CardId, int> SeedFourtyTwoDraftScores = new()
     {
         // Starter — neutral; we already own them.
-        ["STRIKE_IRONCLAD"] = 0,
-        ["DEFEND_IRONCLAD"] = 0,
-        ["BASH"]            = 0,
+        [CardId.StrikeIronclad] = 0,
+        [CardId.DefendIronclad] = 0,
+        [CardId.Bash]           = 0,
 
         // F2 picks. Body Slam synergises with the defensive stance the
         // agent leans on (Phrog floor-8 → 4-wriggler turn-cycle); a
         // "3 defends → Body Slam ~16" turn out-damages SWORD_BOOMERANG
         // on a healthy block deck. Sword's per-hit 3 damage is mid-range
         // but it's a useful SLIPPERY drain (3 stacks per cost-1).
-        ["BODY_SLAM"]       = 4,
-        ["SWORD_BOOMERANG"] = 3,
-        ["TREMBLE"]         = -2, // sts2 loss-of-control status
+        [CardId.BodySlam]       = 4,
+        [CardId.SwordBoomerang] = 3,
+        [CardId.Tremble]        = -2, // sts2 loss-of-control status
 
         // F4 picks. Expect-A-Fight is a power card — keep neutral until
         // the wire surfaces power dynamics.
-        ["EXPECT_A_FIGHT"]  = 1,
+        [CardId.ExpectAFight]   = 1,
 
         // F5 picks. Bludgeon is the boss-killing card on this path:
         // 32 single-target damage, cost 3, SLIPPERY-5 still leaves
         // 27 landing per swing. Highest priority pick.
-        ["BLUDGEON"]        = 5,
-        ["THUNDERCLAP"]     = 2,
-        ["BULLY"]           = 0,
+        [CardId.Bludgeon]       = 5,
+        [CardId.Thunderclap]    = 2,
+        [CardId.Bully]          = 0,
 
         // F8 elite picks — neutral; we're short Act 1.
-        ["DISMANTLE"]       = 0,
-        ["CASCADE"]         = 0,
+        [CardId.Dismantle]      = 0,
+        [CardId.Cascade]        = 0,
 
         // F9 picks. Uppercut cleanly pierces SLIPPERY (single-hit) and
         // stacks Vuln + Weak — excellent vs bosses. Stone Armor is a
         // mild power; we keep it positive but low.
-        ["UPPERCUT"]        = 4,
-        ["STONE_ARMOR"]     = 2,
+        [CardId.Uppercut]       = 4,
+        [CardId.StoneArmor]     = 2,
 
         // F12 picks. True Grit is solid block on the defensive stance.
         // Second Wind is exhaust-dependent — neutral until we model it.
-        ["TRUE_GRIT"]       = 3,
-        ["SECOND_WIND"]     = 1,
+        [CardId.TrueGrit]       = 3,
+        [CardId.SecondWind]     = 1,
 
         // F15 picks. Blood Wall is good defensive offence.
-        ["BLOOD_WALL"]      = 3,
-        ["TAUNT"]           = 0,
+        [CardId.BloodWall]      = 3,
+        [CardId.Taunt]          = 0,
     };
 
     // Strongly negative score for IsHeadlessUnsafe cards. The exact
@@ -99,7 +99,7 @@ public sealed class Seed42Agent : IAgent
     // random index. -100 leaves headroom for sub-flag refinement later.
     private const int HeadlessUnsafePenalty = -100;
 
-    private static int DraftScore(string cardId)
+    private static int DraftScore(CardId cardId)
     {
         var penalty = CardMechanics.Get(cardId).IsHeadlessUnsafe ? HeadlessUnsafePenalty : 0;
         return penalty + (SeedFourtyTwoDraftScores.TryGetValue(cardId, out var s) ? s : 0);
@@ -401,7 +401,7 @@ public sealed class Seed42Agent : IAgent
         // energy on a non-defensive card is a luxury.
         if (!primaryTargetVuln && !slipperyOnBoard && hpPct > 0.4)
         {
-            var bash = hand.FirstOrDefault(c => c.CanPlay && c.Id == "BASH" && c.Cost <= combat.Energy);
+            var bash = hand.FirstOrDefault(c => c.CanPlay && c.Id == CardId.Bash && c.Cost <= combat.Energy);
             if (bash is not null)
                 return (bash.Index, primaryTarget.Index);
         }
@@ -519,7 +519,7 @@ public sealed class Seed42Agent : IAgent
                     .Select(c => (idx: c.Index, score: DraftScore(c.Id), id: c.Id))
                     .OrderByDescending(t => t.score)
                     .ToList();
-                var best = ranked is { Count: > 0 } ? ranked[0] : (idx: 0, score: 0, id: "");
+                var best = ranked is { Count: > 0 } ? ranked[0] : (idx: 0, score: 0, id: CardId.Unknown);
                 if (pick.CanSkip && best.score <= 0)
                 {
                     var r = await host.SendAsync<RunSkipRewardResult>(

@@ -13,12 +13,14 @@ default:
 
 # ── Local setup ───────────────────────────────────────────────────────────
 
-# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv, install git hooks.
+# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv, install git hooks, generate the CardId enum from the local DLL.
 setup:
     just validate-sts2-installation
     just pull-game-libs
     just sync-python
     just install-hooks
+    just generate-card-ids
+    just build
 
 # Install repo git hooks (pre-commit drift guard for openrpc.json + _models.py).
 install-hooks:
@@ -47,6 +49,12 @@ clone-external-tools:
 # Build the whole solution with MSBuild parallelism; override with `just BUILD_CORES=4 build`.
 build:
     @dotnet build Sts2Headless.slnx {{MSBUILD_MAX_CPU}}
+
+# Build just the host exe (and its transitive deps). Used by generate-card-ids
+# so the bootstrap can produce CardId.g.cs *before* the consumer projects
+# (Agents, tests) try to reference values that only exist post-generation.
+build-generator:
+    @dotnet build src/Sts2Headless/Sts2Headless.csproj {{MSBUILD_MAX_CPU}}
 
 # Run the headless host (prints the banner and vendor inventory for now).
 run: build
@@ -92,13 +100,17 @@ stdio: build
 export-schema: build
     @dotnet run --project src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj --no-build
 
+# Regenerate src/Sts2Headless.Protocol/CardId.g.cs from ModelDb.AllCards (gitignored — proprietary content sourced from vendor/sts2.dll). Run after bumping the game pin.
+generate-card-ids: build-generator
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --generate-card-ids
+
 # Regenerate the Python client's pydantic DTOs from protocol/openrpc.json (AD-5).
 generate-python:
     @bash scripts/check-uv.sh
     @uv run python clients/python/headless-in-the-spire/scripts/generate_models.py
 
-# Regenerate every wire-protocol artefact (openrpc.json + Python DTOs). Run after touching Methods.cs.
-regen: export-schema generate-python
+# Regenerate every wire-protocol artefact (CardId enum + openrpc.json + Python DTOs). Run after touching Methods.cs or bumping the game pin.
+regen: generate-card-ids export-schema generate-python
 
 # Remove all bin/ and obj/ build artifacts.
 clean:

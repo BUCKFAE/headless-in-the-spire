@@ -4,4 +4,26 @@
     <Description>Wire protocol types: JSON-RPC-style envelope, methods, notifications. See AD-2.</Description>
   </PropertyGroup>
 
+  <!--
+    CardId stub vs. generated enum.
+
+    CardId.g.cs is the full 577-value enum emitted by `just generate-card-ids`
+    from the proprietary vendor/sts2.dll. It is gitignored — the file is
+    regenerated locally on every fresh clone via `just setup`.
+
+    CardId.Fallback.cs is a committed compile-only stub (just `Unknown`)
+    so the Protocol project (and everything downstream) builds on a fresh
+    clone *before* the generator has run. The instant CardId.g.cs exists,
+    MSBuild removes the fallback from compilation so the two definitions
+    never collide.
+
+    Net effect: anyone running `just setup` ends up with the generated
+    enum compiled; anyone running `dotnet build` standalone (e.g. before
+    `just setup` populates vendor/) compiles against the stub and gets a
+    working build with CardId.Unknown as the only value.
+  -->
+  <ItemGroup Condition="Exists('CardId.g.cs')">
+    <Compile Remove="CardId.Fallback.cs" />
+  </ItemGroup>
+
 </Project>

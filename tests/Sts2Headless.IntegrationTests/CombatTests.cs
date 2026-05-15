@@ -56,7 +56,7 @@ public class CombatTests : IClassFixture<HostSubprocess>
         // we haven't catalogued — that's a discipline failure, surface it.
         Assert.All(combat.Hand, c =>
         {
-            Assert.False(string.IsNullOrEmpty(c.Id), $"card {c.Index} missing id");
+            Assert.NotEqual(CardId.Unknown, c.Id);
             Assert.True(c.Cost >= 0, $"card {c.Index} negative cost {c.Cost}");
             Assert.NotEqual(TargetType.Unknown, c.TargetType);
         });

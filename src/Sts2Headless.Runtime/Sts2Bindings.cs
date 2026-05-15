@@ -708,11 +708,11 @@ public sealed partial class Sts2Bindings
         foreach (var card in raw)
         {
             if (card is null) continue;
-            var id = ReadEntryId(_cardId, card) ?? card.GetType().Name;
+            var idWire = ReadEntryId(_cardId, card) ?? card.GetType().Name;
             var cost = _cardEnergyCost is not null && _energyCostGetResolved is not null
                 ? Convert.ToInt32(_energyCostGetResolved.Invoke(_cardEnergyCost.GetValue(card), null) ?? 0)
                 : 0;
-            result.Add(new CardRewardOption(idx++, id, cost));
+            result.Add(new CardRewardOption(idx++, CardIdNames.FromWire(idWire), cost));
         }
         return result;
     }
@@ -779,13 +779,13 @@ public sealed partial class Sts2Bindings
         {
             var card = list[i];
             if (card is null) continue;
-            var id = ReadEntryId(_cardId, card) ?? card.GetType().Name;
+            var idWire = ReadEntryId(_cardId, card) ?? card.GetType().Name;
             var cost = _cardEnergyCost is not null && _energyCostGetResolved is not null
                 ? Convert.ToInt32(_energyCostGetResolved.Invoke(_cardEnergyCost.GetValue(card), null) ?? 0)
                 : 0;
             var canPlay = _cardCanPlay is not null && (bool)(_cardCanPlay.Invoke(card, null) ?? false);
             var targetType = ParseEnum<TargetType>(_cardTargetType?.GetValue(card));
-            result.Add(new Card(i, id, cost, canPlay, targetType));
+            result.Add(new Card(i, CardIdNames.FromWire(idWire), cost, canPlay, targetType));
         }
         return result;
     }
