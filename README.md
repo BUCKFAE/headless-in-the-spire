@@ -12,3 +12,7 @@ AI experimentation, and replay tooling.
 
 ## Current State
 This project is in *very active, very early* development. Expect breaking changes hourly.
+
+## Acknowledgements and AI Notice
+This repository heavily used [https://github.com/wuhao21/sts2-cli](https://github.com/wuhao21/sts2-cli) as reference point. 
+While I reviewed the high-level design choices carefully, most of the implementation was AI-generated and committed without line-by-line review. Treat it accordingly.
