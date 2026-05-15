@@ -44,7 +44,12 @@ public readonly struct Vector2
     public override int GetHashCode() => 0;
 }
 public readonly struct Vector2I { }
-public readonly struct Vector3 { }
+public readonly struct Vector3
+{
+    // from: monster move VFX constructs world-space targets via
+    //   `new Vector3(x, y, z)`. Body is a no-op; no consumer reads back.
+    public Vector3(float _, float __, float ___) { }
+}
 public readonly struct Rect2
 {
     public Vector2 Size => default;
@@ -58,6 +63,23 @@ public readonly struct Color
     //   colors from hex strings. Body is a no-op; nothing on this stub is
     //   actually read.
     public Color(string _) { }
+
+    // from: VFX/UI code that constructs colors numerically — e.g. a monster
+    //   move tinting its sprite by RGBA components. MissingMethodException
+    //   on `.ctor(Single, Single, Single, Single)` surfaces as Unhandled
+    //   when the call site is on the main thread. Body is a no-op; nothing
+    //   on this stub is actually read.
+    public Color(float _, float __, float ___, float ____ = 1f) { }
+
+    // from: event-room paths (e.g. NSimpleCardSelectScreen) and monster move
+    //   VFX code read individual channels off a Color. Real Godot exposes
+    //   R/G/B/A as readwrite fields (the IL is a `ldfld`, not `call get_*`),
+    //   so the stub mirrors the same shape — `readonly` would make `stfld`
+    //   sites throw FieldAccessException at JIT time.
+    public readonly float R;
+    public readonly float G;
+    public readonly float B;
+    public readonly float A;
 }
 // Variant is Godot's universal value box. sts2's Tween calls pass strongly-typed
 // args (Color, float, Vector2, StringName, …) that the IL implicitly converts

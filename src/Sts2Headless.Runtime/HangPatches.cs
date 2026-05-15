@@ -36,6 +36,7 @@ public static class HangPatches
             PatchYieldAwaiterIsCompleted(harmony),
             PatchCmdWait(harmony, sts2),
             PatchWaitUntilQueueIsEmpty(harmony, sts2),
+            PatchTalkCmdPlay(harmony, sts2),
         ];
     }
 
@@ -78,6 +79,46 @@ public static class HangPatches
         {
             harmony.Patch(m, prefix: new HarmonyMethod(prefix));
             sigs.Add($"Wait({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))})");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
+    // BygoneEffigy.WakeMove (and other intro monster moves) invokes
+    // TalkCmd.Play(LocString, Creature, VfxColor, VfxDuration) to pop a speech
+    // bubble over the speaker. Real Play returns NSpeechBubbleVfx (a Node-
+    // derived UI object) and walks UI-only state to construct it; in headless
+    // those nodes are absent, so the body NREs. The exception is swallowed by
+    // TaskHelper.LogTaskExceptions inside the enemy-turn async chain, leaving
+    // combat half-transitioned (EndingPlayerTurnPhaseTwo=True,
+    // IsEnemyTurnStarted=True, IsPlayPhase=False) — the residual combat-stall
+    // pattern after the GodotStubs gaps are filled.
+    //
+    // Patch shape: prefix that skips the original (returns false) and sets
+    // __result to null. Caller code paths either null-check the returned VFX
+    // or tween it; in headless the tween is patched to no-op separately.
+    private static PatchOutcome PatchTalkCmdPlay(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Commands.TalkCmd.*";
+        var talkCmdType = sts2.GetType("MegaCrit.Sts2.Core.Commands.TalkCmd");
+        if (talkCmdType is null)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "type MegaCrit.Sts2.Core.Commands.TalkCmd not found");
+        }
+
+        var methods = talkCmdType.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+            .Where(m => !m.IsSpecialName && !m.ReturnType.IsValueType && !typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
+            .ToArray();
+        if (methods.Length == 0)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "no reference-returning methods on TalkCmd to no-op");
+        }
+
+        var prefix = typeof(HangPatches).GetMethod(nameof(ReturnNullPrefix), BindingFlags.Static | BindingFlags.NonPublic);
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
         }
         return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
     }
@@ -127,6 +168,16 @@ public static class HangPatches
     private static bool ReturnCompletedTaskPrefix(ref System.Threading.Tasks.Task __result)
     {
         __result = System.Threading.Tasks.Task.CompletedTask;
+        return false;
+    }
+
+    // Generic "skip original, return null" prefix for reference-returning
+    // methods whose body NREs in headless because it walks UI-only state
+    // (TalkCmd.Play and friends). Harmony copies the boxed-null into the
+    // typed return slot, which JIT erases for plain `class` returns.
+    private static bool ReturnNullPrefix(ref object? __result)
+    {
+        __result = null;
         return false;
     }
 }

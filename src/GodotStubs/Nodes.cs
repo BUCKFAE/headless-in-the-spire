@@ -83,6 +83,21 @@ public class Node : GodotObject
     //   doesn't matter; 0.0 keeps the comparison `acc >= 0` always true and
     //   matches the "no frame elapsed" reality.
     public double GetProcessDeltaTime() => 0.0;
+
+    // from: MegaCrit.Sts2.Core.Models.Monsters.Flyconid.VulnerableSporesMove
+    //   (and other monster moves) calls `GetNode<T>(NodePath)` to fetch a
+    //   VFX node for the move's animation. Without this stub the missing-
+    //   method exception is thrown inside the enemy turn's async chain, is
+    //   swallowed by TaskHelper.LogTaskExceptions, and leaves CombatManager
+    //   half-transitioned (EndingPlayerTurnPhaseTwo=True, IsEnemyTurnStarted=
+    //   True, IsInProgress=True) — the "combat stall" reported in
+    //   agent-survival-gaps.md. Returning null lets the call complete; if
+    //   the caller NREs, that exception still gets swallowed the same way,
+    //   but at least the move can short-circuit past the VFX in moves that
+    //   null-check the result. Generic param is constrained to class in real
+    //   Godot's signature; we don't enforce here so any T resolves.
+    public T? GetNode<T>(NodePath _) where T : class => null;
+    public Node? GetNode(NodePath _) => null;
 }
 
 public class CanvasItem : Node
@@ -94,6 +109,12 @@ public class CanvasItem : Node
         public static readonly StringName ItemRectChanged = new("item_rect_changed");
         public static readonly StringName VisibilityChanged = new("visibility_changed");
     }
+
+    // from: VFX nodes call CanvasItem.GetViewportRect() to size their effect to
+    //   the visible area. Mirrors Node.GetViewport().GetVisibleRect() shape;
+    //   Rect2.default is the zero rect which the engine VFX code generally
+    //   treats as "off-screen / no-op."
+    public Rect2 GetViewportRect() => default;
 }
 
 // ── Node2D and descendants ──────────────────────────────────────────────
@@ -109,6 +130,14 @@ public class Node2D : CanvasItem
     //   NEventRoom places child nodes at a Position. Auto-property is
     //   enough; nothing reads it back in headless paths.
     public Vector2 Position { get; set; }
+
+    // from: enemy moves (multiple monsters) place their attack VFX at a
+    //   global-space target. Without this stub the missing-method exception
+    //   thrown inside the move's async chain is swallowed by
+    //   TaskHelper.LogTaskExceptions and the enemy turn never completes —
+    //   the second-most-common combat stall surfaced by probe-combat-stall.
+    //   Auto-property is enough; nothing reads it back in headless.
+    public Vector2 GlobalPosition { get; set; }
 }
 
 public class Sprite2D : Node2D
@@ -126,6 +155,13 @@ public class GpuParticles2D : Node2D
     {
         public static readonly StringName Finished = new("finished");
     }
+
+    // from: monster move VFX (e.g. VulnerableSporesMove, AttackSplash) reads
+    //   ProcessMaterial to retune a particle's shader/colour at spawn. Without
+    //   this stub the MissingMethodException surfaces *synchronously* on the
+    //   first VFX kick after combat starts — auto-property is enough since
+    //   nothing reads the value back in headless paths.
+    public Material? ProcessMaterial { get; set; }
 }
 
 public class CpuParticles2D : Node2D

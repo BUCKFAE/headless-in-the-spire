@@ -46,6 +46,11 @@ if (args.Contains("--probe-merchant"))
     return ProbeMerchantCommand.Run(vendorDir);
 }
 
+if (args.Contains("--probe-combat-stall"))
+{
+    return ProbeCombatStallCommand.Run(vendorDir, args);
+}
+
 if (args.Contains("--stdio"))
 {
     var preamble = RuntimeBootstrap.Run(vendorDir);

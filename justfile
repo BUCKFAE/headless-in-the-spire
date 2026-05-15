@@ -76,6 +76,10 @@ probe-natural-chain: build
 probe-rewards-natural-chain: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-rewards-natural-chain
 
+# Walk a seed until the first stalled combat, then dump engine state (diagnostic).
+probe-combat-stall seed="1" floor="15": build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-combat-stall --seed {{seed}} --floor {{floor}}
+
 # List every member of <fqn> that sts2.dll references (e.g. `just list-members Godot.OS`).
 list-members fqn: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --list-members {{fqn}}

@@ -40,6 +40,12 @@ public static class Mathf
     public static int FloorToInt(double s) => (int)Math.Floor(s);
     public static int FloorToInt(float s) => (int)Math.Floor(s);
     public static int RoundToInt(double s) => (int)Math.Round(s);
+    // from: map-selection paths in several seeds (probe-combat-stall surfaces it
+    //   as `run/select_map_node` MissingMethodException). The single-precision
+    //   overload comes from sts2's tween/UI math; mirrors RoundToInt(double).
+    public static int RoundToInt(float s) => (int)MathF.Round(s);
+    public static float Round(float s) => MathF.Round(s);
+    public static double Round(double s) => Math.Round(s);
     public static float Sqrt(float s) => MathF.Sqrt(s);
     public static double Sqrt(double s) => Math.Sqrt(s);
     public static float Pow(float a, float b) => MathF.Pow(a, b);

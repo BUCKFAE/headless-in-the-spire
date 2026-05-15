@@ -422,14 +422,41 @@ public static class Input { }
 public static class AudioServer { public class AudioServerInstance { } }
 public class AudioServerInstance { }
 public static class ClassDB { }
-public static class Colors { }
+// from: enemy moves (e.g. SHRINKER_BEETLE.SHRINKER_MOVE) read named color
+//   constants when staging VFX tints. MissingMethodException surfaces inside
+//   the move's async chain and gets swallowed by TaskHelper.LogTaskExceptions,
+//   leaving the enemy turn half-transitioned (the combat-stall pattern).
+//   Real Godot exposes ~140 named static color properties; we add them on
+//   demand as probe-combat-stall surfaces each one. Body always returns
+//   `default` — color data is never read in headless paths.
+public static class Colors
+{
+    public static Color Green => default;
+}
 public static class DisplayServer { }
 public static class Geometry2D { }
 public static class Performance { }
 public static class ProjectSettings { }
 public static class RenderingDevice { }
 public static class RenderingServer { }
-public static class ResourceLoader { }
+// from: monster moves with sprite/scene fetches call
+//   ResourceLoader.Load<T>(path, typeHint, cacheMode). MissingMethodException
+//   surfaces synchronously here (not swallowed via TaskHelper), so a stall
+//   manifests as an unhandled exception in the host. T is always a Godot
+//   resource type; returning default(T) yields null for class T's and
+//   default-struct for value T's. The CacheMode enum mirrors real Godot's
+//   so call sites that name an enum value still compile.
+public static class ResourceLoader
+{
+    public enum CacheMode { Ignore = 0, Reuse = 1, Replace = 2, IgnoreDeep = 3, ReplaceDeep = 4 }
+    public static T? Load<T>(string _, string __ = "", CacheMode ___ = CacheMode.Reuse) where T : class => null;
+    public static Resource? Load(string _, string __ = "", CacheMode ___ = CacheMode.Reuse) => null;
+    // from: AutoSlay scene-existence checks and event-room asset preflight.
+    //   Returning false steers callers into "asset not present, skip preview"
+    //   branches; the engine still logs `Asset not cached:` as a warning,
+    //   which is informational only in headless paths.
+    public static bool Exists(string _, string __ = "") => false;
+}
 public static class StringExtensions { }
 public static class TextServer { }
 public static class TextServerManager { public class TextServerManagerInstance { } }
