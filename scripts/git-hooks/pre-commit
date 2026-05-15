@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Drift guard for the wire-protocol artefacts. If a Protocol/SchemaExport
+# source, openrpc.json, or _models.py is staged, regenerate both artefacts
+# and refuse the commit when the staged tree no longer matches. Mirrors the
+# CI "Schema drift check" + "Python models drift check" steps so drift is
+# caught locally instead of in a PR.
+
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+openrpc='protocol/openrpc.json'
+models='clients/python/headless-in-the-spire/src/headless_in_the_spire/_models.py'
+
+relevant='^(src/Sts2Headless\.Protocol/|src/Sts2Headless\.SchemaExport/|protocol/openrpc\.json$|clients/python/headless-in-the-spire/src/headless_in_the_spire/_models\.py$)'
+
+if ! git diff --cached --name-only | grep -qE "$relevant"; then
+    exit 0
+fi
+
+echo "pre-commit: regenerating wire-protocol artefacts (just regen)…"
+if ! just regen >/dev/null; then
+    echo "pre-commit: just regen failed — see output above." >&2
+    exit 1
+fi
+
+if ! git diff --quiet -- "$openrpc" "$models"; then
+    cat >&2 <<EOF
+
+pre-commit: wire-protocol artefacts drifted from the staged tree.
+            Regenerated versions are now in your working tree.
+            Re-stage and recommit:
+
+              git add $openrpc $models
+              git commit  # re-run
+
+To bypass (e.g. mid-rebase): git commit --no-verify
+EOF
+    exit 1
+fi

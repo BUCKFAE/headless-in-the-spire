@@ -13,11 +13,16 @@ default:
 
 # ── Local setup ───────────────────────────────────────────────────────────
 
-# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv.
+# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv, install git hooks.
 setup:
     just validate-sts2-installation
     just pull-game-libs
     just sync-python
+    just install-hooks
+
+# Install repo git hooks (pre-commit drift guard for openrpc.json + _models.py).
+install-hooks:
+    @bash scripts/install-hooks.sh
 
 # Verify STS2_GAME_DIR points at a real STS2 install with the required DLLs.
 validate-sts2-installation:
@@ -87,6 +92,9 @@ export-schema: build
 generate-python:
     @bash scripts/check-uv.sh
     @uv run python clients/python/headless-in-the-spire/scripts/generate_models.py
+
+# Regenerate every wire-protocol artefact (openrpc.json + Python DTOs). Run after touching Methods.cs.
+regen: export-schema generate-python
 
 # Remove all bin/ and obj/ build artifacts.
 clean:
