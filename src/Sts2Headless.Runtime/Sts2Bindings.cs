@@ -535,6 +535,14 @@ public sealed partial class Sts2Bindings
                        && Enum.TryParse<RoomType>(roomTypeName, ignoreCase: false, out var parsed)
             ? parsed
             : RoomType.Unknown;
+
+        // sts2 has no dedicated BossRoom type — the act boss is a normal
+        // CombatRoom whose monster happens to be the act boss. We surface
+        // BossRoom anyway by checking whether the player's current map coord
+        // points at a Boss-kind MapPoint; without this flip, callers using
+        // `currentRoomType == BossRoom` as a stop signal never trigger.
+        if (roomType == RoomType.CombatRoom && IsCurrentMapPointBoss(handle.RunState))
+            roomType = RoomType.BossRoom;
         var actFloor = (int)_runStateActFloor.GetValue(handle.RunState)!;
         var isGameOver = (bool)_runStateIsGameOver.GetValue(handle.RunState)!;
 
@@ -1951,6 +1959,24 @@ public sealed partial class Sts2Bindings
             catch { /* sts2-cli also swallows — caller will see EventRoom remains and can decide */ }
         }
     }
+
+    // Read the current map point's PointType, or null if we're not standing
+    // on a map point (pre-EnterAct, between rooms, stale coord). Used by
+    // BuildSnapshot to flip CombatRoom → BossRoom for the act-boss combat,
+    // which the engine itself reports as a plain CombatRoom.
+    private string? ReadCurrentMapPointTypeName(object runState)
+    {
+        var map = _runStateMap.GetValue(runState);
+        if (map is null) return null;
+        var currentCoord = _runStateCurrentMapCoord.GetValue(runState);
+        if (currentCoord is null) return null;
+        var currentPoint = _mapGetPoint.Invoke(map, new[] { currentCoord });
+        if (currentPoint is null) return null;
+        return _mapPointPointType.GetValue(currentPoint)?.ToString();
+    }
+
+    private bool IsCurrentMapPointBoss(object runState)
+        => string.Equals(ReadCurrentMapPointTypeName(runState), "Boss", StringComparison.Ordinal);
 
     // Enumerate next-move candidates by mirroring sts2-cli's MapSelectState:
     // - currentCoord null → starting position; offer the start node plus its

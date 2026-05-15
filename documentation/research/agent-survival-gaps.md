@@ -173,19 +173,32 @@ unsurfaced event. Re-investigate only if the symptom re-appears.
 ## what the boss test still needs
 
 `ReachAct1BossTests.GreedyAgent_Ironclad_ReachesAct1BossRoom_OnFixedSeed`
-still fails — but no longer on a combat stall. The remaining failure
-modes:
+now passes — the boss-room stop signal landed in this revision. The
+remaining loose end is the agent-survival concern below; the boss-room
+detection itself is closed.
 
-1. The engine surfaces `RoomType.CombatRoom` (not `BossRoom`) for the
-   Act 1 boss fight, so the test's `stopWhen: BossRoom` never fires.
-   The fix is to add a stop signal based on monster id (the boss has a
-   stable id) or to flip the engine's room type to `BossRoom` at the
-   wire layer when entering the boss node.
-2. The greedy agent doesn't survive the early-Act-1 combats long enough
-   to reach floor 17 even with heal-between-rooms. The probe shows
-   seed 42 game-overs at floor 8 with the same heal policy the test
-   uses. A smarter agent (or extra heals between rounds inside a
-   combat, not just between rooms) would be needed to consistently
-   reach the boss.
+### resolved: boss-room stop signal
 
-Both are *separate slices* from "fix the combat stall."
+sts2 itself has no dedicated `BossRoom` type — the act boss is a regular
+`CombatRoom` whose monster is the act boss — so callers using
+`currentRoomType == BossRoom` as a stop condition never triggered.
+`Sts2Bindings.BuildSnapshot` now flips `CombatRoom → BossRoom` when the
+player's current `MapPoint.PointType` is `"Boss"`, which is the engine's
+own enum-member name for the top-row act-boss node (validated against
+seed 42 row=16's only child). The `RoomType` enum gains a comment naming
+itself a "wire-level synthetic" so future readers don't go looking for a
+`BossRoom : Room` type that doesn't exist; `MapNodeType.Boss` is no
+longer marked speculative.
+
+### still open: agent survival to the boss
+
+The greedy agent doesn't survive the early-Act-1 combats long enough to
+reach floor 17 from every seed even with heal-between-rooms. The
+in-process probe shows seed 42 game-overs at floor 8 (probe biases
+toward Monster nodes and skips rest sites); the `ReachAct1BossTests`
+path uses `GreedyAgent.StepMapAsync`'s richer routing (including rest
+sites) plus debug-set_hp resurrection inside the test loop, and that's
+enough for seed 42 to reach the boss. A smarter agent — or extra heals
+between rounds inside a combat, not just between rooms — would be
+needed to consistently reach the boss on arbitrary seeds. *Separate
+slice from "fix the combat stall."*

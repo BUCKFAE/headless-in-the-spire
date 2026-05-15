@@ -40,6 +40,12 @@ public enum Character
 // missing from this list arrive as `Unknown` so the wire never carries
 // a free-form string for a type we haven't catalogued — that would be
 // the spelling-mistake trap this enum exists to prevent.
+//
+// BossRoom is a wire-level synthetic — sts2 itself has no BossRoom type
+// (the act boss is a regular CombatRoom whose monster is the act boss).
+// The host flips CombatRoom → BossRoom in BuildSnapshot when the player
+// stands on a Boss MapPoint, so callers using `currentRoomType == BossRoom`
+// as a stop signal can distinguish the boss fight from a regular combat.
 [JsonConverter(typeof(JsonStringEnumConverter<RoomType>))]
 public enum RoomType
 {
@@ -67,9 +73,10 @@ public enum RoomType
 // the fallback in Sts2Bindings.ToMapNode().
 //
 // Observed so far: Monster (row > 0 from start), Unknown (row 2+ mystery
-// rooms). Elite/Event/RestSite/Treasure/Merchant/Boss are speculative —
-// left in to document the schema callers can expect, validated when the
-// corresponding nodes actually appear.
+// rooms), Boss (top row of the act, validated against seed 42's row=16
+// pre-boss MapRoom whose only child is the boss node). Elite/Event/RestSite/
+// Treasure/Merchant are still speculative — left in to document the schema
+// callers can expect, validated when the corresponding nodes actually appear.
 [JsonConverter(typeof(JsonStringEnumConverter<MapNodeType>))]
 public enum MapNodeType
 {
