@@ -162,6 +162,9 @@ public class GpuParticles2D : Node2D
     //   first VFX kick after combat starts — auto-property is enough since
     //   nothing reads the value back in headless paths.
     public Material? ProcessMaterial { get; set; }
+    // from: same VFX call sites as ProcessMaterial — set the particle count
+    //   on spawn. Auto-property; no consumer reads back.
+    public int Amount { get; set; }
 }
 
 public class CpuParticles2D : Node2D

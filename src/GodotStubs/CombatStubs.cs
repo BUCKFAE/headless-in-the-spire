@@ -210,6 +210,12 @@ public class ParticleProcessMaterial : Material
     public new class MethodName : Material.MethodName { }
     public new class PropertyName : Material.PropertyName { }
     public new class SignalName : Material.SignalName { }
+
+    // from: monster move VFX (e.g. JAXFRUIT spore burst, FLYCONID emit chain)
+    //   tune the particle's emission box at spawn. Auto-property is enough;
+    //   no consumer reads the value back in headless. Grow on demand —
+    //   `probe-combat-stall` is the source of the "what's next?" list.
+    public Vector3 EmissionBoxExtents { get; set; }
 }
 
 public class StyleBox : Resource

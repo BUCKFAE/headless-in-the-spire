@@ -14,18 +14,19 @@ the next agent-survival slice has a starting point.
 
 ## summary
 
-After the 2026-05-15 combat-stall fix:
+After the 2026-05-15 combat-stall fix + VFX-stub follow-up:
 
 - **0/25 seeds stall in combat** (was 19/25 before the fix).
-- 15/25 seeds reach a legitimate game-over inside the 20-floor budget —
+- 18/25 seeds reach a legitimate game-over inside the 20-floor budget —
   forward progress is real; the greedy agent just dies to standard
   encounters because it doesn't plan energy.
-- 5/25 seeds hit downstream `GodotStubs` gaps that surface synchronously
-  (`ParticleProcessMaterial.set_EmissionBoxExtents` is the current head
-  of that queue). Each fix adds one stub and re-runs the probe.
-- 5/25 seeds NRE inside an event-room handler. Separate bug class —
-  the engine path tries to load a `simple_card_select_screen.tscn`
-  scene that isn't shipped to headless.
+- 7/25 seeds NRE inside an event-room handler. Single bug class —
+  the engine tries to load a card-select scene
+  (`simple_card_select_screen.tscn` or `deck_upgrade_select_screen.tscn`)
+  via `ResourceLoader.Load`, gets back null from our stub, and NREs
+  inside `NSimpleCardSelectScreen.Create` or
+  `NDeckUpgradeSelectScreen.ShowScreen`. Affected events so far:
+  `RoomFullOfCheese.Gorge`, `SapphireSeed.Eat`.
 
 The combat-stall pattern documented in earlier revisions of this file
 ("agent calls end_turn repeatedly with `IsPlayPhase=false`, hand=0,
@@ -79,36 +80,44 @@ The fix bundles three classes of change:
 
 ## remaining gaps (next slices)
 
-### A. `ParticleProcessMaterial.set_EmissionBoxExtents(Vector3)` (5 seeds)
+### A. card-select-screen NREs (7 seeds)
 
-Same shape as the resolved cluster — a VFX call site that needs a
-one-line stub. Hits seeds 8, 15, 17, 21, 24. Each fix surfaces the next
-VFX call (`EmissionShape`, `Gravity`, …); the chain ends when the move's
-construction finishes without referencing a missing member.
+Seeds 11, 12, 14, 17, 22, 23, 24 trip a `NullReferenceException` inside
+an event handler whose chosen option opens a card-select screen. The
+engine path is:
 
-**Next-slice starting point**: run `--probe-combat-stall --seed 8`, read
-the unhandled-exception type/name, add the stub to
-`src/GodotStubs/CombatStubs.cs` or `Resources.cs` next to the existing
-`ParticleProcessMaterial` shell, re-run. Repeat until seed 8 reports
-`GAME-OVER`.
+```
+EventOption.Chosen()
+  → <EventName>.<MethodName>()                  // e.g. RoomFullOfCheese.Gorge
+    → CardSelectCmd.<FromVariant>(...)          // FromSimpleGridForRewards / FromDeckForUpgrade
+      → <screen-class>.Create / ShowScreen()    // NSimpleCardSelectScreen / NDeckUpgradeSelectScreen
+        → ResourceLoader.Load(<tscn path>)      // returns null in headless
+          → NRE inside the screen ctor
+```
 
-### B. event-room NREs (5 seeds)
+`Asset not cached: res://scenes/screens/card_selection/*.tscn` in the
+log preceding the NRE is the smoking gun.
 
-Seeds 11, 12, 14, 22, 23 trip a `NullReferenceException` inside event
-handlers — the engine tries to load a card-select scene
-(`res://scenes/screens/card_selection/simple_card_select_screen.tscn`)
-via `NSimpleCardSelectScreen.Create` and then NREs on its return. This
-is *not* a combat stall; it's a `ResourceLoader.Load` returning null
-where the engine assumes a live scene.
+**Next-slice starting points** (pick one):
 
-**Next-slice starting point**: identify the specific event types
-involved (one is `RoomFullOfCheese`). Either patch the event to skip
-its card-select via Harmony (same shape as `TalkCmd.Play`), or
-short-circuit the wire-side event resolution so the agent never picks
-a card-select-requiring option. The agent could also be taught to
-prefer non-card-select event options.
+1. Harmony-patch `CardSelectCmd.*` and/or the `Show*Screen` methods to
+   no-op (same shape as the resolved `TalkCmd.Play` patch). Caller code
+   needs to tolerate a null result — most do, since real Godot returns
+   null when the scene hasn't loaded yet. The risk: some events
+   short-circuit on the cmd's return value to apply their gameplay
+   effect (e.g. SapphireSeed.Eat → "did the player actually upgrade a
+   card?"). A blanket no-op skips the gameplay effect, not just the UI.
 
-### C. `EventRoom` with no surfaced options (1 seed in prior scan)
+2. Teach `GreedyAgent.StepEventAsync` to *avoid* options whose chosen
+   handler is known to crash. Stable option ids would make this
+   tractable; otherwise the agent would have to discover the crash by
+   try/snapshot/rollback, which isn't supported by the wire.
+
+3. Build a minimal "headless `Show*Screen` stand-in" — a Harmony patch
+   that returns a stub screen object whose tween/await chain resolves
+   immediately. Most invasive but preserves the gameplay effect.
+
+### B. `EventRoom` with no surfaced options (1 seed in prior scan)
 
 Seed 17 previously hit `EventRoom` with `availableEventOptions.Count == 0`.
 That symptom hasn't recurred in the post-fix sweep — likely covered by
