@@ -138,6 +138,13 @@ public class Node2D : CanvasItem
     //   the second-most-common combat stall surfaced by probe-combat-stall.
     //   Auto-property is enough; nothing reads it back in headless.
     public Vector2 GlobalPosition { get; set; }
+
+    // from: act-1 boss-tier monster moves (KIN_FOLLOWER, KIN_PRIEST) read
+    //   Scale to retune their sprite when entering an attack pose. Surfaces
+    //   as `Method not found: 'Godot.Vector2 Godot.Node2D.get_Scale()'.` in
+    //   the enemy-turn fire-and-forget chain — same swallow path as
+    //   GlobalPosition above. Auto-property; nothing reads it back.
+    public Vector2 Scale { get; set; }
 }
 
 public class Sprite2D : Node2D

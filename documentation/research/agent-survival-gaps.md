@@ -14,27 +14,26 @@ the next agent-survival slice has a starting point.
 
 ## summary
 
-After the 2026-05-15 combat-stall fix, VFX-stub follow-up, and the
-card-select-screen recovery slice:
+After the 2026-05-15 combat-stall fix, VFX-stub follow-up,
+card-select-screen recovery slice, and the late-Act-1 monster-stall
+slice:
 
-- **22/25 seeds reach a legitimate game-over** inside the 20-floor
-  budget. Forward progress is real; the greedy agent just dies to
-  standard encounters because it doesn't plan energy.
+- **25/25 seeds reach a legitimate game-over** inside the 20-floor
+  budget. Forward progress is real on every seed in the diagnostic
+  range; the greedy agent just dies to standard encounters because it
+  doesn't plan energy.
 - **0/25 seeds host-die on a card-select NRE** (was 7/25 after the
   combat-stall fix). `Sts2Bindings.SelectEventOption` now wraps
   `EventOption.Chosen()` in a try-catch; on failure the bindings
   fire `AutoAdvanceFinishedEvent`'s `EnterRoom(MapRoom)` fallback so
-  the player lands back on the map with no event effect applied. The
-  bug class itself is unfixed (the engine still NREs inside the model
-  layer) but it no longer aborts the host.
-- **3/25 seeds (18, 22, 23) hit a late-floor combat stall** on monsters
-  the agent didn't previously reach. Seed 18 stalls on `KIN_FOLLOWER`
-  at floor 17, seeds 22 and 23 stall on `VANTOM` after the agent
-  survives further into Act 1 than before. Both show the same
-  half-transitioned shape as the resolved combat-stall pattern
-  (`IsInProgress=True`, `IsPlayPhase=False`, energy 0/3, hand empty) —
-  the natural next slice is `just probe-combat-stall 18` and another
-  pass of stub growth.
+  the player lands back on the map with no event effect applied.
+- **0/25 seeds stall on late-Act-1 monsters.** Seed 18 (`KIN_FOLLOWER`
+  at floor 17) was a missing `Node2D.Scale` getter — added to
+  `GodotStubs/Nodes.cs`. Seeds 22 and 23 (`VANTOM.DismemberMove`,
+  also floor 17) were an internal NRE inside the move's body with
+  no MissingMethodException to name the gap; patched with a
+  `HangPatches.PatchVantomDismemberMove` no-op so Vantom skips that
+  one move and the enemy turn completes.
 
 Affected events that exercise the recovery path (each one has the same
 shape: chosen option's handler awaits a `CardSelectCmd.From*` factory,
@@ -79,6 +78,8 @@ The fix bundles three classes of change:
    - `Godot.GpuParticles2D.ProcessMaterial`
    - `Godot.Vector3..ctor(Single, Single, Single)`
    - `Godot.ResourceLoader.Load<T>` / `Load` / `Exists` + `CacheMode` enum
+   - `Godot.Node2D.Scale` (KIN_FOLLOWER/KIN_PRIEST at floor 17,
+     surfaced after the card-select slice unblocked deeper Act 1)
 
 2. **`HangPatches.PatchTalkCmdPlay`** (`src/Sts2Headless.Runtime/HangPatches.cs`).
    `BygoneEffigy.WakeMove` and similar intro moves call
@@ -86,7 +87,12 @@ The fix bundles three classes of change:
    returns `NSpeechBubbleVfx` and walks UI-only state to construct it.
    In headless those nodes are absent, so the body NREs. Harmony prefix
    skips the body and returns null; the NRE never fires, the enemy turn
-   completes cleanly.
+   completes cleanly. The same shape applies to
+   `HangPatches.PatchVantomDismemberMove`, added in the late-Act-1
+   stall slice — `Vantom.DismemberMove` is a void method whose body
+   NREs with no surfacing `MissingMethodException`, so the prefix
+   simply skips the body. Vantom's other moves stay intact so the
+   encounter still threatens the player.
 
 3. **`ProbeCombatStallCommand`** (`src/Sts2Headless/`). The diagnostic
    probe that walks a seed in-process, drives the agent's logic via the

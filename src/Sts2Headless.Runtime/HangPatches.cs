@@ -38,6 +38,7 @@ public static class HangPatches
             PatchWaitUntilQueueIsEmpty(harmony, sts2),
             PatchTalkCmdPlay(harmony, sts2),
             PatchCardSelectCmdFactories(harmony, sts2),
+            PatchVantomDismemberMove(harmony, sts2),
         ];
     }
 
@@ -179,6 +180,73 @@ public static class HangPatches
         return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
     }
 
+    // Vantom (Act 1 elite-ish encounter) executes DismemberMove during its
+    // enemy turn. The body NREs internally — not on a missing Godot stub
+    // (no MissingMethodException surfaces; just a bare NRE), so reflective
+    // probe-combat-stall enumeration can't name the gap. Confirmed via
+    // `just probe-combat-stall 22` after the card-select recovery slice:
+    //
+    //   System.NullReferenceException
+    //     at Vantom.DismemberMove(IReadOnlyList`1 targets)
+    //     at MonsterMoveStateMachine.MoveState.PerformMove(IEnumerable`1)
+    //     at MonsterModel.PerformMove()
+    //     at Creature.TakeTurn()
+    //
+    // Swallowed by TaskHelper.LogTaskExceptions inside ExecuteEnemyTurn →
+    // CombatManager left half-transitioned (IsEnemyTurnStarted=True,
+    // EndingPlayerTurnPhaseTwo=True, IsPlayPhase=False, hand empty,
+    // energy 0/3) — the classic combat-stall shape.
+    //
+    // Patch shape: void-returning prefix that skips the body. Vantom
+    // simply doesn't perform DismemberMove in headless; the enemy turn
+    // completes, the combat continues. Acceptable for agent survival.
+    // Other Vantom moves are left intact so the encounter still threatens
+    // the player; pure no-op of the whole monster would make Act 1 boring
+    // rather than survivable.
+    private static PatchOutcome PatchVantomDismemberMove(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove";
+        var vantomType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.Vantom");
+        if (vantomType is null)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "type MegaCrit.Sts2.Core.Models.Monsters.Vantom not found");
+        }
+
+        var methods = vantomType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => m.Name == "DismemberMove" && !m.IsSpecialName)
+            .ToArray();
+        if (methods.Length == 0)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "DismemberMove not found on Vantom");
+        }
+
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
+            MethodInfo prefix;
+            if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
+            {
+                prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+            }
+            else if (m.ReturnType == typeof(void))
+            {
+                prefix = typeof(HangPatches).GetMethod(nameof(SkipVoidPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+            }
+            else if (!m.ReturnType.IsValueType)
+            {
+                prefix = typeof(HangPatches).GetMethod(nameof(ReturnNullPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+            }
+            else
+            {
+                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported value-type return)");
+                continue;
+            }
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
     private static PatchOutcome PatchWaitUntilQueueIsEmpty(Harmony harmony, Assembly sts2)
     {
         const string name = "WaitUntilQueueIsEmptyOrWaitingOnNonPlayerDrivenAction";
@@ -236,6 +304,10 @@ public static class HangPatches
         __result = null;
         return false;
     }
+
+    // "Skip body entirely" prefix for void-returning methods (Vantom monster
+    // moves). No __result slot — Harmony just suppresses the original.
+    private static bool SkipVoidPrefix() => false;
 
     // Generic "skip original, return a completed Task with default result"
     // prefix for `async Task<T>` factories whose pre-first-await body NREs
