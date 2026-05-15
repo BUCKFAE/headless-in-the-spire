@@ -20,7 +20,7 @@ REQUIRED=(sts2.dll 0Harmony.dll MonoMod.Backports.dll SmartFormat.dll)
 missing=0
 echo "📁 STS2_GAME_DIR: $STS2_GAME_DIR"
 for dll in "${REQUIRED[@]}"; do
-    if [ -f "$STS2_GAME_DIR/$dll" ] || find "$STS2_GAME_DIR" -maxdepth 4 -name "$dll" -type f -print -quit 2>/dev/null | grep -q .; then
+    if [ -f "$STS2_GAME_DIR/$dll" ] || find "$STS2_GAME_DIR" -maxdepth 5 -name "$dll" -type f -print -quit 2>/dev/null | grep -q .; then
         echo "  ✓ $dll"
     else
         echo "  ✗ $dll" >&2
