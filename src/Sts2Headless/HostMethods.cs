@@ -33,6 +33,7 @@ public static class HostMethods
             ["run/use_potion"] = Typed<RunUsePotionParams, RunUsePotionResult>(p => RunUsePotion(bindings, session, p)),
             ["run/select_reward"] = Typed<RunSelectRewardParams, RunSelectRewardResult>(p => RunSelectReward(bindings, session, p)),
             ["run/skip_reward"] = Typed<RunSkipRewardParams, RunSkipRewardResult>(p => RunSkipReward(bindings, session, p)),
+            ["run/enter_next_act"] = TypedNoParams(() => RunEnterNextAct(bindings, session)),
             // AD-7: every debug/* method is wrapped by GateDebug. With
             // --enable-debug off, the gate replaces the handler with one
             // that throws WireException(DebugMethodDisabled) so an
@@ -126,7 +127,10 @@ public static class HostMethods
             DeckSize: s.DeckSize,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
@@ -153,7 +157,10 @@ public static class HostMethods
             Row: args.Row,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
@@ -180,7 +187,10 @@ public static class HostMethods
             OptionIndex: args.OptionIndex,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
@@ -207,7 +217,10 @@ public static class HostMethods
             OptionIndex: args.OptionIndex,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
@@ -231,7 +244,10 @@ public static class HostMethods
             Ok: true,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
@@ -285,7 +301,10 @@ public static class HostMethods
             ItemIndex: args.ItemIndex,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
@@ -309,7 +328,10 @@ public static class HostMethods
             Ok: true,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
@@ -333,7 +355,10 @@ public static class HostMethods
             Ok: true,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
@@ -361,7 +386,10 @@ public static class HostMethods
             TargetIndex: args.TargetIndex,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
@@ -389,7 +417,10 @@ public static class HostMethods
             TargetIndex: args.TargetIndex,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
@@ -417,7 +448,10 @@ public static class HostMethods
             CardIndex: args.CardIndex,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,
@@ -444,7 +478,47 @@ public static class HostMethods
             RewardIndex: args.RewardIndex,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState,
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
+    }
+
+    private static RunEnterNextActResult RunEnterNextAct(Sts2Bindings bindings, Session session)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+
+        try
+        {
+            bindings.EnterNextAct(run);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // EnterNextAct's caller guard ("only legal on a boss tile")
+            // is a precondition failure, not an engine bug. Surface it as
+            // InvalidParams so generated clients see the right code.
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunEnterNextActResult(
+            Ok: true,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
+            IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
             Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes,
             AvailableEventOptions: s.AvailableEventOptions,

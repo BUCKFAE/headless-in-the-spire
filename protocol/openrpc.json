@@ -247,6 +247,18 @@
       }
     },
     {
+      "name": "run/enter_next_act",
+      "summary": "Advance from the post-boss MapRoom to the next act. Only legal after defeating an act boss and draining rewards; bumps RunState.CurrentActIndex and regenerates the next act's map. Returns InvalidParams when called outside that window.",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunEnterNextActResult"
+        }
+      }
+    },
+    {
       "name": "debug/give_relic",
       "summary": "Test affordance — grant a relic via RelicCmd.Obtain (engine path). Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -894,7 +906,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -962,7 +983,10 @@
           "itemIndex",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",
@@ -984,7 +1008,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -1051,7 +1084,111 @@
           "ok",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "availableRestSiteOptions",
+          "availableMerchantItems",
+          "relics",
+          "ownedPotions"
+        ]
+      },
+      "RunEnterNextActResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "currentActIndex": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
+          "combatState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewardsState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "currentRoomType",
+          "actFloor",
+          "currentActIndex",
+          "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",
@@ -1073,7 +1210,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -1140,7 +1286,10 @@
           "ok",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",
@@ -1162,7 +1311,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -1229,7 +1387,10 @@
           "ok",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",
@@ -1396,7 +1557,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -1464,7 +1634,10 @@
           "cardIndex",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",
@@ -1500,7 +1673,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -1568,7 +1750,10 @@
           "optionIndex",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",
@@ -1611,7 +1796,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -1680,7 +1874,10 @@
           "row",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",
@@ -1716,7 +1913,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -1784,7 +1990,10 @@
           "optionIndex",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",
@@ -1833,7 +2042,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -1901,7 +2119,10 @@
           "rewardIndex",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",
@@ -1937,7 +2158,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -2005,7 +2235,10 @@
           "rewardIndex",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",
@@ -2052,7 +2285,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "availableMapNodes": {
@@ -2121,7 +2363,10 @@
           "deckSize",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "availableMapNodes",
           "availableEventOptions",
           "availableRestSiteOptions",
@@ -2169,7 +2414,16 @@
           "actFloor": {
             "type": "integer"
           },
+          "currentActIndex": {
+            "type": "integer"
+          },
           "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
             "type": "boolean"
           },
           "hp": {
@@ -2237,7 +2491,10 @@
           "potionIndex",
           "currentRoomType",
           "actFloor",
+          "currentActIndex",
           "isGameOver",
+          "isVictory",
+          "isDead",
           "hp",
           "availableMapNodes",
           "availableEventOptions",

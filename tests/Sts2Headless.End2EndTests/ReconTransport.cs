@@ -45,6 +45,7 @@ public sealed class ReconTransport(ITransport inner) : ITransport
             RunLeaveTreasureRoomResult lt => (lt.CurrentRoomType, lt.Hp, -1, lt.ActFloor, lt.IsGameOver, lt.CombatState, lt.RewardsState, lt.Relics, lt.AvailableMapNodes, lt.AvailableEventOptions, lt.OwnedPotions),
             RunLeaveMerchantRoomResult lm => (lm.CurrentRoomType, lm.Hp, -1, lm.ActFloor, lm.IsGameOver, lm.CombatState, lm.RewardsState, lm.Relics, lm.AvailableMapNodes, lm.AvailableEventOptions, lm.OwnedPotions),
             RunUsePotionResult up => (up.CurrentRoomType, up.Hp, -1, up.ActFloor, up.IsGameOver, up.CombatState, up.RewardsState, up.Relics, up.AvailableMapNodes, up.AvailableEventOptions, up.OwnedPotions),
+            RunEnterNextActResult na => (na.CurrentRoomType, na.Hp, -1, na.ActFloor, na.IsGameOver, na.CombatState, na.RewardsState, na.Relics, na.AvailableMapNodes, na.AvailableEventOptions, na.OwnedPotions),
             DebugSetHpResult hp2 => (RoomType.Unknown, hp2.Hp, hp2.MaxHp, -1, hp2.IsGameOver, null, null, null, null, null, null),
             _ => (RoomType.Unknown, -2, -2, -2, false, null, null, null, null, null, null),
         };
@@ -116,6 +117,9 @@ public sealed class ReconTransport(ITransport inner) : ITransport
                 break;
             case "run/end_turn":
                 _md.AppendLine($"  → end_turn → round transition");
+                break;
+            case "run/enter_next_act":
+                _md.AppendLine($"  → enter_next_act → {room} floor={floor}");
                 break;
             case "run/leave_treasure_room":
                 _md.AppendLine($"  → leave treasure → {room} relics={FormatRelics(relics)}");

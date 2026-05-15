@@ -37,8 +37,11 @@ class GameSnapshot(Protocol):
 
     ok: bool
     is_game_over: bool
+    is_victory: bool
+    is_dead: bool
     hp: int
     act_floor: int
+    current_act_index: int
     current_room_type: RoomType
     available_map_nodes: list[MapNode]
     available_event_options: list[EventOption]

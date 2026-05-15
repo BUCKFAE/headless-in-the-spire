@@ -48,6 +48,13 @@ public sealed partial class Sts2Bindings
     private readonly MethodInfo _runManagerLaunch;
     private readonly MethodInfo _runManagerFinalizeStartingRelics;
     private readonly InvocationPlan _runManagerEnterAct;
+    // Bridge for boss → next-act transition. After defeating an act boss
+    // and draining rewards, the engine leaves the player in an empty
+    // MapRoom (CurrentMapCoord no longer points at a real node) until
+    // EnterNextAct() bumps CurrentActIndex, regenerates the map, and
+    // re-enters at the new act's start. Returns a Task — same async
+    // posture as EnterAct. Sts2-cli mirrors this at RunSimulator.cs:2221.
+    private readonly MethodInfo _runManagerEnterNextAct;
 
     // ── Mutations ────────────────────────────────────────────────────────
     private readonly InvocationPlan _runManagerEnterMapCoord;
@@ -89,6 +96,7 @@ public sealed partial class Sts2Bindings
     private readonly PropertyInfo _deckCards;
     private readonly PropertyInfo _runStateCurrentRoom;
     private readonly PropertyInfo _runStateActFloor;
+    private readonly PropertyInfo _runStateCurrentActIndex;
     private readonly PropertyInfo _runStateIsGameOver;
 
     // ── Map traversal (for available-node enumeration) ──────────────────
@@ -303,6 +311,7 @@ public sealed partial class Sts2Bindings
         _runManagerLaunch = s.RunManagerLaunch;
         _runManagerFinalizeStartingRelics = s.RunManagerFinalizeStartingRelics;
         _runManagerEnterAct = s.RunManagerEnterAct;
+        _runManagerEnterNextAct = s.RunManagerEnterNextAct;
         _runManagerEnterMapCoord = s.RunManagerEnterMapCoord;
         _mapCoordType = s.MapCoordType;
         _playerGold = s.PlayerGold;
@@ -322,6 +331,7 @@ public sealed partial class Sts2Bindings
         _deckCards = s.DeckCards;
         _runStateCurrentRoom = s.RunStateCurrentRoom;
         _runStateActFloor = s.RunStateActFloor;
+        _runStateCurrentActIndex = s.RunStateCurrentActIndex;
         _runStateIsGameOver = s.RunStateIsGameOver;
         _runStateMap = s.RunStateMap;
         _runStateCurrentMapCoord = s.RunStateCurrentMapCoord;
@@ -566,7 +576,18 @@ public sealed partial class Sts2Bindings
         if (roomType == RoomType.CombatRoom && IsCurrentMapPointBoss(handle.RunState))
             roomType = RoomType.BossRoom;
         var actFloor = (int)_runStateActFloor.GetValue(handle.RunState)!;
-        var isGameOver = (bool)_runStateIsGameOver.GetValue(handle.RunState)!;
+        var currentActIndex = (int)_runStateCurrentActIndex.GetValue(handle.RunState)!;
+        var engineIsGameOver = (bool)_runStateIsGameOver.GetValue(handle.RunState)!;
+        // Disambiguate victory vs death. The engine's IsGameOver flag flips
+        // for both, so we split it the same way sts2-cli does
+        // (RunSimulator.cs:1682 + 1801): Creature.IsDead is death; IsGameOver
+        // without death is victory. The combined IsGameOver field is kept on
+        // the snapshot so callers wanting "stop on any termination" don't
+        // need to OR both flags.
+        var isDead = creature is not null && _creatureIsDead is not null
+            && Convert.ToBoolean(_creatureIsDead.GetValue(creature));
+        var isVictory = engineIsGameOver && !isDead;
+        var isGameOver = isVictory || isDead;
 
         // Only surface map choices when the player is actually at the map.
         // The underlying map graph is computable any time, but exposing it
@@ -624,7 +645,7 @@ public sealed partial class Sts2Bindings
         // callers index against a dense list.
         var ownedPotions = ReadOwnedPotions(handle);
 
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, isGameOver, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, combatState, rewardsState, relics, ownedPotions);
+        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, currentActIndex, isGameOver, isVictory, isDead, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, combatState, rewardsState, relics, ownedPotions);
     }
 
     // Project the stashed list of pending rewards into the wire DTO. Returns
@@ -1283,6 +1304,58 @@ public sealed partial class Sts2Bindings
             }
             catch { /* caller will see TreasureRoom remains and can decide */ }
         }
+        DrainActionExecutor(handle);
+    }
+
+    // Boss → next act transition. After an act boss is defeated and its
+    // rewards drained, the engine leaves the player in a stale MapRoom
+    // whose CurrentMapCoord no longer points at a real node — the snapshot
+    // surfaces an empty AvailableMapNodes. EnterNextAct bumps
+    // RunState.CurrentActIndex, regenerates the next act's map, and
+    // re-enters at the start node. Sts2-cli mirrors this at
+    // RunSimulator.cs:2221 — only safe to call once the wire reports
+    // CurrentRoomType == BossRoom with combat ended and the boss reward
+    // chain consumed.
+    //
+    // Caller guard: we require the engine-reported `CurrentRoom` to be a
+    // CombatRoom whose current map point is a Boss point (i.e. what the
+    // snapshot surfaces as BossRoom). Calling from anywhere else throws.
+    public void EnterNextAct(RunHandle handle)
+    {
+        var room = _runStateCurrentRoom.GetValue(handle.RunState)
+            ?? throw new InvalidOperationException("RunState.CurrentRoom was null");
+        var roomTypeName = room.GetType().Name;
+
+        // Two legal entry conditions, both meaning "post-boss, pre-next-act":
+        //   1. CurrentRoom is the boss CombatRoom and combat has ended —
+        //      sts2-cli's pattern (RunSimulator.cs:1655). Rare for us in
+        //      practice because our reward-drain flow tends to advance
+        //      past the room before the caller invokes enter_next_act.
+        //   2. CurrentRoom is MapRoom but AvailableMapNodes is empty —
+        //      the engine has flipped the room post-rewards but the
+        //      current map coord no longer points at a real node, so
+        //      forward map traversal is blocked. This is the state
+        //      DiagnoseAct2WalkTests observed on seed 42 floor 17.
+        // Anything else (mid-combat, mid-event, non-boss map node with
+        // valid children) is a caller mistake — reject so a stray call
+        // never silently corrupts run state by skipping an act.
+        var onBossPoint = roomTypeName == "CombatRoom" && IsCurrentMapPointBoss(handle.RunState);
+        var stuckPostBossMap = roomTypeName == "MapRoom"
+            && ReadAvailableMapNodes(handle.RunState).Count == 0;
+        if (!onBossPoint && !stuckPostBossMap)
+        {
+            throw new InvalidOperationException(
+                $"run/enter_next_act called but current room is {roomTypeName} with " +
+                $"{ReadAvailableMapNodes(handle.RunState).Count} available map nodes. " +
+                $"Only legal after defeating an act boss and draining rewards.");
+        }
+
+        _syncCtx?.Pump();
+        DrainActionExecutor(handle);
+
+        var result = _runManagerEnterNextAct.Invoke(handle.RunManager, null);
+        if (result is Task task) task.GetAwaiter().GetResult();
+        _syncCtx?.Pump();
         DrainActionExecutor(handle);
     }
 
@@ -2323,6 +2396,7 @@ public sealed partial class Sts2Bindings
         var launch = NoArgInstance(runManagerType, "Launch");
         var finalize = NoArgInstance(runManagerType, "FinalizeStartingRelics");
         var enterAct = SoleOverload(runManagerType, "EnterAct");
+        var enterNextAct = NoArgInstance(runManagerType, "EnterNextAct");
         var enterMapCoord = SoleOverload(runManagerType, "EnterMapCoord");
 
         var extraFields = RequireProperty(runStateType, "ExtraFields");
@@ -2380,6 +2454,7 @@ public sealed partial class Sts2Bindings
         var deckCards = RequireProperty(playerDeck.PropertyType, "Cards");
         var currentRoom = RequireProperty(runStateType, "CurrentRoom");
         var actFloor = RequireProperty(runStateType, "ActFloor");
+        var currentActIndex = RequireProperty(runStateType, "CurrentActIndex");
         var isGameOver = RequireProperty(runStateType, "IsGameOver");
 
         // MapCoord type comes off the EnterMapCoord signature so we don't
@@ -2626,7 +2701,7 @@ public sealed partial class Sts2Bindings
             new InvocationPlan(createForTest), runManagerInstance, netServiceType,
             localContextNetIdMember,
             setUpTest, isInProgress, cleanUp, extraFields, startedWithNeow,
-            generateRooms, launch, finalize, enterAct, enterMapCoord, mapCoordType,
+            generateRooms, launch, finalize, enterAct, enterNextAct, enterMapCoord, mapCoordType,
             playerGold, playerCreature, playerDeck, playerNetId,
             playerRelics, relicIdProp,
             playerPotionSlots, potionTargetType,
@@ -2634,7 +2709,7 @@ public sealed partial class Sts2Bindings
             creatureCurrentHp, creatureMaxHp,
             creatureCurrentHpField, creatureMaxHpField,
             deckCards,
-            currentRoom, actFloor, isGameOver,
+            currentRoom, actFloor, currentActIndex, isGameOver,
             runStateMap, runStateCurrentMapCoord, mapStartingMapPoint, mapGetPoint,
             mapPointChildren, mapPointCoord, mapPointPointType,
             mapCoordColField, mapCoordRowField,
@@ -3106,7 +3181,8 @@ public sealed partial class Sts2Bindings
         InvocationPlan RunManagerSetUpTest, PropertyInfo RunManagerIsInProgress, MethodInfo RunManagerCleanUp,
         PropertyInfo RunStateExtraFields, PropertyInfo ExtraFieldsStartedWithNeow,
         MethodInfo RunManagerGenerateRooms, MethodInfo RunManagerLaunch, MethodInfo RunManagerFinalizeStartingRelics,
-        InvocationPlan RunManagerEnterAct, InvocationPlan RunManagerEnterMapCoord, Type MapCoordType,
+        InvocationPlan RunManagerEnterAct, MethodInfo RunManagerEnterNextAct,
+        InvocationPlan RunManagerEnterMapCoord, Type MapCoordType,
         PropertyInfo PlayerGold, PropertyInfo PlayerCreature, PropertyInfo PlayerDeck, PropertyInfo PlayerNetId,
         PropertyInfo? PlayerRelics, PropertyInfo? RelicId,
         PropertyInfo? PlayerPotionSlots, PropertyInfo? PotionTargetType,
@@ -3114,7 +3190,8 @@ public sealed partial class Sts2Bindings
         PropertyInfo CreatureCurrentHp, PropertyInfo CreatureMaxHp,
         FieldInfo? CreatureCurrentHpField, FieldInfo? CreatureMaxHpField,
         PropertyInfo DeckCards,
-        PropertyInfo RunStateCurrentRoom, PropertyInfo RunStateActFloor, PropertyInfo RunStateIsGameOver,
+        PropertyInfo RunStateCurrentRoom, PropertyInfo RunStateActFloor,
+        PropertyInfo RunStateCurrentActIndex, PropertyInfo RunStateIsGameOver,
         PropertyInfo RunStateMap, PropertyInfo RunStateCurrentMapCoord, PropertyInfo MapStartingMapPoint,
         MethodInfo MapGetPoint, PropertyInfo MapPointChildren, FieldInfo MapPointCoord,
         PropertyInfo MapPointPointType, FieldInfo MapCoordColField, FieldInfo MapCoordRowField,

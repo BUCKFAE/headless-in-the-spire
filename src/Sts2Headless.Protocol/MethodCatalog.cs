@@ -100,6 +100,11 @@ public static class MethodCatalog
             ResultType: typeof(RunSkipRewardResult),
             Summary: "Skip a skippable pending reward."),
 
+        new("run/enter_next_act",
+            ParamsType: null,
+            ResultType: typeof(RunEnterNextActResult),
+            Summary: "Advance from the post-boss MapRoom to the next act. Only legal after defeating an act boss and draining rewards; bumps RunState.CurrentActIndex and regenerates the next act's map. Returns InvalidParams when called outside that window."),
+
         new("debug/give_relic",
             ParamsType: typeof(DebugGiveRelicParams),
             ResultType: typeof(DebugGiveRelicResult),

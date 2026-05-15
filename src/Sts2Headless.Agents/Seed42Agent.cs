@@ -71,8 +71,16 @@ public sealed class Seed42Agent : IAgent
 
     private static async Task<RunStateResult> StepMapAsync(ITransport host, RunStateResult s)
     {
+        // Post-boss MapRoom with no nodes: the engine has flipped the
+        // room past the boss but the map hasn't been regenerated for
+        // the next act yet. Drive run/enter_next_act so the engine bumps
+        // CurrentActIndex and regenerates the map. The host's guard
+        // enforces "post-boss only" so calling here is safe.
         if (s.AvailableMapNodes.Count == 0)
-            throw new InvalidOperationException("Seed42Agent: MapRoom with no available nodes.");
+        {
+            await host.SendAsync<RunEnterNextActResult>("run/enter_next_act");
+            return await host.SendAsync<RunStateResult>("run/state");
+        }
 
         // Path bias: when HP is healthy, prefer combats (gold + cards);
         // when wounded, prefer rest sites. Boss/Elite always taken if it's

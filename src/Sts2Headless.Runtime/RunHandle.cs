@@ -34,6 +34,18 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 // OwnedPotions is the player's potion belt — same run-scoped lifetime as
 // relics. Empty slots are omitted (no nulls); positions in this list
 // reflect the engine's slot order so run/use_potion can index into it.
+// CurrentActIndex is the 0-based act number the run is in (0 = Act 1).
+// Sourced from RunState.CurrentActIndex; bumped by RunManager.EnterNextAct
+// after an act boss is defeated and rewards drained. Surfaced so callers
+// can disambiguate "floor 17 of which act?" and gate stop conditions on
+// reaching the final act.
+//
+// IsGameOver / IsVictory / IsDead form a tri-state for run termination —
+// flat IsGameOver alone conflates "won" and "died" (both flip the engine
+// flag). Callers wanting to assert victory should test IsVictory; callers
+// reacting to death should test IsDead. IsGameOver is preserved as the
+// either-or convenience (IsGameOver == IsVictory || IsDead) so existing
+// stop conditions keep working through the transition.
 public sealed record RunSnapshot(
     int CurrentHp,
     int MaxHp,
@@ -41,7 +53,10 @@ public sealed record RunSnapshot(
     int DeckSize,
     RoomType CurrentRoomType,
     int ActFloor,
+    int CurrentActIndex,
     bool IsGameOver,
+    bool IsVictory,
+    bool IsDead,
     IReadOnlyList<MapNode> AvailableMapNodes,
     IReadOnlyList<EventOption> AvailableEventOptions,
     IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
