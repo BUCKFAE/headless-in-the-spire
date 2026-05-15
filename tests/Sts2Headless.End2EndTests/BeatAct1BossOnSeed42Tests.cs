@@ -33,7 +33,7 @@ public class BeatAct1BossOnSeed42Tests : IClassFixture<HostSubprocess>
     // is a known engine gap (no patch yet); the former is an agent-skill
     // gap — needs better defence stacking through the floor-8 elite so
     // we enter floor 9 with more HP. Iteration is ongoing.
-    [Fact(Skip = "Agent dies at floor 9 Mawler; iteration ongoing — see agent-survival-gaps.md")]
+    [Fact(Skip = "Agent dies at floor 9 Mawler post-elite; iteration ongoing — see agent-survival-gaps.md")]
     [Trait("category", "diagnostic")]
     public async Task Seed42Agent_Ironclad_BeatsVantom_NoDebugHeals()
     {

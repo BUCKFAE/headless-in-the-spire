@@ -47,18 +47,20 @@ public static class CardEffects
 
         // ── Cards offered on seed 42's path ────────────────────────────────
         // F2 rewards.
-        // body-slam = damage equal to current player block. Strong only in
-        // a block-stacking deck; mid-tier for the heuristic.
-        ["BODY_SLAM"]        = new Effect(BlockToDamage: true, DraftScore: 2),
+        // Body Slam: damage = current player block, cost 1. Synergises
+        // with the heavy defensive stance the agent leans on for floor-8
+        // Phrog → 4-wriggler survival — a turn of "3 defends → Body Slam
+        // for ~16 damage" out-damages SWORD_BOOMERANG's spread on a
+        // healthy block deck. Highest priority on F2.
+        ["BODY_SLAM"]        = new Effect(BlockToDamage: true, DraftScore: 4),
         // Tremble is a sts2 status-shaped card (loss-of-control). Skip.
         ["TREMBLE"]          = new Effect(DraftScore: -2),
-        // Sword Boomerang: 3 hits × 3 damage at random enemies.
-        // **Best SLIPPERY drain in the deck**: 3 stacks consumed per
-        // cost-1 play (observed: SLIPPERY caps each hit at 1 damage,
-        // decrements 1 per hit). Three hits = three drains = 3 effective
-        // damage during SLIPPERY phase, vs Bludgeon's single 1-damage
-        // drain for cost 3. High priority pick on this seed.
-        ["SWORD_BOOMERANG"]  = new Effect(Damage: 3, Hits: 3, TargetsAllEnemies: false, DraftScore: 4),
+        // Sword Boomerang: 3 hits × 3 damage at random enemies. Strong
+        // SLIPPERY drain (3 stacks for cost 1) and decent vs Phrog's
+        // wriggler swarm. Slightly under Body Slam in the picker because
+        // the agent leans defensive — Body Slam scales with that posture
+        // while Sword's per-hit 3 damage is mid-range.
+        ["SWORD_BOOMERANG"]  = new Effect(Damage: 3, Hits: 3, TargetsAllEnemies: false, DraftScore: 3),
 
         // F4 rewards.
         // Headbutt: 9 dmg + place a card from discard on top of draw pile.

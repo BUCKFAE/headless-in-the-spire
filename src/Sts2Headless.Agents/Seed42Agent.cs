@@ -161,35 +161,37 @@ public sealed class Seed42Agent : IAgent
         // strategy below treats it as a binary "drain mode" gate.
         var slipperyOnBoard = enemies.Any(e => e.Powers.Any(p => p.Id == "SLIPPERY_POWER"));
 
-        // Step 1: Bash for Vulnerable when it actually pays off — i.e.
-        // SLIPPERY isn't capping damage. Otherwise the Vuln is wasted
-        // and we should be draining instead.
-        if (!primaryTargetVuln && !slipperyOnBoard)
-        {
-            var bash = hand.FirstOrDefault(c => c.CanPlay && c.Id == "BASH" && c.Cost <= combat.Energy);
-            if (bash is not null)
-                return (bash.Index, primaryTarget.Index);
-        }
-
-        // Step 2: defend on threatened turns. Stack defends until unblocked
-        // damage is small (<5) or no defends remain. Two trigger gates,
-        // OR-combined:
-        //   a) Unblocked damage > 0 AND would leave us at < 50% maxHp.
-        //   b) HP <= 60% maxHp AND we have under 10 block — blanket
-        //      "low HP, top up block" fallback for turns where the
-        //      intent damage signal under-reads (the host-side fallback
-        //      from before intent.Damage was wired; kept as belt-and-
-        //      braces in case future enemies surface non-AttackIntent
-        //      shapes we haven't typed yet).
         var incoming = CardEffects.IncomingDamage(combat);
         var unblocked = Math.Max(0, incoming - combat.PlayerBlock);
-        // Defend whenever any incoming would land AND we're not already
-        // comfortably above ~70% maxHp. The previous `unblocked >= 5`
-        // floor missed fights where Mawler-style 14-damage hits chip the
-        // last 4 unblocked through after a couple of defends — the agent
-        // stopped defending too early because the residual was < 5.
+        var hpPct = maxHp > 0 ? (double)hp / maxHp : 1.0;
+
+        // Step 0: play power cards (cost > 0, no damage, no block, no
+        // BlockToDamage) on round 1 — they're "lay the buff, then fight".
+        // Examples: EXPECT_A_FIGHT, STONE_ARMOR. Skipping this step on
+        // later rounds avoids re-playing on a re-shuffle that puts a
+        // power back into hand after exhaust.
+        if (combat.Round == 1)
+        {
+            var power = hand
+                .Where(c => c.CanPlay && c.Cost > 0 && c.Cost <= combat.Energy
+                            && CardEffects.Get(c.Id) is { Damage: 0, Block: 0, BlockToDamage: false }
+                            && c.TargetType == TargetType.Self)
+                .FirstOrDefault();
+            if (power is not null)
+                return (power.Index, null);
+        }
+
+        // Step 1: defend FIRST when survival is in question. If the next
+        // enemy turn would land any unblocked damage AND we're below 70%
+        // HP, stack defends ahead of offence. Reordered from the prior
+        // "Bash → Defend → Attack" because applying Vulnerable doesn't
+        // help if we game-over before the next attack lands.
+        //   - threatenedByDamage: intent says incoming will land and
+        //     would push HP below 70%.
+        //   - threatenedByHpPct: belt-and-braces for intent gaps —
+        //     low HP, low block, regardless of what the wire surfaces.
         var threatenedByDamage = unblocked > 0 && hp - unblocked < maxHp * 7 / 10;
-        var threatenedByHpPct = combat.PlayerBlock < 10 && hp <= maxHp * 6 / 10;
+        var threatenedByHpPct = combat.PlayerBlock < 10 && hpPct <= 0.6;
         if (threatenedByDamage || threatenedByHpPct)
         {
             var defendish = hand
@@ -199,6 +201,18 @@ public sealed class Seed42Agent : IAgent
                 .FirstOrDefault();
             if (defendish is not null)
                 return (defendish.Index, defendish.TargetType == TargetType.AnyEnemy ? primaryTarget.Index : (int?)null);
+        }
+
+        // Step 2: Bash for Vulnerable when it actually pays off — i.e.
+        // SLIPPERY isn't capping damage AND we're not in panic mode
+        // (defending burns through hand faster; Vuln is for sustained
+        // offence). Bash costs 2 — when HP is critical, spending 2
+        // energy on a non-defensive card is a luxury.
+        if (!primaryTargetVuln && !slipperyOnBoard && hpPct > 0.4)
+        {
+            var bash = hand.FirstOrDefault(c => c.CanPlay && c.Id == "BASH" && c.Cost <= combat.Energy);
+            if (bash is not null)
+                return (bash.Index, primaryTarget.Index);
         }
 
         // Step 3: SLIPPERY drain mode — cheapest attack, prefer multi-hit.
