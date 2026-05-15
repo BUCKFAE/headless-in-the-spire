@@ -41,6 +41,8 @@ public static class HangPatches
             PatchVantomDismemberMove(harmony, sts2),
             PatchEscapeArtistPowerAfterTurnEnd(harmony, sts2),
             PatchThievingHopperMoves(harmony, sts2),
+            PatchBowlbugRockMoves(harmony, sts2),
+            PatchImbalancedPowerAfterDamageGiven(harmony, sts2),
         ];
     }
 
@@ -325,6 +327,76 @@ public static class HangPatches
         if (methods.Length == 0)
         {
             return new PatchOutcome(label, Patched: false, Detail: "no Task-returning Move methods on ThievingHopper");
+        }
+
+        var prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
+    // BowlbugRock (Act 2 enemy on seed 42 floor 12) has two move methods
+    // — HeadbuttMove and DizzyMove. Same shape as Vantom.DismemberMove
+    // and ThievingHopper.*Move: Task-returning bodies that NRE in
+    // headless, exception swallowed by TaskHelper.LogTaskExceptions,
+    // combat half-transitioned. Replace both with Task.CompletedTask.
+    private static PatchOutcome PatchBowlbugRockMoves(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock.*Move";
+        var monsterType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock");
+        if (monsterType is null)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "type BowlbugRock not found");
+        }
+
+        var moveNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "HeadbuttMove", "DizzyMove",
+        };
+        var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => moveNames.Contains(m.Name) && typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
+            .ToArray();
+        if (methods.Length == 0)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "no Task-returning Move methods on BowlbugRock");
+        }
+
+        var prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
+    // ImbalancedPower carries an AfterDamageGiven hook that fires whenever
+    // the holder lands damage. BowlbugRock ships with IMBALANCED_POWER:1
+    // on Act 2 seed 42 floor 12; when it attacks (HeadbuttMove is patched
+    // above, but other code paths still trigger damage), this hook runs
+    // and hangs in headless. Same Task-returning shape as
+    // EscapeArtistPower.AfterTurnEnd — replace with Task.CompletedTask.
+    private static PatchOutcome PatchImbalancedPowerAfterDamageGiven(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Models.Powers.ImbalancedPower.AfterDamageGiven";
+        var powerType = sts2.GetType("MegaCrit.Sts2.Core.Models.Powers.ImbalancedPower");
+        if (powerType is null)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "type ImbalancedPower not found");
+        }
+
+        var methods = powerType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => m.Name == "AfterDamageGiven"
+                        && typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
+            .ToArray();
+        if (methods.Length == 0)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "no Task-returning AfterDamageGiven method on ImbalancedPower");
         }
 
         var prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
