@@ -1,0 +1,27 @@
+using Sts2Headless.Agents;
+
+namespace Sts2Headless.Cheats;
+
+// Typed extension methods over ITransport for callers (tests, harnesses)
+// that want to invoke the cheat surface without hand-rolling wire-string
+// payloads. Lives in this project so a `using Sts2Headless.Cheats;` is
+// the deliberate, grep-able opt-in for cheat access; agents — which only
+// reference Protocol, not Cheats — can't resolve any of these extensions.
+//
+// Naming mirrors the wire method: `SetHpAsync` for `debug/set_hp`, etc.
+// Arguments are PascalCase C# parameters, not wire-shaped dictionaries,
+// so a wire rename is a compile error here, not a silently-passing test.
+public static class CheatClient
+{
+    // debug/set_hp — set the player's CurrentHp (and optionally MaxHp).
+    // Bypasses damage events, on-hit relics, and game-over detection;
+    // see DebugSetHpParams for the validation rules the host enforces.
+    public static Task<DebugSetHpResult> SetHpAsync(
+        this ITransport transport, int hp, int? maxHp = null) =>
+        transport.SendAsync<DebugSetHpResult>("debug/set_hp", new DebugSetHpParams(hp, maxHp));
+
+    // debug/give_relic — grant a relic by id via RelicCmd.Obtain (engine path).
+    public static Task<DebugGiveRelicResult> GiveRelicAsync(
+        this ITransport transport, string relicId) =>
+        transport.SendAsync<DebugGiveRelicResult>("debug/give_relic", new DebugGiveRelicParams(relicId));
+}

@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Sts2Headless.Cheats\Sts2Headless.Cheats.csproj" />
     <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
     <ProjectReference Include="..\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
     <!-- GodotStubs builds as GodotSharp.dll and lands next to our exe, so the

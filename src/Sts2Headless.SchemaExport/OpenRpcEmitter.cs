@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using Sts2Headless.Cheats;
 using Sts2Headless.Protocol;
 
 namespace Sts2Headless.SchemaExport;
@@ -63,16 +64,21 @@ internal static class OpenRpcEmitter
         };
     }
 
-    // Every public record and enum in Sts2Headless.Protocol.Methods is a
-    // candidate for hoisting. We don't try to be selective — anything in
-    // that namespace is by convention part of the wire surface, and
-    // hoisting unused types is harmless (callers can ignore them).
+    // Every public record and enum in Sts2Headless.Protocol.Methods *and*
+    // Sts2Headless.Cheats is a candidate for hoisting. We don't try to be
+    // selective — anything in those namespaces is by convention part of the
+    // wire surface, and hoisting unused types is harmless (callers ignore
+    // them). The cheat namespace is split out into its own assembly so
+    // Sts2Headless.Agents can't see it (AD-7); the schema however describes
+    // the full surface the host serves.
     private static HashSet<Type> CollectHoistSet()
     {
-        var asm = typeof(MethodCatalog).Assembly;
-        return asm.GetTypes()
+        var protocolAsm = typeof(MethodCatalog).Assembly;
+        var cheatsAsm = typeof(CheatMethodCatalog).Assembly;
+        return protocolAsm.GetTypes().Concat(cheatsAsm.GetTypes())
             .Where(t => t.IsPublic
-                && t.Namespace == "Sts2Headless.Protocol.Methods"
+                && (t.Namespace == "Sts2Headless.Protocol.Methods"
+                    || t.Namespace == "Sts2Headless.Cheats")
                 && (t.IsEnum || t.IsClass)
                 // Static classes (compiler emits IsAbstract+IsSealed): no
                 // instance members, no wire shape — they're helpers like
@@ -260,7 +266,7 @@ internal static class OpenRpcEmitter
     private static JsonArray BuildMethods()
     {
         var methods = new JsonArray();
-        foreach (var entry in MethodCatalog.All)
+        foreach (var entry in MethodCatalog.Core.Concat(CheatMethodCatalog.All))
         {
             var paramsArray = new JsonArray();
             if (entry.ParamsType is not null)

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Sts2Headless.Cheats;
 using Sts2Headless.Protocol;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
@@ -35,22 +36,26 @@ public static class HostMethods
             ["run/skip_reward"] = Typed<RunSkipRewardParams, RunSkipRewardResult>(p => RunSkipReward(bindings, session, p)),
             ["run/enter_next_act"] = TypedNoParams(() => RunEnterNextAct(bindings, session)),
             ["run/proceed_event"] = TypedNoParams(() => RunProceedEvent(bindings, session)),
-            // AD-7: every debug/* method is wrapped by GateDebug. With
-            // --enable-debug off, the gate replaces the handler with one
-            // that throws WireException(DebugMethodDisabled) so an
-            // accidental call surfaces a typed wire error rather than a
-            // silent no-op or an InternalError. The catalogue entries stay
-            // registered so AssertParity / schema export stay honest.
-            ["debug/give_relic"] = GateDebug("debug/give_relic", debugEnabled,
-                Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, session, p))),
-            ["debug/set_hp"] = GateDebug("debug/set_hp", debugEnabled,
-                Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, session, p))),
         };
+        // AD-7: cheat handlers (debug/*) live in the Sts2Headless.Cheats
+        // assembly so the Agents project, which only references Protocol,
+        // can't reach them by accident. Every cheat is wrapped in GateDebug
+        // — with --enable-debug off the gate replaces the handler with one
+        // that throws WireException(DebugMethodDisabled), surfacing a typed
+        // wire error rather than a silent no-op or generic InternalError.
+        // Catalogue entries stay registered so AssertParity / schema export
+        // stay honest about the gated surface.
+        foreach (var (name, handler) in CheatHostMethods.Build(bindings, () => session.Run))
+        {
+            dict[name] = GateDebug(name, debugEnabled, raw => handler(raw));
+        }
         // AD-5: catalogue is the source of truth shared with the schema
         // emitter. A method registered here without an entry — or vice
         // versa — fails startup rather than silently drifting the wire
-        // from `protocol/openrpc.json`.
-        MethodCatalog.AssertParity(dict.Keys);
+        // from `protocol/openrpc.json`. The merged catalogue is Core +
+        // cheats so AssertParity covers the full host surface.
+        var fullCatalog = MethodCatalog.Core.Concat(CheatMethodCatalog.All);
+        MethodCatalog.AssertParity(fullCatalog, dict.Keys);
         return dict;
     }
 
@@ -563,71 +568,6 @@ public static class HostMethods
             RewardsState: s.RewardsState,
             Relics: s.Relics,
             OwnedPotions: s.OwnedPotions);
-    }
-
-    private static DebugSetHpResult DebugSetHp(Sts2Bindings bindings, Session session, DebugSetHpParams? @params)
-    {
-        var run = session.Run
-            ?? throw new InvalidOperationException("no active run — call run/new first");
-        var args = @params
-            ?? throw new WireException(WireErrorCode.InvalidParams,
-                "debug/set_hp requires params {hp, maxHp?}");
-
-        // Validate up-front so a bad request never reaches the engine.
-        // Using InvalidParams (-32602) over a generic ArgumentException so
-        // generated clients see the right code on a validation failure.
-        if (args.Hp < 0)
-        {
-            throw new WireException(WireErrorCode.InvalidParams,
-                $"debug/set_hp: hp must be >= 0 (got {args.Hp})");
-        }
-        if (args.MaxHp is not null && args.MaxHp.Value < 1)
-        {
-            throw new WireException(WireErrorCode.InvalidParams,
-                $"debug/set_hp: maxHp must be >= 1 (got {args.MaxHp.Value})");
-        }
-        // Effective max: the requested maxHp, or the current one if the
-        // caller didn't ask to change it.
-        var snapshotBefore = bindings.ReadSnapshot(run);
-        var effectiveMaxHp = args.MaxHp ?? snapshotBefore.MaxHp;
-        if (args.Hp > effectiveMaxHp)
-        {
-            throw new WireException(WireErrorCode.InvalidParams,
-                $"debug/set_hp: hp ({args.Hp}) must be <= maxHp ({effectiveMaxHp})");
-        }
-
-        bindings.SetPlayerHp(run, args.Hp, args.MaxHp);
-
-        // Read back through the snapshot (not the helper's tuple) so the
-        // wire result reflects whatever the engine actually surfaces post-
-        // write — defence in depth against a property/field divergence.
-        var s = bindings.ReadSnapshot(run);
-        return new DebugSetHpResult(
-            Ok: true,
-            Hp: s.CurrentHp,
-            MaxHp: s.MaxHp,
-            IsGameOver: s.IsGameOver);
-    }
-
-    private static DebugGiveRelicResult DebugGiveRelic(Sts2Bindings bindings, Session session, DebugGiveRelicParams? @params)
-    {
-        var run = session.Run
-            ?? throw new InvalidOperationException("no active run — call run/new first");
-        var args = @params
-            ?? throw new ArgumentException("debug/give_relic requires params {relicId}");
-        if (string.IsNullOrWhiteSpace(args.RelicId))
-            throw new ArgumentException("debug/give_relic relicId must be non-empty");
-
-        bindings.GiveRelic(run, args.RelicId);
-
-        var s = bindings.ReadSnapshot(run);
-        return new DebugGiveRelicResult(
-            Ok: true,
-            RelicId: args.RelicId,
-            Hp: s.CurrentHp,
-            MaxHp: s.MaxHp,
-            Gold: s.Gold,
-            DeckSize: s.DeckSize);
     }
 
     // Adapter that turns a typed Func<TParams?, TResult> into the JsonNode-

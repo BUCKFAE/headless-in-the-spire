@@ -1,5 +1,6 @@
 using Sts2Headless.Agents;
 using Sts2Headless.IntegrationTests;
+using Sts2Headless.Cheats;
 using Sts2Headless.Protocol.Methods;
 using Xunit;
 

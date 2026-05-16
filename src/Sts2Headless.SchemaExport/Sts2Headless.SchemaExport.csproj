@@ -7,6 +7,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <!-- AD-7: cheat (debug/*) catalog entries are physically separated from
+         Protocol so the Agents project can't see them. The schema export
+         merges Core + cheats so protocol/openrpc.json describes the full
+         wire surface. -->
+    <ProjectReference Include="..\Sts2Headless.Cheats\Sts2Headless.Cheats.csproj" />
   </ItemGroup>
 
 </Project>

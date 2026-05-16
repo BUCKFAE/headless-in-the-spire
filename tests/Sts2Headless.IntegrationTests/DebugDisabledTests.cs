@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Sts2Headless.Protocol;
+using Sts2Headless.Cheats;
 using Sts2Headless.Protocol.Methods;
 using Xunit;
 

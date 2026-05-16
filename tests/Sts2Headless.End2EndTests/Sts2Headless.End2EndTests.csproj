@@ -22,6 +22,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+    <!-- Cheat DTOs + typed ITransport extensions for tests that exercise
+         the debug/* surface. Off the Agents project's reference graph so
+         agents physically cannot reach cheats. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.Cheats\Sts2Headless.Cheats.csproj" />
     <!-- The host exe must be present next to test binaries so HostSubprocess
          can spawn it; GodotStubs builds as GodotSharp.dll so sts2.dll's
          references resolve. Same posture as IntegrationTests. -->

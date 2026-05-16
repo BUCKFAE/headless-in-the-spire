@@ -2,17 +2,20 @@ using Sts2Headless.Protocol.Methods;
 
 namespace Sts2Headless.Protocol;
 
-// Single source of truth for the wire's method catalogue (AD-5).
+// Single source of truth for the wire's *core* method catalogue (AD-5).
+// Cheat/debug-only entries live in Sts2Headless.Cheats.CheatMethodCatalog
+// and are merged in at host startup + schema export time. The merge keeps
+// AssertParity authoritative over the union while Protocol stays cheat-free
+// so the Agents project (which only references Protocol) can't see them.
 //
 // Both the host dispatch table (HostMethods.Build) and the schema emitter
-// (Sts2Headless.SchemaExport) consume this list. HostMethods asserts that
-// the dictionary it constructs matches AssertParity at startup, so a method
-// added to the catalogue without a handler — or a handler without an entry
-// here — fails fast rather than silently drifting the wire from the schema.
+// (Sts2Headless.SchemaExport) consume MethodCatalog.Core ∪ CheatMethodCatalog.All.
+// HostMethods asserts via AssertParity at startup, so a method added to a
+// catalogue without a handler — or a handler without an entry — fails fast
+// rather than silently drifting the wire from the schema.
 //
-// Adding a method: append a MethodEntry. The schema artefact picks it up on
-// the next `just export-schema`; the host fails to start until a handler
-// is registered under the same key.
+// Adding a core method: append a MethodEntry to Core. Adding a cheat method:
+// append to CheatMethodCatalog.All instead.
 
 // IsDebugOnly marks the method as a test affordance that must never be
 // served in production. The host's --enable-debug flag (AD-7) is required
@@ -28,7 +31,7 @@ public sealed record MethodEntry(
 
 public static class MethodCatalog
 {
-    public static IReadOnlyList<MethodEntry> All { get; } = new MethodEntry[]
+    public static IReadOnlyList<MethodEntry> Core { get; } = new MethodEntry[]
     {
         new("host/ping",
             ParamsType: null,
@@ -110,25 +113,16 @@ public static class MethodCatalog
             ResultType: typeof(RunProceedEventResult),
             Summary: "Auto-advance past a finished event when the engine leaves CurrentRoomType=EventRoom with no options surfaced. Only legal when the local event's IsFinished flag is true (i.e. AvailableEventOptions is empty while still in EventRoom). Returns InvalidParams when called outside that window."),
 
-        new("debug/give_relic",
-            ParamsType: typeof(DebugGiveRelicParams),
-            ResultType: typeof(DebugGiveRelicResult),
-            Summary: "Test affordance — grant a relic via RelicCmd.Obtain (engine path). Requires --enable-debug.",
-            IsDebugOnly: true),
-
-        new("debug/set_hp",
-            ParamsType: typeof(DebugSetHpParams),
-            ResultType: typeof(DebugSetHpResult),
-            Summary: "Test affordance — set the player's CurrentHp (and optionally MaxHp) by writing the engine's backing fields. Bypasses damage events, on-hit relics, and game-over detection; the resulting state is not authoritative. Requires --enable-debug.",
-            IsDebugOnly: true),
     };
 
     // Throws if the supplied dispatch-table keys differ from the catalogue
-    // names. Called from HostMethods.Build at host startup; a mismatch means
-    // either the catalogue or the dispatch table was edited in isolation.
-    public static void AssertParity(IEnumerable<string> dispatchKeys)
+    // names. The caller supplies the merged catalogue (Core ∪ cheats) so this
+    // function stays authoritative over whatever the host actually serves.
+    // Called from HostMethods.Build at host startup; a mismatch means either
+    // the catalogue or the dispatch table was edited in isolation.
+    public static void AssertParity(IEnumerable<MethodEntry> entries, IEnumerable<string> dispatchKeys)
     {
-        var catalog = All.Select(e => e.Name).ToHashSet(StringComparer.Ordinal);
+        var catalog = entries.Select(e => e.Name).ToHashSet(StringComparer.Ordinal);
         var dispatch = dispatchKeys.ToHashSet(StringComparer.Ordinal);
 
         var inCatalogOnly = catalog.Except(dispatch).OrderBy(s => s, StringComparer.Ordinal).ToList();

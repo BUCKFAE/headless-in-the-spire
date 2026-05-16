@@ -1,3 +1,4 @@
+using Sts2Headless.Cheats;
 using Sts2Headless.Protocol.Methods;
 using Xunit;
 

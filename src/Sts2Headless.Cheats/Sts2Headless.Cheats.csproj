@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Test affordances ("cheats") gated behind --enable-debug (AD-7): wire DTOs, catalog entries, host dispatchers, and typed ITransport extensions. Lives in its own project so Sts2Headless.Agents — which only references Protocol — cannot import a cheat type even by accident.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <ProjectReference Include="..\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+    <!-- One-way reference: Cheats extends ITransport from Agents. The
+         reverse direction (Agents → Cheats) is intentionally absent so
+         agent code physically cannot resolve a cheat type or extension.
+         The Sts2Headless.Agents csproj enforces this by listing only
+         Sts2Headless.Protocol as a reference. -->
+    <ProjectReference Include="..\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+  </ItemGroup>
+
+</Project>
