@@ -4,56 +4,23 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BADGE_DIR="${1:-"$ROOT/.github/badges"}"
 
-die() {
-    printf 'error: %s\n' "$*" >&2
-    exit 1
-}
-
-urlencode() {
-    jq -rn --arg s "$1" '$s|@uri'
-}
-
 write_badge() {
     local name="$1"
     local label="$2"
     local message="$3"
     local color="$4"
-    local logo="${5:-}"
-    local logo_color="${6:-}"
-    local path="$BADGE_DIR/$name.svg"
+    local path="$BADGE_DIR/$name.json"
 
     mkdir -p "$BADGE_DIR"
 
-    local url="https://img.shields.io/static/v1?label=$(urlencode "$label")&message=$(urlencode "$message")&color=$(urlencode "$color")"
-    if [[ -n "$logo" ]]; then
-        url+="&logo=$(urlencode "$logo")"
-    fi
-    if [[ -n "$logo_color" ]]; then
-        url+="&logoColor=$(urlencode "$logo_color")"
-    fi
+    jq -n \
+        --arg label "$label" \
+        --arg message "$message" \
+        --arg color "$color" \
+        '{schemaVersion: 1, label: $label, message: $message, color: $color}' \
+        > "$path"
 
-    curl --fail --silent --show-error --location --max-time 30 --output "$path" "$url"
     printf 'Wrote %s: %s=%s\n' "$path" "$label" "$message"
-}
-
-xml_value() {
-    local file="$1"
-    local tag="$2"
-
-    sed -n "s/.*<$tag>\\([^<]*\\)<\\/$tag>.*/\\1/p" "$file" | head -n 1
-}
-
-package_versions() {
-    local package="$1"
-    local path="$2"
-
-    find "$path" -type f -name '*.csproj' -exec awk -v package="$package" '
-        $0 ~ /<PackageReference/ && $0 ~ "Include=\"" package "\"" {
-            if (match($0, /Version="[^"]+"/)) {
-                print substr($0, RSTART + 9, RLENGTH - 10)
-            }
-        }
-    ' {} + | sort -u | paste -sd '/' -
 }
 
 count_tests() {
@@ -93,26 +60,15 @@ format_loc() {
     fi
 }
 
-target_framework="$(xml_value "$ROOT/Directory.Build.props" TargetFramework)"
-[[ -n "$target_framework" ]] || die "TargetFramework not found in Directory.Build.props"
-dotnet_version="${target_framework#net}"
-
 unit_count="$(count_tests "$ROOT/tests/Sts2Headless.UnitTests")"
 integration_count="$(count_tests "$ROOT/tests/Sts2Headless.IntegrationTests")"
 total_count="$(count_tests "$ROOT/tests")"
 
-godot_stubs_version="$(xml_value "$ROOT/src/GodotStubs/GodotStubs.csproj" AssemblyVersion)"
-[[ -n "$godot_stubs_version" ]] || die "AssemblyVersion not found in GodotStubs.csproj"
-godot_stubs_version="${godot_stubs_version%.0}"
-
-
 csharp_loc="$(count_csharp_loc "$ROOT/src" "$ROOT/tests")"
 csharp_loc_label="$(format_loc "$csharp_loc")"
 
-write_badge dotnet ".NET" "$dotnet_version" "512BD4" "dotnet" "white"
 write_badge tests "tests" "$total_count" "blue"
-write_badge godot-stubs "Godot stubs" "$godot_stubs_version" "478CBF" "godotengine" "white"
-write_badge csharp-loc "C# LoC" "$csharp_loc_label" "239120" "csharp" "white"
+write_badge csharp-loc "C# LoC" "$csharp_loc_label" "239120"
 
 printf 'Counted %s tests (%s unit, %s integration)\n' \
     "$total_count" "$unit_count" "$integration_count"

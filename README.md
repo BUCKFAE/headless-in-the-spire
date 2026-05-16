@@ -1,10 +1,10 @@
 # headless-in-the-spire
 
 [![CI](https://github.com/BUCKFAE/headless-in-the-spire/actions/workflows/ci.yml/badge.svg)](https://github.com/BUCKFAE/headless-in-the-spire/actions/workflows/ci.yml)
-[![.NET](.github/badges/dotnet.svg)](Directory.Build.props)
-[![Tests](.github/badges/tests.svg)](tests)
-[![Godot stubs](.github/badges/godot-stubs.svg)](src/GodotStubs)
-[![C# LoC](.github/badges/csharp-loc.svg)](src)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](Directory.Build.props)
+[![Tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/BUCKFAE/headless-in-the-spire/main/.github/badges/tests.json)](tests)
+[![Godot stubs](https://img.shields.io/badge/Godot%20stubs-4.5.1-478CBF?logo=godotengine&logoColor=white)](src/GodotStubs)
+[![C# LoC](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/BUCKFAE/headless-in-the-spire/main/.github/badges/csharp-loc.json&logo=csharp&logoColor=white)](src)
 
 A custom headless runner for **Slay the Spire 2**. It loads the real game logic
 out-of-game and drives it programmatically for deterministic testing, automation,
