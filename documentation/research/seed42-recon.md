@@ -89,25 +89,25 @@
   → play card [0] target=0
   - rewards offered:
     - [0] gold 12g  canSkip=False
-    - [1] potion potion=`POTION.ENERGY_POTION (138844)`  canSkip=False
+    - [1] potion potion=`ENERGY_POTION`  canSkip=False
     - [2] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 12g  canSkip=False
-    - [1] potion potion=`POTION.ENERGY_POTION (138844)`  canSkip=False
+    - [1] potion potion=`ENERGY_POTION`  canSkip=False
     - [2] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=71 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.ENERGY_POTION (138844)`  canSkip=False
+    - [0] potion potion=`ENERGY_POTION`  canSkip=False
     - [1] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.ENERGY_POTION (138844)`  canSkip=False
+    - [0] potion potion=`ENERGY_POTION`  canSkip=False
     - [1] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=71 room=CombatRoom
-  - bag: [0]EnergyPotion/Unknown
+  - bag: [0]ENERGY_POTION/Unknown
   - rewards offered:
     - [0] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
 
@@ -403,7 +403,7 @@
   - map options: (0,6):RestSite
 
   → pick event option [1] → MapRoom hp=72
-  - bag: [0]EnergyPotion/Unknown,[1]RegenPotion/Unknown
+  - bag: [0]ENERGY_POTION/Unknown,[1]REGEN_POTION/Unknown
   - heal → hp=80/80
 
 ## Floor 7: RestSiteRoom  (hp=80)
@@ -697,25 +697,25 @@
   → play card [0] target=0
   - rewards offered:
     - [0] gold 18g  canSkip=False
-    - [1] potion potion=`POTION.ENTROPIC_BREW (2515205)`  canSkip=False
+    - [1] potion potion=`ENTROPIC_BREW`  canSkip=False
     - [2] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 18g  canSkip=False
-    - [1] potion potion=`POTION.ENTROPIC_BREW (2515205)`  canSkip=False
+    - [1] potion potion=`ENTROPIC_BREW`  canSkip=False
     - [2] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=54 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.ENTROPIC_BREW (2515205)`  canSkip=False
+    - [0] potion potion=`ENTROPIC_BREW`  canSkip=False
     - [1] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.ENTROPIC_BREW (2515205)`  canSkip=False
+    - [0] potion potion=`ENTROPIC_BREW`  canSkip=False
     - [1] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=54 room=CombatRoom
-  - bag: [0]EnergyPotion/Unknown,[1]RegenPotion/Unknown,[2]EntropicBrew/Self
+  - bag: [0]ENERGY_POTION/Unknown,[1]REGEN_POTION/Unknown,[2]ENTROPIC_BREW/Self
   - rewards offered:
     - [0] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
 
@@ -914,21 +914,21 @@
   → play card [0] target=0
   - rewards offered:
     - [0] gold 13g  canSkip=False
-    - [1] potion potion=`POTION.COLORLESS_POTION (31956933)`  canSkip=False
+    - [1] potion potion=`COLORLESS_POTION`  canSkip=False
     - [2] card cards=[`TrueGrit`(cost=1), `SecondWind`(cost=1), `Armaments`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 13g  canSkip=False
-    - [1] potion potion=`POTION.COLORLESS_POTION (31956933)`  canSkip=False
+    - [1] potion potion=`COLORLESS_POTION`  canSkip=False
     - [2] card cards=[`TrueGrit`(cost=1), `SecondWind`(cost=1), `Armaments`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=64 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.COLORLESS_POTION (31956933)`  canSkip=False
+    - [0] potion potion=`COLORLESS_POTION`  canSkip=False
     - [1] card cards=[`TrueGrit`(cost=1), `SecondWind`(cost=1), `Armaments`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.COLORLESS_POTION (31956933)`  canSkip=False
+    - [0] potion potion=`COLORLESS_POTION`  canSkip=False
     - [1] card cards=[`TrueGrit`(cost=1), `SecondWind`(cost=1), `Armaments`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=64 room=CombatRoom
@@ -1166,28 +1166,28 @@
   → end_turn → round transition
   - rewards offered:
     - [0] gold 11g  canSkip=False
-    - [1] potion potion=`POTION.BLOCK_POTION (67083507)`  canSkip=False
+    - [1] potion potion=`BLOCK_POTION`  canSkip=False
     - [2] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   - rewards offered:
     - [0] gold 11g  canSkip=False
-    - [1] potion potion=`POTION.BLOCK_POTION (67083507)`  canSkip=False
+    - [1] potion potion=`BLOCK_POTION`  canSkip=False
     - [2] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
     - [0] gold 11g  canSkip=False
-    - [1] potion potion=`POTION.BLOCK_POTION (67083507)`  canSkip=False
+    - [1] potion potion=`BLOCK_POTION`  canSkip=False
     - [2] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.BLOCK_POTION (67083507)`  canSkip=False
+    - [0] potion potion=`BLOCK_POTION`  canSkip=False
     - [1] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.BLOCK_POTION (67083507)`  canSkip=False
+    - [0] potion potion=`BLOCK_POTION`  canSkip=False
     - [1] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
@@ -1965,28 +1965,28 @@
   → end_turn → round transition
   - rewards offered:
     - [0] gold 11g  canSkip=False
-    - [1] potion potion=`POTION.LIQUID_BRONZE (39519373)`  canSkip=False
+    - [1] potion potion=`LIQUID_BRONZE`  canSkip=False
     - [2] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 11g  canSkip=False
-    - [1] potion potion=`POTION.LIQUID_BRONZE (39519373)`  canSkip=False
+    - [1] potion potion=`LIQUID_BRONZE`  canSkip=False
     - [2] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
     - [0] gold 11g  canSkip=False
-    - [1] potion potion=`POTION.LIQUID_BRONZE (39519373)`  canSkip=False
+    - [1] potion potion=`LIQUID_BRONZE`  canSkip=False
     - [2] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.LIQUID_BRONZE (39519373)`  canSkip=False
+    - [0] potion potion=`LIQUID_BRONZE`  canSkip=False
     - [1] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.LIQUID_BRONZE (39519373)`  canSkip=False
+    - [0] potion potion=`LIQUID_BRONZE`  canSkip=False
     - [1] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
@@ -2159,28 +2159,28 @@
   → end_turn → round transition
   - rewards offered:
     - [0] gold 14g  canSkip=False
-    - [1] potion potion=`POTION.BLESSING_OF_THE_FORGE (56655270)`  canSkip=False
+    - [1] potion potion=`BLESSING_OF_THE_FORGE`  canSkip=False
     - [2] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 14g  canSkip=False
-    - [1] potion potion=`POTION.BLESSING_OF_THE_FORGE (56655270)`  canSkip=False
+    - [1] potion potion=`BLESSING_OF_THE_FORGE`  canSkip=False
     - [2] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
     - [0] gold 14g  canSkip=False
-    - [1] potion potion=`POTION.BLESSING_OF_THE_FORGE (56655270)`  canSkip=False
+    - [1] potion potion=`BLESSING_OF_THE_FORGE`  canSkip=False
     - [2] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.BLESSING_OF_THE_FORGE (56655270)`  canSkip=False
+    - [0] potion potion=`BLESSING_OF_THE_FORGE`  canSkip=False
     - [1] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.BLESSING_OF_THE_FORGE (56655270)`  canSkip=False
+    - [0] potion potion=`BLESSING_OF_THE_FORGE`  canSkip=False
     - [1] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
@@ -2358,21 +2358,21 @@
   → play card [0] target=0
   - rewards offered:
     - [0] gold 13g  canSkip=False
-    - [1] potion potion=`POTION.FIRE_POTION (28349038)`  canSkip=False
+    - [1] potion potion=`FIRE_POTION`  canSkip=False
     - [2] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 13g  canSkip=False
-    - [1] potion potion=`POTION.FIRE_POTION (28349038)`  canSkip=False
+    - [1] potion potion=`FIRE_POTION`  canSkip=False
     - [2] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=11 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.FIRE_POTION (28349038)`  canSkip=False
+    - [0] potion potion=`FIRE_POTION`  canSkip=False
     - [1] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.FIRE_POTION (28349038)`  canSkip=False
+    - [0] potion potion=`FIRE_POTION`  canSkip=False
     - [1] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=11 room=CombatRoom
@@ -2878,28 +2878,28 @@
   → end_turn → round transition
   - rewards offered:
     - [0] gold 12g  canSkip=False
-    - [1] potion potion=`POTION.SPEED_POTION (10026740)`  canSkip=False
+    - [1] potion potion=`SPEED_POTION`  canSkip=False
     - [2] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 12g  canSkip=False
-    - [1] potion potion=`POTION.SPEED_POTION (10026740)`  canSkip=False
+    - [1] potion potion=`SPEED_POTION`  canSkip=False
     - [2] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
     - [0] gold 12g  canSkip=False
-    - [1] potion potion=`POTION.SPEED_POTION (10026740)`  canSkip=False
+    - [1] potion potion=`SPEED_POTION`  canSkip=False
     - [2] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.SPEED_POTION (10026740)`  canSkip=False
+    - [0] potion potion=`SPEED_POTION`  canSkip=False
     - [1] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.SPEED_POTION (10026740)`  canSkip=False
+    - [0] potion potion=`SPEED_POTION`  canSkip=False
     - [1] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
@@ -3358,28 +3358,28 @@
   → end_turn → round transition
   - rewards offered:
     - [0] gold 18g  canSkip=False
-    - [1] potion potion=`POTION.BEETLE_JUICE (32847787)`  canSkip=False
+    - [1] potion potion=`BEETLE_JUICE`  canSkip=False
     - [2] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 18g  canSkip=False
-    - [1] potion potion=`POTION.BEETLE_JUICE (32847787)`  canSkip=False
+    - [1] potion potion=`BEETLE_JUICE`  canSkip=False
     - [2] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
     - [0] gold 18g  canSkip=False
-    - [1] potion potion=`POTION.BEETLE_JUICE (32847787)`  canSkip=False
+    - [1] potion potion=`BEETLE_JUICE`  canSkip=False
     - [2] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.BEETLE_JUICE (32847787)`  canSkip=False
+    - [0] potion potion=`BEETLE_JUICE`  canSkip=False
     - [1] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.BEETLE_JUICE (32847787)`  canSkip=False
+    - [0] potion potion=`BEETLE_JUICE`  canSkip=False
     - [1] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
@@ -3882,24 +3882,24 @@
   → play card [0] target=0
   - rewards offered:
     - [0] gold 43g  canSkip=False
-    - [1] potion potion=`POTION.OROBIC_ACID (25478763)`  canSkip=False
+    - [1] potion potion=`OROBIC_ACID`  canSkip=False
     - [2] relic relic=``  canSkip=False
     - [3] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 43g  canSkip=False
-    - [1] potion potion=`POTION.OROBIC_ACID (25478763)`  canSkip=False
+    - [1] potion potion=`OROBIC_ACID`  canSkip=False
     - [2] relic relic=``  canSkip=False
     - [3] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.OROBIC_ACID (25478763)`  canSkip=False
+    - [0] potion potion=`OROBIC_ACID`  canSkip=False
     - [1] relic relic=``  canSkip=False
     - [2] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.OROBIC_ACID (25478763)`  canSkip=False
+    - [0] potion potion=`OROBIC_ACID`  canSkip=False
     - [1] relic relic=``  canSkip=False
     - [2] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
 
@@ -4177,28 +4177,28 @@
   → end_turn → round transition
   - rewards offered:
     - [0] gold 13g  canSkip=False
-    - [1] potion potion=`POTION.SHACKLING_POTION (17649112)`  canSkip=False
+    - [1] potion potion=`SHACKLING_POTION`  canSkip=False
     - [2] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 13g  canSkip=False
-    - [1] potion potion=`POTION.SHACKLING_POTION (17649112)`  canSkip=False
+    - [1] potion potion=`SHACKLING_POTION`  canSkip=False
     - [2] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
     - [0] gold 13g  canSkip=False
-    - [1] potion potion=`POTION.SHACKLING_POTION (17649112)`  canSkip=False
+    - [1] potion potion=`SHACKLING_POTION`  canSkip=False
     - [2] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.SHACKLING_POTION (17649112)`  canSkip=False
+    - [0] potion potion=`SHACKLING_POTION`  canSkip=False
     - [1] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.SHACKLING_POTION (17649112)`  canSkip=False
+    - [0] potion potion=`SHACKLING_POTION`  canSkip=False
     - [1] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
@@ -4289,28 +4289,28 @@
   → end_turn → round transition
   - rewards offered:
     - [0] gold 15g  canSkip=False
-    - [1] potion potion=`POTION.FIRE_POTION (63261775)`  canSkip=False
+    - [1] potion potion=`FIRE_POTION`  canSkip=False
     - [2] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 15g  canSkip=False
-    - [1] potion potion=`POTION.FIRE_POTION (63261775)`  canSkip=False
+    - [1] potion potion=`FIRE_POTION`  canSkip=False
     - [2] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
     - [0] gold 15g  canSkip=False
-    - [1] potion potion=`POTION.FIRE_POTION (63261775)`  canSkip=False
+    - [1] potion potion=`FIRE_POTION`  canSkip=False
     - [2] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`POTION.FIRE_POTION (63261775)`  canSkip=False
+    - [0] potion potion=`FIRE_POTION`  canSkip=False
     - [1] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`POTION.FIRE_POTION (63261775)`  canSkip=False
+    - [0] potion potion=`FIRE_POTION`  canSkip=False
     - [1] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
