@@ -3,9 +3,8 @@
 Snapshot date: 2026-05-14. This is a research / thinking note, not a design doc.
 It pulls on the threads in [01-initial-goals.md §5](../requirements/01-initial-goals.md)
 and [03-extra-goals.md](../requirements/03-extra-goals.md) ("This repo should allow
-to generate and view replays. TODO: Is there already a replay mod / built-in thing
-that we can use?") and tries to answer: **what does a "replay" mean for this
-project, and what's the cheapest path to a watchable artefact?**
+to generate and view replays") and tries to answer: **what does a "replay" mean
+for this project, and what's the cheapest path to a watchable artefact?**
 
 It deliberately does not pick a design — the open questions at the bottom are the
 ones to resolve before writing code.

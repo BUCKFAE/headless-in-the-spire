@@ -8,7 +8,6 @@
 
 ## Replays / Rendering
 - This repo should allow to generate and view replays
-- TODO: Is there already a replay mod / build in thing that we can use?
 - **Status (2026-05-14): parked.** Research in
   [../research/replay-recording-and-viewing.md](../research/replay-recording-and-viewing.md).
   The recording substrate (NDJSON over stdio, per AD-2) already gives us the

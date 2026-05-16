@@ -18,7 +18,7 @@ for testing, AI experimentation, and replay recording.
   truth) shape almost every decision in the repo.
 - `documentation/testing.md` — the three-axis (Unit / Integration / End-to-end)
   test pyramid. Pick the right axis before adding a test.
-- `documentation/research/04-sts2-cli-anatomy.md` — how the only working OSS
+- `documentation/research/sts2-cli-anatomy.md` — how the only working OSS
   reference (`wuhao21/sts2-cli`) makes the game run headless, and what we
   decided to take vs. leave behind.
 
@@ -98,15 +98,20 @@ just test     # C# unit + integration + Python suites
 ```
 Directory.Build.props          shared csproj settings (net10.0, nullable, etc.)
 src/
-  Sts2Headless/                exe — entry, CLI/probe commands, stdio loop (TBD)
+  Sts2Headless/                exe — entry, CLI/probe commands, NDJSON stdio
+                                     dispatch loop (`just stdio`).
   Sts2Headless.Runtime/        lib — vendor resolver, sts2 load, sync ctx,
                                      Harmony hang patches, bootstrap walker.
                                      Everything that talks to a live sts2.dll.
   Sts2Headless.Protocol/       lib — JSON-RPC-style envelope, method records,
                                      MethodCatalog (single source of truth).
+  Sts2Headless.Cheats/         lib — typed cheat surface (`debug/*` wire
+                                     methods + CheatClient extension methods).
+                                     Deliberately separate from Protocol so an
+                                     agent that only references Protocol can't
+                                     resolve cheat extensions. AD-7.
   Sts2Headless.Agents/         lib — drivers / agents that talk to a running
-                                     host via ITransport (AD-6). GreedyAgent
-                                     is the first one.
+                                     host via ITransport (AD-6).
   Sts2Headless.SchemaExport/   exe — emits protocol/openrpc.json from Protocol
                                      records (AD-5). Run via `just export-schema`.
   GodotStubs/                  lib — no-op GodotSharp.dll replacement (grown on demand)
@@ -151,8 +156,10 @@ clients/python/
   → `AssemblyLoadContext.Default.Resolving`. We don't probe the game's full
   data directory at runtime; `vendor/` is the curated set.
 - AD-4 (no compile-time sts2 reference) is guarded by
-  `tests/Sts2Headless.Runtime.Tests/Ad4InvariantTests.cs`; the bootstrap walk
-  is locked in by `BootstrapSequenceTests.cs`. Run via `just test`.
+  `tests/Sts2Headless.UnitTests/Ad4InvariantTests.cs`; the bootstrap walk
+  is locked in by
+  `tests/Sts2Headless.IntegrationTests/BootstrapSequenceTests.cs`. Run via
+  `just test`.
 - New `just` recipes get a one-line doc comment that fits in `just --list`
   output. Multi-line comments are clipped.
 - Don't reference `external-tools/` in code — it's a research clone of
