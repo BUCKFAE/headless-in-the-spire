@@ -44,6 +44,7 @@ public static class HangPatches
             PatchBowlbugRockMoves(harmony, sts2),
             PatchImbalancedPowerAfterDamageGiven(harmony, sts2),
             PatchSoulNexus(harmony, sts2),
+            PatchTestSubject(harmony, sts2),
         ];
     }
 
@@ -448,6 +449,64 @@ public static class HangPatches
         if (methods.Length == 0)
         {
             return new PatchOutcome(label, Patched: false, Detail: "no target methods on SoulNexus");
+        }
+
+        var taskPrefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var voidPrefix = typeof(HangPatches).GetMethod(nameof(SkipVoidPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
+            MethodInfo prefix;
+            if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType)) prefix = taskPrefix;
+            else if (m.ReturnType == typeof(void)) prefix = voidPrefix;
+            else
+            {
+                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported return)");
+                continue;
+            }
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
+    // TestSubject is the Act 2 boss. Its enemy-phase moves walk UI-only
+    // state (animation queues, VFX setup) and NRE in headless — the
+    // exceptions are swallowed by TaskHelper.LogTaskExceptions and the
+    // engine never advances past round 1's enemy phase, leaving the
+    // StallDetector to fire. Same pattern as the SoulNexus / Vantom /
+    // ThievingHopper / BowlbugRock patches above.
+    //
+    // The full set of declared methods observed in BeatGameOnSeed42Tests
+    // when the Pommel/Hellraiser combo reaches Act 2 floor 15:
+    //   * BiteMove, SkullBashMove, MultiClawMove, Phase3LacerateMove,
+    //     BigPounceMove, BurningGrowlMove — the boss's attacks.
+    //   * Revive, RespawnMove — phase-transition / second-life moves.
+    //   * TriggerDeadState, AfterAddedToRoom — lifecycle hooks invoked
+    //     from CombatManager when the boss enters / dies. Patching these
+    //     defensively (same as SoulNexus.BeforeRemovedFromRoom) covers
+    //     the killing-blow path.
+    private static PatchOutcome PatchTestSubject(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.{*Move, AfterAddedToRoom, Revive, TriggerDeadState}";
+        var monsterType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.TestSubject");
+        if (monsterType is null)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "type TestSubject not found");
+        }
+
+        var moveNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "BiteMove", "SkullBashMove", "MultiClawMove", "Phase3LacerateMove",
+            "BigPounceMove", "BurningGrowlMove", "RespawnMove",
+            "Revive", "TriggerDeadState", "AfterAddedToRoom",
+        };
+        var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => moveNames.Contains(m.Name) && !m.IsSpecialName)
+            .ToArray();
+        if (methods.Length == 0)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "no target methods on TestSubject");
         }
 
         var taskPrefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;

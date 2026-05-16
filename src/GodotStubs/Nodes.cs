@@ -125,6 +125,11 @@ public class CanvasItem : Node
     //   Rect2.default is the zero rect which the engine VFX code generally
     //   treats as "off-screen / no-op."
     public Rect2 GetViewportRect() => default;
+
+    // from: a card-play VFX path on the Pommel/Hellraiser combo route
+    //   (surfaced on seed 42 Act 2 floor 12 with the deck-replace cheat).
+    //   No-op in headless: there's no visual to modulate.
+    public void SetSelfModulate(Color _) { }
 }
 
 // ── Node2D and descendants ──────────────────────────────────────────────

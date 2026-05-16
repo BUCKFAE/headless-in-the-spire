@@ -438,6 +438,10 @@ public static class ClassDB { }
 public static class Colors
 {
     public static Color Green => default;
+    // from: a card-play VFX path on the Pommel/Hellraiser combo route
+    //   (surfaced on seed 42 Act 2 floor 12 once the deck-replace cheat
+    //   landed the agent in a previously-unvisited combat).
+    public static Color White => default;
 }
 public static class DisplayServer { }
 public static class Geometry2D { }

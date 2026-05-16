@@ -40,7 +40,7 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         _output = output;
     }
 
-    [Fact(Skip = "Pommel/Hellraiser combo + ToughBandages cheats are wired and driving correctly — the agent now reaches the Act 2 boss (TEST_SUBJECT) on round 2 with ~994 HP and the boss already at 52/100. Stalls there because TestSubject's enemy-phase moves (BiteMove, SkullBashMove, MultiClawMove, Phase3LacerateMove, BigPounceMove, BurningGrowlMove, Revive, RespawnMove, TriggerDeadState, AfterAddedToRoom) aren't yet Harmony-patched in HangPatches.cs. Same engine-hang pattern as the previously-patched monsters; un-skip after that patch lands.")]
+    [Fact(Skip = "Cheats + combo + TestSubject hang patches all working — agent kills the Act 2 boss in a single round and pushes into the post-boss state. New blocker is the THE_ARCHITECT event (MegaCrit.Sts2.Core.Models.Events.TheArchitect): its only `dialogue.0` option drains the player to 0 HP between snapshots (the engine drives a scripted attack via AnimArchitectAttackIfNecessary / AdvanceDialogue / WinRun) and IsGameOver flips before any heal can land. Surviving it needs either a Harmony patch on TheArchitect's attack methods or a god-mode/revive cheat — separate work from the deck/combo cheat surface.")]
     [Trait("category", "diagnostic")]
     public async Task Seed42Agent_Ironclad_WinsTheGame_WithMaxHpCheat()
     {
@@ -57,14 +57,19 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         // With only those three cards in the deck, the loop is deterministic
         // once Hellraiser is in play — every drawn card auto-plays and pulls
         // two more cards.
+        //
+        // The deck gets re-replaced on every MapRoom return below so card
+        // rewards collected mid-run don't dilute the combo; without that
+        // refresh the agent reached the Act 2 boss with an 18-card deck
+        // and Hellraiser only drew on round 3 — fatal in tougher fights.
+        var comboDeck = new[]
+        {
+            new CardSpec("POMMEL_STRIKE", UpgradeLevel: 1),
+            new CardSpec("POMMEL_STRIKE", UpgradeLevel: 1),
+            new CardSpec("HELLRAISER"),
+        };
         var deck = await _host.SendAsync<DebugReplaceDeckResult>(
-            "debug/replace_deck",
-            new DebugReplaceDeckParams(new[]
-            {
-                new CardSpec("POMMEL_STRIKE", UpgradeLevel: 1),
-                new CardSpec("POMMEL_STRIKE", UpgradeLevel: 1),
-                new CardSpec("HELLRAISER"),
-            }));
+            "debug/replace_deck", new DebugReplaceDeckParams(comboDeck));
         Assert.True(deck.Ok);
         Assert.Equal(3, deck.DeckSize);
 
@@ -88,9 +93,17 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         RunStateResult? state = null;
         var healCount = 0;
 
-        // Drive in waves: each wave runs until either victory, a wounded
-        // MapRoom (heal-needed), or game-over / stall. After a heal
-        // checkpoint, top up via debug/set_hp and continue.
+        // Drive in waves. Stop conditions:
+        //   * Victory.
+        //   * MapRoom at a *new* (act, floor) — track so the initial
+        //     MapRoom-at-floor-0 doesn't trip the predicate immediately
+        //     and we don't loop refreshing at the same floor.
+        //   * Any non-combat room where HP < MaxHp — catches the
+        //     post-boss Architect event on the Act 2/3 transition, which
+        //     drains the player to 0 between dialogue picks. Without
+        //     this branch the agent picks PROCEED while at 0 HP and the
+        //     engine flips IsGameOver before we get a chance to heal.
+        var lastCheckpoint = (Act: -1, Floor: -1);
         try
         {
             while (true)
@@ -99,14 +112,29 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
                     transport,
                     agent,
                     stopWhen: s => s.IsVictory
-                                    || (s.CurrentRoomType == RoomType.MapRoom && s.Hp < s.MaxHp),
+                                    || (s.CurrentRoomType == RoomType.MapRoom
+                                        && (s.CurrentActIndex, s.ActFloor) != lastCheckpoint)
+                                    || (s.CombatState?.IsInProgress != true && s.Hp < s.MaxHp),
                     ct: cts.Token);
                 state = outcome.FinalState;
 
                 if (state.IsVictory) break;
                 if (outcome.TerminatedBy == TerminationReason.GameOver) break;
 
-                // Top up between rooms. Unbounded heals would mask a true
+                // Refresh the combo deck only at *new* MapRoom checkpoints —
+                // the heal-on-event branch above can stop us inside a
+                // non-MapRoom room (the Architect event) where re-replacing
+                // the deck would be wasted work.
+                if (state.CurrentRoomType == RoomType.MapRoom
+                    && (state.CurrentActIndex, state.ActFloor) != lastCheckpoint)
+                {
+                    lastCheckpoint = (state.CurrentActIndex, state.ActFloor);
+                    var refresh = await transport.SendAsync<DebugReplaceDeckResult>(
+                        "debug/replace_deck", new DebugReplaceDeckParams(comboDeck));
+                    Assert.True(refresh.Ok, "debug/replace_deck returned ok=false during checkpoint refresh");
+                }
+
+                // Top up to full HP. Unbounded heals would mask a true
                 // regression (e.g. agent looping on a map it can't leave),
                 // so we cap at 200 — generous enough for a full run on
                 // seed 42 (~50-80 map rooms across three acts).
