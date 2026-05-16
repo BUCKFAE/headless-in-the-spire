@@ -26,6 +26,7 @@ public static class CheatHostMethods
         {
             ["debug/give_relic"] = Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, getRun, p)),
             ["debug/set_hp"] = Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, getRun, p)),
+            ["debug/replace_deck"] = Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
         };
 
     private static DebugSetHpResult DebugSetHp(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugSetHpParams? @params)
@@ -70,6 +71,46 @@ public static class CheatHostMethods
             Hp: s.CurrentHp,
             MaxHp: s.MaxHp,
             IsGameOver: s.IsGameOver);
+    }
+
+    private static DebugReplaceDeckResult DebugReplaceDeck(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugReplaceDeckParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/replace_deck requires params {cards: [{cardId, upgradeLevel?}]}");
+        if (args.Cards is null || args.Cards.Count == 0)
+            throw new WireException(WireErrorCode.InvalidParams,
+                "debug/replace_deck: cards must be a non-empty list");
+        foreach (var c in args.Cards)
+        {
+            if (string.IsNullOrWhiteSpace(c.CardId))
+                throw new WireException(WireErrorCode.InvalidParams,
+                    "debug/replace_deck: every card needs a non-empty cardId");
+            if (c.UpgradeLevel < 0)
+                throw new WireException(WireErrorCode.InvalidParams,
+                    $"debug/replace_deck: upgradeLevel must be >= 0 (got {c.UpgradeLevel} for {c.CardId})");
+        }
+
+        IReadOnlyList<string> added;
+        try
+        {
+            var pairs = args.Cards.Select(c => (c.CardId, c.UpgradeLevel)).ToList();
+            added = bindings.ReplaceDeck(run, pairs);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Surface "unknown card id" and similar caller errors as
+            // InvalidParams so generated clients get the right code.
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
+
+        var s = bindings.ReadSnapshot(run);
+        return new DebugReplaceDeckResult(
+            Ok: true,
+            DeckSize: s.DeckSize,
+            CardIds: added);
     }
 
     private static DebugGiveRelicResult DebugGiveRelic(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugGiveRelicParams? @params)

@@ -16,6 +16,14 @@ class CardRewardOption(BaseModel):
     cost: int
 
 
+class CardSpec(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    card_id: Annotated[str, Field(alias="cardId")]
+    upgrade_level: Annotated[int | None, Field(alias="upgradeLevel")] = 0
+
+
 class Character(Enum):
     ironclad = "ironclad"
     silent = "silent"
@@ -42,6 +50,22 @@ class DebugGiveRelicResult(BaseModel):
     max_hp: Annotated[int, Field(alias="maxHp")]
     gold: int
     deck_size: Annotated[int, Field(alias="deckSize")]
+
+
+class DebugReplaceDeckParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    cards: list[CardSpec]
+
+
+class DebugReplaceDeckResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    deck_size: Annotated[int, Field(alias="deckSize")]
+    card_ids: Annotated[list[str], Field(alias="cardIds")]
 
 
 class DebugSetHpParams(BaseModel):

@@ -58,3 +58,31 @@ public sealed record DebugSetHpResult(
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("maxHp")] int MaxHp,
     [property: JsonPropertyName("isGameOver")] bool IsGameOver);
+
+// ── debug/replace_deck ───────────────────────────────────────────────────
+
+// A card the caller wants placed into the player's deck. `cardId` is the
+// wire string id (matches the CardId enum's wire form, e.g. "POMMEL_STRIKE");
+// `upgradeLevel` is 0 for the base card, 1 for the first upgrade, etc.
+// Engine-side this routes through CardModel.UpgradeInternal +
+// FinalizeUpgradeInternal applied upgradeLevel times.
+public sealed record CardSpec(
+    [property: JsonPropertyName("cardId")] string CardId,
+    [property: JsonPropertyName("upgradeLevel")] int UpgradeLevel = 0);
+
+// Replace the player's deck with a curated list. Hard write — every
+// existing card is untracked from RunState, the deck is cleared, and
+// the new cards are added through RunState.CreateCard + Deck.AddInternal.
+// Bypasses on-deck-change listeners (matches the spirit of debug/set_hp
+// and debug/give_relic, which also write through events).
+//
+// Use case: pin a combat to a specific opening hand so a test can assert
+// behavior (e.g. force a deterministic infinite combo) without relying on
+// the full game-progression path to produce a particular deck.
+public sealed record DebugReplaceDeckParams(
+    [property: JsonPropertyName("cards")] IReadOnlyList<CardSpec> Cards);
+
+public sealed record DebugReplaceDeckResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("deckSize")] int DeckSize,
+    [property: JsonPropertyName("cardIds")] IReadOnlyList<string> CardIds);

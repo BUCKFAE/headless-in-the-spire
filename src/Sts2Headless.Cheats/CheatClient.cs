@@ -24,4 +24,14 @@ public static class CheatClient
     public static Task<DebugGiveRelicResult> GiveRelicAsync(
         this ITransport transport, string relicId) =>
         transport.SendAsync<DebugGiveRelicResult>("debug/give_relic", new DebugGiveRelicParams(relicId));
+
+    // debug/replace_deck — wholesale-replace the player's deck. `cards` is
+    // a list of (cardId, upgradeLevel) tuples; upgradeLevel defaults to 0
+    // (base card). Pass tuples for convenience; the wire shape uses
+    // CardSpec records under the hood.
+    public static Task<DebugReplaceDeckResult> ReplaceDeckAsync(
+        this ITransport transport, IEnumerable<(string CardId, int UpgradeLevel)> cards) =>
+        transport.SendAsync<DebugReplaceDeckResult>(
+            "debug/replace_deck",
+            new DebugReplaceDeckParams(cards.Select(c => new CardSpec(c.CardId, c.UpgradeLevel)).ToList()));
 }

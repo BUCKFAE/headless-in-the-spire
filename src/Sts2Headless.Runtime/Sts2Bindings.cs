@@ -2205,6 +2205,158 @@ public sealed partial class Sts2Bindings
         return (newHp, newMaxHp);
     }
 
+    // Test affordance: replace the player's deck with a curated list of
+    // (CardId, UpgradeLevel) pairs. Routes through the engine's "create a
+    // card mid-run" pipeline that sts2-cli's RunSimulator.SetPlayer uses
+    // (see external-tools/sts2-cli/src/Sts2Headless/RunSimulator.cs:340-358),
+    // so the new cards are properly registered with RunState (Owner +
+    // tracking) and the resulting deck is what `run/state` surfaces.
+    //
+    // Pipeline per card:
+    //   1. ModelDb.GetById<CardModel>(new ModelId("CARD", id)) → canonical
+    //   2. RunState.CreateCard(canonical, player)              → Card with Owner
+    //   3. If upgradeLevel > 0: call Card.Upgrade() upgradeLevel times.
+    //   4. player.Deck.AddInternal(card, silent: true)         → into deck
+    //
+    // Why canonical, not mutable: sts2's engine guards CreateCard with a
+    // MutableModelException when the model is mutable. Cards keep their
+    // upgrade level on the per-instance Card, not on its model — so we
+    // create with the canonical and apply upgrades to the resulting Card.
+    //
+    // Before the loop: every existing card is removed via RunState.RemoveCard
+    // and the deck is cleared (silent so the no-listener path matches the
+    // sts2-cli reference). This is a hard write — no events fire — so
+    // relic listeners that react to deck changes won't see anything. That
+    // matches the spirit of every other debug/ helper: bypass the event
+    // pipeline so the test sets up state without unrelated side effects.
+    //
+    // Reflection is done inline (no fields cached in BindingState) — the
+    // call is rare, and locating the members on demand keeps the bootstrap
+    // path unchanged for the common case where deck replacement isn't used.
+    public IReadOnlyList<string> ReplaceDeck(RunHandle handle, IReadOnlyList<(string CardId, int UpgradeLevel)> cards)
+    {
+        if (_modelIdCtor is null)
+            throw new InvalidOperationException("debug/replace_deck: ModelId(string,string) ctor not bound — bootstrap likely failed; check probe-bootstrap output");
+
+        var cardModelType = Sts2.GetType("MegaCrit.Sts2.Core.Models.CardModel")
+            ?? throw new InvalidOperationException("debug/replace_deck: CardModel type not found in sts2 assembly");
+        var modelDbType = Sts2.GetType("MegaCrit.Sts2.Core.Models.ModelDb")
+            ?? throw new InvalidOperationException("debug/replace_deck: ModelDb type not found");
+
+        var getByIdGeneric = modelDbType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == "GetById" && m.IsGenericMethodDefinition && m.GetParameters().Length == 1)
+            ?? throw new InvalidOperationException("debug/replace_deck: ModelDb.GetById<T>(ModelId) not found");
+        var getByIdCard = getByIdGeneric.MakeGenericMethod(cardModelType);
+
+        var runStateType = handle.RunState.GetType();
+        var createCard = runStateType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .FirstOrDefault(m => m.Name == "CreateCard"
+                && m.GetParameters().Length == 2
+                && m.GetParameters()[0].ParameterType == cardModelType
+                && m.GetParameters()[1].ParameterType == _playerType)
+            ?? throw new InvalidOperationException("debug/replace_deck: RunState.CreateCard(CardModel, Player) not found");
+        var removeCard = runStateType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .FirstOrDefault(m => m.Name == "RemoveCard" && m.GetParameters().Length == 1);
+
+        // Cards in sts2 *are* CardModel subclasses (the value returned by
+        // CreateCard is a mutable CardModel instance — there's no separate
+        // Card class). Upgrades are applied by calling UpgradeInternal +
+        // FinalizeUpgradeInternal on the per-instance mutable model. The
+        // pair mirrors sts2-cli's GetUpgradedInfo preview loop.
+        var upgradeInternal = cardModelType.GetMethod("UpgradeInternal", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
+        var finalizeUpgradeInternal = cardModelType.GetMethod("FinalizeUpgradeInternal", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
+
+        var deck = _playerDeck.GetValue(handle.Player)
+            ?? throw new InvalidOperationException("debug/replace_deck: Player.Deck was null");
+        var deckType = deck.GetType();
+        var clear = deckType.GetMethod("Clear", BindingFlags.Public | BindingFlags.Instance, new[] { typeof(bool) })
+            ?? throw new InvalidOperationException("debug/replace_deck: Deck.Clear(bool) not found");
+        // AddInternal's exact signature varies (sts2-cli's reference uses the
+        // named-arg form `AddInternal(card, silent: true)`, implying at
+        // least two parameters with optional ones). We resolve the `silent`
+        // parameter index by name and fill the rest with Type.Missing.
+        var addInternal = deckType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .Where(m => m.Name == "AddInternal" && m.GetParameters().Length >= 2)
+            .FirstOrDefault(m => m.GetParameters().Any(p => p.Name == "silent" && p.ParameterType == typeof(bool)))
+            ?? throw new InvalidOperationException("debug/replace_deck: Deck.AddInternal(..., bool silent, ...) not found");
+        var addInternalSilentIdx = addInternal.GetParameters()
+            .Select((p, i) => (p, i)).First(t => t.p.Name == "silent" && t.p.ParameterType == typeof(bool)).i;
+        var addInternalCardIdx = 0; // first parameter is the card by convention
+
+        // 1. Untrack & clear. Snapshot the list first since RemoveCard may
+        // mutate the underlying collection.
+        if (_deckCards.GetValue(deck) is System.Collections.IEnumerable existingCards)
+        {
+            var existing = new List<object>();
+            foreach (var c in existingCards) if (c is not null) existing.Add(c);
+            if (removeCard is not null)
+            {
+                foreach (var c in existing) removeCard.Invoke(handle.RunState, new[] { c });
+            }
+        }
+        clear.Invoke(deck, new object[] { /* silent: */ true });
+
+        // 2. Add the requested cards. Unknown ids surface as a clean error
+        // (we unwrap TargetInvocationException so the caller sees the
+        // engine's original exception message, not the reflection wrapper).
+        var added = new List<string>(cards.Count);
+        var addInternalParamCount = addInternal.GetParameters().Length;
+        foreach (var (id, upgradeLevel) in cards)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                throw new InvalidOperationException("debug/replace_deck: cardId must be non-empty");
+            if (upgradeLevel < 0)
+                throw new InvalidOperationException($"debug/replace_deck: upgradeLevel must be >= 0 (got {upgradeLevel} for {id})");
+
+            var modelId = _modelIdCtor.Invoke(new object?[] { "CARD", id });
+            object? canonical;
+            try
+            {
+                canonical = getByIdCard.Invoke(null, new[] { modelId });
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException is not null)
+            {
+                throw new InvalidOperationException(
+                    $"debug/replace_deck: unknown or invalid card id \"{id}\" — {tie.InnerException.Message}");
+            }
+            if (canonical is null)
+                throw new InvalidOperationException($"debug/replace_deck: unknown card id \"{id}\"");
+
+            object card;
+            try
+            {
+                card = createCard.Invoke(handle.RunState, new[] { canonical, handle.Player })
+                    ?? throw new InvalidOperationException($"debug/replace_deck: RunState.CreateCard returned null for \"{id}\"");
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException is not null)
+            {
+                throw new InvalidOperationException(
+                    $"debug/replace_deck: RunState.CreateCard failed for \"{id}\" — {tie.InnerException.Message}");
+            }
+
+            if (upgradeLevel > 0)
+            {
+                if (upgradeInternal is null || finalizeUpgradeInternal is null)
+                    throw new InvalidOperationException(
+                        $"debug/replace_deck: CardModel.UpgradeInternal / FinalizeUpgradeInternal not bound; can't apply upgradeLevel={upgradeLevel} to \"{id}\"");
+                for (var i = 0; i < upgradeLevel; i++)
+                {
+                    upgradeInternal.Invoke(card, null);
+                    finalizeUpgradeInternal.Invoke(card, null);
+                }
+            }
+
+            var addArgs = new object?[addInternalParamCount];
+            for (var i = 0; i < addInternalParamCount; i++) addArgs[i] = Type.Missing;
+            addArgs[addInternalCardIdx] = card;
+            addArgs[addInternalSilentIdx] = /* silent: */ true;
+            addInternal.Invoke(deck, addArgs);
+            added.Add(id);
+        }
+        _syncCtx?.Pump();
+        return added;
+    }
+
     private void AdvanceAfterRewardsConsumed(RunHandle handle)
     {
         if (_pendingRewards is null || _pendingRewards.Count > 0) return;

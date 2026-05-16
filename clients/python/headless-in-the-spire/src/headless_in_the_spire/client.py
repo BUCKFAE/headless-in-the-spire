@@ -38,6 +38,7 @@ METHOD_NAMES: dict[str, str] = {
     "run/proceed_event": "run_proceed_event",
     "debug/give_relic": "debug_give_relic",
     "debug/set_hp": "debug_set_hp",
+    "debug/replace_deck": "debug_replace_deck",
 }
 
 
@@ -240,3 +241,12 @@ class Client:
     ) -> m.DebugSetHpResult:
         result = self._transport.call("debug/set_hp", _dump(params), timeout=timeout)
         return m.DebugSetHpResult.model_validate(result)
+
+    def debug_replace_deck(
+        self,
+        params: m.DebugReplaceDeckParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugReplaceDeckResult:
+        result = self._transport.call("debug/replace_deck", _dump(params), timeout=timeout)
+        return m.DebugReplaceDeckResult.model_validate(result)

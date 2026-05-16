@@ -27,5 +27,11 @@ public static class CheatMethodCatalog
             ResultType: typeof(DebugSetHpResult),
             Summary: "Test affordance — set the player's CurrentHp (and optionally MaxHp) by writing the engine's backing fields. Bypasses damage events, on-hit relics, and game-over detection; the resulting state is not authoritative. Requires --enable-debug.",
             IsDebugOnly: true),
+
+        new("debug/replace_deck",
+            ParamsType: typeof(DebugReplaceDeckParams),
+            ResultType: typeof(DebugReplaceDeckResult),
+            Summary: "Test affordance — replace the player's deck with a curated list of (CardId, UpgradeLevel) pairs. Routes through RunState.CreateCard so the new cards are properly tracked; bypasses on-deck-change listeners. Requires --enable-debug.",
+            IsDebugOnly: true),
     };
 }
