@@ -34,6 +34,7 @@ public static class HostMethods
             ["run/select_reward"] = Typed<RunSelectRewardParams, RunSelectRewardResult>(p => RunSelectReward(bindings, session, p)),
             ["run/skip_reward"] = Typed<RunSkipRewardParams, RunSkipRewardResult>(p => RunSkipReward(bindings, session, p)),
             ["run/enter_next_act"] = TypedNoParams(() => RunEnterNextAct(bindings, session)),
+            ["run/proceed_event"] = TypedNoParams(() => RunProceedEvent(bindings, session)),
             // AD-7: every debug/* method is wrapped by GateDebug. With
             // --enable-debug off, the gate replaces the handler with one
             // that throws WireException(DebugMethodDisabled) so an
@@ -512,6 +513,40 @@ public static class HostMethods
 
         var s = bindings.ReadSnapshot(run);
         return new RunEnterNextActResult(
+            Ok: true,
+            CurrentRoomType: s.CurrentRoomType,
+            ActFloor: s.ActFloor,
+            CurrentActIndex: s.CurrentActIndex,
+            IsGameOver: s.IsGameOver,
+            IsVictory: s.IsVictory,
+            IsDead: s.IsDead,
+            Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes,
+            AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
+            AvailableMerchantItems: s.AvailableMerchantItems,
+            CombatState: s.CombatState,
+            RewardsState: s.RewardsState,
+            Relics: s.Relics,
+            OwnedPotions: s.OwnedPotions);
+    }
+
+    private static RunProceedEventResult RunProceedEvent(Sts2Bindings bindings, Session session)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+
+        try
+        {
+            bindings.ProceedEvent(run);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
+
+        var s = bindings.ReadSnapshot(run);
+        return new RunProceedEventResult(
             Ok: true,
             CurrentRoomType: s.CurrentRoomType,
             ActFloor: s.ActFloor,

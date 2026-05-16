@@ -105,6 +105,11 @@ public static class MethodCatalog
             ResultType: typeof(RunEnterNextActResult),
             Summary: "Advance from the post-boss MapRoom to the next act. Only legal after defeating an act boss and draining rewards; bumps RunState.CurrentActIndex and regenerates the next act's map. Returns InvalidParams when called outside that window."),
 
+        new("run/proceed_event",
+            ParamsType: null,
+            ResultType: typeof(RunProceedEventResult),
+            Summary: "Auto-advance past a finished event when the engine leaves CurrentRoomType=EventRoom with no options surfaced. Only legal when the local event's IsFinished flag is true (i.e. AvailableEventOptions is empty while still in EventRoom). Returns InvalidParams when called outside that window."),
+
         new("debug/give_relic",
             ParamsType: typeof(DebugGiveRelicParams),
             ResultType: typeof(DebugGiveRelicResult),

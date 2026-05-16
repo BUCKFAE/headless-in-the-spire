@@ -1039,6 +1039,20 @@ public sealed partial class Sts2Bindings
         return result;
     }
 
+    // True when the engine considers the current event resolved but the
+    // room hasn't transitioned back to MapRoom yet. The wire surface
+    // signals this state by reporting CurrentRoomType=EventRoom with an
+    // empty AvailableEventOptions list; callers can confirm via this
+    // helper (used by ProceedEvent's caller-guard).
+    private bool IsLocalEventFinished(object runManager)
+    {
+        var sync = _runManagerEventSynchronizer.GetValue(runManager);
+        if (sync is null) return false;
+        var localEvent = _eventSyncGetLocalEvent.Invoke(sync, null);
+        if (localEvent is null) return false;
+        return (bool)_eventIsFinished.GetValue(localEvent)!;
+    }
+
     // Walk RunState.CurrentRoom (cast to RestSiteRoom) → Options and shape
     // each option into the wire record. Mirrors sts2-cli's RestSiteState
     // reduced to the data fields we surface.
@@ -1356,6 +1370,72 @@ public sealed partial class Sts2Bindings
         var result = _runManagerEnterNextAct.Invoke(handle.RunManager, null);
         if (result is Task task) task.GetAwaiter().GetResult();
         _syncCtx?.Pump();
+        DrainActionExecutor(handle);
+    }
+
+    // Finished-event auto-advance. When an event resolves (sts2 sets
+    // IsFinished=true on the local event), the engine sometimes does
+    // NOT flip CurrentRoom back to MapRoom on its own — observed on
+    // seed 42 Act 3 floor 10 (FakeMerchant). The wire surface signals
+    // this state by reporting CurrentRoomType=EventRoom with an empty
+    // AvailableEventOptions list; this method drives the transition
+    // explicitly, mirroring sts2-cli's `Leave` pattern at
+    // RunSimulator.cs:1626-1646:
+    //   1. RunManager.ProceedFromTerminalRewardsScreen() — graceful
+    //      exit through the engine's natural reward-screen handler.
+    //   2. If still in EventRoom afterward, force EnterRoom(MapRoom) —
+    //      the engine occasionally leaves the room half-transitioned
+    //      and the explicit EnterRoom snaps it back to the map.
+    //
+    // Caller guard: rejects unless CurrentRoom is EventRoom AND the
+    // local event reports IsFinished=true. Anything else is a caller
+    // mistake — events with active options should be advanced via
+    // run/select_event_option, not this method.
+    public void ProceedEvent(RunHandle handle)
+    {
+        var room = _runStateCurrentRoom.GetValue(handle.RunState)
+            ?? throw new InvalidOperationException("RunState.CurrentRoom was null");
+        var roomTypeName = room.GetType().Name;
+        if (roomTypeName != "EventRoom")
+        {
+            throw new InvalidOperationException(
+                $"run/proceed_event called but current room is {roomTypeName}, not EventRoom. " +
+                $"Only legal when an event has finished and the room hasn't auto-transitioned.");
+        }
+        if (!IsLocalEventFinished(handle.RunManager))
+        {
+            throw new InvalidOperationException(
+                "run/proceed_event called but the local event is not finished. " +
+                "Advance the event via run/select_event_option first.");
+        }
+
+        if (_runManagerProceedFromTerminalRewards is not null)
+        {
+            try
+            {
+                var proceed = _runManagerProceedFromTerminalRewards.Invoke(handle.RunManager, null);
+                if (proceed is Task pt) pt.GetAwaiter().GetResult();
+                _syncCtx?.Pump();
+            }
+            catch { /* sts2-cli also swallows; the EnterRoom fallback below covers it */ }
+        }
+
+        // Re-read CurrentRoom — if Proceed succeeded the room has flipped
+        // to MapRoom and we're done. Otherwise force the transition.
+        var roomAfter = _runStateCurrentRoom.GetValue(handle.RunState);
+        var stillEvent = roomAfter is not null && roomAfter.GetType().Name == "EventRoom";
+        if (stillEvent && _runManagerEnterRoom is not null && _mapRoomType is not null)
+        {
+            try
+            {
+                var mapRoom = Activator.CreateInstance(_mapRoomType)
+                    ?? throw new InvalidOperationException($"{_mapRoomType.FullName} default ctor returned null");
+                var enter = _runManagerEnterRoom.Invoke(handle.RunManager, new[] { mapRoom });
+                if (enter is Task et) et.GetAwaiter().GetResult();
+                _syncCtx?.Pump();
+            }
+            catch { /* caller sees CurrentRoomType=EventRoom on the next snapshot and can decide */ }
+        }
         DrainActionExecutor(handle);
     }
 

@@ -259,6 +259,18 @@
       }
     },
     {
+      "name": "run/proceed_event",
+      "summary": "Auto-advance past a finished event when the engine leaves CurrentRoomType=EventRoom with no options surfaced. Only legal when the local event's IsFinished flag is true (i.e. AvailableEventOptions is empty while still in EventRoom). Returns InvalidParams when called outside that window.",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunProceedEventResult"
+        }
+      }
+    },
+    {
       "name": "debug/give_relic",
       "summary": "Test affordance — grant a relic via RelicCmd.Obtain (engine path). Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -1632,6 +1644,107 @@
         "required": [
           "ok",
           "cardIndex",
+          "currentRoomType",
+          "actFloor",
+          "currentActIndex",
+          "isGameOver",
+          "isVictory",
+          "isDead",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "availableRestSiteOptions",
+          "availableMerchantItems",
+          "relics",
+          "ownedPotions"
+        ]
+      },
+      "RunProceedEventResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "currentActIndex": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
+          "combatState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewardsState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
+          }
+        },
+        "required": [
+          "ok",
           "currentRoomType",
           "actFloor",
           "currentActIndex",

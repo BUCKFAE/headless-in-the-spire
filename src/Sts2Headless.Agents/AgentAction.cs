@@ -29,6 +29,7 @@ public sealed record LeaveTreasureRoom : AgentAction;
 public sealed record BuyMerchantItem(int ItemIndex) : AgentAction;
 public sealed record LeaveMerchantRoom : AgentAction;
 public sealed record EnterNextAct : AgentAction;
+public sealed record ProceedEvent : AgentAction;
 
 // Post-combat reward decisions.
 public sealed record SelectReward(int RewardIndex, int? CardIndex = null) : AgentAction;

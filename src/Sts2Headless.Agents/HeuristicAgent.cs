@@ -18,12 +18,13 @@ public abstract class HeuristicAgent : IAgent
     public virtual AgentAction Decide(RunStateResult state) =>
         PhaseDetector.CurrentPhase(state) switch
         {
-            Phase.Combat    => DecideCombat(state),
-            Phase.Rewards   => DecideRewards(state),
-            Phase.Map       => DecideMap(state),
-            Phase.MapEmpty  => DecideMapEmpty(state),
-            Phase.Event     => DecideEvent(state),
-            Phase.RestSite  => DecideRestSite(state),
+            Phase.Combat        => DecideCombat(state),
+            Phase.Rewards       => DecideRewards(state),
+            Phase.Map           => DecideMap(state),
+            Phase.MapEmpty      => DecideMapEmpty(state),
+            Phase.Event         => DecideEvent(state),
+            Phase.EventFinished => DecideEventFinished(state),
+            Phase.RestSite      => DecideRestSite(state),
             Phase.Treasure  => DecideTreasure(state),
             Phase.Merchant  => DecideMerchant(state),
             Phase.Terminal  => throw new NoLegalActionException(
@@ -55,6 +56,13 @@ public abstract class HeuristicAgent : IAgent
     // Default: advance to the next act. Reached when the engine flipped
     // past the boss and the current act's map has no nodes left.
     protected virtual AgentAction DecideMapEmpty(RunStateResult state) => new EnterNextAct();
+
+    // Default: proceed past the finished event. Reached when an event
+    // resolved (IsFinished=true) but the engine left the room as
+    // EventRoom instead of auto-transitioning to MapRoom. The wire
+    // method run/proceed_event calls RunManager.ProceedFromTerminalRewardsScreen
+    // + EnterRoom(MapRoom). Observed on seed 42 Act 3 floor 10 (FakeMerchant).
+    protected virtual AgentAction DecideEventFinished(RunStateResult state) => new ProceedEvent();
 
     // Default: pick the last unlocked option. sts2 events by convention
     // put the "Leave / Decline" choice last; smarter agents inspect

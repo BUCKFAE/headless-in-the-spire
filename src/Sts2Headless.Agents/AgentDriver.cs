@@ -111,6 +111,9 @@ public static class AgentDriver
             case EnterNextAct:
                 _ = await host.SendAsync<RunEnterNextActResult>("run/enter_next_act");
                 break;
+            case ProceedEvent:
+                _ = await host.SendAsync<RunProceedEventResult>("run/proceed_event");
+                break;
             case SelectReward sr:
                 _ = await host.SendAsync<RunSelectRewardResult>(
                     "run/select_reward", new RunSelectRewardParams(sr.RewardIndex, sr.CardIndex));

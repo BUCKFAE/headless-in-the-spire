@@ -35,6 +35,14 @@ public enum Phase
     MapEmpty,
 
     Event,
+
+    // Event surfaced with zero options because the local event's
+    // IsFinished flag is true — the engine resolved the event but
+    // didn't auto-transition the room back to MapRoom. Default
+    // handler returns ProceedEvent to drive the transition; mirrors
+    // the post-boss MapEmpty case.
+    EventFinished,
+
     RestSite,
     Treasure,
     Merchant,
@@ -57,7 +65,7 @@ public static class PhaseDetector
         return s.CurrentRoomType switch
         {
             RoomType.MapRoom => s.AvailableMapNodes.Count > 0 ? Phase.Map : Phase.MapEmpty,
-            RoomType.EventRoom when s.AvailableEventOptions.Count > 0 => Phase.Event,
+            RoomType.EventRoom => s.AvailableEventOptions.Count > 0 ? Phase.Event : Phase.EventFinished,
             RoomType.RestSiteRoom when s.AvailableRestSiteOptions.Count > 0 => Phase.RestSite,
             RoomType.TreasureRoom => Phase.Treasure,
             RoomType.MerchantRoom => Phase.Merchant,

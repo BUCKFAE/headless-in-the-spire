@@ -35,6 +35,7 @@ METHOD_NAMES: dict[str, str] = {
     "run/select_reward": "run_select_reward",
     "run/skip_reward": "run_skip_reward",
     "run/enter_next_act": "run_enter_next_act",
+    "run/proceed_event": "run_proceed_event",
     "debug/give_relic": "debug_give_relic",
     "debug/set_hp": "debug_set_hp",
 }
@@ -213,6 +214,14 @@ class Client:
     ) -> m.RunEnterNextActResult:
         result = self._transport.call("run/enter_next_act", None, timeout=timeout)
         return m.RunEnterNextActResult.model_validate(result)
+
+    def run_proceed_event(
+        self,
+        *,
+        timeout: float | None = None,
+    ) -> m.RunProceedEventResult:
+        result = self._transport.call("run/proceed_event", None, timeout=timeout)
+        return m.RunProceedEventResult.model_validate(result)
 
     def debug_give_relic(
         self,

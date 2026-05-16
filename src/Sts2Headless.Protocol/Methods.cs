@@ -790,6 +790,38 @@ public sealed record RunEnterNextActResult(
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
     [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
+// ── run/proceed_event ────────────────────────────────────────────────────
+
+// No params — finished-event auto-advance reads from session state.
+//
+// Only legal when the wire reports CurrentRoomType=EventRoom AND the
+// local event's IsFinished flag is true (signalled by an empty
+// AvailableEventOptions list while still in EventRoom). The engine
+// occasionally leaves the room mid-transition after an event resolves;
+// this method calls RunManager.ProceedFromTerminalRewardsScreen() and
+// force-EnterRoom(MapRoom) if needed, mirroring sts2-cli's `Leave`
+// pattern at RunSimulator.cs:1626-1646.
+//
+// Returns InvalidParams if called outside that window (not in EventRoom,
+// or event still has live options).
+public sealed record RunProceedEventResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("currentActIndex")] int CurrentActIndex,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("isVictory")] bool IsVictory,
+    [property: JsonPropertyName("isDead")] bool IsDead,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
+
 // ── debug/give_relic ─────────────────────────────────────────────────────
 
 // Test affordance — grants a relic to the active player via the engine

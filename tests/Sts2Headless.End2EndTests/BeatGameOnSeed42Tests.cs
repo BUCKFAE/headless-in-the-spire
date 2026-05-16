@@ -34,7 +34,7 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         _output = output;
     }
 
-    [Fact(Skip = "SoulNexus patches applied; agent now clears Act 3 floor 9 and reaches Act 3 floor 10 EventRoom that surfaces 0 available options (host auto-advance gap). NoLegalActionException at room=EventRoom. Investigation: either route empty-EventRoom through a new Phase like MapEmpty + new wire method, or fix host-side auto-advance.")]
+    [Fact(Skip = "All known engine hangs patched. proceed_event wire surface added; agent now clears every act transition and reaches Act 3 floor 12. Remaining gap is pure agent skill: dies in a 71-round 4-enemy fight (FABRICATOR + 3 minions) where Dazed status cards clog the hand. Next step is agent intelligence (target FABRICATOR, prefer AOE Thunderclap, etc.) or a stronger cheat — both are forward steps unrelated to the wire surface.")]
     [Trait("category", "diagnostic")]
     public async Task Seed42Agent_Ironclad_WinsTheGame_WithMaxHpCheat()
     {

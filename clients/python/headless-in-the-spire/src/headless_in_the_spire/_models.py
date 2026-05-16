@@ -539,6 +539,34 @@ class RunPlayCardResult(BaseModel):
     owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
+class RunProceedEventResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
+    act_floor: Annotated[int, Field(alias="actFloor")]
+    current_act_index: Annotated[int, Field(alias="currentActIndex")]
+    is_game_over: Annotated[bool, Field(alias="isGameOver")]
+    is_victory: Annotated[bool, Field(alias="isVictory")]
+    is_dead: Annotated[bool, Field(alias="isDead")]
+    hp: int
+    available_map_nodes: Annotated[list[MapNode], Field(alias="availableMapNodes")]
+    available_event_options: Annotated[
+        list[EventOption], Field(alias="availableEventOptions")
+    ]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
+
+
 class RunSelectEventOptionResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
