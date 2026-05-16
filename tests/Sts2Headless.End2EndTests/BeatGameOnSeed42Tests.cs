@@ -7,21 +7,26 @@ using Xunit;
 namespace Sts2Headless.End2EndTests;
 
 // End-to-end forcing function: drive an Ironclad run on seed 42 from
-// Neow to victory with the 999/999 HP cheat *plus* heal-between-rooms
-// keeping the agent alive across every combat. Survival is explicitly
-// not what we're testing; the goal is to prove the run can be *driven*
-// through every act transition and final-boss state to IsVictory=true.
+// Neow to victory with a deterministic infinite combo + safety nets so
+// the run can be driven through every act transition to IsVictory=true
+// without depending on agent intelligence improvements.
 //
-// Two cheats stack:
-//   * debug/set_hp once at run start to push the cap to 999/999.
-//   * debug/set_hp again whenever the drive returns at a MapRoom with
-//     Hp < MaxHp. Mirrors the ReachAct1BossTests pattern. Without
-//     this second heal, the agent eats too much cumulative damage in
-//     multi-enemy combats (e.g. Act 2 floor 14 OVICOPTER + 3 TOUGH_EGGs
-//     ran 44 rounds and exhausted the 999 HP pool). With it, the agent
-//     enters every combat at full HP and the test can answer the
-//     question it actually exists to answer: is the wire/engine
-//     surface complete enough to drive a full run end-to-end?
+// Cheats stack three ways:
+//   * debug/set_hp once at run start (999/999) — generous pool so chip
+//     damage from non-combo turns doesn't matter.
+//   * debug/give_relic TOUGH_BANDAGES — grants 3 block per card discarded.
+//     During the Pommel/Hellraiser combo a lot of cards get drawn and
+//     played; the resulting end-of-turn discards build incidental block.
+//   * debug/replace_deck with [PommelStrike+1, PommelStrike+1, Hellraiser] —
+//     the loop. Hellraiser applies HellraiserPower (AfterCardDrawnEarly
+//     auto-plays Strike cards as they're drawn from the deck). Upgraded
+//     Pommel Strike deals damage and draws two cards. With only Strikes
+//     and Hellraiser in the deck, every draw triggers another auto-play
+//     until the killing blow lands — agents don't need targeting skill.
+//   * debug/set_hp again on every MapRoom return so the player walks
+//     into each combat at full HP. Cap of 200 heals is a regression net,
+//     not a survival budget — if we hit it the agent is looping, not
+//     grinding.
 //
 // Trace lands at /tmp/seed42-game-walk.md.
 public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
@@ -35,16 +40,40 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         _output = output;
     }
 
-    [Fact(Skip = "All known engine hangs patched. proceed_event wire surface added; agent now clears every act transition and reaches Act 3 floor 12. Remaining gap is pure agent skill: dies in a 71-round 4-enemy fight (FABRICATOR + 3 minions) where Dazed status cards clog the hand. Next step is agent intelligence (target FABRICATOR, prefer AOE Thunderclap, etc.) or a stronger cheat — both are forward steps unrelated to the wire surface.")]
+    [Fact(Skip = "Pommel/Hellraiser combo + ToughBandages cheats are wired and driving correctly — the agent now reaches the Act 2 boss (TEST_SUBJECT) on round 2 with ~994 HP and the boss already at 52/100. Stalls there because TestSubject's enemy-phase moves (BiteMove, SkullBashMove, MultiClawMove, Phase3LacerateMove, BigPounceMove, BurningGrowlMove, Revive, RespawnMove, TriggerDeadState, AfterAddedToRoom) aren't yet Harmony-patched in HangPatches.cs. Same engine-hang pattern as the previously-patched monsters; un-skip after that patch lands.")]
     [Trait("category", "diagnostic")]
     public async Task Seed42Agent_Ironclad_WinsTheGame_WithMaxHpCheat()
     {
         await _host.SendAsync<RunNewResult>(
             "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
 
-        var cheat = await _host.SendAsync<DebugSetHpResult>(
+        var hp = await _host.SendAsync<DebugSetHpResult>(
             "debug/set_hp", new DebugSetHpParams(Hp: 999, MaxHp: 999));
-        Assert.True(cheat.Ok);
+        Assert.True(hp.Ok);
+
+        // Pommel-Hellraiser infinite: Hellraiser applies HellraiserPower,
+        // whose AfterCardDrawnEarly hook auto-plays Strike cards as they're
+        // drawn. Upgraded Pommel Strike deals damage *and* draws two cards.
+        // With only those three cards in the deck, the loop is deterministic
+        // once Hellraiser is in play — every drawn card auto-plays and pulls
+        // two more cards.
+        var deck = await _host.SendAsync<DebugReplaceDeckResult>(
+            "debug/replace_deck",
+            new DebugReplaceDeckParams(new[]
+            {
+                new CardSpec("POMMEL_STRIKE", UpgradeLevel: 1),
+                new CardSpec("POMMEL_STRIKE", UpgradeLevel: 1),
+                new CardSpec("HELLRAISER"),
+            }));
+        Assert.True(deck.Ok);
+        Assert.Equal(3, deck.DeckSize);
+
+        // Tough Bandages: +3 block per card discarded. The combo discards a
+        // pile of cards at every turn-end, which adds incidental block so
+        // the agent absorbs early hits before the loop is set up.
+        var bandages = await _host.SendAsync<DebugGiveRelicResult>(
+            "debug/give_relic", new DebugGiveRelicParams(RelicId: "TOUGH_BANDAGES"));
+        Assert.True(bandages.Ok);
 
         var inner = new HostSubprocessTransport(_host);
         var transport = new ReconTransport(inner);
