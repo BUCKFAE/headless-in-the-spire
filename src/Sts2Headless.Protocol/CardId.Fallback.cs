@@ -13,21 +13,54 @@ namespace Sts2Headless.Protocol.Methods;
 //   2. `just setup` can chain: validate sts2 install → pull DLLs →
 //      build the solution (compiling with this stub) → run the
 //      generator → final build picks up CardId.g.cs.
+//   3. CI (which never has vendor/sts2.dll) can compile downstream
+//      projects — notably Sts2Headless.Agents — that statically
+//      reference specific named card members.
 //
 // MSBuild excludes this file from compilation when CardId.g.cs exists
 // (see Sts2Headless.Protocol.csproj's conditional <Compile Remove>),
-// so the stub is only ever active in the bootstrap window before the
-// generator has produced the real enum.
+// so the stub is only ever active when no generated enum is present.
 //
-// IMPORTANT: do not add wire-facing CardId values here. The real enum
-// is generated; values you'd add by hand would only be visible during
-// the bootstrap window and would diverge from the post-generator
-// reality.
+// IMPORTANT: names-only here. Do NOT attach explicit numeric backings
+// or [JsonStringEnumMemberName(...)] attributes to entries below — the
+// stub never round-trips wire payloads (nothing executes the host on
+// the no-vendor build path), and any hand-authored value/attribute
+// would risk diverging from the generated enum. Card names themselves
+// are public game knowledge, not proprietary bytes from sts2.dll, so
+// listing the names downstream code references is safe.
 [OpaqueWireString]
 [JsonConverter(typeof(JsonStringEnumConverter<CardId>))]
 public enum CardId
 {
     [JsonStringEnumMemberName("UNKNOWN")] Unknown,
+
+    // Ironclad starter.
+    StrikeIronclad,
+    DefendIronclad,
+    Bash,
+
+    // Cards referenced by Sts2Headless.Agents (CardMechanics / Seed42Agent).
+    // Listed here so the no-vendor (CI) build path resolves these symbols;
+    // the generated CardId.g.cs supersedes the entire file on dev machines.
+    BodySlam,
+    Tremble,
+    SwordBoomerang,
+    Headbutt,
+    ExpectAFight,
+    BurningPact,
+    Bully,
+    Thunderclap,
+    Bludgeon,
+    Dismantle,
+    Cascade,
+    Uppercut,
+    Armaments,
+    StoneArmor,
+    TrueGrit,
+    SecondWind,
+    Taunt,
+    BloodWall,
+    Infection,
 }
 
 public static class CardIdNames
