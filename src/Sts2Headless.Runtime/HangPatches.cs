@@ -43,6 +43,7 @@ public static class HangPatches
             PatchThievingHopperMoves(harmony, sts2),
             PatchBowlbugRockMoves(harmony, sts2),
             PatchImbalancedPowerAfterDamageGiven(harmony, sts2),
+            PatchSoulNexus(harmony, sts2),
         ];
     }
 
@@ -403,6 +404,65 @@ public static class HangPatches
         var sigs = new List<string>(methods.Length);
         foreach (var m in methods)
         {
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
+    // SoulNexus (Act 3 enemy on seed 42) carries three Task-returning
+    // move methods (SoulBurnMove, MaelstromMove, DrainLifeMove) and a
+    // void AfterDeath(Creature) hook. The first observed failure on
+    // this monster was a host-side NRE on run/play_card when SOUL_NEXUS
+    // was at 6/234 HP — the killing-blow card triggered the
+    // AfterDeath hook, which NRE'd. The Move bodies follow the same
+    // shape as every other monster move we've patched.
+    //
+    // Patch shape:
+    //   * Three Move methods → Task.CompletedTask via ReturnDefaultTaskPrefix.
+    //   * AfterDeath (void) → SkipVoidPrefix (same as Vantom.DismemberMove's
+    //     void overload).
+    private static PatchOutcome PatchSoulNexus(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus.{*Move, AfterDeath}";
+        var monsterType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.SoulNexus");
+        if (monsterType is null)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "type SoulNexus not found");
+        }
+
+        // BeforeRemovedFromRoom() is the actual offender on the killing-blow
+        // path observed in BeatGameOnSeed42Tests Act 3 floor 7 — the
+        // sts2 call chain is StrikeIronclad.OnPlay → AttackCommand →
+        // CreatureCmd.Kill → CombatManager.RemoveCreature → this method,
+        // which NREs because it walks UI-only state. Patched alongside
+        // the Move methods + AfterDeath for defense in depth.
+        var moveNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "SoulBurnMove", "MaelstromMove", "DrainLifeMove",
+            "AfterDeath", "BeforeRemovedFromRoom",
+        };
+        var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => moveNames.Contains(m.Name) && !m.IsSpecialName)
+            .ToArray();
+        if (methods.Length == 0)
+        {
+            return new PatchOutcome(label, Patched: false, Detail: "no target methods on SoulNexus");
+        }
+
+        var taskPrefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var voidPrefix = typeof(HangPatches).GetMethod(nameof(SkipVoidPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
+            MethodInfo prefix;
+            if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType)) prefix = taskPrefix;
+            else if (m.ReturnType == typeof(void)) prefix = voidPrefix;
+            else
+            {
+                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported return)");
+                continue;
+            }
             harmony.Patch(m, prefix: new HarmonyMethod(prefix));
             sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
         }

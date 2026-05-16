@@ -34,7 +34,7 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         _output = output;
     }
 
-    [Fact(Skip = "Smarter combat targeting in place; agent now clears Act 1 + Act 2 entirely and reaches Act 3 floor 7. New blocker: host-side NRE on run/play_card against SOUL_NEXUS (likely a death hook or power that NREs in headless). Investigation + patch in next slice.")]
+    [Fact(Skip = "SoulNexus patches applied; agent now clears Act 3 floor 9 and reaches Act 3 floor 10 EventRoom that surfaces 0 available options (host auto-advance gap). NoLegalActionException at room=EventRoom. Investigation: either route empty-EventRoom through a new Phase like MapEmpty + new wire method, or fix host-side auto-advance.")]
     [Trait("category", "diagnostic")]
     public async Task Seed42Agent_Ironclad_WinsTheGame_WithMaxHpCheat()
     {

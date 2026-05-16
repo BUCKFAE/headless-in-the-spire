@@ -66,10 +66,12 @@ public class MonsterHangDiscoveryTests
         md.AppendLine();
 
         // ── 3. Methods on every monster whose name matches a target list ──
-        var monsterTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ThievingHopper", "BowlbugRock", "EyeWithTeeth", "Fogmog", "SlitheringStrangler" };
+        var monsterTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ThievingHopper", "BowlbugRock", "EyeWithTeeth", "Fogmog", "SlitheringStrangler", "SoulNexus" };
         foreach (var t in monsters.Where(m => monsterTargets.Contains(m.Name)
                                               || m.Name.Contains("Hopper", StringComparison.OrdinalIgnoreCase)
-                                              || m.Name.Contains("Bowlbug", StringComparison.OrdinalIgnoreCase)))
+                                              || m.Name.Contains("Bowlbug", StringComparison.OrdinalIgnoreCase)
+                                              || m.Name.Contains("SoulNexus", StringComparison.OrdinalIgnoreCase)
+                                              || m.Name.Contains("Nexus", StringComparison.OrdinalIgnoreCase)))
         {
             md.AppendLine($"## {t.FullName} methods");
             md.AppendLine();
