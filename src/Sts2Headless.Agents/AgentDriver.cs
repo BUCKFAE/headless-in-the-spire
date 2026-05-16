@@ -28,11 +28,22 @@ public static class AgentDriver
         Func<RunStateResult, bool>? stopWhen = null,
         int maxSteps = DefaultMaxSteps,
         StallDetector? stallDetector = null,
+        CombatBudgetGuard? combatBudgetGuard = null,
+        CoverageRecorder? coverageRecorder = null,
         Action<int, RunStateResult, AgentAction>? onStep = null,
         CancellationToken ct = default)
     {
         var stall = stallDetector ?? new StallDetector();
+        var budget = combatBudgetGuard ?? new CombatBudgetGuard();
         var state = await host.SendAsync<RunStateResult>("run/state");
+        // Observe the initial snapshot so the starter relic, starter deck
+        // (if a card lands in hand pre-action), and any active rewards from
+        // a resumed session show up in the report. Subsequent snapshots are
+        // observed after each ApplyAsync below.
+        coverageRecorder?.Observe(state);
+        // Initial budget observation — establishes baseline if a resumed
+        // session lands us mid-combat.
+        budget.Observe(state);
 
         for (var step = 0; step < maxSteps; step++)
         {
@@ -50,8 +61,15 @@ public static class AgentDriver
             if (action is StopRun stop)
                 return new RunOutcome(state, step, TerminationReason.AgentStop, AgentStopReason: stop.Reason);
 
+            // OnAction reads from the pre-action snapshot — that's where
+            // Hand[ix] still has the card the agent is about to play. After
+            // ApplyAsync, the hand has already shrunk and the index would
+            // point at the wrong card (or off the end). Order matters.
+            coverageRecorder?.OnAction(state, action);
             state = await ApplyAsync(host, action);
             stall.Observe(state);
+            budget.Observe(state);
+            coverageRecorder?.Observe(state);
         }
 
         return new RunOutcome(state, maxSteps, TerminationReason.StepLimit, AgentStopReason: null);

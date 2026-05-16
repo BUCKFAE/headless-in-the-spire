@@ -2537,6 +2537,15 @@
             "items": {
               "$ref": "#/components/schemas/OwnedPotion"
             }
+          },
+          "triggeredSincePrev": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TriggerEvent"
+            }
+          },
+          "triggeredDropped": {
+            "type": "integer"
           }
         },
         "required": [
@@ -2557,7 +2566,9 @@
           "availableRestSiteOptions",
           "availableMerchantItems",
           "relics",
-          "ownedPotions"
+          "ownedPotions",
+          "triggeredSincePrev",
+          "triggeredDropped"
         ]
       },
       "RunUsePotionParams": {
@@ -2699,6 +2710,31 @@
           "AnyAlly",
           "AllAllies",
           "Caster"
+        ]
+      },
+      "TriggerEvent": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/TriggerKind"
+          },
+          "source": {
+            "type": "string"
+          },
+          "hook": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "source",
+          "hook"
+        ]
+      },
+      "TriggerKind": {
+        "enum": [
+          "unknown",
+          "relic"
         ]
       }
     }

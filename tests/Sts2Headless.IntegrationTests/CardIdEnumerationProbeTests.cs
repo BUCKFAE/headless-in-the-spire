@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+using Sts2Headless.IntegrationTests.Coverage;
 using Sts2Headless.Runtime;
 using Xunit;
 
@@ -21,6 +22,7 @@ namespace Sts2Headless.IntegrationTests;
 //
 // Probe dumps both lists to /tmp/cardid-probe.md so a human can compare.
 // Marked diagnostic — not part of the default test run.
+[Collection(InProcessSts2Collection.Name)]
 public class CardIdEnumerationProbeTests
 {
     private readonly ITestOutputHelper _output;

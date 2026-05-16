@@ -51,9 +51,22 @@ if (args.Contains("--probe-combat-stall"))
     return ProbeCombatStallCommand.Run(vendorDir, args);
 }
 
-if (args.Contains("--generate-card-ids"))
+if (args.Contains("--generate-content-ids") || args.Contains("--generate-card-ids"))
 {
-    return GenerateCardIdsCommand.Run(vendorDir, repoRoot);
+    // `--generate-card-ids` retained as an alias so older shell history
+    // and justfile checkouts keep working through the rename. The new
+    // command always emits every kind's manifest, not just CardId.
+    return GenerateContentIdsCommand.Run(vendorDir, repoRoot);
+}
+
+if (args.Contains("--probe-modeldb"))
+{
+    return ProbeModelDbCommand.Run(vendorDir, repoRoot);
+}
+
+if (args.Contains("--probe-listener-dispatch"))
+{
+    return ProbeListenerDispatchCommand.Run(vendorDir, repoRoot);
 }
 
 if (args.Contains("--stdio"))

@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace Sts2Headless.Protocol.Methods;
 
 // Compile-only stub for the CardId enum + CardIdNames lookup. The real
-// 577-value enum is emitted by `just generate-card-ids` into the
+// 577-value enum is emitted by `just generate-content-ids` into the
 // gitignored CardId.g.cs (sourced from the proprietary vendor/sts2.dll
 // — never committed to the repo). This file exists so:
 //

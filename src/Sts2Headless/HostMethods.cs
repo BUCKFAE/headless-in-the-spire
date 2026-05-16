@@ -100,6 +100,13 @@ public static class HostMethods
         var run = bindings.StartIroncladRun(seed, withNeow);
         session.Set(run, character, seed);
 
+        // Clear stale trigger events from the previous run (or from the
+        // bootstrap's CreateIroncladSmoke step) so the first run/state of
+        // a fresh run doesn't surface trigger events that don't belong to
+        // it. Symmetric with the buffer being process-global: per-run
+        // semantics live in the host, not the log.
+        TriggerLog.Reset();
+
         var s = bindings.ReadSnapshot(run);
         return new RunNewResult(
             Ok: true,
@@ -123,6 +130,12 @@ public static class HostMethods
             ?? throw new InvalidOperationException("no active run — call run/new first");
 
         var s = bindings.ReadSnapshot(run);
+        // Drain the trigger log into this snapshot. Each run/state response
+        // owns the window since the previous response — skipping run/state
+        // means losing that window's events (TriggerLog.Capacity bounds the
+        // leak; triggeredDropped > 0 tells the caller). Drain BEFORE we
+        // return; the next caller's window starts clean.
+        var (triggered, dropped) = TriggerLog.Drain();
         return new RunStateResult(
             Ok: true,
             Character: session.Character,
@@ -144,7 +157,9 @@ public static class HostMethods
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+            OwnedPotions: s.OwnedPotions,
+            TriggeredSincePrev: triggered,
+            TriggeredDropped: dropped);
     }
 
     private static RunSelectMapNodeResult RunSelectMapNode(Sts2Bindings bindings, Session session, RunSelectMapNodeParams? @params)

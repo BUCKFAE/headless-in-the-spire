@@ -13,13 +13,13 @@ default:
 
 # ── Local setup ───────────────────────────────────────────────────────────
 
-# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv, install git hooks, generate the CardId enum from the local DLL.
+# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv, install git hooks, generate every *Id.g.cs content manifest from the local DLL.
 setup:
     just validate-sts2-installation
     just pull-game-libs
     just sync-python
     just install-hooks
-    just generate-card-ids
+    just generate-content-ids
     just build
 
 # Install repo git hooks (pre-commit drift guard for openrpc.json + _models.py).
@@ -50,8 +50,8 @@ clone-external-tools:
 build:
     @dotnet build Sts2Headless.slnx {{MSBUILD_MAX_CPU}}
 
-# Build just the host exe (and its transitive deps). Used by generate-card-ids
-# so the bootstrap can produce CardId.g.cs *before* the consumer projects
+# Build just the host exe (and its transitive deps). Used by generate-content-ids
+# so the bootstrap can produce *Id.g.cs *before* the consumer projects
 # (Agents, tests) try to reference values that only exist post-generation.
 build-generator:
     @dotnet build src/Sts2Headless/Sts2Headless.csproj {{MSBUILD_MAX_CPU}}
@@ -100,17 +100,21 @@ stdio: build
 export-schema: build
     @dotnet run --project src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj --no-build
 
-# Regenerate src/Sts2Headless.Protocol/CardId.g.cs from ModelDb.AllCards (gitignored — proprietary content sourced from vendor/sts2.dll). Run after bumping the game pin.
-generate-card-ids: build-generator
-    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --generate-card-ids
+# Regenerate every *Id.g.cs manifest under src/Sts2Headless.Protocol/ (cards, relics, potions, monsters, encounters, events, powers, afflictions, modifiers, enchantments, orbs). All gitignored — proprietary content sourced from vendor/sts2.dll. Run after bumping the game pin.
+generate-content-ids: build-generator
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --generate-content-ids
+
+# Dump ModelDb's content inventory (one txt per AllX property + a summary) into documentation/research/modeldb/ — gitignored, proprietary content. Diagnostic; not required for builds.
+probe-modeldb: build-generator
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-modeldb
 
 # Regenerate the Python client's pydantic DTOs from protocol/openrpc.json (AD-5).
 generate-python:
     @bash scripts/check-uv.sh
     @uv run python clients/python/headless-in-the-spire/scripts/generate_models.py
 
-# Regenerate every wire-protocol artefact (CardId enum + openrpc.json + Python DTOs). Run after touching Methods.cs or bumping the game pin.
-regen: generate-card-ids export-schema generate-python
+# Regenerate every wire-protocol artefact (per-kind content manifests + openrpc.json + Python DTOs). Run after touching Methods.cs or bumping the game pin.
+regen: generate-content-ids export-schema generate-python
 
 # Remove all bin/ and obj/ build artifacts.
 clean:
@@ -130,6 +134,12 @@ test-integration:
 # Run the end-to-end suite (multi-room arcs; same vendor/sts2.dll requirement).
 test-end2end:
     @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+
+# Run the content-coverage sweep (greedy agent over multiple seeds with 999 HP cheat) and dump documentation/coverage/latest.{md,json}. Gitignored — proprietary content sourced from vendor/sts2.dll. Off by default in `just test-end2end`; this recipe sets RUN_COVERAGE_SWEEP=1 to opt in.
+coverage:
+    @RUN_COVERAGE_SWEEP=1 dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~CoverageSweepTests" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/latest.md"
 
 # Run every Python workspace member's tests via the uv workspace .venv.
 test-python:

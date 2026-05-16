@@ -10,15 +10,30 @@ external-tools/
 # via GAME_VERSION (checked in) + a SHA-256 of the expected bytes.
 /vendor
 
-# Generated from vendor/sts2.dll's ModelDb.AllCards — a 577-name enum of
-# every card the game ships. The list itself is proprietary content
-# (same provenance as the DLL bytes it's derived from), so we treat it
-# like /vendor rather than protocol/openrpc.json: regenerate locally
-# via `just generate-card-ids` (run automatically by `just setup`).
-# CardId.Fallback.cs (committed) supplies a CardId.Unknown-only stub so
-# Protocol still compiles before the generator has produced the real
-# enum.
-/src/Sts2Headless.Protocol/CardId.g.cs
+# Generated content-id manifests, sourced from vendor/sts2.dll's ModelDb.
+# Each *.g.cs is the full enum + wire-name lookup for one content kind
+# (cards / relics / potions / monsters / encounters / events / powers /
+# enchantments / modifiers / afflictions / orbs). The lists themselves
+# are proprietary content (same provenance as the DLL bytes they're
+# derived from), so we treat them like /vendor rather than
+# protocol/openrpc.json: regenerate locally via `just generate-content-ids`
+# (run automatically by `just setup`).
+# *.Fallback.cs (committed) supplies an Unknown-only stub so Protocol
+# still compiles before the generator has produced the real enum.
+/src/Sts2Headless.Protocol/*.g.cs
+
+# ModelDb introspection dumps, written by `just probe-modeldb`. One file
+# per ModelDb enumeration property + a top-level content-inventory.txt.
+# Same proprietary-content rationale as the *.g.cs files above: the
+# probe writes per-kind id lists derived from vendor/sts2.dll.
+/documentation/research/modeldb/
+
+# Per-run + cross-run coverage reports written by `just coverage`. Same
+# proprietary-content rationale as /documentation/research/modeldb/: each
+# report enumerates id sets observed against the manifest universe, so
+# the on-disk markdown/json carries a derivative of vendor/sts2.dll's
+# proprietary content. Regenerate locally.
+/documentation/coverage/
 
 # .NET build artifacts.
 bin/

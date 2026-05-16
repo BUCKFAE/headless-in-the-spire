@@ -5,25 +5,35 @@
   </PropertyGroup>
 
   <!--
-    CardId stub vs. generated enum.
+    Per-kind stub vs. generated enum.
 
-    CardId.g.cs is the full 577-value enum emitted by `just generate-card-ids`
-    from the proprietary vendor/sts2.dll. It is gitignored — the file is
-    regenerated locally on every fresh clone via `just setup`.
+    For each content kind (Card / Relic / Potion / Monster / Encounter /
+    Event / Power / Affliction / Modifier / Enchantment / Orb), the project
+    contains two files:
 
-    CardId.Fallback.cs is a committed compile-only stub (just `Unknown`)
-    so the Protocol project (and everything downstream) builds on a fresh
-    clone *before* the generator has run. The instant CardId.g.cs exists,
-    MSBuild removes the fallback from compilation so the two definitions
-    never collide.
+      * {Kind}Id.g.cs        — full enum + wire-name lookup, emitted by
+                                `just generate-content-ids` from the
+                                proprietary vendor/sts2.dll. Gitignored.
+      * {Kind}Id.Fallback.cs — committed Unknown-only stub so the project
+                                builds on a fresh clone (or on CI without
+                                vendor/) before the generator has run.
 
-    Net effect: anyone running `just setup` ends up with the generated
-    enum compiled; anyone running `dotnet build` standalone (e.g. before
-    `just setup` populates vendor/) compiles against the stub and gets a
-    working build with CardId.Unknown as the only value.
+    The conditional <Compile Remove> below excludes the fallback when its
+    paired generated file exists, so the two definitions never collide.
+    Anyone running `just setup` ends up compiling against the generated
+    enum; anyone running `dotnet build` standalone (e.g. before vendor/
+    is populated) compiles against the stub.
   -->
-  <ItemGroup Condition="Exists('CardId.g.cs')">
-    <Compile Remove="CardId.Fallback.cs" />
-  </ItemGroup>
+  <ItemGroup Condition="Exists('CardId.g.cs')">         <Compile Remove="CardId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('RelicId.g.cs')">        <Compile Remove="RelicId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('PotionId.g.cs')">       <Compile Remove="PotionId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('MonsterId.g.cs')">      <Compile Remove="MonsterId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('EncounterId.g.cs')">    <Compile Remove="EncounterId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('EventId.g.cs')">        <Compile Remove="EventId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('PowerId.g.cs')">        <Compile Remove="PowerId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('AfflictionId.g.cs')">   <Compile Remove="AfflictionId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('ModifierId.g.cs')">     <Compile Remove="ModifierId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('EnchantmentId.g.cs')">  <Compile Remove="EnchantmentId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('OrbId.g.cs')">          <Compile Remove="OrbId.Fallback.cs" /> </ItemGroup>
 
 </Project>

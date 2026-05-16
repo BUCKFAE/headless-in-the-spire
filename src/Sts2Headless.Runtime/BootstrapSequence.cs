@@ -34,8 +34,39 @@ public static class BootstrapSequence
             InjectModelSubtypes(sts2),
             InitSaveProgressData(sts2),
             InitModelIdSerializationCache(sts2),
+            ApplyHookPatches(sts2),
             CreateIroncladSmoke(sts2),
         ];
+    }
+
+    // Coverage instrumentation: Harmony-postfix every AbstractModel-hook
+    // override declared on a model subtype (relic/card/monster/potion/
+    // power). Must run after InjectModelSubtypes (the patch installer
+    // resolves canonical ids from ModelDb._contentById) and before
+    // CreateIroncladSmoke (so a smoke run sees the same instrumentation
+    // as real runs). Always-on — the only cost is bootstrap-time patching.
+    //
+    // All five kinds are bundled into one step so the bootstrap snapshot
+    // (BootstrapSequenceTests) stays a fixed list — adding a new kind
+    // doesn't require touching the test, only the inner per-kind list.
+    private static StepOutcome ApplyHookPatches(Assembly sts2)
+    {
+        const string label = "ModelHookPatcher.Apply (relic/card/monster/potion/power)";
+        try
+        {
+            var outcomes = new[]
+            {
+                RelicHookPatches.Apply(sts2),
+                PowerHookPatches.Apply(sts2),
+                MonsterHookPatches.Apply(sts2),
+                CardHookPatches.Apply(sts2),
+                PotionHookPatches.Apply(sts2),
+            };
+            var allOk = outcomes.All(o => o.Patched);
+            var detail = string.Join("; ", outcomes.Select(o => $"{o.Target}={o.Detail ?? "?"}"));
+            return new(label, allOk, detail);
+        }
+        catch (Exception ex) { return new(label, false, Describe(Unwrap(ex))); }
     }
 
     private static StepOutcome SetTestMode(Assembly sts2)
@@ -137,7 +168,17 @@ public static class BootstrapSequence
         }
         catch (Exception ex) { return new(label, false, "reading All: " + Describe(Unwrap(ex))); }
 
-        int registered = 0, failed = 0;
+        // The bootstrap chain is conceptually idempotent — calling it a
+        // second time in the same process (e.g. when two xUnit fixtures both
+        // bootstrap in-process under parallel test execution, or when a
+        // probe command re-bootstraps after a prior command in the same
+        // host) must not fail. sts2 itself enforces "one canonical model
+        // per type" by throwing DuplicateModelException from each model's
+        // constructor when it sees a sibling canonical already in
+        // ModelDb._contentById. We treat that specific exception as no-op
+        // success: the canonical is already in place, which is all we
+        // wanted anyway. Any *other* exception still counts as a failure.
+        int registered = 0, duplicates = 0, failed = 0;
         var firstFailures = new List<string>(capacity: 5);
         foreach (var entry in list)
         {
@@ -149,15 +190,21 @@ public static class BootstrapSequence
             }
             catch (Exception ex)
             {
+                var inner = Unwrap(ex);
+                if (string.Equals(inner.GetType().Name, "DuplicateModelException", StringComparison.Ordinal))
+                {
+                    duplicates++;
+                    continue;
+                }
                 failed++;
                 if (firstFailures.Count < 3)
                 {
-                    firstFailures.Add($"{t.Name}: {Describe(Unwrap(ex))}");
+                    firstFailures.Add($"{t.Name}: {Describe(inner)}");
                 }
             }
         }
 
-        var detail = $"{registered} registered, {failed} failed of {list.Count}";
+        var detail = $"{registered} registered, {duplicates} already present, {failed} failed of {list.Count}";
         if (firstFailures.Count > 0) detail += $" [first: {string.Join(" | ", firstFailures)}]";
         return new(label, failed == 0, detail);
     }

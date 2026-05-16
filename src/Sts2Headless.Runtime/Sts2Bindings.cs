@@ -894,9 +894,12 @@ public sealed partial class Sts2Bindings
     // Read Player.PotionSlots into the wire DTO. Empty slots (null entries
     // in the engine list) are skipped — the wire indices are dense, so a
     // caller's `potionIndex` always lands on a real potion. The potion id
-    // we surface is the engine type's short name (e.g. "BlockPotion") since
-    // PotionModel doesn't expose a stable string id; callers translate to
-    // human-readable names themselves.
+    // we surface is the model's canonical wire form via Id.Entry (e.g.
+    // "BLOCK_POTION"), matching cards/relics/merchant entries. PotionModel
+    // is AbstractModel-derived so its Id property is inherited; we look it
+    // up reflectively per type (cached implicitly by the runtime — there
+    // are ~10 distinct PotionModel subclasses per run, all in cs.Hand-style
+    // hot paths).
     private IReadOnlyList<OwnedPotion> ReadOwnedPotions(RunHandle handle)
     {
         if (_playerPotionSlots is null) return Array.Empty<OwnedPotion>();
@@ -908,7 +911,9 @@ public sealed partial class Sts2Bindings
         foreach (var potion in slots)
         {
             if (potion is null) { idx++; continue; }
-            var id = potion.GetType().Name;
+            var idProp = potion.GetType().GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+            var id = (idProp is not null ? ReadEntryId(idProp, potion) : null)
+                     ?? potion.GetType().Name;  // last-ditch: GetType().Name as before
             var target = _potionTargetType?.GetValue(potion) is { } tt
                 ? ParseEnum<TargetType>(tt)
                 : TargetType.Unknown;
@@ -974,8 +979,21 @@ public sealed partial class Sts2Bindings
     }
 
     // Read the .Entry string off an Id-shaped object (sts2 wraps stable ids in
-    // a struct/record with a public .Entry property). Returns null when the
-    // owner is null or .Entry isn't there — caller substitutes a fallback.
+    // a struct/record with a public .Entry member). Returns null when the
+    // owner is null or .Entry can't be located — caller substitutes a fallback.
+    //
+    // sts2 surfaces three shapes through "id"-looking properties:
+    //   1. Strongly-typed: CardId, RelicId, MonsterId, PowerId — structs
+    //      whose Entry is a PROPERTY. Bound up-front via _idEntry.
+    //   2. Generic ModelId: a class with Entry as a property (registry key
+    //      shape; used by merchant entries).
+    //   3. AbstractModel reference: PotionReward.Potion returns a PotionModel
+    //      directly (not a ModelId). The model carries .Id which is the
+    //      strongly-typed shape from #1.
+    //
+    // We try (1) fast-path, then look for Entry directly on the value
+    // (handles #2), then unwrap a .Id step (handles #3). No compile-time
+    // sts2 type names per AD-4 — all reflection.
     private string? ReadEntryId(PropertyInfo? idProp, object owner)
     {
         if (idProp is null) return null;
@@ -985,10 +1003,27 @@ public sealed partial class Sts2Bindings
         {
             return _idEntry.GetValue(idValue) as string;
         }
-        // Different Id types (Monster.Id, Power.Id) all expose .Entry but have
-        // distinct declaring types; fall back to a direct lookup.
-        var entryProp = idValue.GetType().GetProperty("Entry", BindingFlags.Public | BindingFlags.Instance);
-        return entryProp?.GetValue(idValue) as string;
+        // Direct: value itself exposes .Entry.
+        if (TryReadEntryMember(idValue) is string direct) return direct;
+        // Indirect: value is a model whose .Id is the strongly-typed Id
+        // (PotionModel.Id, MonsterModel.Id, RelicModel.Id — the AbstractModel
+        // contract). Follow one step and re-check.
+        var nestedIdProp = idValue.GetType().GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+        if (nestedIdProp?.GetValue(idValue) is object nested && TryReadEntryMember(nested) is string indirect)
+            return indirect;
+        return null;
+    }
+
+    // Locate an "Entry" string on @value, trying property then field. Used
+    // by ReadEntryId for both the direct-value and unwrap-one-step paths.
+    private static string? TryReadEntryMember(object value)
+    {
+        var t = value.GetType();
+        var entryProp = t.GetProperty("Entry", BindingFlags.Public | BindingFlags.Instance);
+        if (entryProp?.GetValue(value) is string sProp) return sProp;
+        var entryField = t.GetField("Entry", BindingFlags.Public | BindingFlags.Instance);
+        if (entryField?.GetValue(value) is string sField) return sField;
+        return null;
     }
 
     private static TEnum ParseEnum<TEnum>(object? value) where TEnum : struct, Enum

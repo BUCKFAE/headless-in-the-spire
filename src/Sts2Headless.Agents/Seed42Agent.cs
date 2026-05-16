@@ -158,16 +158,17 @@ public sealed class Seed42Agent : HeuristicAgent
 
     // ── Potion-use decision ─────────────────────────────────────────────
     //
-    // Trigger gates per potion id:
-    //   * BlockPotion: incoming damage would land >= 8 unblocked HP and HP
+    // Trigger gates per potion id (matched on the canonical wire form,
+    // SCREAMING_SNAKE_CASE — see Sts2Bindings.ReadOwnedPotions):
+    //   * BLOCK_POTION: incoming damage would land >= 8 unblocked HP and HP
     //     is at-or-below 50% maxHp. Saved for "this turn would otherwise
     //     hurt a lot" — at full HP we'd rather hoard the cushion.
-    //   * EnergyPotion: hand has cost-2+ playable cards (e.g. BLUDGEON,
+    //   * ENERGY_POTION: hand has cost-2+ playable cards (e.g. BLUDGEON,
     //     UPPERCUT) we can't afford this turn, AND a high-priority target
     //     exists (low-HP enemy or boss).
-    //   * Strength / Dexterity / Flex potions: round 1 only (long fight
+    //   * STRENGTH/DEXTERITY/FLEX potions: round 1 only (long fight
     //     ahead amortises the buff).
-    //   * EntropicBrew / utility: skip — too situational.
+    //   * ENTROPIC_BREW / utility: skip — too situational.
     private static (int potionIndex, int? targetIndex)? ChoosePotion(
         CombatState combat, RunStateResult s, int hp, int maxHp)
     {
@@ -192,39 +193,39 @@ public sealed class Seed42Agent : HeuristicAgent
         // The wire TargetType currently parses Unknown for potions, so
         // we hard-code targeting per known potion id: self-target potions
         // pass null; damage potions pass primaryTarget.
-        var enemyPotions = new[] { "FirePotion", "PoisonPotion", "AttackPotion",
-            "WeakPotion", "VulnerablePotion" };
+        var enemyPotions = new[] { "FIRE_POTION", "POISON_POTION", "ATTACK_POTION",
+            "WEAK_POTION", "VULNERABLE_POTION" };
         int? target = enemyPotions.Contains(potion.Id) ? primaryTarget.Index : (int?)null;
 
         switch (potion.Id)
         {
-            case "BlockPotion":
+            case "BLOCK_POTION":
                 return (unblocked >= 8 && hp <= maxHp / 2, target);
 
-            case "EnergyPotion":
+            case "ENERGY_POTION":
                 var hasUnaffordable = combat.Hand.Any(c => c.CanPlay && c.Cost > combat.Energy
                                                             && CardMechanics.Get(c.Id).Damage > 0);
                 return (hasUnaffordable && hp > maxHp / 4, target);
 
-            case "RegenPotion":
+            case "REGEN_POTION":
                 return (hp <= maxHp * 6 / 10 && combat.Round <= 3, target);
 
-            case "BloodPotion":
+            case "BLOOD_POTION":
                 return (hp < maxHp / 2, target);
 
-            case "StrengthPotion":
-            case "DexterityPotion":
-            case "FlexPotion":
-            case "FocusPotion":
+            case "STRENGTH_POTION":
+            case "DEXTERITY_POTION":
+            case "FLEX_POTION":
+            case "FOCUS_POTION":
                 return (combat.Round == 1, target);
 
-            case "FirePotion":
-            case "PoisonPotion":
-            case "AttackPotion":
+            case "FIRE_POTION":
+            case "POISON_POTION":
+            case "ATTACK_POTION":
                 return (primaryTarget.Hp <= 25, target);
 
-            case "WeakPotion":
-            case "VulnerablePotion":
+            case "WEAK_POTION":
+            case "VULNERABLE_POTION":
                 return (combat.Round == 1, target);
 
             default:

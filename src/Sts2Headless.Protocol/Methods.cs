@@ -228,12 +228,14 @@ public sealed record Relic(
 
 // One potion in a player's belt slot. Index is the slot position (pass
 // back via run/use_potion.potionIndex); empty slots are omitted entirely
-// rather than surfaced as nulls. Id is the engine's stable potion class
-// name (e.g. "BlockPotion", "EnergyPotion"); TargetType drives whether
-// targetIndex is required on use (AnyEnemy → required; Self / None →
-// ignored). CanUse reflects sts2's PassesCustomUsabilityCheck — most
-// potions are always usable in combat, but a handful (FoulPotion etc.)
-// gate themselves by run state.
+// rather than surfaced as nulls. Id is the engine's canonical wire id
+// (e.g. "BLOCK_POTION", "ENERGY_POTION") — the same SCREAMING_SNAKE_CASE
+// form cards/relics use, and the same form catalogued in
+// PotionIdNames.AllWireNames. TargetType drives whether targetIndex is
+// required on use (AnyEnemy → required; Self / None → ignored). CanUse
+// reflects sts2's PassesCustomUsabilityCheck — most potions are always
+// usable in combat, but a handful (FoulPotion etc.) gate themselves by
+// run state.
 public sealed record OwnedPotion(
     [property: JsonPropertyName("index")] int Index,
     [property: JsonPropertyName("id")] string Id,
@@ -405,6 +407,40 @@ public sealed record RunNewResult(
 
 // ── run/state ────────────────────────────────────────────────────────────
 
+// One coverage-instrumentation event captured by a Harmony postfix between
+// the previous run/state read and this one. Today only relic hooks are
+// patched — kind is always "relic" — but the field is shaped to grow
+// without breaking the wire when card/power/potion patches land (each
+// just adds a new kind value).
+//
+// Source is the model's canonical wire id (e.g. "LUCKY_FYSH"), Hook is the
+// AbstractModel virtual that fired (e.g. "AfterCardChangedPiles"). The
+// pair `(kind, source, hook)` is sufficient to attribute the firing to a
+// specific (relic, response) pair; coverage tooling aggregates these into
+// the Triggered axis.
+//
+// The buffer is drained on every run/state response — clients that read
+// state twice in a row see the same trigger events ONLY for the first
+// read. Skipping a run/state means losing that window's trigger events
+// (the buffer caps at TriggerLog.Capacity to bound the leak); a future
+// notification stream would remove that constraint without changing this
+// field's shape.
+[JsonConverter(typeof(JsonStringEnumConverter<TriggerKind>))]
+public enum TriggerKind
+{
+    [JsonStringEnumMemberName("unknown")] Unknown,
+    [JsonStringEnumMemberName("relic")] Relic,
+    [JsonStringEnumMemberName("card")] Card,
+    [JsonStringEnumMemberName("monster")] Monster,
+    [JsonStringEnumMemberName("potion")] Potion,
+    [JsonStringEnumMemberName("power")] Power,
+}
+
+public sealed record TriggerEvent(
+    [property: JsonPropertyName("kind")] TriggerKind Kind,
+    [property: JsonPropertyName("source")] string Source,
+    [property: JsonPropertyName("hook")] string Hook);
+
 // No params record — run/state reads from session state.
 public sealed record RunStateResult(
     [property: JsonPropertyName("ok")] bool Ok,
@@ -427,7 +463,15 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
-    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions,
+    // Coverage instrumentation. Empty for callers that don't bootstrap
+    // RelicHookPatches; otherwise carries every relic-hook firing since
+    // the previous run/state read. See TriggerEvent for the shape.
+    // triggeredDropped > 0 indicates the buffer overflowed — callers
+    // can surface that as a warning, or just treat it as "go read state
+    // more often".
+    [property: JsonPropertyName("triggeredSincePrev")] IReadOnlyList<TriggerEvent> TriggeredSincePrev,
+    [property: JsonPropertyName("triggeredDropped")] long TriggeredDropped);
 
 // ── run/select_map_node ──────────────────────────────────────────────────
 

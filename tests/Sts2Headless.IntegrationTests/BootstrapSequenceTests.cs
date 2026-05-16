@@ -1,3 +1,4 @@
+using Sts2Headless.IntegrationTests.Coverage;
 using Sts2Headless.Runtime;
 using Xunit;
 
@@ -17,6 +18,7 @@ namespace Sts2Headless.IntegrationTests;
 // chunk flips a step's Ok value, this test fails — that's the reminder to
 // update the snapshot. Same in the other direction: if anything we already
 // proved working regresses, the diff shows exactly which step is now wrong.
+[Collection(InProcessSts2Collection.Name)]
 public class BootstrapSequenceTests
 {
     [Fact]
@@ -39,9 +41,13 @@ public class BootstrapSequenceTests
 
         var steps = BootstrapSequence.Apply(preamble.Sts2!);
 
-        // Snapshot of the known state as of 2026-05-13. Fully green: ModelDb
+        // Snapshot of the known state as of 2026-05-16. Fully green: ModelDb
         // injection runs before InitProgressData so ProgressSaveManager's
-        // CHARACTER.* lookups resolve.
+        // CHARACTER.* lookups resolve. The bundled hook-patcher step
+        // installs Harmony postfixes for relic/card/monster/potion/power
+        // hooks; runs after ModelIdSerializationCache (it needs ModelDb
+        // populated) and before CreateIroncladSmoke (so the smoke run
+        // is instrumented like real runs).
         var expected = new (string Label, bool Ok)[]
         {
             ("TestMode.IsOn = true", true),
@@ -50,6 +56,7 @@ public class BootstrapSequenceTests
             ("ModelDb.Inject loop over AbstractModelSubtypes.All", true),
             ("InitProgressData()", true),
             ("ModelIdSerializationCache.Init()", true),
+            ("ModelHookPatcher.Apply (relic/card/monster/potion/power)", true),
             ("Player.CreateForNewRun<Ironclad>(UnlockState.all, 1uL)", true),
         };
 
