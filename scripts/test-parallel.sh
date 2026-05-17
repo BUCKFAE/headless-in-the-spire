@@ -29,14 +29,20 @@ UNIT_THREADS="${XUNIT_THREADS_UNIT:-4}"
 LOG_DIR="$(mktemp -d -t sts2-test-parallel.XXXXXX)"
 trap 'rm -rf "$LOG_DIR"' EXIT
 
-declare -A PIDS
+# Parallel indexed arrays keep this script working on stock macOS bash 3.2,
+# which lacks `declare -A`. Each task gets the same index across NAMES/PIDS;
+# completed slots set PIDS[i]="" so the drain loop can skip them.
+NAMES=()
+PIDS=()
 
 start() {
     local name=$1
     shift
     ( "$@" ) > "$LOG_DIR/$name.log" 2>&1 &
-    PIDS[$name]=$!
-    echo "[$name] started (pid=${PIDS[$name]}, log=$LOG_DIR/$name.log)"
+    local pid=$!
+    NAMES+=("$name")
+    PIDS+=("$pid")
+    echo "[$name] started (pid=$pid, log=$LOG_DIR/$name.log)"
 }
 
 start unit \
@@ -57,45 +63,51 @@ start lint-python bash -c "uv run ruff check clients/python/ && uv run ruff form
 
 start typecheck-python uv run pyright
 
+remaining() {
+    local n=0
+    local p
+    for p in "${PIDS[@]}"; do
+        [ -n "$p" ] && n=$((n + 1))
+    done
+    echo "$n"
+}
+
 failed=()
 
-while [ ${#PIDS[@]} -gt 0 ]; do
+# Drain in submission order: wait on the next live PID and report it
+# when it finishes. Bash 3.2 lacks `wait -n -p`, so this is the simplest
+# portable shape; per-task interleaving in the summary matches the old
+# bash 3.2 fallback path. Slightly less responsive than the original
+# `wait -n -p` (a later-submitted task that finishes first still has to
+# wait for earlier tasks to be reaped), but the totals are unaffected.
+while [ "$(remaining)" -gt 0 ]; do
     completed_pid=""
-    wait -n -p completed_pid
-    rc=$?
-    if [ -z "${completed_pid:-}" ]; then
-        # bash <5.1 lacks `wait -p`. Fall back to draining tasks in submission
-        # order; the summary still works, just without per-task interleaving.
-        for name in unit integration end2end python lint-python typecheck-python; do
-            if [ -n "${PIDS[$name]:-}" ]; then
-                completed_pid="${PIDS[$name]}"
-                wait "$completed_pid"
-                rc=$?
-                break
-            fi
-        done
-    fi
-    if [ -z "${completed_pid:-}" ]; then
-        # Shouldn't happen, but bail rather than infinite-loop.
-        echo "internal error: no completed pid"
-        exit 2
-    fi
-    for name in "${!PIDS[@]}"; do
-        if [ "${PIDS[$name]}" = "$completed_pid" ]; then
-            unset 'PIDS[$name]'
-            if [ $rc -eq 0 ]; then
-                marker="ok"
-            else
-                marker="FAIL (exit $rc)"
-                failed+=("$name")
-            fi
-            echo
-            echo "──── [$name] $marker ────"
-            cat "$LOG_DIR/$name.log"
-            echo "──── [$name] end ────"
+    completed_idx=-1
+    for i in "${!PIDS[@]}"; do
+        if [ -n "${PIDS[$i]}" ]; then
+            completed_pid="${PIDS[$i]}"
+            completed_idx=$i
             break
         fi
     done
+    if [ -z "$completed_pid" ]; then
+        echo "internal error: no live pid"
+        exit 2
+    fi
+    wait "$completed_pid"
+    rc=$?
+    name="${NAMES[$completed_idx]}"
+    PIDS[$completed_idx]=""
+    if [ $rc -eq 0 ]; then
+        marker="ok"
+    else
+        marker="FAIL (exit $rc)"
+        failed+=("$name")
+    fi
+    echo
+    echo "──── [$name] $marker ────"
+    cat "$LOG_DIR/$name.log"
+    echo "──── [$name] end ────"
 done
 
 echo

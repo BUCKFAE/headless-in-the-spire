@@ -445,7 +445,31 @@ public static class HostMethods
         var args = @params
             ?? throw new ArgumentException("run/play_card requires params {cardIndex, targetIndex?}");
 
-        bindings.PlayCard(run, args.CardIndex, args.TargetIndex);
+        // Stage any caller-supplied card-select hints in the selector's queue
+        // before the play runs. Each inner list is one prompt the engine
+        // raises; consumed FIFO during OnPlay. We clear any leftover hints
+        // before AND after to keep stale ones from bleeding across requests.
+        var selector = bindings.CardSelector;
+        if (selector is not null)
+        {
+            selector.ClearPending();
+            if (args.CardSelectIndices is { Count: > 0 } hints)
+            {
+                foreach (var hint in hints)
+                {
+                    selector.QueueSelection(hint);
+                }
+            }
+        }
+
+        try
+        {
+            bindings.PlayCard(run, args.CardIndex, args.TargetIndex);
+        }
+        finally
+        {
+            selector?.ClearPending();
+        }
 
         var s = bindings.ReadSnapshot(run);
         return new RunPlayCardResult(

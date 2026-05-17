@@ -292,10 +292,19 @@ public sealed partial class Sts2Bindings
     // back to manually triggering SwitchFromPlayerToEnemySide.
     private readonly InlineSynchronizationContext? _syncCtx;
 
-    private Sts2Bindings(Assembly sts2, BindingState s, InlineSynchronizationContext? syncCtx)
+    // The card selector wired into sts2's CardSelectCmd.UseSelector hook.
+    // Exposed so HostMethods can push per-request selection hints (the
+    // optional `cardSelectIndices` on run/play_card) before the action runs
+    // and clear leftover hints after. Null when bootstrap couldn't resolve
+    // ICardSelector — in that case card-selecting cards revert to the
+    // crashing baseline and the integration test for them stays red.
+    public HeadlessCardSelector? CardSelector { get; }
+
+    private Sts2Bindings(Assembly sts2, BindingState s, InlineSynchronizationContext? syncCtx, HeadlessCardSelector? cardSelector)
     {
         Sts2 = sts2;
         _syncCtx = syncCtx;
+        CardSelector = cardSelector;
         _playerType = s.PlayerType;
         _createIroncladRun = s.CreateIroncladRun;
         _unlockStateAll = s.UnlockStateAll;
@@ -2769,7 +2778,7 @@ public sealed partial class Sts2Bindings
         _createIroncladRun.Invoke(null, new object?[] { _unlockStateAll, seed })
             ?? throw new InvalidOperationException("Player.CreateForNewRun returned null");
 
-    public static Sts2Bindings Bind(Assembly sts2, InlineSynchronizationContext? syncCtx = null)
+    public static Sts2Bindings Bind(Assembly sts2, InlineSynchronizationContext? syncCtx = null, HeadlessCardSelector? cardSelector = null)
     {
         var playerType = Require(sts2, "MegaCrit.Sts2.Core.Entities.Players.Player");
         var ironcladType = Require(sts2, "MegaCrit.Sts2.Core.Models.Characters.Ironclad");
@@ -3151,7 +3160,7 @@ public sealed partial class Sts2Bindings
             merchantRelicEntryType, merchantRelicEntryModel, relicModelId,
             merchantPotionEntryType, merchantPotionEntryModel, potionModelId,
             merchantCardRemovalEntryType,
-            combat, rewards), syncCtx);
+            combat, rewards), syncCtx, cardSelector);
     }
 
     // Reward surface discovery. Tries the well-known FQNs first (matching

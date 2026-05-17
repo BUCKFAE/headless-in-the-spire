@@ -69,6 +69,7 @@ if (args.Contains("--probe-listener-dispatch"))
     return ProbeListenerDispatchCommand.Run(vendorDir, repoRoot);
 }
 
+
 if (args.Contains("--stdio"))
 {
     var preamble = RuntimeBootstrap.Run(vendorDir);
@@ -85,8 +86,15 @@ if (args.Contains("--stdio"))
         if (!step.Ok) Console.Error.WriteLine($"sts2-headless: bootstrap step '{step.Label}' did not succeed — {step.Detail}");
     }
 
+    if (!preamble.CardSelector.Installed)
+    {
+        // Loud non-fatal warning so an operator notices a regression in the
+        // selector install without the host refusing to serve simpler cards.
+        Console.Error.WriteLine($"sts2-headless: ICardSelector did not install — {preamble.CardSelector.Detail}. Cards that prompt for card selection (Headbutt, Armaments, Burning Pact, event card-picks) will crash.");
+    }
+
     Sts2Bindings bindings;
-    try { bindings = Sts2Bindings.Bind(preamble.Sts2!, preamble.SyncContext); }
+    try { bindings = Sts2Bindings.Bind(preamble.Sts2!, preamble.SyncContext, preamble.CardSelector.Selector); }
     catch (Exception ex)
     {
         Console.Error.WriteLine($"sts2-headless: binding failed — {Diagnostics.Describe(Diagnostics.Unwrap(ex))}");

@@ -37,7 +37,33 @@ public static class HangPatches
             PatchCmdWait(harmony, sts2),
             PatchWaitUntilQueueIsEmpty(harmony, sts2),
             PatchTalkCmdPlay(harmony, sts2),
-            PatchCardSelectCmdFactories(harmony, sts2),
+            // CardSelectCmd.From* factories used to be patched here to return
+            // Task.FromResult(default) so events that opened a card-pick
+            // screen (e.g. RoomFullOfCheese.Gorge) wouldn't take the host
+            // down. That band-aid stopped the synchronous crash but left
+            // every card that legitimately needs a card-pick (Headbutt,
+            // Armaments, Burning Pact) awaiting a null CardSelectCmd. The
+            // supported fix is to install a MegaCrit.Sts2.Core.TestSupport
+            // .ICardSelector via CardSelectCmd.UseSelector — that runs in
+            // CardSelectorInstaller during RuntimeBootstrap and covers
+            // the screen-based factories (FromSimpleGrid, FromChooseACardScreen)
+            // that Headbutt uses end-to-end.
+            //
+            // FromHandForUpgrade (Armaments) and FromHandForDiscard
+            // (Burning Pact) need a different intervention: their bodies
+            // unconditionally call NPlayerHand.Instance.CancelAllCardPlay
+            // (NRE in headless — Instance is null) AND, on the
+            // ShouldSelectLocalCard=false branch, PlayerChoiceSynchronizer
+            // .WaitForRemoteChoice (throws "Cannot wait for remote choice
+            // in singleplayer!" by design). Both branches fail. The fix
+            // is to replace the body entirely with a prefix that runs the
+            // engine's hand-filter logic, consults our selector, and
+            // returns the picked CardModel via Task.FromResult — same
+            // contract as the original async method, none of the
+            // UI/choice-sync side effects that headless can't satisfy.
+            PatchFromHandForUpgrade(harmony, sts2),
+            PatchFromHandForDiscard(harmony, sts2),
+            PatchFromHand(harmony, sts2),
             PatchVantomDismemberMove(harmony, sts2),
             PatchEscapeArtistPowerAfterTurnEnd(harmony, sts2),
             PatchThievingHopperMoves(harmony, sts2),
@@ -131,59 +157,76 @@ public static class HangPatches
         return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
     }
 
-    // Defensive backstop for any code path that calls CardSelectCmd.From*
-    // factories in headless. Each factory is `static async Task<CardSelectCmd>`
-    // and synchronously calls NSimpleCardSelectScreen.Create /
-    // NDeckUpgradeSelectScreen.ShowScreen *before* the first await — which
-    // Load() the .tscn from the Godot asset cache (empty in headless) and
-    // NRE on the null result. Since the throw is pre-first-await, it
-    // surfaces synchronously, bubbles out of run/select_event_option, and
-    // aborts the host:
-    //
-    //   System.NullReferenceException
-    //     at NSimpleCardSelectScreen.Create(IReadOnlyList`1, CardSelectorPrefs)
-    //     at CardSelectCmd.FromSimpleGridForRewards(...)
-    //     at RoomFullOfCheese.Gorge()
-    //     at EventOption.Chosen()
-    //
-    // Patch shape: prefix returns Task.FromResult<TInner>(default) where
-    // TInner is the unwrapped return type. The caller awaits a null
-    // CardSelectCmd — most existing callers then dereference it and NRE
-    // *again* at the event-model layer. The agent-side fix
-    // (GreedyAgent.StepEventAsync prefers the last unlocked option, which
-    // is conventionally "Leave" / "Decline") avoids those handlers
-    // entirely. This patch remains as defense in depth: if a wire
-    // consumer or future agent picks a gorge-style option, the
-    // synchronous host-killing NRE is replaced with a softer
-    // null-deref-in-handler that an integration test can attribute to
-    // the event rather than the bridge.
-    private static PatchOutcome PatchCardSelectCmdFactories(Harmony harmony, Assembly sts2)
+    private static PatchOutcome PatchFromHandForUpgrade(Harmony harmony, Assembly sts2)
+        => PatchFromHandFactory(
+            harmony,
+            sts2,
+            methodName: "FromHandForUpgrade",
+            // Cards in hand that aren't already upgraded. CardModel.IsUpgraded
+            // returns true when the card is at max upgrade level (the engine
+            // refuses to upgrade further); the filter scoping is intentionally
+            // permissive so a hand with no upgradeable card just yields a
+            // null pick, matching the engine's "no eligible options" case.
+            filter: HeadlessCardSelectorBridge.IsNotUpgraded,
+            // Method wire signature is (PlayerChoiceContext, Player,
+            // AbstractModel) — no caller-supplied filter.
+            playerArgIndex: 1,
+            callerFilterArgIndex: -1);
+
+    private static PatchOutcome PatchFromHandForDiscard(Harmony harmony, Assembly sts2)
+        => PatchFromHandFactory(
+            harmony,
+            sts2,
+            methodName: "FromHandForDiscard",
+            // FromHandForDiscard's signature passes a caller-supplied
+            // filter (Func<CardModel, bool>) at arg[3]; we apply it to
+            // every hand card before picking.
+            filter: null,
+            playerArgIndex: 1,
+            callerFilterArgIndex: 3);
+
+    private static PatchOutcome PatchFromHand(Harmony harmony, Assembly sts2)
+        => PatchFromHandFactory(
+            harmony,
+            sts2,
+            methodName: "FromHand",
+            // FromHand's signature passes a caller-supplied filter (Func<
+            // CardModel, bool>) at arg[3]; BurningPact uses it to scope
+            // the pickable set. We honour it so the picked card is
+            // actually eligible for the caller's effect.
+            filter: null,
+            playerArgIndex: 1,
+            callerFilterArgIndex: 3);
+
+    private static PatchOutcome PatchFromHandFactory(
+        Harmony harmony,
+        Assembly sts2,
+        string methodName,
+        Func<object, bool>? filter,
+        int playerArgIndex,
+        int callerFilterArgIndex)
     {
-        const string label = "MegaCrit.Sts2.Core.Commands.CardSelectCmd.From*";
+        var label = $"MegaCrit.Sts2.Core.Commands.CardSelectCmd.{methodName}";
         var cmdType = sts2.GetType("MegaCrit.Sts2.Core.Commands.CardSelectCmd");
         if (cmdType is null)
         {
-            return new PatchOutcome(label, Patched: false, Detail: "type MegaCrit.Sts2.Core.Commands.CardSelectCmd not found");
+            return new PatchOutcome(label, Patched: false, Detail: "CardSelectCmd not found");
         }
-
-        var methods = cmdType.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
-            .Where(m => !m.IsSpecialName
-                        && m.Name.StartsWith("From", StringComparison.Ordinal)
-                        && typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
-            .ToArray();
-        if (methods.Length == 0)
+        var method = cmdType.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+            .FirstOrDefault(m => m.Name == methodName);
+        if (method is null)
         {
-            return new PatchOutcome(label, Patched: false, Detail: "no Task-returning From* methods on CardSelectCmd");
+            return new PatchOutcome(label, Patched: false, Detail: $"{methodName} not found on CardSelectCmd");
         }
-
-        var prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
-        var sigs = new List<string>(methods.Length);
-        foreach (var m in methods)
-        {
-            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
-            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
-        }
-        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+        // Bind the bridge once per patched method so the harmony prefix
+        // closes over the right filter+arg-indices.
+        HeadlessCardSelectorBridge.RegisterFromHandFactory(method, filter, playerArgIndex, callerFilterArgIndex);
+        var prefix = typeof(HeadlessCardSelectorBridge).GetMethod(
+            nameof(HeadlessCardSelectorBridge.FromHandFactoryPrefix),
+            BindingFlags.Public | BindingFlags.Static)
+            ?? throw new InvalidOperationException("HeadlessCardSelectorBridge.FromHandFactoryPrefix not found");
+        harmony.Patch(method, prefix: new HarmonyMethod(prefix));
+        return new PatchOutcome(label, Patched: true, Detail: $"args=({string.Join(",", method.GetParameters().Select(p => p.ParameterType.Name))})");
     }
 
     // Vantom (Act 1 elite-ish encounter) executes DismemberMove during its

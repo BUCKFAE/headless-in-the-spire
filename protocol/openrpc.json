@@ -2167,6 +2167,19 @@
               "null"
             ],
             "default": null
+          },
+          "cardSelectIndices": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "default": null
           }
         },
         "required": [

@@ -49,9 +49,16 @@ A gap that turns out to be unsolvable (or a deliberate non-goal) gets
 
 ## Open gaps
 
-- [`CardSelectionTests.cs`](./CardSelectionTests.cs) — cards that prompt the
-  player to choose another card (Headbutt, Armaments, …) currently crash the
-  host because `HangPatches.PatchCardSelectCmdFactories` returns a `null`
-  `CardSelectCmd`. Fix sketch: install a `MegaCrit.Sts2.Core.TestSupport.ICardSelector`
-  in `Sts2Headless.Runtime` (mirror `external-tools/sts2-cli/src/Sts2Headless/RunSimulator.cs`
-  → `HeadlessCardSelector`), then narrow or remove the Harmony patch.
+_(none currently — list new gap tests here as they're added.)_
+
+## Closed gaps
+
+- 2026-05-17: **card-pick prompts** (Headbutt, Armaments, Burning Pact,
+  event card-rewards). Closed by `Sts2Headless.Runtime/CardSelector.cs`
+  — a `DispatchProxy` implementation of `MegaCrit.Sts2.Core.TestSupport
+  .ICardSelector` registered via `CardSelectCmd.UseSelector` during
+  `RuntimeBootstrap.Run`. The Harmony `PatchCardSelectCmdFactories`
+  band-aid was removed at the same time (it was returning a null
+  `CardSelectCmd` *before* the factory could consult the selector).
+  Regression net moved to `tests/Sts2Headless.IntegrationTests/
+  CombatCardSelectionTests.cs`.

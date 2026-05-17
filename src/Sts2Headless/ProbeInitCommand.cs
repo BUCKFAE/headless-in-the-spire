@@ -34,6 +34,11 @@ internal static class ProbeInitCommand
             Console.WriteLine($"    [{status,-4}] {o.Target}{detail}");
         }
 
+        var selectorStatus = result.CardSelector.Installed ? "ok" : "MISS";
+        if (!result.CardSelector.Installed) allOk = false;
+        var selectorDetail = result.CardSelector.Detail is null ? "" : $"  ({result.CardSelector.Detail})";
+        Console.WriteLine($"  install ICardSelector:              {selectorStatus}{selectorDetail}");
+
         Console.WriteLine();
         Console.WriteLine(allOk ? "✅ runtime patches attached." : "⚠ one or more patches missed — see above.");
         return allOk ? 0 : 2;

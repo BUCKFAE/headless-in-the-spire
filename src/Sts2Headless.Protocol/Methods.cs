@@ -626,9 +626,21 @@ public sealed record RunEndTurnResult(
 // cardIndex is the position in the current snapshot's combatState.hand list.
 // targetIndex is required when the card's TargetType is AnyEnemy and is
 // otherwise ignored; the index matches combatState.enemies (alive-only).
+//
+// cardSelectIndices: optional hint for cards that prompt the player to
+// choose other cards mid-play (Headbutt picks one card from the discard
+// pile to put on top of the draw pile; Armaments picks a card in hand to
+// upgrade; Burning Pact picks one to discard). Each inner array is one
+// prompt, in the order the engine raises them. Indices are 0-based into
+// the options the engine offers (the discard pile / hand, etc.). When
+// omitted, the host's ICardSelector picks the first valid card per
+// prompt — deterministic and usually safe for cards whose effect doesn't
+// depend on which target is chosen, but agents that care should send
+// explicit indices.
 public sealed record RunPlayCardParams(
     [property: JsonPropertyName("cardIndex")] int CardIndex,
-    [property: JsonPropertyName("targetIndex")] int? TargetIndex = null);
+    [property: JsonPropertyName("targetIndex")] int? TargetIndex = null,
+    [property: JsonPropertyName("cardSelectIndices")] IReadOnlyList<IReadOnlyList<int>>? CardSelectIndices = null);
 
 public sealed record RunPlayCardResult(
     [property: JsonPropertyName("ok")] bool Ok,

@@ -59,6 +59,21 @@ class DebugGiveRelicResult(BaseModel):
     deck_size: Annotated[int, Field(alias="deckSize")]
 
 
+class DebugKillAllEnemiesParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+
+class DebugKillAllEnemiesResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    killed: int
+    combat_ended: Annotated[bool, Field(alias="combatEnded")]
+
+
 class DebugReplaceDeckParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -339,6 +354,9 @@ class RunPlayCardParams(BaseModel):
     )
     card_index: Annotated[int, Field(alias="cardIndex")]
     target_index: Annotated[int | None, Field(alias="targetIndex")] = None
+    card_select_indices: Annotated[
+        list[list[int]] | None, Field(alias="cardSelectIndices")
+    ] = None
 
 
 class RunSelectEventOptionParams(BaseModel):

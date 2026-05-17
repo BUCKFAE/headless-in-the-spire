@@ -19,19 +19,21 @@ public static class RuntimeBootstrap
         bool TestModeEnabled,
         IReadOnlyList<HangPatches.PatchOutcome> Patches,
         IReadOnlyList<LocPatches.PatchOutcome> LocPatches,
-        InlineSynchronizationContext? SyncContext);
+        InlineSynchronizationContext? SyncContext,
+        CardSelectorInstaller.InstallOutcome CardSelector);
 
     public static Result Run(string vendorDir)
     {
-        var sts2Path = Path.Combine(vendorDir, "sts2.dll");
-        if (!File.Exists(sts2Path))
+        if (!File.Exists(Path.Combine(vendorDir, "sts2.dll")))
         {
             return new Result(null, "vendor/sts2.dll missing — run `just setup`.", false, false,
                 Array.Empty<HangPatches.PatchOutcome>(),
                 Array.Empty<LocPatches.PatchOutcome>(),
-                SyncContext: null);
+                SyncContext: null,
+                CardSelector: new CardSelectorInstaller.InstallOutcome(false, "sts2.dll missing", null));
         }
 
+        var sts2Path = Path.Combine(vendorDir, "sts2.dll");
         var sts2 = AssemblyLoadContext.Default.LoadFromAssemblyPath(sts2Path);
 
         var syncCtx = new InlineSynchronizationContext();
@@ -49,7 +51,16 @@ public static class RuntimeBootstrap
 
         var patches = HangPatches.Apply(sts2);
         var locPatches = LocPatches.Apply(sts2);
-        return new Result(sts2, null, true, testModeOn, patches, locPatches, syncCtx);
+        // The selector is the supported sts2 hook for card-pick prompts; with
+        // one installed, CardSelectCmd.From* factories route the choice
+        // through us instead of trying to load a Godot scene. Without it,
+        // Headbutt / Armaments / Burning Pact / event "pick a card" all
+        // NRE inside their OnPlay because the factory result they await is
+        // null. Failure here is non-fatal at bootstrap — the wire surface
+        // still works for non-selecting cards — but it is loud on probe-init
+        // so an operator sees the regression before they reach a Headbutt.
+        var cardSelector = CardSelectorInstaller.Install(sts2);
+        return new Result(sts2, null, true, testModeOn, patches, locPatches, syncCtx, cardSelector);
     }
 
     private static bool SetTestModeOn(Assembly sts2)

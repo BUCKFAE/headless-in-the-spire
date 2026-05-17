@@ -44,11 +44,18 @@ from headless_in_the_spire_agents import (
 # run seed so a stochastic agent (RandomAgent) gets a deterministic
 # stream; deterministic agents ignore it. Keep this dict the single
 # source of truth — `--agents` filters by these keys.
+#
+# The pyright suppression on the lambdas is unavoidable: each concrete
+# agent class declares `name` via HeuristicAgent's ClassVar contract, but
+# the Agent protocol declares it as a plain `str`. The asymmetry is
+# benign at runtime (both shapes resolve to a class-level string) and
+# tightening the protocol to ClassVar cascades into errors on every
+# concrete subclass that uses plain `name = "..."` syntax.
 AGENT_FACTORIES: dict[str, Callable[[int], Agent]] = {
-    GreedyAgent.name: lambda _seed: GreedyAgent(),
-    RandomAgent.name: lambda seed: RandomAgent(seed=seed),
-    BlockAgent.name: lambda _seed: BlockAgent(),
-    AttackAgent.name: lambda _seed: AttackAgent(),
+    GreedyAgent.name: lambda _seed: GreedyAgent(),  # pyright: ignore[reportAssignmentType]
+    RandomAgent.name: lambda seed: RandomAgent(seed=seed),  # pyright: ignore[reportAssignmentType]
+    BlockAgent.name: lambda _seed: BlockAgent(),  # pyright: ignore[reportAssignmentType]
+    AttackAgent.name: lambda _seed: AttackAgent(),  # pyright: ignore[reportAssignmentType]
 }
 
 
