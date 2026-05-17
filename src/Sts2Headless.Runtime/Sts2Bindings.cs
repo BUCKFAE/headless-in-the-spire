@@ -2148,6 +2148,79 @@ public sealed partial class Sts2Bindings
             var sync = _runManagerRewardSynchronizer.GetValue(handle.RunManager);
             if (sync is not null) _rewardSyncSyncLocalObtainedCard.Invoke(sync, new[] { picked });
         }
+
+        // Engine bookkeeping the bypass skipped: stamp CardChoices on
+        // the current map-point's player_stats with one entry per
+        // offered card (was_picked=true for the picked one, false for
+        // the rest). The engine's `CardReward.OnSelectWrapper` does
+        // this around line 44197 of the v0.103.2 decompile; we don't
+        // call OnSelectWrapper because it depends on the NCardReward
+        // UI screen, which is null in our headless context. Without
+        // this stamping, `run.json` only carries `cards_gained` and
+        // the viewer can't tell the user what options were offered
+        // (only what was picked). Best-effort: any reflection miss
+        // surfaces on stderr but doesn't break the pick.
+        StampCardChoices(handle, picked, cards);
+    }
+
+    private void StampCardChoices(RunHandle handle, object pickedCard, IReadOnlyList<object> offeredCards)
+    {
+        try
+        {
+            var runManagerType = handle.RunManager.GetType();
+            var stateProp = runManagerType.GetProperty("State", BindingFlags.NonPublic | BindingFlags.Instance);
+            var state = stateProp?.GetValue(handle.RunManager);
+            if (state is null) return;
+
+            var currentEntryProp = state.GetType().GetProperty("CurrentMapPointHistoryEntry", BindingFlags.Public | BindingFlags.Instance);
+            var currentEntry = currentEntryProp?.GetValue(state);
+            if (currentEntry is null) return;
+
+            var getEntry = currentEntry.GetType().GetMethod("GetEntry", BindingFlags.Public | BindingFlags.Instance, [typeof(ulong)]);
+            if (getEntry is null) return;
+
+            // For single-player our local NetId is 1. The recorder
+            // already uses LocalContext.NetId; here we read the same
+            // value off RunState.Players[0].NetId to avoid pulling
+            // LocalContext into the runtime layer.
+            var playersProp = state.GetType().GetProperty("Players", BindingFlags.Public | BindingFlags.Instance);
+            var players = playersProp?.GetValue(state) as System.Collections.IEnumerable;
+            var first = players?.Cast<object?>().FirstOrDefault();
+            if (first is null) return;
+            var netId = (ulong)(_playerNetId.GetValue(first) ?? 0uL);
+
+            var playerEntry = getEntry.Invoke(currentEntry, [netId]);
+            if (playerEntry is null) return;
+            var cardChoicesProp = playerEntry.GetType().GetProperty("CardChoices", BindingFlags.Public | BindingFlags.Instance);
+            var cardChoices = cardChoicesProp?.GetValue(playerEntry);
+            if (cardChoices is null) return;
+
+            var entryType = handle.RunManager.GetType().Assembly.GetType("MegaCrit.Sts2.Core.Runs.History.CardChoiceHistoryEntry");
+            if (entryType is null) return;
+            // The constructor is `(CardModel card, bool wasPicked)`.
+            // The CardModel parameter type matches whatever `picked`
+            // is at runtime — resolve dynamically rather than naming
+            // CardModel at compile time (AD-4).
+            var entryCtor = entryType.GetConstructors().FirstOrDefault(c => c.GetParameters().Length == 2);
+            if (entryCtor is null) return;
+
+            var listAdd = cardChoices.GetType().GetMethod("Add", BindingFlags.Public | BindingFlags.Instance);
+            if (listAdd is null) return;
+
+            // Picked card first (mirrors engine ordering).
+            var pickedEntry = entryCtor.Invoke([pickedCard, true]);
+            listAdd.Invoke(cardChoices, [pickedEntry]);
+            foreach (var c in offeredCards)
+            {
+                if (ReferenceEquals(c, pickedCard)) continue;
+                var unpickedEntry = entryCtor.Invoke([c, false]);
+                listAdd.Invoke(cardChoices, [unpickedEntry]);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Sts2Bindings.StampCardChoices: {ex}");
+        }
     }
 
     // Best-effort OnSelectWrapper invocation for non-card rewards. Goes

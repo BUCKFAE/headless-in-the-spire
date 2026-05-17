@@ -54,6 +54,20 @@ public class RunHistoryFloorStatsTests
         }
         Assert.NotNull(rewards);
 
+        // Drain every reward so the card-pick path
+        // (Sts2Bindings.ClaimCardReward → StampCardChoices) actually
+        // fires. The agent picks index 0 of every card reward; non-
+        // card rewards (gold / relic / potion) just get claimed.
+        for (var safety = 0; safety < 12 && rewards is not null && rewards.Available.Count > 0; safety++)
+        {
+            var head = rewards.Available[0];
+            int? cardIndex = head.Kind == RewardKind.Card && head.Cards is { Count: > 0 } ? 0 : null;
+            var afterSelect = await host.SendAsync<RunSelectRewardResult>(
+                "run/select_reward", new RunSelectRewardParams(RewardIndex: 0, CardIndex: cardIndex));
+            rewards = afterSelect.RewardsState;
+        }
+        Assert.Null(rewards);
+
         // Force flush of the first run's manifest + run.json by
         // starting a second run.
         await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 7uL));
@@ -91,6 +105,22 @@ public class RunHistoryFloorStatsTests
         // generation regresses, the floor-end gold must be > 0.
         var currentGold = playerStats.TryGetPropertyValue("current_gold", out var g) && g is not null ? (int)g! : 0;
         Assert.True(currentGold > 0, $"current_gold should be > 0 after the first combat; got {currentGold}");
+
+        // Card rewards: the agent picked a card after the first
+        // combat. card_choices on that floor's player_stats should
+        // list every offered card with `was_picked` toggling exactly
+        // one to true. The engine's CardReward.OnSelectWrapper would
+        // do this; we bypass it (UI calls aren't headless-safe), so
+        // ClaimCardReward stamps it ourselves. Without that, only
+        // `cards_gained` populates and the viewer can't show the
+        // user "what were the options?".
+        var cardChoicesNode = playerStats["card_choices"];
+        Assert.NotNull(cardChoicesNode);
+        var cardChoices = cardChoicesNode!.AsArray();
+        Assert.True(cardChoices.Count >= 2,
+            $"card_choices should list every offered card (typically 3); got {cardChoices.Count}");
+        var pickedCount = cardChoices.Count(c => (bool)c!["was_picked"]!);
+        Assert.Equal(1, pickedCount);
     }
 
     private sealed class TempReplayRoot : IDisposable
