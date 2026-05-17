@@ -32,7 +32,12 @@ from headless_in_the_spire_agents.agent import (
     HeuristicAgent,
     NoLegalActionError,
 )
-from headless_in_the_spire_agents.agents import GreedyAgent
+from headless_in_the_spire_agents.agents import (
+    AttackAgent,
+    BlockAgent,
+    GreedyAgent,
+    RandomAgent,
+)
 from headless_in_the_spire_agents.driver import (
     RunOutcome,
     StepObserver,
@@ -46,6 +51,8 @@ __version__ = "0.0.1"
 __all__ = [
     "Action",
     "Agent",
+    "AttackAgent",
+    "BlockAgent",
     "EndTurn",
     "GameSnapshot",
     "GreedyAgent",
@@ -53,6 +60,7 @@ __all__ = [
     "NoLegalActionError",
     "Phase",
     "PlayCard",
+    "RandomAgent",
     "RunOutcome",
     "SelectEventOption",
     "SelectMapNode",

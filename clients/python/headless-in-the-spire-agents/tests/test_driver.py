@@ -228,6 +228,8 @@ class FakeClient:
 class _ScriptedAgent:
     """Agent that emits a pre-canned sequence of actions."""
 
+    name = "scripted"
+
     def __init__(self, actions: list[Action]) -> None:
         self._actions = list(actions)
 

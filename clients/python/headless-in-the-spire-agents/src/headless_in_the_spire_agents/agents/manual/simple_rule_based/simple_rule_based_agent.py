@@ -2,6 +2,8 @@ from headless_in_the_spire_agents import Action, EndTurn, GameSnapshot, Heuristi
 
 
 class SimpleRuleBasedAgent(HeuristicAgent):
+    name = "simple-rule-based"
+
     def __init__(self) -> None:
         pass
 

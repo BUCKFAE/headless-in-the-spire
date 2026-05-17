@@ -15,7 +15,7 @@ Per AD-6, the canonical agent contract lives in C# under
 by Python tooling.
 """
 
-from typing import Protocol, runtime_checkable
+from typing import ClassVar, Protocol, runtime_checkable
 
 from headless_in_the_spire._models import RewardKind
 from headless_in_the_spire_agents.actions import (
@@ -51,7 +51,14 @@ class Agent(Protocol):
     resulting snapshot back on the next call. Implementations are
     stateless from the protocol's point of view; carry state on `self`
     if you need it.
+
+    `name` is a stable, filesystem-safe identifier used by replay
+    tooling (e.g. `replays/<name>/<timestamp>-<seed>/`). Pick something
+    short and slugged — "greedy", "random", "block" — not a class name
+    or a sentence. Treat it as a *kind* identifier, not a per-run label.
     """
+
+    name: str
 
     def decide(self, state: GameSnapshot) -> Action: ...
 
@@ -64,7 +71,22 @@ class HeuristicAgent:
     first legal option in each phase, which is the dumbest action that
     keeps a run moving. Override behaviour is intentional, not stub:
     a subclass that only customises combat still produces complete runs.
+
+    Subclasses MUST declare a `name` class attribute — replay tooling
+    uses it to bucket runs by agent kind. The check fires at class
+    definition time so a missing name is a loud import error, not a
+    silent "agent-unknown" folder at runtime.
     """
+
+    name: ClassVar[str]
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
+        if "name" not in cls.__dict__:
+            raise TypeError(
+                f"{cls.__module__}.{cls.__qualname__} must declare a `name` "
+                "class attribute (used by replay tooling)."
+            )
 
     def decide(self, state: GameSnapshot) -> Action:
         phase = current_phase(state)

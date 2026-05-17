@@ -112,6 +112,10 @@ list-members fqn: build
 stdio: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --stdio
 
+# Drive every Python agent (greedy, random, block, attack) in parallel and record into replays/<agent-name>/. Each worker spawns its own host subprocess (and its own sts2.dll), so default --workers is conservative. Forward extra flags after `--`, e.g. `just record-all -- --seeds 1 2 3 --workers 8`.
+record-all *args: build
+    @uv run --frozen python -m headless_in_the_spire_agents.examples.run_all_agents {{args}}
+
 # Drive a seed=42 Act-1-Boss run with recording enabled and dump the resulting replay directory tree (AD-8). Produces vendor/replays/<game-version>/<run-id>/{manifest.json, combats/*.mcr, run.json on engine-side death/victory}. Useful as a smoke-test for the recording substrate end-to-end.
 record-sample-replay: build
     @rm -rf vendor/replays/sample
@@ -155,13 +159,18 @@ clean:
 test-unit:
     @dotnet test tests/Sts2Headless.UnitTests/Sts2Headless.UnitTests.csproj {{MSBUILD_MAX_CPU}} --nologo
 
-# Run the integration suite (loads vendor/sts2.dll; run `just setup` first).
+# Run the integration suite (loads vendor/sts2.dll; run `just setup` first). Excludes Category=Gap (red-on-purpose tests under HarnessGaps/ — run those via `just test-gaps`).
 test-integration:
-    @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+    @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category!=Gap" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
 
-# Run the end-to-end suite (multi-room arcs; same vendor/sts2.dll requirement).
+# Run the end-to-end suite (multi-room arcs; same vendor/sts2.dll requirement). Same Gap exclusion as `test-integration`.
 test-end2end:
-    @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+    @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category!=Gap" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+
+# Run ONLY the HarnessGaps tests (Category=Gap, born red on purpose — they document harness limitations with a planned fix). Green means a gap closed and the test should graduate out of HarnessGaps/. See tests/Sts2Headless.IntegrationTests/HarnessGaps/README.md.
+test-gaps:
+    @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category=Gap" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+    @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category=Gap" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
 
 # Run the content-coverage sweep (greedy agent over multiple seeds with 999 HP cheat) and dump documentation/coverage/latest.{md,json}. Gitignored — proprietary content sourced from vendor/sts2.dll. Off by default in `just test-end2end`; this recipe sets RUN_COVERAGE_SWEEP=1 to opt in.
 coverage:

@@ -39,6 +39,8 @@ _NEEDS_ENEMY_TARGET: frozenset[TargetType] = frozenset({TargetType.any_enemy})
 
 
 class GreedyAgent(HeuristicAgent):
+    name = "greedy"
+
     def decide_combat(self, state: GameSnapshot) -> Action:
         # Dispatched only when Phase.combat, which guarantees combat_state.
         assert state.combat_state is not None
