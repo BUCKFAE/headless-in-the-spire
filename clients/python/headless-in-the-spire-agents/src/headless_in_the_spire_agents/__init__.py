@@ -21,6 +21,7 @@ Public surface:
 from headless_in_the_spire_agents.actions import (
     Action,
     EndTurn,
+    LeaveTreasureRoom,
     PlayCard,
     SelectEventOption,
     SelectMapNode,
@@ -57,6 +58,7 @@ __all__ = [
     "GameSnapshot",
     "GreedyAgent",
     "HeuristicAgent",
+    "LeaveTreasureRoom",
     "NoLegalActionError",
     "Phase",
     "PlayCard",

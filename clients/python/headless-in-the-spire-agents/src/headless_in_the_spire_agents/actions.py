@@ -53,6 +53,25 @@ class SkipReward:
     reward_index: int
 
 
+@dataclass(frozen=True, slots=True)
+class LeaveTreasureRoom:
+    """Auto-resolve the treasure room (open the chest, grab the relic, leave).
+
+    The host exposes treasure as a single no-arg call — there is no
+    pre-open preview, no "skip the chest" option. If we later need to
+    surface a relic choice we'll add a follow-up action; today this is
+    the only legal move once `Phase.treasure` is live.
+    """
+
+
 # Closed union — agents always return one of these. Pyright checks
 # match-statement exhaustiveness against this alias.
-type Action = PlayCard | EndTurn | SelectMapNode | SelectEventOption | SelectReward | SkipReward
+type Action = (
+    PlayCard
+    | EndTurn
+    | SelectMapNode
+    | SelectEventOption
+    | SelectReward
+    | SkipReward
+    | LeaveTreasureRoom
+)

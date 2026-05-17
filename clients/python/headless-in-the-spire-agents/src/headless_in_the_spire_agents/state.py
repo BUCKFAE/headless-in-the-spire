@@ -63,6 +63,7 @@ class Phase(Enum):
     rewards = "rewards"
     map = "map"
     event = "event"
+    treasure = "treasure"
     terminal = "terminal"
     unknown = "unknown"
 
@@ -89,4 +90,7 @@ def current_phase(state: GameSnapshot) -> Phase:
         return Phase.map
     if state.current_room_type is RoomType.event_room and state.available_event_options:
         return Phase.event
+    if state.current_room_type is RoomType.treasure_room:
+        # No options list on the wire — opening the chest is unconditional.
+        return Phase.treasure
     return Phase.unknown

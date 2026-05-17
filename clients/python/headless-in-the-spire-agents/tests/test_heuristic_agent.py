@@ -16,6 +16,7 @@ from conftest import (
 from headless_in_the_spire_agents import (
     EndTurn,
     HeuristicAgent,
+    LeaveTreasureRoom,
     NoLegalActionError,
     SelectEventOption,
     SelectMapNode,
@@ -63,6 +64,11 @@ def test_default_rewards_claims_head_with_first_card() -> None:
         ),
     )
     assert HeuristicAgent().decide(snap) == SelectReward(reward_index=0, card_index=0)
+
+
+def test_default_treasure_leaves_room() -> None:
+    snap = build_snapshot(room=RoomType.treasure_room)
+    assert HeuristicAgent().decide(snap) == LeaveTreasureRoom()
 
 
 def test_terminal_raises() -> None:

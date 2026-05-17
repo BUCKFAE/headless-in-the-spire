@@ -21,6 +21,7 @@ from headless_in_the_spire._models import RewardKind
 from headless_in_the_spire_agents.actions import (
     Action,
     EndTurn,
+    LeaveTreasureRoom,
     SelectEventOption,
     SelectMapNode,
     SelectReward,
@@ -99,6 +100,8 @@ class HeuristicAgent:
                 return self.decide_map(state)
             case Phase.event:
                 return self.decide_event(state)
+            case Phase.treasure:
+                return self.decide_treasure(state)
             case Phase.terminal:
                 raise NoLegalActionError("game over — no action available", state)
             case Phase.unknown:
@@ -143,3 +146,6 @@ class HeuristicAgent:
         if head.kind is RewardKind.card and head.cards:
             return SelectReward(reward_index=head.index, card_index=head.cards[0].index)
         return SelectReward(reward_index=head.index)
+
+    def decide_treasure(self, state: GameSnapshot) -> Action:
+        return LeaveTreasureRoom()

@@ -63,6 +63,15 @@ def test_event_when_room_is_event_and_options_exist() -> None:
     assert current_phase(snap) is Phase.event
 
 
+def test_treasure_when_room_is_treasure() -> None:
+    # No options list on the wire — TreasureRoom is auto-resolve, the
+    # only legal action is "open the chest and leave". We detect the
+    # phase unconditionally on the room type rather than waiting for a
+    # never-populated option list.
+    snap = build_snapshot(room=RoomType.treasure_room)
+    assert current_phase(snap) is Phase.treasure
+
+
 def test_unknown_when_no_decision_is_live() -> None:
     # Combat room but combat not in progress and no rewards → nothing
     # the agent can legally do.
