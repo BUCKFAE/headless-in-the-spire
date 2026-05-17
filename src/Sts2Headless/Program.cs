@@ -104,7 +104,15 @@ if (args.Contains("--stdio"))
     }
 
     var session = new Session();
-    return StdioHost.Run(Console.In, Console.Out, HostMethods.Build(repoRoot, bindings, session, debugEnabled));
+    var exitCode = StdioHost.Run(Console.In, Console.Out, HostMethods.Build(repoRoot, bindings, session, debugEnabled));
+    // AD-8: graceful host shutdown finalises any in-flight recorder so the
+    // last run's combats and manifest land on disk. The Harmony prefix on
+    // RunManager.CleanUp also flushes — but CleanUp only fires when the
+    // engine itself tears down (next run/new, OnEnded). A clean stdin
+    // close exits the loop without either, so without this step the last
+    // recorder's _replay would be lost.
+    session.Recorder?.FinalizeRun();
+    return exitCode;
 }
 
 // --list-members <FQN>: dump every member of <FQN> that sts2.dll references.

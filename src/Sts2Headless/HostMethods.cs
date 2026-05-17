@@ -2,6 +2,7 @@ using System.Text.Json;
 using Sts2Headless.Cheats;
 using Sts2Headless.Protocol;
 using Sts2Headless.Protocol.Methods;
+using Sts2Headless.Replay;
 using Sts2Headless.Runtime;
 
 namespace Sts2Headless;
@@ -21,7 +22,7 @@ public static class HostMethods
         var dict = new Dictionary<string, StdioHost.Handler>
         {
             ["host/ping"] = TypedNoParams(() => Ping(repoRoot)),
-            ["run/new"] = Typed<RunNewParams, RunNewResult>(p => RunNew(bindings, session, p)),
+            ["run/new"] = Typed<RunNewParams, RunNewResult>(p => RunNew(bindings, session, repoRoot, p)),
             ["run/state"] = TypedNoParams(() => RunState(bindings, session)),
             ["run/select_map_node"] = Typed<RunSelectMapNodeParams, RunSelectMapNodeResult>(p => RunSelectMapNode(bindings, session, p)),
             ["run/select_event_option"] = Typed<RunSelectEventOptionParams, RunSelectEventOptionResult>(p => RunSelectEventOption(bindings, session, p)),
@@ -36,6 +37,12 @@ public static class HostMethods
             ["run/skip_reward"] = Typed<RunSkipRewardParams, RunSkipRewardResult>(p => RunSkipReward(bindings, session, p)),
             ["run/enter_next_act"] = TypedNoParams(() => RunEnterNextAct(bindings, session)),
             ["run/proceed_event"] = TypedNoParams(() => RunProceedEvent(bindings, session)),
+            // AD-8: typed mirror of the game's .run RunHistory file.
+            // Returns null-when-unavailable through the raw-JsonNode adapter
+            // so the snake_case shape (which deliberately deviates from
+            // the wire's camelCase elsewhere) survives EnvelopeIo's
+            // serialisation unchanged.
+            ["run/history"] = RawNoParams(_ => RunHistoryHandler(session)),
         };
         // AD-7: cheat handlers (debug/*) live in the Sts2Headless.Cheats
         // assembly so the Agents project, which only references Protocol,
@@ -82,7 +89,7 @@ public static class HostMethods
         return new HostPingResult(Ok: true, GameVersion: version, GameSha256: sha256);
     }
 
-    private static RunNewResult RunNew(Sts2Bindings bindings, Session session, RunNewParams? @params)
+    private static RunNewResult RunNew(Sts2Bindings bindings, Session session, string repoRoot, RunNewParams? @params)
     {
         var character = @params?.Character ?? Character.Ironclad;
         var seed = @params?.Seed ?? 1uL;
@@ -93,12 +100,52 @@ public static class HostMethods
             throw new ArgumentException($"character '{character}' not yet supported (only Ironclad)");
         }
 
+        // Finalise any prior recorder BEFORE bindings.StartIroncladRun runs
+        // RunManager.CleanUp on the old run — the prefix on CleanUp will also
+        // do this, but doing it explicitly here makes the host's lifetime
+        // visible without relying on the Harmony hook firing. Idempotent.
+        session.Recorder?.FinalizeRun();
+        if (session.Recorder is not null) ReplayHook.Unbind(session.Recorder);
+
         // Pass C: full StartRun chain (was just Player.CreateForNewRun in
         // Pass A). Default lands at MapRoom; withNeow=true lands at the
         // Neow EventRoom. Callers can drive run/select_event_option to
         // dismiss the event once it's surfaced through AvailableEventOptions.
         var run = bindings.StartIroncladRun(seed, withNeow);
-        session.Set(run, character, seed);
+
+        // AD-8: spin up the recording substrate when STS2_REPLAY_OUT is
+        // set. Default behaviour (env unset) is no recording — preserves
+        // existing test-suite behaviour and keeps disk writes opt-in. The
+        // hook is install-once (idempotent), so subsequent runs reuse the
+        // same Harmony patches; only the bound recorder changes.
+        ReplayRecorder? recorder = null;
+        var replayOut = Environment.GetEnvironmentVariable("STS2_REPLAY_OUT");
+        if (!string.IsNullOrEmpty(replayOut))
+        {
+            var (gameVersion, sha) = ReplayHeaderFactory.ReadGameVersionPin(repoRoot);
+            var header = ReplayHeaderFactory.Create(
+                sts2: bindings.Sts2,
+                gameVersion: gameVersion,
+                sts2DllSha256: sha,
+                seed: seed.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                character: character,
+                // Ascension isn't on RunNewParams yet — sts2-cli used 0
+                // unconditionally and we've mirrored that. Once the wire
+                // surfaces it, plumb through to here.
+                ascension: 0,
+                modifiers: Array.Empty<string>(),
+                startTime: DateTimeOffset.UtcNow);
+            recorder = new ReplayRecorder(bindings.Sts2, replayOut, header);
+            ReplayHook.Install(bindings.Sts2);
+            ReplayHook.Bind(recorder);
+            // The engine's CombatReplayWriter defaults IsEnabled to
+            // `!TestMode.IsOn`, and we set TestMode.IsOn in bootstrap.
+            // Flipping it back here is what makes the engine actually
+            // call RecordInitialState on room entries.
+            recorder.EnableEngineRecording();
+        }
+
+        session.Set(run, character, seed, recorder);
 
         // Clear stale trigger events from the previous run (or from the
         // bootstrap's CreateIroncladSmoke step) so the first run/state of
@@ -599,6 +646,24 @@ public static class HostMethods
 
     private static StdioHost.Handler TypedNoParams<TResult>(Func<TResult> handler)
         => _ => JsonSerializer.SerializeToNode(handler(), EnvelopeIo.JsonOptions);
+
+    // Adapter for handlers that produce a JsonNode directly (rather than
+    // a typed result the envelope serialises). Used when the wire shape
+    // for a specific method deviates from EnvelopeIo's default policy —
+    // currently just `run/history`, whose snake_case payload would
+    // otherwise be re-named by serialisation.
+    private static StdioHost.Handler RawNoParams(Func<System.Text.Json.Nodes.JsonNode?, System.Text.Json.Nodes.JsonNode?> handler)
+        => raw => handler(raw);
+
+    private static System.Text.Json.Nodes.JsonNode RunHistoryHandler(Session session)
+    {
+        var recorder = session.Recorder
+            ?? throw new InvalidOperationException(
+                "run/history requires recording to be active — set STS2_REPLAY_OUT and call run/new first.");
+        // ReplayQuery throws InvalidOperationException with a
+        // caller-meaningful message when run.json isn't on disk yet.
+        return ReplayQuery.LoadAsWireJson(recorder.RunDirectory);
+    }
 
     private static (string? Version, string? Sha256) ReadGameVersion(string repoRoot)
     {

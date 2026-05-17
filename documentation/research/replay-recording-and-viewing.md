@@ -9,6 +9,19 @@ for this project, and what's the cheapest path to a watchable artefact?**
 It deliberately does not pick a design — the open questions at the bottom are the
 ones to resolve before writing code.
 
+> **Update 2026-05-16 — superseded in part by
+> [AD-8](../requirements/02-architecture-decisions.md#ad-8--replay-artefacts-adopt-the-games-mcr--run-verbatim).**
+> A later DLL + sample-saves probe surfaced that the game already ships
+> `.mcr` (binary per-combat replay, with built-in determinism checksums)
+> and `.run` (JSON `RunHistory`, schema_version 9) as complete, mature
+> formats. AD-8 adopts both verbatim as our canonical artefacts and
+> rules out authoring a parallel NDJSON-of-decisions format. The
+> survey of viewers / engines below (sections A–D, "Tools and projects
+> to inspect") is still useful as prior-art context; the
+> "Quick recommendation" at the bottom is the one bit that no longer
+> applies — keep reading it for historical context but treat AD-8 as
+> the live decision.
+
 ---
 
 ## What "replay" needs to mean here
@@ -345,7 +358,18 @@ the watchable artefact to look like:
 
 ---
 
-## Quick recommendation (one paragraph)
+## Quick recommendation (one paragraph) — superseded
+
+> **Superseded 2026-05-16 by
+> [AD-8](../requirements/02-architecture-decisions.md#ad-8--replay-artefacts-adopt-the-games-mcr--run-verbatim).**
+> The "formalise the run log first" + "build a web viewer" + "spike
+> Movie Maker" recommendation below was written before the DLL probe
+> surfaced `.mcr` + `.run` as ready-made canonical formats. The live
+> decision is: **adopt the game's two formats verbatim**, plus a small
+> manifest we author; the recording substrate goes in
+> `src/Sts2Headless.Replay/`; viewing with real assets is a downstream
+> mod outside this repo, designed-for but not built. Keep the
+> paragraph below for the reasoning it captures, but read AD-8 first.
 
 The cheapest valuable path is: **formalise the run log first** (header,
 persistence, snapshot index), **build option B second** (a JSON-timeline web

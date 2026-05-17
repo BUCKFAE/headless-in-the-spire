@@ -579,3 +579,200 @@ boundary; enabling another method behind it is no additional risk).
   "this should never run in production" (e.g. a hypothetical `cheat/`
   or `fuzz/` family) inherits the same posture, with its own gate flag
   and the same error-code discipline.
+
+## AD-8 — Replay artefacts: adopt the game's `.mcr` + `.run` verbatim
+
+**Status**: Accepted (2026-05-16)
+
+**Context**
+
+[Goal 5](../requirements/01-initial-goals.md) calls for replays as
+first-class artefacts — seed + version + decisions + snapshots, diffable,
+reproducible, persistent. The initial research note
+([replay-recording-and-viewing.md](../research/replay-recording-and-viewing.md),
+2026-05-14) sketched an answer based on `tee`-ing our AD-2 NDJSON stdio
+into a `.ndjson` replay file and authoring header / snapshot-index records
+in our own shape. That note assumed we'd be inventing the canonical replay
+format ourselves.
+
+Probing `vendor/sts2.dll` and `vendor/sample-saves/` on 2026-05-16
+surfaced a different reality: **the game already ships two complete,
+mature replay formats**, used internally for multiplayer desync detection
+and the in-game "View Run History" screen.
+
+- **`.mcr`** — `MegaCrit.Sts2.Core.Multiplayer.Replay.CombatReplay`,
+  binary, one file per combat. Authored by `CombatReplayWriter`, which
+  subscribes to `ActionQueueSet.ActionEnqueued`, `ActionResumed`,
+  `PlayerChoiceSynchronizer.PlayerChoiceReceived`, and
+  `ChecksumTracker.ChecksumGenerated`. Header pins `version`, `gitCommit`,
+  `modelIdHash` (`ModelIdSerializationCache.Hash` — 1357847701 at
+  v0.103.2); body is the serialised initial `RunState`, the choice / hook
+  / action id high-water marks, the event stream
+  (`CombatReplayEventType.{GameAction, HookAction, ResumeAction,
+  PlayerChoice}`), and **per-event `NetFullCombatState` checksums**. The
+  retail loader (`NMultiplayerTest.RunReplay`) drives those events back
+  through the live engine to reproduce the combat pixel-for-pixel,
+  verifying checksums as it goes (`CheckAgainstReplayChecksum`).
+- **`.run`** — `RunHistory` JSON, one file per run, `schema_version: 9`
+  at v0.103.2. Authored by `SaveManager.SaveRun`. Floor-level audit
+  trail: `acts`, `ascension`, `build_id`, `game_mode`, `seed`,
+  `start_time`, `was_abandoned`, `win`, `killed_by_encounter/event`,
+  `modifiers`, `platform_type`, plus a rich `map_point_history[][]` (per
+  map node: `rooms[].room_type / model_id / turns_taken`, `player_stats[]`
+  with `ancient_choice / cards_gained / cards_transformed / cards_removed
+  / event_choices / relic_choices / gold_* / hp_* / max_hp_*` …) and a
+  final `players[].deck / relics / potions / badges` snapshot. It is what
+  the in-game History screen renders.
+
+The two are not interchangeable: `.mcr` is *frame-level deterministic
+combat replay*; `.run` is *per-floor decision summary*. Both are needed
+to reconstruct a full run; neither alone is sufficient. Together they are
+materially richer than anything we could have authored in NDJSON, because
+they include semantic events (card enchant / transform / ancient choice)
+that our wire protocol only surfaces indirectly via state diffs.
+
+Three problems with the original "author our own NDJSON" plan, now that
+the alternative is visible:
+
+1. **Schema split.** Maintaining a parallel NDJSON-of-decisions on top of
+   game formats that already capture the same information means two
+   schemas to bump on every game pin. AD-3's three-stage compat check
+   would need a fourth: "our replay schema still maps to the game's
+   record shape." That bookkeeping pays no dividend — every consumer
+   benefits more from a typed mirror of the canonical format than from a
+   parallel one.
+2. **No free determinism canary.** `CombatReplayWriter` records
+   per-event checksums of `NetFullCombatState`. A re-executor that drives
+   those events back through our headless host can compare checksums and
+   pinpoint the first divergent action. We do not have to design that
+   mechanism; we have to *adopt* it. An NDJSON replay would need its own
+   diff strategy invented from scratch.
+3. **No path to pixel-accurate viewing.** A `.mcr` loaded by the retail
+   game replays inside the real `NRun` scene with actual cards / animations
+   / sound. There is no realistic NDJSON replacement for that capability.
+   Any "watchable replay" goal degrades to a JSON viewer if we don't
+   adopt the game's format.
+
+**Decision**
+
+The canonical replay artefacts for this project ARE the game's `.mcr` +
+`.run` formats, adopted verbatim. We are not introducing a parallel
+format.
+
+Concretely:
+
+- **One `.mcr` per combat** written by `CombatReplayWriter.WriteReplay`,
+  triggered from our recording layer via a Harmony post-hook on
+  combat-end. The game's writer is enabled by default
+  (`CombatReplayWriter.IsEnabled = !TestMode.IsOn`); we own the policy
+  explicitly so a version bump can't silently turn it off.
+- **One `.run` per run** written by the game's `SaveManager.SaveRun`
+  path. Our headless host sets `SetUpNewSinglePlayer(state,
+  shouldSave: true)` so `.run` emission is the default for any recorded
+  run.
+- **One additional file we author** — `manifest.json` — ties them
+  together. Header fields: `game_version`, `sts2_dll_sha256` (from
+  `GAME_VERSION`), `model_id_hash`, `git_commit`, `runhistory_schema_version`,
+  `seed`, `character`, `ascension`, `modifiers`, `start_time`,
+  `protocol_version`. Index: per-combat entry with `mcr_path`,
+  `room_coordinate` (act + floor), `encounter_id`, `outcome`, action
+  count, checksum count. The manifest is the only file in the layout we
+  own; everything else is the game's bytes.
+- **Wire protocol surfaces a typed `run/history` method.** The `.run`
+  JSON schema (schema_version 9 at the v0.103.2 pin) is mirrored as
+  C# records in `Sts2Headless.Protocol/Methods.cs` with the same
+  enum-codec discipline used for `RoomType` / `MapNodeType` / `CardId`
+  etc. (`Unknown` sentinels, `JsonStringEnumConverter`). Clients see the
+  artefact through schema, not via hand-rolled JSON parsing. AD-5
+  (OpenRPC export) carries the contract; AD-6 (C# is behavioural truth)
+  keeps the enums grounded.
+- **Wire NDJSON stays the live protocol, not a replay format.** AD-2's
+  per-line envelopes remain the runtime channel between clients and the
+  host. `tee`'d stdio captures are useful for protocol-level debugging
+  and golden-replay regression of the *wire*, but the canonical replay
+  of the *game* is the `.mcr` + `.run` + `manifest.json` triple.
+- **Determinism canary** uses Mega Crit's own checksums. The in-process
+  re-executor (`Sts2Headless.Replay`) loads a `.mcr`, calls
+  `RunManager.Instance.SetUpReplay(state, replay)`, fast-forwards the
+  id counters, drives events through
+  `ActionQueueSet.EnqueueWithoutSynchronizing` on our
+  `InlineSynchronizationContext`, and compares `NetFullCombatState`
+  checksums at each `ReplayChecksumData` point. First-divergence
+  reporting is the failure artefact. The seed=42 corpus already in
+  `End2EndTests` runs this every CI; hard failure on the corpus, info
+  signal elsewhere.
+- **Persistence layout** mirrors AD-3 `snapshots/<game-version>/`:
+
+  ```
+  vendor/replays/<game-version>/<run-id>/
+      manifest.json                     (authored by us)
+      run.json                          (game's RunHistory writer)
+      combats/
+          act1-floor3-monster.mcr       (one per combat)
+          act1-floor7-elite.mcr
+          …
+  ```
+
+  Under `vendor/` per the proprietary-derivative posture (the bytes
+  derive from `vendor/sts2.dll`). Gitignored by default. Tests opt into
+  a `--replay-out=<path>` for fixture-controlled locations.
+
+- **Cross-version posture matches AD-3.** A `.mcr` recorded against
+  v0.103.2 may not be re-executed against v0.103.3 — the retail
+  loader's `modelIdHash` check is exactly the gate we want, and our
+  in-process replayer enforces it identically. Viewing across versions
+  is the retail game's problem; for in-process re-execution, version
+  mismatch is a hard refuse, not a warning.
+
+**Consequences**
+
+- **Zero schema drift from the game.** When Mega Crit bumps
+  `RunHistory.schema_version` from 9 to 10, our typed mirror bumps with
+  it; the change surfaces at codegen time in
+  `Sts2Headless.Protocol/Methods.cs` rather than as a silent
+  serialisation breakage. The same applies to `.mcr`'s binary layout —
+  if `CombatReplay.Serialize` changes, our reader breaks loudly at the
+  next pin bump, which is exactly the AD-3 workflow.
+- **Goal 5 lands without inventing a replay system.** Seed, version,
+  decisions, snapshots, reproducibility, diffability, persistence — all
+  already present in the game's formats. We add only the manifest and
+  the typed wire mirror.
+- **Determinism is the game's discipline, not ours.** We do not maintain
+  a separate canonical-state computation, hash, or diff. If our
+  replayer's checksums diverge from the recorded ones, the bug is in
+  *our* host's deviation from the engine — exactly where AD-6 says
+  behavioural truth lives.
+- **Pixel-accurate replay viewing is unlocked but out of scope.** A
+  downstream Godot mod can wrap `NMultiplayerTest.LoadReplay` to render
+  a recorded `.mcr` inside the retail game's `NRun` scene. That mod is
+  not in this repo; it depends on the recording substrate this AD
+  establishes but is otherwise independent. Designing for it means
+  keeping `.mcr` byte-compatibility with retail — which is automatic
+  given we don't author the bytes.
+- **No parallel "summary" or "compressed" replay format.** A run on
+  disk is one directory of game bytes plus our manifest. Tools that
+  want compression wrap the directory (`tar | zstd`); they do not
+  re-encode the contents. This keeps "is this file the canonical
+  replay or a derivative?" unambiguous.
+- **Privacy inherits the game's own discipline.**
+  `CombatReplay.Anonymized()` strips player ids via
+  `IdAnonymizer.Anonymize`; the manifest adds no new identifying
+  tokens (`seed`, `character`, `ascension` are gameplay metadata, not
+  user identity). A replay safe to share between Mega Crit's
+  multiplayer peers is safe to share between our test fixtures.
+- **The runtime-recording-vs-on-demand decision is bypassed.** The
+  game writes `.run` automatically when `shouldSave: true`, and
+  `CombatReplayWriter` records every combat in-memory; the only
+  trigger we own is `WriteReplay(stopRecording: false)` at combat end.
+  No new policy surface.
+- **Cross-version replay viewing is the retail game's problem, not
+  ours.** A replay recorded at v0.103.2 may or may not load in
+  v0.103.3 — the retail loader's existing model-id gate decides, and
+  the user sees the same warning a Mega Crit playtester sees. We do
+  not add a viewer-side compatibility shim.
+
+The supersession of the 2026-05-14 research note's "build option B
+first, spike option C2" recommendation is explicit: that note assumed
+we'd be choosing between authoring NDJSON or building a viewer; we are
+doing neither now. The recording substrate goes first; viewing is a
+downstream mod, not a viewer we build.

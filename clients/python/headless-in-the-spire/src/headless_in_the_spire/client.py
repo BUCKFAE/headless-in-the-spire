@@ -36,6 +36,7 @@ METHOD_NAMES: dict[str, str] = {
     "run/skip_reward": "run_skip_reward",
     "run/enter_next_act": "run_enter_next_act",
     "run/proceed_event": "run_proceed_event",
+    "run/history": "run_history",
     "debug/give_relic": "debug_give_relic",
     "debug/set_hp": "debug_set_hp",
     "debug/replace_deck": "debug_replace_deck",
@@ -223,6 +224,15 @@ class Client:
     ) -> m.RunProceedEventResult:
         result = self._transport.call("run/proceed_event", None, timeout=timeout)
         return m.RunProceedEventResult.model_validate(result)
+
+    def run_history(self, *, timeout: float | None = None) -> m.RunHistoryDocument:
+        """Read the game's RunHistory for the most recently ended run (AD-8).
+
+        Available only when the host is recording (STS2_REPLAY_OUT) and the
+        run has actually ended. Mirrors the game's own snake_case shape.
+        """
+        result = self._transport.call("run/history", None, timeout=timeout)
+        return m.RunHistoryDocument.model_validate(result)
 
     def debug_give_relic(
         self,

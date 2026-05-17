@@ -446,7 +446,19 @@ public static class Colors
 public static class DisplayServer { }
 public static class Geometry2D { }
 public static class Performance { }
-public static class ProjectSettings { }
+// from: MegaCrit.Sts2.Core.Debug.ReleaseInfoManager.LoadConfig
+//   MissingMethodException: "Method not found: 'System.String
+//   Godot.ProjectSettings.GlobalizePath(System.String)'."
+//   Maps a Godot `res://` / `user://` virtual path to a filesystem path.
+//   In our headless context virtual paths don't resolve to anything real
+//   (FileAccess.FileExists is false for everything), so the identity
+//   function is enough — the caller iterates a candidate list and gives
+//   up. ReleaseInfo stays null, which ReplayHeaderFactory degrades to
+//   "UNKNOWN" git commit.
+public static class ProjectSettings
+{
+    public static string GlobalizePath(string path) => path;
+}
 public static class RenderingDevice { }
 public static class RenderingServer { }
 // from: monster moves with sprite/scene fetches call

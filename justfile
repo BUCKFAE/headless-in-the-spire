@@ -101,6 +101,18 @@ list-members fqn: build
 stdio: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --stdio
 
+# Drive a seed=42 Act-1-Boss run with recording enabled and dump the resulting replay directory tree (AD-8). Produces vendor/replays/<game-version>/<run-id>/{manifest.json, combats/*.mcr, run.json on engine-side death/victory}. Useful as a smoke-test for the recording substrate end-to-end.
+record-sample-replay: build
+    @rm -rf vendor/replays/sample
+    @mkdir -p vendor/replays/sample
+    @STS2_REPLAY_OUT=$(pwd)/vendor/replays/sample dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj --filter "FullyQualifiedName~BeatAct1BossOnSeed42" --nologo --no-build
+    @echo
+    @echo "=== recorded replay ==="
+    @find vendor/replays/sample -type f | sort
+    @echo
+    @echo "=== manifest.json ==="
+    @find vendor/replays/sample -name manifest.json -exec cat {} \;
+
 # Regenerate protocol/openrpc.json from Sts2Headless.Protocol records (AD-5).
 export-schema: build
     @dotnet run --project src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj --no-build

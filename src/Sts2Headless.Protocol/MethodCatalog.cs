@@ -113,6 +113,11 @@ public static class MethodCatalog
             ResultType: typeof(RunProceedEventResult),
             Summary: "Auto-advance past a finished event when the engine leaves CurrentRoomType=EventRoom with no options surfaced. Only legal when the local event's IsFinished flag is true (i.e. AvailableEventOptions is empty while still in EventRoom). Returns InvalidParams when called outside that window."),
 
+        new("run/history",
+            ParamsType: null,
+            ResultType: typeof(RunHistoryDocument),
+            Summary: "Read the game's `RunHistory` for the most recently ended run (AD-8). Available only when recording is active (STS2_REPLAY_OUT) and the run has ended (RunManager.OnEnded — death or victory). Returns the same shape the retail game writes to its `.run` history files: snake_case fields, schema_version=9 at the v0.103.2 pin. Throws InvalidParams when no history is available yet."),
+
     };
 
     // Throws if the supplied dispatch-table keys differ from the catalogue

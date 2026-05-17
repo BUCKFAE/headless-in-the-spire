@@ -139,6 +139,8 @@ def build_snapshot(
         rewards_state=rewards if rewards is not None else empty_rewards(),
         relics=[],
         owned_potions=[],
+        triggered_since_prev=[],
+        triggered_dropped=0,
     )
 
 

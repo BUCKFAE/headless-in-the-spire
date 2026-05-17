@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Replay recording substrate. Hooks the game's CombatReplayWriter via Harmony, owns the per-run directory layout under replays/&lt;game-version&gt;/&lt;run-id&gt;/, and authors the small manifest.json that ties the game-owned .mcr (per combat) + .run (per run) bytes together. AD-8 — the .mcr and .run formats are adopted verbatim; this project does not author either of them.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Harmony for the WriteReplay-on-combat-end post-hook. AD-4 stands:
+         sts2 types are reached reflectively from the loaded assembly, not
+         named at compile time. -->
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Runtime exposes RunHandle and the live sts2 Assembly via the
+         bootstrap path; we need its reflection plumbing to reach
+         RunManager.Instance.CombatReplayWriter / WriteReplay. -->
+    <ProjectReference Include="..\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+    <!-- Protocol carries the typed enums (Character, RoomType, …) the
+         manifest serialises into the header and per-combat index. -->
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>

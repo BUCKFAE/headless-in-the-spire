@@ -13,6 +13,14 @@ public static class Mathf
     //   "Method not found: 'Int32 Godot.Mathf.CeilToInt(Double)'."
     public static int CeilToInt(double s) => (int)Math.Ceiling(s);
 
+    // from: MegaCrit.Sts2.Core.Multiplayer.Serialization.PacketWriter.ResizeBufferIfNecessary
+    //   (round-trip test reading + re-writing a real .mcr surfaces this:
+    //    "Method not found: 'Int32 Godot.Mathf.CeilToInt(Single)'.")
+    //   PacketWriter computes its byte-position from a bit-position via
+    //   CeilToInt(bitPosition / 8f). Mirrors the existing CeilToInt(double)
+    //   and the FloorToInt double/float pair.
+    public static int CeilToInt(float s) => (int)MathF.Ceiling(s);
+
     // from: MegaCrit.Sts2.Core.Map.StandardActMap.GenerateNextCoord
     //   MissingMethodException during EnterAct's map generation:
     //   "Method not found: 'Int32 Godot.Mathf.Max(Int32, Int32)'."

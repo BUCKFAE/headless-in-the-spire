@@ -21,6 +21,7 @@ public class Ad4InvariantTests
         "Sts2Headless.dll",
         "Sts2Headless.Runtime.dll",
         "Sts2Headless.Protocol.dll",
+        "Sts2Headless.Replay.dll",
         "GodotSharp.dll", // GodotStubs builds with AssemblyName=GodotSharp
     };
 

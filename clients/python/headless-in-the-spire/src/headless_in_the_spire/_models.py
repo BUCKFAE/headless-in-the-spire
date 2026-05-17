@@ -7,6 +7,13 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class BadgeRarity(Enum):
+    unknown = "Unknown"
+    bronze = "bronze"
+    silver = "silver"
+    gold = "gold"
+
+
 class CardRewardOption(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -95,6 +102,62 @@ class EventOption(BaseModel):
     is_locked: Annotated[bool, Field(alias="isLocked")]
 
 
+class GameMode(Enum):
+    unknown = "Unknown"
+    standard = "standard"
+    daily = "daily"
+    custom = "custom"
+    endless = "endless"
+
+
+class HistoryBadge(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: Annotated[str, Field(alias="Id")]
+    rarity: Annotated[BadgeRarity, Field(alias="Rarity")]
+
+
+class HistoryCardRef(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: Annotated[str, Field(alias="Id")]
+    floor_added_to_deck: Annotated[int | None, Field(alias="FloorAddedToDeck")]
+
+
+class HistoryCardTransformation(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    original_card: Annotated[HistoryCardRef, Field(alias="OriginalCard")]
+    final_card: Annotated[HistoryCardRef, Field(alias="FinalCard")]
+
+
+class HistoryLocalisationKey(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    key: Annotated[str, Field(alias="Key")]
+    table: Annotated[str, Field(alias="Table")]
+
+
+class HistoryOwnedPotion(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: Annotated[str, Field(alias="Id")]
+    slot_index: Annotated[int, Field(alias="SlotIndex")]
+
+
+class HistoryRelicChoice(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    choice: Annotated[str | None, Field(alias="Choice")]
+    was_picked: Annotated[bool, Field(alias="WasPicked")]
+
+
 class HostPingResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -137,6 +200,15 @@ class MerchantKind(Enum):
     relic = "relic"
     potion = "potion"
     card_removal = "card_removal"
+
+
+class PlatformType(Enum):
+    unknown = "Unknown"
+    none = "none"
+    steam = "steam"
+    gog = "gog"
+    epic = "epic"
+    switch = "switch"
 
 
 class Power(BaseModel):
@@ -207,6 +279,49 @@ class RunBuyMerchantItemParams(BaseModel):
         populate_by_name=True,
     )
     item_index: Annotated[int, Field(alias="itemIndex")]
+
+
+class RunHistoryMapPointType(Enum):
+    unknown = "Unknown"
+    ancient = "ancient"
+    boss = "boss"
+    elite = "elite"
+    monster = "monster"
+    rest_site = "rest_site"
+    shop = "shop"
+    treasure = "treasure"
+    unknown_1 = "unknown"
+
+
+class RunHistoryModifier(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: Annotated[str | None, Field(alias="Id")]
+
+
+class RunHistoryPlayer(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: Annotated[int, Field(alias="Id")]
+    character: Annotated[str, Field(alias="Character")]
+    max_potion_slot_count: Annotated[int, Field(alias="MaxPotionSlotCount")]
+    deck: Annotated[list[HistoryCardRef] | None, Field(alias="Deck")]
+    relics: Annotated[list[HistoryCardRef] | None, Field(alias="Relics")]
+    potions: Annotated[list[HistoryOwnedPotion] | None, Field(alias="Potions")]
+    badges: Annotated[list[HistoryBadge] | None, Field(alias="Badges")]
+
+
+class RunHistoryRoomType(Enum):
+    unknown = "Unknown"
+    boss = "boss"
+    elite = "elite"
+    event = "event"
+    monster = "monster"
+    rest_site = "rest_site"
+    shop = "shop"
+    treasure = "treasure"
 
 
 class RunNewParams(BaseModel):
@@ -282,6 +397,15 @@ class TargetType(Enum):
     caster = "Caster"
 
 
+class TriggerKind(Enum):
+    unknown = "unknown"
+    relic = "relic"
+    card = "card"
+    monster = "monster"
+    potion = "potion"
+    power = "power"
+
+
 class Card(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -291,6 +415,22 @@ class Card(BaseModel):
     cost: int
     can_play: Annotated[bool, Field(alias="canPlay")]
     target_type: Annotated[TargetType, Field(alias="targetType")]
+
+
+class HistoryChoiceEntry(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    text_key: Annotated[str, Field(alias="TextKey")]
+    title: Annotated[HistoryLocalisationKey, Field(alias="Title")]
+    was_chosen: Annotated[bool, Field(alias="WasChosen")]
+
+
+class HistoryEventChoice(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    title: Annotated[HistoryLocalisationKey, Field(alias="Title")]
 
 
 class Intent(BaseModel):
@@ -310,6 +450,47 @@ class MapNode(BaseModel):
     col: int
     row: int
     type: MapNodeType
+
+
+class MapPointPlayerStats(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    player_id: Annotated[int, Field(alias="PlayerId")]
+    ancient_choice: Annotated[
+        list[HistoryChoiceEntry] | None, Field(alias="AncientChoice")
+    ]
+    cards_gained: Annotated[list[HistoryCardRef] | None, Field(alias="CardsGained")]
+    cards_removed: Annotated[list[HistoryCardRef] | None, Field(alias="CardsRemoved")]
+    cards_transformed: Annotated[
+        list[HistoryCardTransformation] | None, Field(alias="CardsTransformed")
+    ]
+    event_choices: Annotated[
+        list[HistoryEventChoice] | None, Field(alias="EventChoices")
+    ]
+    relic_choices: Annotated[
+        list[HistoryRelicChoice] | None, Field(alias="RelicChoices")
+    ]
+    current_gold: Annotated[int, Field(alias="CurrentGold")]
+    current_hp: Annotated[int, Field(alias="CurrentHp")]
+    damage_taken: Annotated[int, Field(alias="DamageTaken")]
+    gold_gained: Annotated[int, Field(alias="GoldGained")]
+    gold_lost: Annotated[int, Field(alias="GoldLost")]
+    gold_spent: Annotated[int, Field(alias="GoldSpent")]
+    gold_stolen: Annotated[int, Field(alias="GoldStolen")]
+    hp_healed: Annotated[int, Field(alias="HpHealed")]
+    max_hp: Annotated[int, Field(alias="MaxHp")]
+    max_hp_gained: Annotated[int, Field(alias="MaxHpGained")]
+    max_hp_lost: Annotated[int, Field(alias="MaxHpLost")]
+
+
+class MapPointRoom(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    room_type: Annotated[RunHistoryRoomType, Field(alias="RoomType")]
+    model_id: Annotated[str | None, Field(alias="ModelId")]
+    turns_taken: Annotated[int, Field(alias="TurnsTaken")]
 
 
 class MerchantItem(BaseModel):
@@ -336,6 +517,15 @@ class OwnedPotion(BaseModel):
     can_use: Annotated[bool, Field(alias="canUse")]
 
 
+class TriggerEvent(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    kind: TriggerKind
+    source: str
+    hook: str
+
+
 class Enemy(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -348,6 +538,40 @@ class Enemy(BaseModel):
     intends_attack: Annotated[bool, Field(alias="intendsAttack")]
     intents: list[Intent]
     powers: list[Power]
+
+
+class MapPointHistoryEntry(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    map_point_type: Annotated[RunHistoryMapPointType, Field(alias="MapPointType")]
+    rooms: Annotated[list[MapPointRoom] | None, Field(alias="Rooms")]
+    player_stats: Annotated[
+        list[MapPointPlayerStats] | None, Field(alias="PlayerStats")
+    ]
+
+
+class RunHistoryDocument(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    schema_version: Annotated[int, Field(alias="SchemaVersion")]
+    ascension: Annotated[int, Field(alias="Ascension")]
+    build_id: Annotated[str, Field(alias="BuildId")]
+    game_mode: Annotated[GameMode, Field(alias="GameMode")]
+    killed_by_encounter: Annotated[str, Field(alias="KilledByEncounter")]
+    killed_by_event: Annotated[str, Field(alias="KilledByEvent")]
+    map_point_history: Annotated[
+        list[list[MapPointHistoryEntry]], Field(alias="MapPointHistory")
+    ]
+    modifiers: Annotated[list[RunHistoryModifier], Field(alias="Modifiers")]
+    platform_type: Annotated[PlatformType, Field(alias="PlatformType")]
+    players: Annotated[list[RunHistoryPlayer], Field(alias="Players")]
+    run_time: Annotated[int, Field(alias="RunTime")]
+    seed: Annotated[str, Field(alias="Seed")]
+    start_time: Annotated[int, Field(alias="StartTime")]
+    was_abandoned: Annotated[bool, Field(alias="WasAbandoned")]
+    win: Annotated[bool, Field(alias="Win")]
 
 
 class CombatState(BaseModel):
@@ -769,6 +993,10 @@ class RunStateResult(BaseModel):
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
     owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
+    triggered_since_prev: Annotated[
+        list[TriggerEvent], Field(alias="triggeredSincePrev")
+    ]
+    triggered_dropped: Annotated[int, Field(alias="triggeredDropped")]
 
 
 class RunUsePotionResult(BaseModel):

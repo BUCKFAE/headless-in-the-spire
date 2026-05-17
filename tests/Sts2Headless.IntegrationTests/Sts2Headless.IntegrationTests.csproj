@@ -24,6 +24,9 @@
          so a renamed wire field is a compile error here, not a silently-
          passing test. -->
     <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <!-- Replay substrate (AD-8). Loaded for the in-process .mcr
+         round-trip / hook-install tests. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.Replay\Sts2Headless.Replay.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
     <!-- Cheat DTOs + typed ITransport extensions for tests that exercise
          the debug/* surface. Off the Agents project's reference graph so

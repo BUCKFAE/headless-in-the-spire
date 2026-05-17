@@ -8,6 +8,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Sts2Headless.Cheats\Sts2Headless.Cheats.csproj" />
     <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <!-- Replay substrate (AD-8): host wires the recorder into run/new
+         when STS2_REPLAY_OUT is set, and the manifest is flushed on the
+         RunManager.CleanUp prefix the Replay hook installs. -->
+    <ProjectReference Include="..\Sts2Headless.Replay\Sts2Headless.Replay.csproj" />
     <ProjectReference Include="..\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
     <!-- GodotStubs builds as GodotSharp.dll and lands next to our exe, so the
          default loader probing path satisfies sts2.dll's GodotSharp references

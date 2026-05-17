@@ -8,13 +8,19 @@
 
 ## Replays / Rendering
 - This repo should allow to generate and view replays
-- **Status (2026-05-14): parked.** Research in
-  [../research/replay-recording-and-viewing.md](../research/replay-recording-and-viewing.md).
-  The recording substrate (NDJSON over stdio, per AD-2) already gives us the
-  canonical replay artefact for free; viewers (web timeline / Godot Movie Maker
-  / etc.) can be added later without lock-in. The one thing that matters *now*
-  is **determinism hygiene** — non-determinism introduced today silently
-  invalidates any replay we record tomorrow — but that's already a goal-1 /
-  goal-5 / AD-3 requirement, not replay-specific. Revisit when a concrete use
-  case (golden-replay tests, demo video, RL post-mortem) tells us which viewer
-  to build.
+- **Status (2026-05-16): in flight under
+  [AD-8](./02-architecture-decisions.md#ad-8--replay-artefacts-adopt-the-games-mcr--run-verbatim).**
+  The canonical artefacts are the game's `.mcr` (per-combat binary
+  deterministic replay, with built-in `NetFullCombatState` checksums)
+  and `.run` (per-run `RunHistory` JSON, schema_version 9), adopted
+  verbatim. The recording layer lives in `src/Sts2Headless.Replay/`,
+  hooks into `CombatReplayWriter` via Harmony, and writes a small
+  `manifest.json` to tie a run's combats + history together with our
+  pin metadata. Determinism canary is the in-process `.mcr`
+  re-executor (hard failure on the seed=42 corpus, info elsewhere).
+  Pixel-accurate viewing — loading a `.mcr` back into the retail
+  game's `NRun` scene via the same code path
+  `NMultiplayerTest.LoadReplay` uses — is *unlocked* by the recording
+  substrate but lives in a downstream mod outside this repo,
+  designed-for but not built. See AD-8 for the full reasoning and the
+  2026-05-14 research note for the prior-art survey it superseded.
