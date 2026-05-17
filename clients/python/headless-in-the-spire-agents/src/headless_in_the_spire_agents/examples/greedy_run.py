@@ -23,11 +23,13 @@ from headless_in_the_spire._models import Character, RunNewParams
 from headless_in_the_spire_agents import (
     Action,
     EndTurn,
+    EnterNextAct,
     GameSnapshot,
     GreedyAgent,
     LeaveMerchantRoom,
     LeaveTreasureRoom,
     PlayCard,
+    ProceedEvent,
     RunOutcome,
     SelectEventOption,
     SelectMapNode,
@@ -68,6 +70,10 @@ def _format_action(action: Action) -> str:
             return "leave_treasure_room"
         case LeaveMerchantRoom():
             return "leave_merchant_room"
+        case EnterNextAct():
+            return "enter_next_act"
+        case ProceedEvent():
+            return "proceed_event"
 
 
 def _log_step(step: int, state: GameSnapshot, action: Action) -> None:

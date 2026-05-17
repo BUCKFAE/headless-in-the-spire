@@ -56,12 +56,33 @@ def test_map_when_room_is_map_and_nodes_exist() -> None:
     assert current_phase(snap) is Phase.map
 
 
+def test_map_empty_when_room_is_map_and_no_nodes() -> None:
+    # Post-boss flicker: the engine flipped past the boss but hasn't
+    # rolled the next act's map yet. The legal action is EnterNextAct.
+    snap = build_snapshot(room=RoomType.map_room, map_nodes=[])
+    assert current_phase(snap) is Phase.map_empty
+
+
+def test_combat_when_room_is_boss_room() -> None:
+    # BossRoom routes through Phase.combat too — the boss fight is just
+    # combat with extra HP, same action vocabulary applies.
+    snap = build_snapshot(room=RoomType.boss_room, combat=in_progress_combat())
+    assert current_phase(snap) is Phase.combat
+
+
 def test_event_when_room_is_event_and_options_exist() -> None:
     snap = build_snapshot(
         room=RoomType.event_room,
         event_options=[event_option(index=0)],
     )
     assert current_phase(snap) is Phase.event
+
+
+def test_event_finished_when_room_is_event_and_no_options() -> None:
+    # An event whose choice resolved but the engine left the room flag
+    # on EventRoom. ProceedEvent drives the transition.
+    snap = build_snapshot(room=RoomType.event_room, event_options=[])
+    assert current_phase(snap) is Phase.event_finished
 
 
 def test_rest_site_when_room_is_rest_site_and_options_exist() -> None:

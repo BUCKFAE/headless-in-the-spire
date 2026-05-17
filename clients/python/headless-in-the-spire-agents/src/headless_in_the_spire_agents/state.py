@@ -66,7 +66,9 @@ class Phase(Enum):
     combat = "combat"
     rewards = "rewards"
     map = "map"
+    map_empty = "map_empty"
     event = "event"
+    event_finished = "event_finished"
     rest_site = "rest_site"
     treasure = "treasure"
     merchant = "merchant"
@@ -87,15 +89,23 @@ def current_phase(state: GameSnapshot) -> Phase:
     if state.rewards_state is not None and state.rewards_state.available:
         return Phase.rewards
     if (
-        state.current_room_type is RoomType.combat_room
+        state.current_room_type in (RoomType.combat_room, RoomType.boss_room)
         and state.combat_state is not None
         and state.combat_state.is_in_progress
     ):
+        # BossRoom routes through Phase.combat too; the boss fight is
+        # just combat with extra HP. The C# PhaseDetector does the same.
         return Phase.combat
-    if state.current_room_type is RoomType.map_room and state.available_map_nodes:
-        return Phase.map
-    if state.current_room_type is RoomType.event_room and state.available_event_options:
-        return Phase.event
+    if state.current_room_type is RoomType.map_room:
+        # An empty map is the post-boss state — the engine flipped past
+        # the boss but hasn't rolled the next act yet. Driving
+        # run/enter_next_act regenerates the next map.
+        return Phase.map if state.available_map_nodes else Phase.map_empty
+    if state.current_room_type is RoomType.event_room:
+        # An empty event option list means the event resolved but the
+        # engine didn't auto-transition back to MapRoom; run/proceed_event
+        # drives the transition.
+        return Phase.event if state.available_event_options else Phase.event_finished
     if state.current_room_type is RoomType.rest_site_room and state.available_rest_site_options:
         return Phase.rest_site
     if state.current_room_type is RoomType.treasure_room:

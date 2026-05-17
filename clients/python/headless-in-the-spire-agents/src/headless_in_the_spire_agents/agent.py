@@ -21,8 +21,10 @@ from headless_in_the_spire._models import RewardKind
 from headless_in_the_spire_agents.actions import (
     Action,
     EndTurn,
+    EnterNextAct,
     LeaveMerchantRoom,
     LeaveTreasureRoom,
+    ProceedEvent,
     SelectEventOption,
     SelectMapNode,
     SelectRestSiteOption,
@@ -100,8 +102,12 @@ class HeuristicAgent:
                 return self.decide_rewards(state)
             case Phase.map:
                 return self.decide_map(state)
+            case Phase.map_empty:
+                return self.decide_map_empty(state)
             case Phase.event:
                 return self.decide_event(state)
+            case Phase.event_finished:
+                return self.decide_event_finished(state)
             case Phase.rest_site:
                 return self.decide_rest_site(state)
             case Phase.treasure:
@@ -138,11 +144,23 @@ class HeuristicAgent:
         node = state.available_map_nodes[0]
         return SelectMapNode(col=node.col, row=node.row)
 
+    def decide_map_empty(self, state: GameSnapshot) -> Action:
+        # Reached when the engine flipped past the act boss but hasn't
+        # generated the next act's map. The only legal call is to enter
+        # the next act, which regenerates available_map_nodes.
+        return EnterNextAct()
+
     def decide_event(self, state: GameSnapshot) -> Action:
         for opt in state.available_event_options:
             if not opt.is_locked:
                 return SelectEventOption(option_index=opt.index)
         raise NoLegalActionError("event phase with no unlocked options", state)
+
+    def decide_event_finished(self, state: GameSnapshot) -> Action:
+        # Some events leave the room as EventRoom with no options after
+        # the choice resolved. ProceedEvent drives the transition back
+        # to MapRoom (mirrors the post-boss MapEmpty case).
+        return ProceedEvent()
 
     def decide_rewards(self, state: GameSnapshot) -> Action:
         # Reached only when current_phase returned Phase.rewards, which

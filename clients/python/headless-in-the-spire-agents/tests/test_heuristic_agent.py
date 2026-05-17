@@ -16,10 +16,12 @@ from conftest import (
 )
 from headless_in_the_spire_agents import (
     EndTurn,
+    EnterNextAct,
     HeuristicAgent,
     LeaveMerchantRoom,
     LeaveTreasureRoom,
     NoLegalActionError,
+    ProceedEvent,
     SelectEventOption,
     SelectMapNode,
     SelectRestSiteOption,
@@ -120,6 +122,16 @@ def test_default_treasure_leaves_room() -> None:
 def test_default_merchant_leaves_room() -> None:
     snap = build_snapshot(room=RoomType.merchant_room)
     assert HeuristicAgent().decide(snap) == LeaveMerchantRoom()
+
+
+def test_default_map_empty_enters_next_act() -> None:
+    snap = build_snapshot(room=RoomType.map_room, map_nodes=[])
+    assert HeuristicAgent().decide(snap) == EnterNextAct()
+
+
+def test_default_event_finished_proceeds() -> None:
+    snap = build_snapshot(room=RoomType.event_room, event_options=[])
+    assert HeuristicAgent().decide(snap) == ProceedEvent()
 
 
 def test_terminal_raises() -> None:

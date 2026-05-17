@@ -89,6 +89,27 @@ class LeaveMerchantRoom:
     """
 
 
+@dataclass(frozen=True, slots=True)
+class EnterNextAct:
+    """Advance from a depleted map (the post-boss empty state) to the next act.
+
+    Mirrors C# `EnterNextAct`. The engine flips `current_room_type=MapRoom`
+    with an empty `available_map_nodes` once the boss falls; the agent
+    must drive `run/enter_next_act` to regenerate the next act's map.
+    """
+
+
+@dataclass(frozen=True, slots=True)
+class ProceedEvent:
+    """Acknowledge a finished event whose room hasn't auto-transitioned yet.
+
+    Mirrors C# `ProceedEvent`. Some events leave the engine in
+    `current_room_type=EventRoom` with an empty `available_event_options`
+    after the choice resolved — the agent must drive `run/proceed_event`
+    to fall through to MapRoom.
+    """
+
+
 # Closed union — agents always return one of these. Pyright checks
 # match-statement exhaustiveness against this alias.
 type Action = (
@@ -101,4 +122,6 @@ type Action = (
     | SelectRestSiteOption
     | LeaveTreasureRoom
     | LeaveMerchantRoom
+    | EnterNextAct
+    | ProceedEvent
 )
