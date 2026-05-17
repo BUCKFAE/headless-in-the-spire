@@ -14,7 +14,15 @@ authors = [{ name = "Julian Schubert" }]
 dynamic = ["version"]
 dependencies = [
     "pydantic>=2.6",
+    # Shared helpers (path scaffolding, logging, …) — resolved against
+    # the in-repo workspace member by [tool.uv.sources] below. Pulling
+    # it in here means agents and other downstream consumers get the
+    # utils transitively without restating the workspace pin.
+    "headless-in-the-spire-utils",
 ]
+
+[tool.uv.sources]
+headless-in-the-spire-utils = { workspace = true }
 
 [project.urls]
 Homepage = "https://github.com/buckfae/headless-in-the-spire"

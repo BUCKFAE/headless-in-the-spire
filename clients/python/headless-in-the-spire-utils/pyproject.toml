@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "headless-in-the-spire-utils"
+description = "Shared helper utilities (logging, path scaffolding, …) for the headless-in-the-spire Python packages."
+readme = "README.md"
+# Pinned to 3.13 in lockstep with the workspace root (../../../.python-version)
+# and the sibling client packages. Bump in all of them.
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Julian Schubert" }]
+dynamic = ["version"]
+dependencies = [
+    "pathvalidate>=3",
+]
+
+[project.urls]
+Homepage = "https://github.com/buckfae/headless-in-the-spire"
+
+[tool.hatch.version]
+path = "src/headless_in_the_spire_utils/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/headless_in_the_spire_utils"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
