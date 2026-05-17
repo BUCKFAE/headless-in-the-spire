@@ -39,7 +39,7 @@ public enum CardId
     DefendIronclad,
     Bash,
 
-    // Cards referenced by Sts2Headless.Agents (CardMechanics / Seed42Agent).
+    // Cards referenced by Sts2Headless.Agents (CardMechanics / CheatingHellRaisingSeed42Agent).
     // Listed here so the no-vendor (CI) build path resolves these symbols;
     // the generated CardId.g.cs supersedes the entire file on dev machines.
     BodySlam,

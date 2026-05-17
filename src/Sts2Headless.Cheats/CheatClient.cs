@@ -34,4 +34,10 @@ public static class CheatClient
         transport.SendAsync<DebugReplaceDeckResult>(
             "debug/replace_deck",
             new DebugReplaceDeckParams(cards.Select(c => new CardSpec(c.CardId, c.UpgradeLevel)).ToList()));
+
+    // debug/kill_all_enemies — drop every alive enemy in the current combat
+    // to 0 HP via the engine's Creature._currentHp backing field. No-op
+    // outside combat. Bypasses on-kill listeners.
+    public static Task<DebugKillAllEnemiesResult> KillAllEnemiesAsync(this ITransport transport) =>
+        transport.SendAsync<DebugKillAllEnemiesResult>("debug/kill_all_enemies", new DebugKillAllEnemiesParams());
 }

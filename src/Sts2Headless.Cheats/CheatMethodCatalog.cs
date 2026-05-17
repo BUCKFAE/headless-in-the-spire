@@ -33,5 +33,11 @@ public static class CheatMethodCatalog
             ResultType: typeof(DebugReplaceDeckResult),
             Summary: "Test affordance — replace the player's deck with a curated list of (CardId, UpgradeLevel) pairs. Routes through RunState.CreateCard so the new cards are properly tracked; bypasses on-deck-change listeners. Requires --enable-debug.",
             IsDebugOnly: true),
+
+        new("debug/kill_all_enemies",
+            ParamsType: typeof(DebugKillAllEnemiesParams),
+            ResultType: typeof(DebugKillAllEnemiesResult),
+            Summary: "Test affordance — drop every alive enemy in the current combat to 0 HP by writing the engine's Creature._currentHp backing field, then drain and auto-advance so rewards generate through the normal path. No-op (killed=0) outside combat. Bypasses on-kill listeners. Requires --enable-debug.",
+            IsDebugOnly: true),
     };
 }

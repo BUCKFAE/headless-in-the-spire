@@ -196,6 +196,7 @@ public sealed partial class Sts2Bindings
     private readonly PropertyInfo? _combatManagerIsInProgress;
     private readonly PropertyInfo? _combatManagerIsPlayPhase;
     private readonly MethodInfo? _combatManagerDebugOnlyGetState;
+    private readonly MethodInfo? _combatManagerCheckWinCondition;
     private readonly PropertyInfo? _combatStateEnemies;
     private readonly PropertyInfo? _combatStateRoundNumber;
     private readonly PropertyInfo? _playerCombatState;
@@ -386,6 +387,7 @@ public sealed partial class Sts2Bindings
         _combatManagerIsInProgress = c.CombatManagerIsInProgress;
         _combatManagerIsPlayPhase = c.CombatManagerIsPlayPhase;
         _combatManagerDebugOnlyGetState = c.CombatManagerDebugOnlyGetState;
+        _combatManagerCheckWinCondition = c.CombatManagerCheckWinCondition;
         _combatStateEnemies = c.CombatStateEnemies;
         _combatStateRoundNumber = c.CombatStateRoundNumber;
         _playerCombatState = c.PlayerCombatState;
@@ -2313,6 +2315,84 @@ public sealed partial class Sts2Bindings
         return (newHp, newMaxHp);
     }
 
+    // Test affordance: drop every alive enemy in the current combat to 0 HP
+    // by writing the same Creature._currentHp backing field that SetPlayerHp
+    // uses (Enemy : Creature in sts2's hierarchy — confirmed by sts2-cli's
+    // `Creature? target = state.Enemies.FirstOrDefault(...)` pattern). After
+    // the writes the helper drains the action executor and calls
+    // AutoAdvancePostCombat so the engine notices the empty combat and
+    // emits rewards through the normal path — same surface UsePotion /
+    // PlayCard land on after they mutate enemy state.
+    //
+    // Bypasses on-kill listeners (the same way SetPlayerHp bypasses on-hit
+    // relics). Returns (enemiesKilledNow, combatEnded) for the wire result;
+    // a zero kill count just means combat wasn't in progress when the
+    // caller fired the cheat.
+    public (int Killed, bool CombatEnded) KillAllEnemies(RunHandle handle)
+    {
+        if (_creatureCurrentHpField is null)
+        {
+            throw new InvalidOperationException(
+                "debug/kill_all_enemies: backing field for Creature.CurrentHp was not located at bootstrap. " +
+                "Either the engine renamed the field or BindingFlags need updating.");
+        }
+        if (_combatManagerInstance is null || _combatManagerDebugOnlyGetState is null
+            || _combatStateEnemies is null || _enemyIsAlive is null)
+        {
+            // No combat surface bound → nothing to kill; treat as no-op so the
+            // wire still returns a structured success (matches the spirit of
+            // SetPlayerHp, which doesn't refuse outside of combat).
+            return (0, false);
+        }
+
+        var cm = _combatManagerInstance.GetValue(null);
+        if (cm is null) return (0, false);
+        var state = _combatManagerDebugOnlyGetState.Invoke(cm, null);
+        if (state is null) return (0, false);
+        if (_combatStateEnemies.GetValue(state) is not System.Collections.IEnumerable enemies) return (0, false);
+
+        var killed = 0;
+        foreach (var enemy in enemies)
+        {
+            if (enemy is null) continue;
+            // Only touch alive ones — re-zeroing a dead enemy is harmless
+            // but inflates the "killed" count and muddies the wire signal.
+            if (!(bool)_enemyIsAlive.GetValue(enemy)!) continue;
+            _creatureCurrentHpField.SetValue(enemy, 0);
+            killed++;
+        }
+
+        // The HP writes alone don't end combat — the engine only re-evaluates
+        // "all enemies dead" through CombatManager.CheckWinCondition, which
+        // is what a real damage action triggers as a follow-up. Without this
+        // call, IsInProgress stays true even though the alive enumeration
+        // is empty. CheckWinCondition is async; mirror the GiveRelic /
+        // RelicCmd.Obtain pattern (Task → GetAwaiter().GetResult() →
+        // _syncCtx.Pump()) so the engine's EndCombatInternal completes
+        // synchronously from the caller's perspective.
+        if (_combatManagerCheckWinCondition is not null && killed > 0)
+        {
+            var paramCount = _combatManagerCheckWinCondition.GetParameters().Length;
+            var args = new object?[paramCount];
+            for (var i = 0; i < paramCount; i++) args[i] = Type.Missing;
+            var checkResult = _combatManagerCheckWinCondition.Invoke(cm, args);
+            if (checkResult is Task t) t.GetAwaiter().GetResult();
+            _syncCtx?.Pump();
+        }
+
+        DrainActionExecutor(handle);
+        AutoAdvancePostCombat(handle);
+
+        // combatEnded is "the cheat just transitioned combat to !InProgress",
+        // not "combat is currently inactive". When the caller fires the cheat
+        // outside combat (or back-to-back, where the first call already
+        // ended combat), we report combatEnded=false — that signal stays
+        // honest for the full-run driver's "did this tick actually clear
+        // something?" check.
+        var inProgress = _combatManagerIsInProgress is not null && (bool)_combatManagerIsInProgress.GetValue(cm)!;
+        return (killed, killed > 0 && !inProgress);
+    }
+
     // Test affordance: replace the player's deck with a curated list of
     // (CardId, UpgradeLevel) pairs. Routes through the engine's "create a
     // card mid-run" pipeline that sts2-cli's RunSimulator.SetPlayer uses
@@ -3249,6 +3329,7 @@ public sealed partial class Sts2Bindings
         PropertyInfo? cmIsInProgress = null;
         PropertyInfo? cmIsPlayPhase = null;
         MethodInfo? cmDebugOnly = null;
+        MethodInfo? cmCheckWinCondition = null;
         PropertyInfo? csEnemies = null;
         PropertyInfo? csRound = null;
         var cmLookup = Sts2Reflection.FindType(sts2, "MegaCrit.Sts2.Core.Combat.CombatManager");
@@ -3259,6 +3340,15 @@ public sealed partial class Sts2Bindings
             cmIsInProgress = cmType.GetProperty("IsInProgress", BindingFlags.Public | BindingFlags.Instance);
             cmIsPlayPhase = cmType.GetProperty("IsPlayPhase", BindingFlags.Public | BindingFlags.Instance);
             cmDebugOnly = cmType.GetMethod("DebugOnlyGetState", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
+            // CheckWinCondition is the engine's "look at the live state, decide
+            // if combat should end" entry point — its state machine surfaces in
+            // sts2.dll as `<CheckWinCondition>d__113`. debug/kill_all_enemies
+            // writes HP=0 on enemies (which removes them from the alive
+            // enumeration) and then calls this so the engine notices and
+            // routes through EndCombatInternal. Resolved by name only;
+            // overloads, if any, are filtered down at the call site.
+            cmCheckWinCondition = cmType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic)
+                .FirstOrDefault(m => m.Name == "CheckWinCondition");
             if (cmDebugOnly is not null)
             {
                 var csType = cmDebugOnly.ReturnType;
@@ -3448,7 +3538,8 @@ public sealed partial class Sts2Bindings
             attackIntentType, attackIntentDamageCalc, attackIntentRepeats,
             playerCmdEndTurn, playCardActionType, playCardActionCtor,
             actionQueueSet, enqueueWithoutSync,
-            actionExecutor, actionExecutorIsRunning, actionExecutorFinished);
+            actionExecutor, actionExecutorIsRunning, actionExecutorFinished,
+            cmCheckWinCondition);
     }
 
     // List-like CurrentOptions could be IList<T>, List<T>, or a custom Godot-
@@ -3600,5 +3691,6 @@ public sealed partial class Sts2Bindings
         MethodInfo? PlayerCmdEndTurn, Type? PlayCardActionType, ConstructorInfo? PlayCardActionCtor,
         PropertyInfo? RunManagerActionQueueSet, MethodInfo? ActionQueueSetEnqueueWithoutSynchronizing,
         PropertyInfo? RunManagerActionExecutor, PropertyInfo? ActionExecutorIsRunning,
-        MethodInfo? ActionExecutorFinishedExecutingActions);
+        MethodInfo? ActionExecutorFinishedExecutingActions,
+        MethodInfo? CombatManagerCheckWinCondition);
 }

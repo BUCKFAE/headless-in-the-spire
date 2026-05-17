@@ -20,8 +20,9 @@ namespace Sts2Headless.End2EndTests;
 //   * does the bound combat / map / event surface keep working for the
 //     act-2 enemies, or does an unbound code path NRE?
 //
-// The probe shares the existing setup verbatim (Seed42Agent + cheat HP +
-// ReconTransport) and only differs in two ways:
+// The probe shares the existing setup verbatim
+// (CheatingHellRaisingSeed42Agent + cheat HP + ReconTransport) and only
+// differs in two ways:
 //   1. the stop condition never matches (we drive until something stops us),
 //   2. the markdown trace lands in /tmp/seed42-postact1-walk.md.
 //
@@ -39,7 +40,7 @@ public class DiagnoseAct2WalkTests : IClassFixture<HostSubprocess>
 
     [Fact]
     [Trait("category", "diagnostic")]
-    public async Task Seed42Agent_DriveBeyondAct1Boss_DumpsTrace()
+    public async Task CheatingHellRaisingSeed42Agent_DriveBeyondAct1Boss_DumpsTrace()
     {
         await _host.SendAsync<RunNewResult>(
             "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
@@ -50,7 +51,7 @@ public class DiagnoseAct2WalkTests : IClassFixture<HostSubprocess>
 
         var inner = new HostSubprocessTransport(_host);
         var transport = new ReconTransport(inner);
-        var agent = new Seed42Agent();
+        var agent = new CheatingHellRaisingSeed42Agent();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(8));
 

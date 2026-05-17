@@ -8,7 +8,7 @@ namespace Sts2Headless.Agents;
 // independent of who's playing or which seed is in flight.
 //
 // This is NOT a full game database. It's a small fixture for the Ironclad
-// starter deck plus everything offered along seed 42 so the Seed42Agent
+// starter deck plus everything offered along seed 42 so the CheatingHellRaisingSeed42Agent
 // can reason about plays without round-tripping the engine. Unknown cards
 // fall back to a neutral Mechanics() so callers can treat them as "no
 // information" rather than "definitely bad."

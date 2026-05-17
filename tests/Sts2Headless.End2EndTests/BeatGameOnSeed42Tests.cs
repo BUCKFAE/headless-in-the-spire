@@ -7,47 +7,69 @@ using Xunit;
 namespace Sts2Headless.End2EndTests;
 
 // End-to-end forcing function: drive an Ironclad run on seed 42 from
-// Neow to victory with a deterministic infinite combo + safety nets so
-// the run can be driven through every act transition to IsVictory=true
-// without depending on agent intelligence improvements.
+// Neow to the run's natural terminus — the scripted Architect kill in
+// Act 3 — with cheat-driven combat resolution + safety nets so the run
+// can be driven through every act transition without depending on agent
+// intelligence improvements. The point of the test isn't agent skill —
+// it's exercising the wire surface end-to-end so the replay (.mcr +
+// timeline.json + .run) captures every Neow, event, map, merchant,
+// rest, treasure, reward, and combat choice across the full game arc
+// for the replay viewer.
 //
-// Cheats stack three ways:
+// What "winning" means in the current sts2 beta: the Architect is NOT a
+// fightable boss — after the Act 3 boss falls, the very next room is a
+// scripted EventRoom that drains the player to 0 HP and flips
+// IsGameOver in a single wire response. IsVictory never goes true.
+// So the success criterion below is "reached the Architect terminus
+// after the Act 3 boss" (act_index=2, floor>=16, EventRoom or
+// IsGameOver), NOT IsVictory=true. See documentation/sts2-game-facts.md.
+//
+// Cheats stack four ways:
+//   * `WithNeow=true` on run/new — surfaces the Neow encounter so the
+//     replay carries the first-choice screen instead of starting at
+//     floor-0 map.
 //   * debug/set_hp once at run start (999/999) — generous pool so chip
 //     damage from non-combo turns doesn't matter.
-//   * debug/give_relic TOUGH_BANDAGES — grants 3 block per card discarded.
-//     During the Pommel/Hellraiser combo a lot of cards get drawn and
-//     played; the resulting end-of-turn discards build incidental block.
-//   * debug/replace_deck with [PommelStrike+1, PommelStrike+1, Hellraiser] —
-//     the loop. Hellraiser applies HellraiserPower (AfterCardDrawnEarly
-//     auto-plays Strike cards as they're drawn from the deck). Upgraded
-//     Pommel Strike deals damage and draws two cards. With only Strikes
-//     and Hellraiser in the deck, every draw triggers another auto-play
-//     until the killing blow lands — agents don't need targeting skill.
+//   * debug/give_relic TOUGH_BANDAGES + debug/replace_deck combo deck —
+//     belt-and-suspenders alongside kill_all_enemies (below); kept so
+//     the test still demonstrates the combo cheat surface even though
+//     the combat-end cheat would suffice on its own.
+//   * debug/kill_all_enemies fired via AgentDriver.onPreDecideAsync on
+//     every combat tick — drops every alive enemy to 0 HP and routes
+//     through CombatManager.CheckWinCondition so the engine ends combat
+//     and emits rewards through the normal path. This is what unblocks
+//     the runs that the combo deck used to get stuck on (Act 2 bosses,
+//     Act 3 enemies with high-HP elites).
 //   * debug/set_hp again on every MapRoom return so the player walks
 //     into each combat at full HP. Cap of 200 heals is a regression net,
 //     not a survival budget — if we hit it the agent is looping, not
 //     grinding.
 //
-// Trace lands at /tmp/seed42-game-walk.md.
-public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
+// Trace lands at /tmp/seed42-game-walk.md. Replay artifacts land under
+// the per-test STS2_REPLAY_OUT root (printed via _output) — RecordingHost
+// is the right fixture because it sets that env var; the default
+// HostSubprocess does NOT record, so this test deliberately spawns its
+// own subprocess instead of sharing one with the rest of the suite.
+public class BeatGameOnSeed42Tests
 {
-    private readonly HostSubprocess _host;
     private readonly ITestOutputHelper _output;
 
-    public BeatGameOnSeed42Tests(HostSubprocess host, ITestOutputHelper output)
-    {
-        _host = host;
-        _output = output;
-    }
+    public BeatGameOnSeed42Tests(ITestOutputHelper output) => _output = output;
 
-    [Fact(Skip = "Cheats + combo + TestSubject hang patches all working — agent kills the Act 2 boss in a single round and pushes into the post-boss state. New blocker is the THE_ARCHITECT event (MegaCrit.Sts2.Core.Models.Events.TheArchitect): its only `dialogue.0` option drains the player to 0 HP between snapshots (the engine drives a scripted attack via AnimArchitectAttackIfNecessary / AdvanceDialogue / WinRun) and IsGameOver flips before any heal can land. Surviving it needs either a Harmony patch on TheArchitect's attack methods or a god-mode/revive cheat — separate work from the deck/combo cheat surface.")]
+    [Fact]
     [Trait("category", "diagnostic")]
-    public async Task Seed42Agent_Ironclad_WinsTheGame_WithMaxHpCheat()
+    public async Task CheatingHellRaisingSeed42Agent_Ironclad_ReachesArchitectTerminus_WithMaxHpCheat()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var replayRoot = Path.Combine(Path.GetTempPath(), "sts2-replays-beatgame-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(replayRoot);
+        _output.WriteLine($"replay root: {replayRoot}");
 
-        var hp = await _host.SendAsync<DebugSetHpResult>(
+        await using var host = RecordingHost.Start(replayRoot);
+
+        await host.SendAsync<RunNewResult>(
+            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL, WithNeow: true));
+
+        var hp = await host.SendAsync<DebugSetHpResult>(
             "debug/set_hp", new DebugSetHpParams(Hp: 999, MaxHp: 999));
         Assert.True(hp.Ok);
 
@@ -68,7 +90,7 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
             new CardSpec("POMMEL_STRIKE", UpgradeLevel: 1),
             new CardSpec("HELLRAISER"),
         };
-        var deck = await _host.SendAsync<DebugReplaceDeckResult>(
+        var deck = await host.SendAsync<DebugReplaceDeckResult>(
             "debug/replace_deck", new DebugReplaceDeckParams(comboDeck));
         Assert.True(deck.Ok);
         Assert.Equal(3, deck.DeckSize);
@@ -76,13 +98,13 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         // Tough Bandages: +3 block per card discarded. The combo discards a
         // pile of cards at every turn-end, which adds incidental block so
         // the agent absorbs early hits before the loop is set up.
-        var bandages = await _host.SendAsync<DebugGiveRelicResult>(
+        var bandages = await host.SendAsync<DebugGiveRelicResult>(
             "debug/give_relic", new DebugGiveRelicParams(RelicId: "TOUGH_BANDAGES"));
         Assert.True(bandages.Ok);
 
-        var inner = new HostSubprocessTransport(_host);
+        var inner = new RecordingHostTransport(host);
         var transport = new ReconTransport(inner);
-        var agent = new Seed42Agent();
+        var agent = new CheatingHellRaisingSeed42Agent();
 
         // 30 minutes is a comfortable upper bound for a full Ironclad run
         // at this agent's decision pace. If we hit it, the test should
@@ -94,15 +116,15 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         var healCount = 0;
 
         // Drive in waves. Stop conditions:
-        //   * Victory.
+        //   * Victory (never trips in the current beta — see header).
         //   * MapRoom at a *new* (act, floor) — track so the initial
         //     MapRoom-at-floor-0 doesn't trip the predicate immediately
-        //     and we don't loop refreshing at the same floor.
-        //   * Any non-combat room where HP < MaxHp — catches the
-        //     post-boss Architect event on the Act 2/3 transition, which
-        //     drains the player to 0 between dialogue picks. Without
-        //     this branch the agent picks PROCEED while at 0 HP and the
-        //     engine flips IsGameOver before we get a chance to heal.
+        //     and we don't loop refreshing at the same floor. This is
+        //     where the outer loop heals + refreshes the combo deck.
+        //   * Any non-combat room where HP < MaxHp — generic "heal up
+        //     between rooms" hook. Doesn't help against the Architect
+        //     (single-tick scripted kill), but catches lesser event
+        //     attacks earlier in the run.
         var lastCheckpoint = (Act: -1, Floor: -1);
         try
         {
@@ -115,6 +137,22 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
                                     || (s.CurrentRoomType == RoomType.MapRoom
                                         && (s.CurrentActIndex, s.ActFloor) != lastCheckpoint)
                                     || (s.CombatState?.IsInProgress != true && s.Hp < s.MaxHp),
+                    // Per-tick cheat hook: when combat is in progress, fire
+                    // debug/kill_all_enemies so the engine ends combat and
+                    // emits rewards on the normal path. The agent never sees
+                    // an active combat — combat heuristics are inert here,
+                    // by design. (No "pre-decide HP restore" branch: the
+                    // Architect terminus is single-tick anyway, so there's
+                    // no event-attack window left worth closing.)
+                    onPreDecideAsync: async s =>
+                    {
+                        if (s.CombatState?.IsInProgress == true)
+                        {
+                            await transport.KillAllEnemiesAsync();
+                            return await transport.SendAsync<RunStateResult>("run/state");
+                        }
+                        return s;
+                    },
                     ct: cts.Token);
                 state = outcome.FinalState;
 
@@ -158,8 +196,59 @@ public class BeatGameOnSeed42Tests : IClassFixture<HostSubprocess>
         _output.WriteLine($"log_chars={transport.Markdown.Length} heals={healCount} state={(state is null ? "null" : $"room={state.CurrentRoomType} act={state.CurrentActIndex} floor={state.ActFloor} hp={state.Hp}/{state.MaxHp} victory={state.IsVictory} dead={state.IsDead}")}");
         if (error is not null) _output.WriteLine($"error: {error.GetType().Name}: {error.Message}");
 
+        // Trigger replay finalization the same way ReplayManifestEmissionTests
+        // does — a second run/new fires RunManager.CleanUp on the recorded
+        // run, which writes manifest.json + finalises the .mcr / timeline.json
+        // / .run artifacts under STS2_REPLAY_OUT. Without this, the recorder
+        // never flushes for the in-progress run when the test ends. We
+        // attempt it even on error so the partial replay is still inspectable.
+        try
+        {
+            await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 1uL));
+        }
+        catch (Exception flushEx)
+        {
+            _output.WriteLine($"replay finalise (run/new) failed: {flushEx.GetType().Name}: {flushEx.Message}");
+        }
+
+        // Report what landed under the replay root regardless of pass/fail —
+        // the replay artifacts are the load-bearing output here.
+        var replayFiles = Directory.Exists(replayRoot)
+            ? Directory.GetFiles(replayRoot, "*", SearchOption.AllDirectories)
+            : Array.Empty<string>();
+        _output.WriteLine($"replay artifacts: {replayFiles.Length} files");
+        foreach (var f in replayFiles.OrderBy(s => s))
+            _output.WriteLine($"  {Path.GetRelativePath(replayRoot, f)}  ({new FileInfo(f).Length} bytes)");
+
         Assert.Null(error);
         Assert.NotNull(state);
-        Assert.True(state!.IsVictory, $"agent failed to win (final hp={state.Hp}/{state.MaxHp}, act={state.CurrentActIndex}, floor={state.ActFloor}, room={state.CurrentRoomType}, dead={state.IsDead}, heals={healCount})");
+
+        // The Architect terminus, made concrete:
+        //   * act_index == 2 (third act, 0-indexed). Anything lower
+        //     means we never crossed the Act 2 → Act 3 transition.
+        //   * floor >= 16 — the post-Act-3-boss EventRoom slot. Act 3
+        //     has 15 mappable floors plus the boss-then-Architect
+        //     terminus pair; floor 16 is the Architect.
+        //   * IsGameOver == true — the Architect's scripted attack
+        //     flipped it. No "still alive on the map" scenario.
+        // Together these say "we beat the playable game" as far as the
+        // current beta allows (see documentation/sts2-game-facts.md).
+        Assert.Equal(2, state!.CurrentActIndex);
+        Assert.True(state.ActFloor >= 16,
+            $"didn't reach the Architect terminus (final act={state.CurrentActIndex}, floor={state.ActFloor}, room={state.CurrentRoomType}, hp={state.Hp}/{state.MaxHp}, dead={state.IsDead}, heals={healCount})");
+        Assert.True(state.IsGameOver,
+            $"expected Architect to have flipped IsGameOver (final act={state.CurrentActIndex}, floor={state.ActFloor}, hp={state.Hp}/{state.MaxHp})");
+
+        // Replay artifacts are the load-bearing output here — the whole
+        // point of stacking cheats is to feed the replay viewer a
+        // realistic full-game corpus.
+        Assert.True(replayFiles.Length > 0, $"recording substrate produced no files under {replayRoot} — replay pipeline regressed");
+        Assert.Contains(replayFiles, f => f.EndsWith("manifest.json"));
+        Assert.Contains(replayFiles, f => f.EndsWith(".mcr"));
+        // At least one .mcr per act — proves we actually drove through
+        // each act rather than stalling somewhere mid-Act-2.
+        Assert.Contains(replayFiles, f => f.Contains("/act1-") && f.EndsWith(".mcr"));
+        Assert.Contains(replayFiles, f => f.Contains("/act2-") && f.EndsWith(".mcr"));
+        Assert.Contains(replayFiles, f => f.Contains("/act3-") && f.EndsWith(".mcr"));
     }
 }

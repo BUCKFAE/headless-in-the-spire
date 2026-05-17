@@ -52,6 +52,18 @@ public class DebugDisabledTests
     }
 
     [Fact]
+    public async Task DebugKillAllEnemies_WithoutEnableDebugFlag_ReturnsDebugDisabledError()
+    {
+        await using var host = NoDebugHost.Start();
+
+        var err = await host.ExpectErrorAsync(
+            "debug/kill_all_enemies", new DebugKillAllEnemiesParams());
+
+        Assert.Equal(WireErrorCode.DebugMethodDisabled, err.Code);
+        Assert.Contains("debug/kill_all_enemies", err.Message);
+    }
+
+    [Fact]
     public async Task NonDebugMethod_StillWorks_WithoutEnableDebugFlag()
     {
         await using var host = NoDebugHost.Start();

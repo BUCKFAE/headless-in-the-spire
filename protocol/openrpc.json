@@ -344,6 +344,27 @@
         }
       },
       "x-debugOnly": true
+    },
+    {
+      "name": "debug/kill_all_enemies",
+      "summary": "Test affordance — drop every alive enemy in the current combat to 0 HP by writing the engine's Creature._currentHp backing field, then drain and auto-advance so rewards generate through the normal path. No-op (killed=0) outside combat. Bypasses on-kill listeners. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugKillAllEnemiesParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugKillAllEnemiesResult"
+        }
+      },
+      "x-debugOnly": true
     }
   ],
   "components": {
@@ -527,6 +548,28 @@
           "maxHp",
           "gold",
           "deckSize"
+        ]
+      },
+      "DebugKillAllEnemiesParams": {
+        "type": "object"
+      },
+      "DebugKillAllEnemiesResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "killed": {
+            "type": "integer"
+          },
+          "combatEnded": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "killed",
+          "combatEnded"
         ]
       },
       "DebugReplaceDeckParams": {

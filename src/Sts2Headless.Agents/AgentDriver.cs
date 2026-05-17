@@ -31,6 +31,15 @@ public static class AgentDriver
         CombatBudgetGuard? combatBudgetGuard = null,
         CoverageRecorder? coverageRecorder = null,
         Action<int, RunStateResult, AgentAction>? onStep = null,
+        // Pre-decide hook — runs each tick AFTER the snapshot read and
+        // game-over / stop-predicate checks, BEFORE the agent decides.
+        // Receives the current snapshot, returns the (possibly refreshed)
+        // snapshot the agent should reason about. Use case: cheat-driven
+        // tests where the snapshot needs to be mutated mid-tick (e.g.
+        // debug/kill_all_enemies in combat → re-read state so the agent
+        // sees pending rewards instead of an in-progress combat).
+        // Caller is responsible for refreshing run/state after any mutation.
+        Func<RunStateResult, Task<RunStateResult>>? onPreDecideAsync = null,
         CancellationToken ct = default)
     {
         var stall = stallDetector ?? new StallDetector();
@@ -54,6 +63,18 @@ public static class AgentDriver
 
             if (stopWhen is not null && stopWhen(state))
                 return new RunOutcome(state, step, TerminationReason.StopRequested, AgentStopReason: null);
+
+            if (onPreDecideAsync is not null)
+            {
+                state = await onPreDecideAsync(state);
+                // Re-check terminal conditions on the (possibly mutated) snapshot —
+                // the hook may have transitioned us into game-over (e.g. a cheat
+                // that flips IsGameOver) or made the stopWhen predicate true.
+                if (state.IsGameOver)
+                    return new RunOutcome(state, step, TerminationReason.GameOver, AgentStopReason: null);
+                if (stopWhen is not null && stopWhen(state))
+                    return new RunOutcome(state, step, TerminationReason.StopRequested, AgentStopReason: null);
+            }
 
             var action = agent.Decide(state);
             onStep?.Invoke(step, state, action);

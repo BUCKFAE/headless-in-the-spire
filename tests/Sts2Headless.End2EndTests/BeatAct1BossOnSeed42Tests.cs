@@ -28,7 +28,7 @@ public class BeatAct1BossOnSeed42Tests : IClassFixture<HostSubprocess>
 
     [Fact]
     [Trait("category", "diagnostic")]
-    public async Task Seed42Agent_Ironclad_BeatsVantom_WithMaxHpCheat()
+    public async Task CheatingHellRaisingSeed42Agent_Ironclad_BeatsVantom_WithMaxHpCheat()
     {
         await _host.SendAsync<RunNewResult>(
             "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
@@ -41,7 +41,7 @@ public class BeatAct1BossOnSeed42Tests : IClassFixture<HostSubprocess>
 
         var inner = new HostSubprocessTransport(_host);
         var transport = new ReconTransport(inner);
-        var agent = new Seed42Agent();
+        var agent = new CheatingHellRaisingSeed42Agent();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
 

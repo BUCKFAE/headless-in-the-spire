@@ -27,6 +27,7 @@ public static class CheatHostMethods
             ["debug/give_relic"] = Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, getRun, p)),
             ["debug/set_hp"] = Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, getRun, p)),
             ["debug/replace_deck"] = Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
+            ["debug/kill_all_enemies"] = Typed<DebugKillAllEnemiesParams, DebugKillAllEnemiesResult>(_ => DebugKillAllEnemies(bindings, getRun)),
         };
 
     private static DebugSetHpResult DebugSetHp(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugSetHpParams? @params)
@@ -111,6 +112,18 @@ public static class CheatHostMethods
             Ok: true,
             DeckSize: s.DeckSize,
             CardIds: added);
+    }
+
+    private static DebugKillAllEnemiesResult DebugKillAllEnemies(Sts2Bindings bindings, Func<RunHandle?> getRun)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+
+        // No param validation: the cheat takes nothing. Outside-of-combat
+        // calls return killed=0 as a no-op (see DebugKillAllEnemiesParams
+        // for why — this gets fired on every tick by full-run tests).
+        var (killed, combatEnded) = bindings.KillAllEnemies(run);
+        return new DebugKillAllEnemiesResult(Ok: true, Killed: killed, CombatEnded: combatEnded);
     }
 
     private static DebugGiveRelicResult DebugGiveRelic(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugGiveRelicParams? @params)

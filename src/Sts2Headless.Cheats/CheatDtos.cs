@@ -86,3 +86,34 @@ public sealed record DebugReplaceDeckResult(
     [property: JsonPropertyName("ok")] bool Ok,
     [property: JsonPropertyName("deckSize")] int DeckSize,
     [property: JsonPropertyName("cardIds")] IReadOnlyList<string> CardIds);
+
+// ── debug/kill_all_enemies ───────────────────────────────────────────────
+
+// Drops every alive enemy in the current combat to 0 HP by writing the
+// engine's Creature._currentHp backing field (Enemy : Creature in sts2's
+// hierarchy). Bypasses the damage-event pipeline and on-kill listeners —
+// matches the spirit of debug/set_hp, which writes the same backing field
+// on the player. Use case: forcing function for end-to-end full-game
+// playthroughs where the agent isn't strong enough to clear every combat
+// honestly but the test needs to exercise the post-combat path (rewards,
+// map progression, Neow/event choices in the replay).
+//
+// Side effects in the engine:
+//   * Each enemy whose HP we zero is then ignored by the engine's "alive
+//     enemies" predicate, so CombatManager flips IsInProgress=false on the
+//     next tick.
+//   * After the writes, the helper drains the action executor and runs
+//     AutoAdvancePostCombat so rewards generate through the normal path
+//     (same surface UsePotion / PlayCard land on). The caller's next
+//     `run/state` will see the post-combat room or pending rewards.
+//
+// No params — the cheat operates on whatever combat is currently in
+// progress on the active run. Calling outside combat is a no-op that
+// returns killed=0, combatEnded=false (not an error: tests routinely fire
+// this on every state observation and we don't want spurious failures).
+public sealed record DebugKillAllEnemiesParams();
+
+public sealed record DebugKillAllEnemiesResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("killed")] int Killed,
+    [property: JsonPropertyName("combatEnded")] bool CombatEnded);

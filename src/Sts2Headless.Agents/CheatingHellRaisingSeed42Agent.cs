@@ -2,16 +2,23 @@ using Sts2Headless.Protocol.Methods;
 
 namespace Sts2Headless.Agents;
 
-// Heuristic Ironclad agent tuned for seed 42 (Act 1). Goal: beat VANTOM
-// at floor 17. The recon at documentation/research/seed42-recon.md
-// describes the seed's terrain — enemies seen, rewards offered, the boss
-// stat block — and this agent's heuristics are picked to handle the
-// specific shapes that path surfaces.
+// Heuristic Ironclad agent tuned for seed 42 (Act 1). Originally drafted
+// to beat VANTOM (Act 1 boss, floor 17); the rename to
+// CheatingHellRaisingSeed42Agent reflects how it's actually used today —
+// paired with cheats (debug/set_hp 999/999, debug/replace_deck
+// Pommel+Hellraiser+ToughBandages, debug/kill_all_enemies) so a full
+// seed-42 run reaches the final boss and the replay records every Neow /
+// event / map / merchant / rest choice along the way. The decision
+// discipline below is unchanged from the original Act 1 agent; the
+// cheats are what make the Act 2/3 walk land, not heuristic skill.
 //
 // Decision discipline (different from GreedyAgent):
 //   * In combat: priority queue per turn. Bash for Vulnerable before
 //     committing energy to Strikes. Defends when incoming damage exceeds
-//     a HP-relative threshold. Otherwise pour energy into damage.
+//     a HP-relative threshold. Otherwise pour energy into damage. With
+//     debug/kill_all_enemies fired by the driver every tick, this code
+//     path is mostly a tie-breaker for who-dies-first ordering — the
+//     cheat ends the combat before the agent's choices matter.
 //   * On rewards: pick cards by the agent's own DraftScore table (below)
 //     rather than skipping. Skip only when every offering is at-or-below
 //     neutral. CardMechanics.IsHeadlessUnsafe cards (Headbutt, Burning
@@ -23,11 +30,12 @@ namespace Sts2Headless.Agents;
 //     priority bias toward rest sites when wounded.
 //
 // Why a separate class instead of refactoring GreedyAgent: GreedyAgent is
-// a regression baseline — many tests assert its behaviour. Seed42Agent is
-// an experimental forward-progress agent. They share the IAgent contract
-// but diverge sharply in *what* they do at every decision; collapsing
-// them later is a cleanup slice once the heuristic stabilises.
-public sealed class Seed42Agent : HeuristicAgent
+// a regression baseline — many tests assert its behaviour.
+// CheatingHellRaisingSeed42Agent is an experimental forward-progress
+// agent. They share the IAgent contract but diverge sharply in *what*
+// they do at every decision; collapsing them later is a cleanup slice
+// once the heuristic stabilises.
+public sealed class CheatingHellRaisingSeed42Agent : HeuristicAgent
 {
     // ── Combat: potion + card decision per snapshot ─────────────────────
 
@@ -35,7 +43,7 @@ public sealed class Seed42Agent : HeuristicAgent
     {
         var combat = state.CombatState
             ?? throw new InvalidOperationException(
-                $"Seed42Agent: {state.CurrentRoomType} with combatState=null.");
+                $"CheatingHellRaisingSeed42Agent: {state.CurrentRoomType} with combatState=null.");
 
         if (!combat.IsPlayPhase || combat.Enemies.Count == 0)
         {

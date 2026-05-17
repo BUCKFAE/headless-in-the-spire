@@ -43,6 +43,12 @@
     <Compile Include="..\Sts2Headless.IntegrationTests\HostSubprocess.cs">
       <Link>HostSubprocess.cs</Link>
     </Compile>
+    <!-- RecordingHost is the recorder-equipped counterpart used by the
+         full-game test to produce .mcr / timeline.json / manifest.json
+         artifacts. Same source-link approach as HostSubprocess. -->
+    <Compile Include="..\Sts2Headless.IntegrationTests\RecordingHost.cs">
+      <Link>RecordingHost.cs</Link>
+    </Compile>
   </ItemGroup>
 
 </Project>
