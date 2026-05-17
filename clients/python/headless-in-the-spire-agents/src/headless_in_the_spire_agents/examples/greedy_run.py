@@ -25,6 +25,7 @@ from headless_in_the_spire_agents import (
     EndTurn,
     GameSnapshot,
     GreedyAgent,
+    LeaveMerchantRoom,
     LeaveTreasureRoom,
     PlayCard,
     RunOutcome,
@@ -65,6 +66,8 @@ def _format_action(action: Action) -> str:
             return f"select_rest_site_option(option={oi})"
         case LeaveTreasureRoom():
             return "leave_treasure_room"
+        case LeaveMerchantRoom():
+            return "leave_merchant_room"
 
 
 def _log_step(step: int, state: GameSnapshot, action: Action) -> None:

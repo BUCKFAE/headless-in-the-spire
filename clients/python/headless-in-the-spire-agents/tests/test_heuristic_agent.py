@@ -17,6 +17,7 @@ from conftest import (
 from headless_in_the_spire_agents import (
     EndTurn,
     HeuristicAgent,
+    LeaveMerchantRoom,
     LeaveTreasureRoom,
     NoLegalActionError,
     SelectEventOption,
@@ -114,6 +115,11 @@ def test_default_rest_site_raises_when_nothing_enabled() -> None:
 def test_default_treasure_leaves_room() -> None:
     snap = build_snapshot(room=RoomType.treasure_room)
     assert HeuristicAgent().decide(snap) == LeaveTreasureRoom()
+
+
+def test_default_merchant_leaves_room() -> None:
+    snap = build_snapshot(room=RoomType.merchant_room)
+    assert HeuristicAgent().decide(snap) == LeaveMerchantRoom()
 
 
 def test_terminal_raises() -> None:

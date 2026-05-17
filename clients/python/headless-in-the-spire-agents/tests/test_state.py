@@ -72,6 +72,14 @@ def test_rest_site_when_room_is_rest_site_and_options_exist() -> None:
     assert current_phase(snap) is Phase.rest_site
 
 
+def test_merchant_when_room_is_merchant() -> None:
+    # The merchant's items list can legitimately be empty (bought out),
+    # so we route on room type alone — the legal action is still
+    # "leave the merchant".
+    snap = build_snapshot(room=RoomType.merchant_room)
+    assert current_phase(snap) is Phase.merchant
+
+
 def test_treasure_when_room_is_treasure() -> None:
     # No options list on the wire — TreasureRoom is auto-resolve, the
     # only legal action is "open the chest and leave". We detect the

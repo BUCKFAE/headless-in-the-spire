@@ -78,6 +78,17 @@ class LeaveTreasureRoom:
     """
 
 
+@dataclass(frozen=True, slots=True)
+class LeaveMerchantRoom:
+    """Leave the merchant without buying anything.
+
+    The host exposes a separate run/buy_merchant_item call for purchases;
+    `LeaveMerchantRoom` is the "no thanks" path that the default
+    HeuristicAgent picks (greedy posture: don't speculate gold). A
+    purpose-built shopping agent should add a `BuyMerchantItem` action.
+    """
+
+
 # Closed union — agents always return one of these. Pyright checks
 # match-statement exhaustiveness against this alias.
 type Action = (
@@ -89,4 +100,5 @@ type Action = (
     | SkipReward
     | SelectRestSiteOption
     | LeaveTreasureRoom
+    | LeaveMerchantRoom
 )

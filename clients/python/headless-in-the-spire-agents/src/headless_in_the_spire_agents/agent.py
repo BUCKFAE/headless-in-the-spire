@@ -21,6 +21,7 @@ from headless_in_the_spire._models import RewardKind
 from headless_in_the_spire_agents.actions import (
     Action,
     EndTurn,
+    LeaveMerchantRoom,
     LeaveTreasureRoom,
     SelectEventOption,
     SelectMapNode,
@@ -105,6 +106,8 @@ class HeuristicAgent:
                 return self.decide_rest_site(state)
             case Phase.treasure:
                 return self.decide_treasure(state)
+            case Phase.merchant:
+                return self.decide_merchant(state)
             case Phase.terminal:
                 raise NoLegalActionError("game over — no action available", state)
             case Phase.unknown:
@@ -175,3 +178,9 @@ class HeuristicAgent:
 
     def decide_treasure(self, state: GameSnapshot) -> Action:
         return LeaveTreasureRoom()
+
+    def decide_merchant(self, state: GameSnapshot) -> Action:
+        # Default: leave without buying. Mirrors C# HeuristicAgent —
+        # speculative gold spending needs a model the heuristic lacks.
+        # Shopping agents override to inspect available_merchant_items.
+        return LeaveMerchantRoom()

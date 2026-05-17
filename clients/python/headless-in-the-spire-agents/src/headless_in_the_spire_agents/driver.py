@@ -26,6 +26,7 @@ from headless_in_the_spire._models import (
 from headless_in_the_spire_agents.actions import (
     Action,
     EndTurn,
+    LeaveMerchantRoom,
     LeaveTreasureRoom,
     PlayCard,
     SelectEventOption,
@@ -120,3 +121,5 @@ def apply_action(client: Client, action: Action) -> GameSnapshot:
             )
         case LeaveTreasureRoom():
             return client.run_leave_treasure_room()
+        case LeaveMerchantRoom():
+            return client.run_leave_merchant_room()
