@@ -169,6 +169,77 @@ public class MerchantRoomTests : IClassFixture<HostSubprocess>
     }
 
     [Fact]
+    public async Task BuyMerchantItem_DeductsGold_FlipsStocked_GrantsItem()
+    {
+        var entry = await WalkToMerchantEntry();
+        Assert.Equal(RoomType.MerchantRoom, entry.CurrentRoomType);
+
+        // Pick the cheapest affordable item with a known kind. IsAffordable
+        // is already the engine's "Player.Gold >= Cost" computation; if no
+        // items are affordable on this seed the test surfaces that as a
+        // signal to either re-pick the seed or add a gold pre-buff cheat,
+        // rather than passing-but-untested.
+        var pre = await _host.SendAsync<RunStateResult>("run/state");
+        var pick = pre.AvailableMerchantItems
+                       .Where(i => i.IsAffordable && i.IsStocked && i.Kind != MerchantKind.Unknown)
+                       .OrderBy(i => i.Cost)
+                       .FirstOrDefault();
+        Assert.NotNull(pick);
+        Assert.True(pre.Gold >= pick.Cost,
+            $"chosen item index={pick.Index} cost={pick.Cost} but player has gold={pre.Gold}");
+
+        var preDeck = pre.DeckSize;
+        var preRelicIds = pre.Relics.Select(r => r.Id).ToHashSet();
+        var prePotionIds = pre.OwnedPotions.Select(p => p.Id).ToList();
+
+        var buy = await _host.SendAsync<RunBuyMerchantItemResult>(
+            "run/buy_merchant_item", new RunBuyMerchantItemParams(ItemIndex: pick.Index));
+        Assert.True(buy.Ok);
+        Assert.Equal(pick.Index, buy.ItemIndex);
+        Assert.Equal(RoomType.MerchantRoom, buy.CurrentRoomType);
+
+        // The result envelope carries availableMerchantItems but no Gold —
+        // re-read run/state for the gold delta and any kind-specific
+        // mutation (deck size for cards, relics/potions for the others).
+        var post = await _host.SendAsync<RunStateResult>("run/state");
+        Assert.Equal(pre.Gold - pick.Cost, post.Gold);
+
+        var postItem = post.AvailableMerchantItems.First(i => i.Index == pick.Index);
+        Assert.False(postItem.IsStocked,
+            $"merchant item index={pick.Index} kind={pick.Kind} still IsStocked=true after purchase");
+
+        switch (pick.Kind)
+        {
+            case MerchantKind.Card:
+                Assert.Equal(preDeck + 1, post.DeckSize);
+                break;
+            case MerchantKind.Relic:
+                Assert.NotNull(pick.RelicId);
+                Assert.Contains(pick.RelicId, post.Relics.Select(r => r.Id));
+                Assert.DoesNotContain(pick.RelicId, preRelicIds);
+                break;
+            case MerchantKind.Potion:
+                Assert.NotNull(pick.PotionId);
+                // Potions stack — count must rise by exactly one for the
+                // bought id (a fresh slot or +1 on an existing slot).
+                var preCount = prePotionIds.Count(p => p == pick.PotionId);
+                var postCount = post.OwnedPotions.Count(p => p.Id == pick.PotionId);
+                Assert.Equal(preCount + 1, postCount);
+                break;
+            case MerchantKind.CardRemoval:
+                // Card-removal is a service, not an item — verify the
+                // deck shrank by exactly one and the merchant rolled the
+                // service off the wire (subsequent buys cost more / are
+                // unavailable depending on engine policy).
+                Assert.Equal(preDeck - 1, post.DeckSize);
+                break;
+            default:
+                Assert.Fail($"unhandled MerchantKind={pick.Kind}");
+                break;
+        }
+    }
+
+    [Fact]
     public async Task LeaveMerchant_ExitsTo_MapRoom()
     {
         var entry = await WalkToMerchantEntry();
