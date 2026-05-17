@@ -1139,17 +1139,18 @@ public sealed partial class Sts2Bindings
 
     // Fire RunManager.RestSiteSynchronizer.ChooseLocalOption(optionIndex)
     // and pump the sync context so synchronous follow-ups complete inside
-    // the call. SMITH branches into card-selection which we have no wire
-    // for yet — that call hangs on the engine's GetSelectedCardReward
-    // future and the caller will see CurrentRoomType stuck at RestSiteRoom
-    // on the next snapshot.
-    //
-    // After non-SMITH picks (HEAL, future DIG, …), sts2 clears the room's
-    // Options list but doesn't auto-transition to MapRoom — sts2-cli's
-    // ForceToMap pattern covers this. Mirror it: if Options is empty after
-    // the synchronous call, drive the engine through
+    // the call. After non-SMITH picks (HEAL, future DIG, …), sts2 clears
+    // the room's Options list but doesn't auto-transition to MapRoom —
+    // sts2-cli's ForceToMap pattern covers this. Mirror it: if Options is
+    // empty after the synchronous call, drive the engine through
     // ProceedFromTerminalRewardsScreen → EnterRoom(MapRoom) so the next
     // wire snapshot reports MapRoom, the post-rest contract callers rely on.
+    //
+    // SMITH ALSO clears Options (the pick "took") so the same ForceToMap
+    // path fires and the agent isn't stuck — but the upgrade itself
+    // silently no-ops because the engine awaits a card-pick that has no
+    // wire surface to be served from. See BLOCKED.md for the follow-up
+    // wire surface this needs.
     public void SelectRestSiteOption(RunHandle handle, int optionIndex)
     {
         if (_runManagerRestSiteSynchronizer is null || _restSiteSyncChooseLocalOption is null)
@@ -1164,10 +1165,12 @@ public sealed partial class Sts2Bindings
         if (result is Task t) t.GetAwaiter().GetResult();
         _syncCtx?.Pump();
 
-        // Auto-advance after HEAL / DIG / etc. — when Options is empty the
-        // engine has accepted the pick but left CurrentRoom on RestSite.
-        // SMITH leaves the room pending a card-select; we leave that alone
-        // so a future card-select wire can resume it.
+        // Auto-advance after any pick — HEAL / DIG / SMITH all leave
+        // Options empty once accepted, and the engine doesn't auto-flip
+        // CurrentRoom. We force it. The SMITH upgrade itself silently
+        // no-ops in headless because the engine awaits a card-pick we
+        // can't serve yet (see BLOCKED.md), but the room transition
+        // still fires so the agent keeps moving.
         if (_restSiteRoomOptions is not null && _runManagerEnterRoom is not null && _mapRoomType is not null)
         {
             var room = _runStateCurrentRoom.GetValue(handle.RunState);

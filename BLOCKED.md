@@ -6,13 +6,17 @@ the open question, and the cheapest unblocking step.
 
 ## SMITH rest-site option needs a follow-up card-pick wire surface
 
-**Surface.** `run/select_rest_site_option(SMITH)` currently leaves the
-player blocked on a card-select sub-flow that `Sts2Bindings.SelectRestSiteOption`
-walks away from (`src/Sts2Headless.Runtime/Sts2Bindings.cs:1169-1170` —
-"SMITH leaves the room pending a card-select; we leave that alone so a
-future card-select wire can resume it"). The next snapshot reports
-`CurrentRoomType=RestSiteRoom` with an empty `AvailableRestSiteOptions`
-list and there is no wire call that can advance from that state.
+**Surface.** `run/select_rest_site_option(SMITH)` is *not* a hang in
+practice — `Sts2Bindings.SelectRestSiteOption`'s "Options is empty →
+EnterRoom(MapRoom)" force-advance (`src/Sts2Headless.Runtime/Sts2Bindings.cs:1167-1192`)
+also fires after SMITH, so the next snapshot lands on MapRoom and the
+agent can keep moving. The real gap is **silently broken semantics**:
+no card actually upgrades, because the engine's SMITH path awaits a
+card-pick that has no wire to be served from. The room flips, the rest
+site is "spent", and the player loses the upgrade they paid for. The
+stale bindings comment ("SMITH leaves the room pending a card-select;
+we leave that alone so a future card-select wire can resume it") implies
+the player is stuck — they're not, but the upgrade is a no-op.
 
 **Why it's blocked.** The card-pick happens *between* two wire calls
 (after `select_rest_site_option`, before the implicit "leave"), and the

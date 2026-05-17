@@ -537,11 +537,12 @@ public sealed record RunSelectEventOptionResult(
 // next snapshot's AvailableRestSiteOptions tells the caller whether the
 // state advanced.
 //
-// HEAL exits the rest site to MapRoom cleanly. SMITH (and any other option
-// that branches into a card-selection sub-flow) leaves the player blocked
-// on a card-select wire surface we have not built yet; callers picking
-// SMITH today will see CurrentRoomType stay at RestSiteRoom with an empty
-// AvailableRestSiteOptions list. Routing through SMITH is the next slice.
+// HEAL exits the rest site to MapRoom cleanly. SMITH also flips the room
+// to MapRoom (because the host force-advances after any pick that empties
+// Options), but the upgrade itself silently no-ops — the engine awaits a
+// card-pick that has no wire surface yet (see BLOCKED.md for the three
+// candidate shapes). Callers picking SMITH today should treat it as a
+// wasted rest site rather than a hang.
 public sealed record RunSelectRestSiteOptionParams(
     [property: JsonPropertyName("optionIndex")] int OptionIndex);
 
