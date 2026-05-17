@@ -18,6 +18,7 @@ from headless_in_the_spire._models import (
     CombatState,
     EventOption,
     MapNode,
+    RestSiteOption,
     RewardsState,
     RoomType,
 )
@@ -45,6 +46,7 @@ class GameSnapshot(Protocol):
     current_room_type: RoomType
     available_map_nodes: list[MapNode]
     available_event_options: list[EventOption]
+    available_rest_site_options: list[RestSiteOption]
     combat_state: CombatState | None
     rewards_state: RewardsState | None
 
@@ -63,6 +65,7 @@ class Phase(Enum):
     rewards = "rewards"
     map = "map"
     event = "event"
+    rest_site = "rest_site"
     treasure = "treasure"
     terminal = "terminal"
     unknown = "unknown"
@@ -90,6 +93,8 @@ def current_phase(state: GameSnapshot) -> Phase:
         return Phase.map
     if state.current_room_type is RoomType.event_room and state.available_event_options:
         return Phase.event
+    if state.current_room_type is RoomType.rest_site_room and state.available_rest_site_options:
+        return Phase.rest_site
     if state.current_room_type is RoomType.treasure_room:
         # No options list on the wire — opening the chest is unconditional.
         return Phase.treasure

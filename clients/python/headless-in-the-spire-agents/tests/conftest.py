@@ -15,6 +15,7 @@ from headless_in_the_spire._models import (
     EventOption,
     MapNode,
     MapNodeType,
+    RestSiteOption,
     RewardKind,
     RewardOption,
     RewardsState,
@@ -97,6 +98,15 @@ def card_option(*, index: int, cost: int = 1, card_id: str = "test_card") -> Car
     return CardRewardOption(index=index, id=card_id, cost=cost)
 
 
+def rest_site_option(
+    *,
+    index: int,
+    option_id: str = "HEAL",
+    is_enabled: bool = True,
+) -> RestSiteOption:
+    return RestSiteOption(index=index, option_id=option_id, is_enabled=is_enabled)
+
+
 def build_snapshot(
     *,
     room: RoomType = RoomType.map_room,
@@ -108,6 +118,7 @@ def build_snapshot(
     current_act_index: int = 0,
     map_nodes: list[MapNode] | None = None,
     event_options: list[EventOption] | None = None,
+    rest_site_options: list[RestSiteOption] | None = None,
     combat: CombatState | None = None,
     rewards: RewardsState | None = None,
 ) -> RunStateResult:
@@ -134,7 +145,7 @@ def build_snapshot(
         available_map_nodes=map_nodes if map_nodes is not None else [],
         available_event_options=event_options if event_options is not None else [],
         available_merchant_items=[],
-        available_rest_site_options=[],
+        available_rest_site_options=rest_site_options if rest_site_options is not None else [],
         combat_state=combat if combat is not None else empty_combat(),
         rewards_state=rewards if rewards is not None else empty_rewards(),
         relics=[],

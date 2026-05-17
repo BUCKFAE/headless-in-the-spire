@@ -11,6 +11,7 @@ from conftest import (
     event_option,
     in_progress_combat,
     map_node,
+    rest_site_option,
 )
 from headless_in_the_spire_agents import Phase, current_phase
 
@@ -61,6 +62,14 @@ def test_event_when_room_is_event_and_options_exist() -> None:
         event_options=[event_option(index=0)],
     )
     assert current_phase(snap) is Phase.event
+
+
+def test_rest_site_when_room_is_rest_site_and_options_exist() -> None:
+    snap = build_snapshot(
+        room=RoomType.rest_site_room,
+        rest_site_options=[rest_site_option(index=0, option_id="HEAL")],
+    )
+    assert current_phase(snap) is Phase.rest_site
 
 
 def test_treasure_when_room_is_treasure() -> None:

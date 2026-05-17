@@ -24,6 +24,7 @@ from headless_in_the_spire_agents.actions import (
     LeaveTreasureRoom,
     SelectEventOption,
     SelectMapNode,
+    SelectRestSiteOption,
     SelectReward,
 )
 from headless_in_the_spire_agents.state import GameSnapshot, Phase, current_phase
@@ -100,6 +101,8 @@ class HeuristicAgent:
                 return self.decide_map(state)
             case Phase.event:
                 return self.decide_event(state)
+            case Phase.rest_site:
+                return self.decide_rest_site(state)
             case Phase.treasure:
                 return self.decide_treasure(state)
             case Phase.terminal:
@@ -146,6 +149,29 @@ class HeuristicAgent:
         if head.kind is RewardKind.card and head.cards:
             return SelectReward(reward_index=head.index, card_index=head.cards[0].index)
         return SelectReward(reward_index=head.index)
+
+    def decide_rest_site(self, state: GameSnapshot) -> Action:
+        # Mirrors HeuristicAgent.DecideRestSite in C#: prefer HEAL, then any
+        # enabled non-SMITH option, then any enabled option. SMITH opens a
+        # card-select sub-flow we have not wired up; subclasses that want
+        # to upgrade override this hook and drive the follow-up themselves.
+        options = state.available_rest_site_options
+        heal = next(
+            (o for o in options if o.is_enabled and o.option_id.upper() == "HEAL"),
+            None,
+        )
+        if heal is not None:
+            return SelectRestSiteOption(option_index=heal.index)
+        non_smith = next(
+            (o for o in options if o.is_enabled and o.option_id.upper() != "SMITH"),
+            None,
+        )
+        if non_smith is not None:
+            return SelectRestSiteOption(option_index=non_smith.index)
+        any_enabled = next((o for o in options if o.is_enabled), None)
+        if any_enabled is not None:
+            return SelectRestSiteOption(option_index=any_enabled.index)
+        raise NoLegalActionError("rest site with no enabled options", state)
 
     def decide_treasure(self, state: GameSnapshot) -> Action:
         return LeaveTreasureRoom()

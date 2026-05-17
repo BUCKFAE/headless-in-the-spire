@@ -25,6 +25,7 @@ from headless_in_the_spire_agents.actions import (
     PlayCard,
     SelectEventOption,
     SelectMapNode,
+    SelectRestSiteOption,
     SelectReward,
     SkipReward,
 )
@@ -66,6 +67,7 @@ __all__ = [
     "RunOutcome",
     "SelectEventOption",
     "SelectMapNode",
+    "SelectRestSiteOption",
     "SelectReward",
     "SkipReward",
     "StepObserver",

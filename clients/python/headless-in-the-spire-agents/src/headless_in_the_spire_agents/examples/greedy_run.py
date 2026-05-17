@@ -30,6 +30,7 @@ from headless_in_the_spire_agents import (
     RunOutcome,
     SelectEventOption,
     SelectMapNode,
+    SelectRestSiteOption,
     SelectReward,
     SkipReward,
     current_phase,
@@ -60,6 +61,8 @@ def _format_action(action: Action) -> str:
             )
         case SkipReward(reward_index=ri):
             return f"skip_reward(reward={ri})"
+        case SelectRestSiteOption(option_index=oi):
+            return f"select_rest_site_option(option={oi})"
         case LeaveTreasureRoom():
             return "leave_treasure_room"
 

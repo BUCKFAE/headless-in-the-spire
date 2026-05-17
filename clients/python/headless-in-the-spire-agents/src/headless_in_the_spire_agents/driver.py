@@ -19,6 +19,7 @@ from headless_in_the_spire._models import (
     RunPlayCardParams,
     RunSelectEventOptionParams,
     RunSelectMapNodeParams,
+    RunSelectRestSiteOptionParams,
     RunSelectRewardParams,
     RunSkipRewardParams,
 )
@@ -29,6 +30,7 @@ from headless_in_the_spire_agents.actions import (
     PlayCard,
     SelectEventOption,
     SelectMapNode,
+    SelectRestSiteOption,
     SelectReward,
     SkipReward,
 )
@@ -112,5 +114,9 @@ def apply_action(client: Client, action: Action) -> GameSnapshot:
             return client.run_select_reward(RunSelectRewardParams(reward_index=ri, card_index=ci))
         case SkipReward(reward_index=ri):
             return client.run_skip_reward(RunSkipRewardParams(reward_index=ri))
+        case SelectRestSiteOption(option_index=oi):
+            return client.run_select_rest_site_option(
+                RunSelectRestSiteOptionParams(option_index=oi)
+            )
         case LeaveTreasureRoom():
             return client.run_leave_treasure_room()

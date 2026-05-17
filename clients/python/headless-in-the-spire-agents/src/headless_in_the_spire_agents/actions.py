@@ -54,6 +54,20 @@ class SkipReward:
 
 
 @dataclass(frozen=True, slots=True)
+class SelectRestSiteOption:
+    """Pick one of the rest-site options (HEAL, SMITH, ...) by its wire index.
+
+    The host enforces which options are legal — locked / depleted options
+    have `is_enabled=false` on the wire and should never be picked. The
+    SMITH branch additionally opens a card-select sub-flow that is not
+    yet driven from Python; subclasses that pick SMITH must implement
+    the follow-up themselves.
+    """
+
+    option_index: int
+
+
+@dataclass(frozen=True, slots=True)
 class LeaveTreasureRoom:
     """Auto-resolve the treasure room (open the chest, grab the relic, leave).
 
@@ -73,5 +87,6 @@ type Action = (
     | SelectEventOption
     | SelectReward
     | SkipReward
+    | SelectRestSiteOption
     | LeaveTreasureRoom
 )

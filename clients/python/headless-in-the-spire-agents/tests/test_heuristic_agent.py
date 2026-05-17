@@ -12,6 +12,7 @@ from conftest import (
     event_option,
     in_progress_combat,
     map_node,
+    rest_site_option,
 )
 from headless_in_the_spire_agents import (
     EndTurn,
@@ -20,6 +21,7 @@ from headless_in_the_spire_agents import (
     NoLegalActionError,
     SelectEventOption,
     SelectMapNode,
+    SelectRestSiteOption,
     SelectReward,
 )
 
@@ -64,6 +66,49 @@ def test_default_rewards_claims_head_with_first_card() -> None:
         ),
     )
     assert HeuristicAgent().decide(snap) == SelectReward(reward_index=0, card_index=0)
+
+
+def test_default_rest_site_prefers_heal() -> None:
+    snap = build_snapshot(
+        room=RoomType.rest_site_room,
+        rest_site_options=[
+            rest_site_option(index=0, option_id="SMITH"),
+            rest_site_option(index=1, option_id="HEAL"),
+        ],
+    )
+    assert HeuristicAgent().decide(snap) == SelectRestSiteOption(option_index=1)
+
+
+def test_default_rest_site_skips_smith_when_heal_missing() -> None:
+    snap = build_snapshot(
+        room=RoomType.rest_site_room,
+        rest_site_options=[
+            rest_site_option(index=0, option_id="SMITH"),
+            rest_site_option(index=1, option_id="DIG"),
+        ],
+    )
+    # SMITH opens a card-select sub-flow we don't drive; the default
+    # picks any other enabled option before falling back to SMITH.
+    assert HeuristicAgent().decide(snap) == SelectRestSiteOption(option_index=1)
+
+
+def test_default_rest_site_only_smith_left() -> None:
+    snap = build_snapshot(
+        room=RoomType.rest_site_room,
+        rest_site_options=[rest_site_option(index=0, option_id="SMITH")],
+    )
+    assert HeuristicAgent().decide(snap) == SelectRestSiteOption(option_index=0)
+
+
+def test_default_rest_site_raises_when_nothing_enabled() -> None:
+    snap = build_snapshot(
+        room=RoomType.rest_site_room,
+        rest_site_options=[rest_site_option(index=0, option_id="HEAL", is_enabled=False)],
+    )
+    # Phase detection still routes us here (room is RestSiteRoom and the
+    # options list is non-empty), but the hook can't pick anything legal.
+    with pytest.raises(NoLegalActionError):
+        HeuristicAgent().decide(snap)
 
 
 def test_default_treasure_leaves_room() -> None:
