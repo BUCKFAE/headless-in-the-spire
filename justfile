@@ -18,11 +18,12 @@ default:
 
 # ── Local setup ───────────────────────────────────────────────────────────
 
-# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv, install git hooks, generate every *Id.g.cs content manifest from the local DLL.
+# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv, install replay-viewer pnpm deps, install git hooks, generate every *Id.g.cs content manifest from the local DLL.
 setup:
     just validate-sts2-installation
     just pull-game-libs
     just sync-python
+    just sync-viewer
     just install-hooks
     just generate-content-ids
     just build
@@ -43,6 +44,16 @@ pull-game-libs:
 sync-python:
     @bash scripts/check-uv.sh
     @uv sync --all-packages
+
+# Install the replay-viewer (tools/replay-viewer) pnpm dependencies from the checked-in lockfile.
+sync-viewer:
+    @bash scripts/check-pnpm.sh
+    @cd tools/replay-viewer && pnpm install --frozen-lockfile
+
+# Run the replay viewer's Vite dev server (tools/replay-viewer). Opens an HMR-enabled frontend that loads replays from vendor/replays/.
+dev-viewer:
+    @bash scripts/check-pnpm.sh
+    @cd tools/replay-viewer && pnpm run dev
 
 # Clone reference projects (currently sts2-cli) into external-tools/.
 clone-external-tools:
