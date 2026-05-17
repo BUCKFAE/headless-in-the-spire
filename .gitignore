@@ -34,6 +34,7 @@ external-tools/
 # the on-disk markdown/json carries a derivative of vendor/sts2.dll's
 # proprietary content. Regenerate locally.
 /documentation/coverage/
+/replays/
 
 # .NET build artifacts.
 bin/
