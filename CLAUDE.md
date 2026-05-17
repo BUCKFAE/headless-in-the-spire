@@ -21,6 +21,11 @@ for testing, AI experimentation, and replay recording.
 - `documentation/research/sts2-cli-anatomy.md` — how the only working OSS
   reference (`wuhao21/sts2-cli`) makes the game run headless, and what we
   decided to take vs. leave behind.
+- `documentation/sts2-game-facts.md` — **read before reasoning about run
+  flow, acts, characters, or bosses.** STS2 differs from STS1 in ways that
+  trip up STS1-trained intuition (Neow always offers relics, Architect is a
+  scripted kill not a fight, only A1–A10 implemented, five characters incl.
+  Regent and Necrobinder).
 
 ## Hard rules
 
