@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>STS2 Headless — Replay Viewer</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+        --border: #d0d0d0;
+        --muted: #777;
+        --accent: #06c;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --border: #444; --muted: #999; --accent: #5ad; }
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 1280px;
+        margin: 1rem auto;
+        padding: 0 1rem;
+      }
+      header h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+      header p { color: var(--muted); margin-top: 0; }
+      .picker {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        margin: 1rem 0;
+        align-items: end;
+      }
+      .picker label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.875rem; }
+      .picker label small { color: var(--muted); }
+      .picker button { padding: 0.375rem 0.75rem; }
+      .status { color: var(--muted); font-size: 0.875rem; }
+      .errors { color: #c00; font-family: var(--mono); white-space: pre-wrap; }
+      .layout { display: grid; grid-template-columns: minmax(320px, 1fr) 2fr; gap: 1rem; }
+      @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+      .viewer-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; margin-bottom: 1rem; }
+      .viewer-meta dt { font-weight: 600; }
+      .viewer-meta dd { margin: 0; }
+      .viewer-combat-list { list-style: none; padding-left: 0; margin: 0; }
+      .viewer-combat-list li { margin-bottom: 0.25rem; }
+      .viewer-combat-row {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-family: var(--mono);
+        font-size: 0.875rem;
+        cursor: pointer;
+      }
+      .viewer-combat-row:hover:not(:disabled) { border-color: var(--accent); }
+      .viewer-combat-row.is-selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+      .viewer-combat-row.is-disabled { opacity: 0.5; cursor: not-allowed; }
+      .viewer-floor-rows { list-style: none; padding-left: 0; margin: 0; }
+      .viewer-floor-rows li { margin-bottom: 0.125rem; }
+      .viewer-floor-row {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 0.25rem 0.5rem;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        cursor: pointer;
+      }
+      .viewer-floor-row:hover { border-color: var(--accent); }
+      .viewer-floor-row.is-selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+      .viewer-floor-subtitle { color: var(--muted); margin: 0 0 0.5rem; font-family: var(--mono); }
+      .viewer-floor-stats { display: grid; grid-template-columns: max-content 1fr; gap: 0.125rem 1rem; margin: 0.5rem 0; }
+      .viewer-floor-stats dt { font-weight: 600; }
+      .viewer-floor-stats dd { margin: 0; }
+      .viewer-floor-section { margin-top: 1rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); }
+      .viewer-floor-section h4 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+      .viewer-floor-section h5 { margin: 0.75rem 0 0.25rem; font-size: 0.875rem; color: var(--muted); }
+      .viewer-floor-section ul { padding-left: 1.25rem; font-family: var(--mono); font-size: 0.875rem; }
+      .viewer-choice-list { list-style: none; padding-left: 0; }
+      .viewer-choice-list li { color: var(--muted); }
+      .viewer-choice-list li.is-picked { font-weight: 700; color: var(--accent); }
+      .viewer-choice-list li:not(.is-picked) { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 50%, transparent); }
+      .viewer-combat-log { font-family: var(--mono); font-size: 0.875rem; list-style: none; padding-left: 0; margin: 0; }
+      .viewer-combat-log li { padding: 0.125rem 0; }
+      .viewer-combat-log li[data-kind="turn"] { color: var(--muted); font-style: italic; padding: 0.25rem 0; border-top: 1px dotted var(--border); }
+      .viewer-combat-log li[data-kind="enemy"] { color: #c33; padding-left: 1rem; }
+      .viewer-combat-log li[data-event-type="HookAction"] { color: var(--muted); }
+      .viewer-combat-log li[data-event-type="ResumeAction"] { color: var(--muted); }
+      .viewer-combat-log li[data-event-type="PlayerChoice"] { color: #066; }
+      .viewer-event-list { font-family: var(--mono); font-size: 0.875rem; padding-left: 0; list-style: none; }
+      .viewer-event-list li[data-event-type="HookAction"] { color: var(--muted); }
+      .viewer-event-list li[data-event-type="ResumeAction"] { color: var(--muted); }
+      .viewer-event-list li[data-event-type="PlayerChoice"] { color: #066; }
+      .viewer-checksum-table { font-family: var(--mono); font-size: 0.75rem; border-collapse: collapse; }
+      .viewer-checksum-table th, .viewer-checksum-table td { padding: 0.125rem 0.5rem; border: 1px solid var(--border); text-align: left; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>STS2 Headless — Replay Viewer</h1>
+      <p>Pick a run directory (e.g. <code>vendor/replays/&lt;version&gt;/&lt;run-id&gt;/</code>); the page caches the load so a reload restores it.</p>
+    </header>
+    <div class="picker">
+      <label>
+        <strong>Run directory</strong>
+        <small>auto-discovers manifest.json + timelines</small>
+        <input id="directory-input" type="file" webkitdirectory />
+      </label>
+      <label>
+        manifest.json only
+        <input id="manifest-input" type="file" accept=".json,application/json" />
+      </label>
+      <label>
+        single timeline.json
+        <input id="timeline-input" type="file" accept=".json,application/json" />
+      </label>
+      <button id="clear-session" type="button">Clear</button>
+      <span id="status" class="status"></span>
+    </div>
+    <div id="errors" class="errors"></div>
+    <div class="layout">
+      <main id="output"></main>
+      <aside id="detail"></aside>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

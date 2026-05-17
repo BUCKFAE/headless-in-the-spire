@@ -51,6 +51,15 @@ __pycache__/
 dist/
 build/
 
+# Node toolchain (tools/replay-viewer). pnpm-lock.yaml is checked in for
+# reproducibility; node_modules and Vite's dist/ are not.
+node_modules/
+.vite/
+.pnpm-store/
+# Playwright artefacts (HTML report + per-test traces / videos / screenshots).
+playwright-report/
+test-results/
+
 ## IntelliJ
 .idea
 
