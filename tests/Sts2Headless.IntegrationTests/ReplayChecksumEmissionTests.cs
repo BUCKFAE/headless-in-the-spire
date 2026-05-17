@@ -71,6 +71,16 @@ public class ReplayChecksumEmissionTests
         var combatWithChecksums = manifest.Combats.FirstOrDefault(c => c.ChecksumCount > 0);
         Assert.NotNull(combatWithChecksums);
 
+        // A combat that flushed through OnCombatWriteReplay (CombatManager's
+        // natural end-of-combat hook) without the player dying must surface
+        // as Victory in the manifest. The test drove the combat to rewards
+        // without dying, so every entry should be Victory (none Unknown,
+        // none Defeat, none Abandoned).
+        Assert.All(manifest.Combats, c =>
+        {
+            Assert.Equal(ReplayCombatOutcome.Victory, c.Outcome);
+        });
+
         // Phase A.1: every .mcr should have a sibling timeline.json
         // emitted by CombatTimelineEmitter at flush time. The viewer
         // reads this file; if the recorder ever drops the emit step

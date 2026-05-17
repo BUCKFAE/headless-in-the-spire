@@ -195,7 +195,14 @@ public sealed class ReplayRecorder
 
         var context = ReadCurrentCombatContext()
             ?? new PendingCombatContext(ActIndex: 0, Floor: 0, RoomType: RoomType.Unknown, Encounter: null, RoomSlug: "unknown");
-        FlushPendingCombat(replay, context, events, checksums);
+        // CombatManager.EndCombatInternal fires WriteReplay only after the
+        // combat resolved — so reaching this method always means the combat
+        // ended naturally. RunManager.IsGameOver = true here means the
+        // player just died in this combat (Defeat); otherwise the player
+        // won and the run moves on (Victory). Abandoned is reserved for
+        // FinalFlush (host shutdown caught a combat mid-flight).
+        var outcome = ReadOutcomeFromRunManager(defeatedIfGameOver: true);
+        FlushPendingCombat(replay, context, events, checksums, outcome);
     }
 
     // Fired by the Harmony prefix on RunManager.CleanUp(bool). Engine
@@ -274,7 +281,11 @@ public sealed class ReplayRecorder
         if (events == 0 && checksums == 0) return;
         var context = ReadCurrentCombatContext()
             ?? new PendingCombatContext(0, 0, RoomType.Unknown, null, "unknown");
-        FlushPendingCombat(replay, context, events, checksums);
+        // FinalFlush only fires when the host tears down with a combat
+        // still in flight (CombatManager.EndCombatInternal never ran for
+        // this one) — that's the Abandoned case. A player death drives
+        // through OnCombatWriteReplay, not here.
+        FlushPendingCombat(replay, context, events, checksums, ReplayCombatOutcome.Abandoned);
     }
 
     // Synthesises run.json for runs that the engine itself never
@@ -373,7 +384,7 @@ public sealed class ReplayRecorder
         File.WriteAllText(ReplayLayout.ManifestPath(RunDirectory), json);
     }
 
-    private void FlushPendingCombat(object replay, PendingCombatContext pending, int events, int checksums)
+    private void FlushPendingCombat(object replay, PendingCombatContext pending, int events, int checksums, ReplayCombatOutcome outcome)
     {
         FlushedCombatCount++;
         var fileName = ReplayLayout.CombatFileName(pending.ActIndex, pending.Floor, pending.RoomSlug);
@@ -393,11 +404,25 @@ public sealed class ReplayRecorder
             Floor: pending.Floor,
             RoomType: pending.RoomType,
             Encounter: pending.Encounter,
-            Outcome: ReplayCombatOutcome.Unknown,  // TODO(#7): derive from RunState.IsGameOver / IsVictory at next-room time
+            Outcome: outcome,
             ActionCount: result.Events,
             ChecksumCount: result.Checksums));
         _ = events;     // kept on the signature for symmetry with the result
         _ = checksums;
+    }
+
+    // Classifies the run-end against RunManager state at the moment a
+    // combat flushes. Reflection-only read of the cached IsGameOver
+    // property; never throws on a missing instance (returns Unknown so
+    // a future engine renaming surfaces in manifests, not as a crash).
+    private ReplayCombatOutcome ReadOutcomeFromRunManager(bool defeatedIfGameOver)
+    {
+        var runManagerType = _sts2.GetType("MegaCrit.Sts2.Core.Runs.RunManager");
+        var instance = runManagerType?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+        if (instance is null) return ReplayCombatOutcome.Unknown;
+        var isGameOver = (bool?)_runManagerIsGameOver.GetValue(instance) ?? false;
+        if (isGameOver) return defeatedIfGameOver ? ReplayCombatOutcome.Defeat : ReplayCombatOutcome.Unknown;
+        return ReplayCombatOutcome.Victory;
     }
 
     // Reads RunManager.Instance.State to extract the act/floor + room
