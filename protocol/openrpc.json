@@ -92,7 +92,7 @@
     },
     {
       "name": "run/select_rest_site_option",
-      "summary": "Pick an option on the current rest site (HEAL, SMITH, …). HEAL exits to MapRoom; SMITH branches into card-select which is not wired yet.",
+      "summary": "Pick an option on the current rest site (HEAL, SMITH, …). HEAL exits to MapRoom; SMITH triggers an upgrade card-select via CardSelectCmd.FromDeckForUpgrade — pre-queue picks through cardSelectIndices, or the default HeadlessCardSelector picks the first upgradable card. Options empty after a single-pick option; the host force-advances to MapRoom.",
       "paramStructure": "by-name",
       "params": [
         {
