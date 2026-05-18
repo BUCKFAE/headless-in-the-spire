@@ -442,6 +442,14 @@ public static class Colors
     //   (surfaced on seed 42 Act 2 floor 12 once the deck-replace cheat
     //   landed the agent in a previously-unvisited combat).
     public static Color White => default;
+    // from: run/use_potion paths — discovered 2026-05-18 via 50-seed
+    //   A0 sweep that crashed on 8/50 seeds with
+    //   "MissingMethodException: Method not found:
+    //   'Godot.Color Godot.Colors.get_Red()'" /
+    //   "...Colors.get_Blue()". Specific potions touch a VFX path
+    //   that reads these.
+    public static Color Red => default;
+    public static Color Blue => default;
 }
 public static class DisplayServer { }
 public static class Geometry2D { }

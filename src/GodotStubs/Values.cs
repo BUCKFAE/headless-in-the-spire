@@ -71,6 +71,12 @@ public readonly struct Color
     //   on this stub is actually read.
     public Color(float _, float __, float ___, float ____ = 1f) { }
 
+    // from: run/use_potion VFX path — discovered 2026-05-18 via 50-seed
+    //   A0 sweep, 6/50 seeds crashed with "Method not found: 'Void
+    //   Godot.Color..ctor(Godot.Color, Single)'.". Real Godot uses this
+    //   to derive an alpha-shifted variant of an existing color.
+    public Color(Color _, float __) { }
+
     // from: event-room paths (e.g. NSimpleCardSelectScreen) and monster move
     //   VFX code read individual channels off a Color. Real Godot exposes
     //   R/G/B/A as readwrite fields (the IL is a `ldfld`, not `call get_*`),

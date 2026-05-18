@@ -67,7 +67,20 @@ public class IroncladAgentA0Tests
     [Fact]
     [Trait("category", "diagnostic")]
     public async Task IroncladAgent_WinsAtLeastThreeOfTenSeeds_A0() =>
-        await MeasureWinRate(ascension: 0, minWins: 3);
+        await MeasureWinRate(ascension: 0, seedCount: 10, minWins: 3);
+
+    [Fact]
+    [Trait("category", "diagnostic")]
+    public async Task IroncladAgent_WinRate_A0_50Seeds()
+    {
+        // Broader-sample measurement of A0 win rate. 50 seeds gives a
+        // tighter confidence interval than the 10-seed gate test; the
+        // assertion threshold is intentionally loose (>=10/50 = 20%) so
+        // this is a measurement-and-record test, not a hard regression
+        // gate. The 10-seed test stays the fast feedback loop.
+        await MeasureWinRate(ascension: 0, seedCount: 50, minWins: 10,
+            outputDir: "/tmp/ironclad-a0-50");
+    }
 
     [Fact]
     [Trait("category", "diagnostic")]
@@ -79,20 +92,19 @@ public class IroncladAgentA0Tests
         // results to /tmp/ironclad-a1/summary.txt. Threshold is 1 so
         // a fully-broken agent still fails fast; bump it when the
         // measured baseline stabilises.
-        await MeasureWinRate(ascension: 1, minWins: 1, outputDir: "/tmp/ironclad-a1");
+        await MeasureWinRate(ascension: 1, seedCount: 10, minWins: 1,
+            outputDir: "/tmp/ironclad-a1");
     }
 
-    private async Task MeasureWinRate(int ascension, int minWins, string? outputDir = null)
+    private async Task MeasureWinRate(int ascension, int seedCount, int minWins, string? outputDir = null)
     {
-        // ten consecutive integer seeds — small enough to keep CI
-        // tractable, large enough to surface non-deterministic regressions
-        // in the simulator/planner.
         var dir = outputDir ?? "/tmp/ironclad-a0";
-        var seeds = Enumerable.Range(1, 10).Select(i => (ulong)i).ToArray();
+        var seeds = Enumerable.Range(1, seedCount).Select(i => (ulong)i).ToArray();
         var results = new List<(ulong seed, bool won, int floor, string termination, string detail)>();
 
         Directory.CreateDirectory(dir);
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20));
+        // Per-seed timeout averages 1-3s; budget 30s per seed for headroom.
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30 * seedCount));
         foreach (var seed in seeds)
         {
             await using var host = new HostSubprocess();
@@ -149,8 +161,27 @@ public class IroncladAgentA0Tests
         var wins = results.Count(r => r.won);
         var summary = string.Join("\n",
             results.Select(r => $"seed={r.seed} won={r.won} floor={r.floor} term={r.termination} | {r.detail}"));
-        await File.WriteAllTextAsync($"{dir}/summary.txt", summary);
+        // Distribution of how far the agent got — useful for diagnosing
+        // a low win-rate run (mostly mid-act deaths vs mostly boss losses).
+        var floorBuckets = results
+            .GroupBy(r => r.floor switch
+            {
+                < 0 => "crash",
+                <= 5 => "floor 1-5",
+                <= 10 => "floor 6-10",
+                <= 15 => "floor 11-15",
+                <= 16 => "floor 16",
+                _ => "floor 17 (boss)",
+            })
+            .Select(g => $"  {g.Key}: {g.Count()}")
+            .OrderBy(s => s)
+            .ToList();
+        var header = $"wins: {wins}/{seedCount} = {(wins * 100.0 / seedCount):F1}%\n"
+            + "floor distribution:\n"
+            + string.Join("\n", floorBuckets)
+            + "\n\nper-seed:\n";
+        await File.WriteAllTextAsync($"{dir}/summary.txt", header + summary);
         Assert.True(wins >= minWins,
-            $"expected at least {minWins}/10 wins at ascension={ascension}, got {wins}/10\n{summary}");
+            $"expected at least {minWins}/{seedCount} wins at ascension={ascension}, got {wins}/{seedCount}\n{header}{summary}");
     }
 }
