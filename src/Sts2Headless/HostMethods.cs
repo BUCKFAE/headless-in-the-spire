@@ -94,10 +94,15 @@ public static class HostMethods
         var character = @params?.Character ?? Character.Ironclad;
         var seed = @params?.Seed ?? 1uL;
         var withNeow = @params?.WithNeow ?? false;
+        var ascension = @params?.Ascension ?? 0;
 
         if (character != Character.Ironclad)
         {
             throw new ArgumentException($"character '{character}' not yet supported (only Ironclad)");
+        }
+        if (ascension < 0)
+        {
+            throw new ArgumentException($"ascension must be non-negative, got {ascension}");
         }
 
         // Finalise any prior recorder BEFORE bindings.StartIroncladRun runs
@@ -111,7 +116,7 @@ public static class HostMethods
         // Pass A). Default lands at MapRoom; withNeow=true lands at the
         // Neow EventRoom. Callers can drive run/select_event_option to
         // dismiss the event once it's surfaced through AvailableEventOptions.
-        var run = bindings.StartIroncladRun(seed, withNeow);
+        var run = bindings.StartIroncladRun(seed, withNeow, ascension);
 
         // AD-8: spin up the recording substrate when STS2_REPLAY_OUT is
         // set. Default behaviour (env unset) is no recording — preserves
@@ -129,10 +134,7 @@ public static class HostMethods
                 sts2DllSha256: sha,
                 seed: seed.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 character: character,
-                // Ascension isn't on RunNewParams yet — sts2-cli used 0
-                // unconditionally and we've mirrored that. Once the wire
-                // surfaces it, plumb through to here.
-                ascension: 0,
+                ascension: ascension,
                 modifiers: Array.Empty<string>(),
                 startTime: DateTimeOffset.UtcNow);
             recorder = new ReplayRecorder(bindings.Sts2, replayOut, header);

@@ -41,7 +41,7 @@ public static class MethodCatalog
         new("run/new",
             ParamsType: typeof(RunNewParams),
             ResultType: typeof(RunNewResult),
-            Summary: "Start a new run. Defaults: Ironclad, seed=1, withNeow=false."),
+            Summary: "Start a new run. Defaults: Ironclad, seed=1, withNeow=false, ascension=0."),
 
         new("run/state",
             ParamsType: null,

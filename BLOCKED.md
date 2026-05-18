@@ -10,12 +10,6 @@ the open question, and the cheapest unblocking step.
 - **Cheapest unblock:** Pick one new character (suggest Silent — closest to Ironclad in run shape) and confirm whether the bindings layer takes a character enum or stays per-character. Once decided, multi-character coverage in `CoverageSweepTests.s_runs` follows mechanically.
 - **Discovered:** 2026-05-18 via fill-engine-gaps TODO scan (pass 1b) + coverage delta (pass 1c). The coverage report classifies ~80% of missing Cards/Relics/Powers as "off-class content the sweep cannot reach with single-character runs".
 
-### Ascension parameter on RunNewParams
-- **Surface:** `src/Sts2Headless/HostMethods.cs:132-136` — ascension currently hardcoded to 0 in the replay header (`ReplayHeaderFactory.Create(..., ascension: 0, ...)`), with a TODO comment "Once the wire surfaces it, plumb through to here." `RunNewParams` in `Methods.cs` has no Ascension field today.
-- **Question:** Wire shape for ascension — accept on `RunNewParams` as `int Ascension = 0` (simple), or as an `Ascension` enum (catches typos at compile time but freezes the supported set)? Whichever, decide how to pipe it into `bindings.StartIroncladRun` (the bindings call signature must change too).
-- **Cheapest unblock:** Add `int Ascension = 0` to `RunNewParams`, surface a `bindings.StartIroncladRun(seed, withNeow, ascension)` overload, and wire it into the replay header. Ascension-locked content (`ASCENDERS_BANE`, `BLACK_BLOOD`) becomes reachable with a single new sweep row.
-- **Discovered:** 2026-05-18 via fill-engine-gaps TODO scan (pass 1b) + coverage delta (pass 1c) — `ASCENDERS_BANE` is flagged unreachable.
-
 ### Run modifiers on RunNewParams
 - **Surface:** `src/Sts2Headless/HostMethods.cs:136` — `modifiers: Array.Empty<string>()` hardcoded in the replay header; `RunNewParams` has no `Modifiers` field.
 - **Question:** Wire shape — `IReadOnlyList<string>` of modifier names (matches the replay header's current type) or `IReadOnlyList<ModifierId>` enum (matches CLAUDE.md's "Prefer enums over strings on the wire" rule and would use the existing `ModifierId.g.cs` manifest)? The enum form is the house style but freezes the surface to currently-known modifiers.
@@ -47,3 +41,5 @@ the open question, and the cheapest unblocking step.
 - **Discovered:** 2026-05-18 via fill-engine-gaps verification of `just test` baseline (Phase 3 pre-flight failed on a clean HEAD).
 
 _(SMITH rest-site card-pick entry graduated 2026-05-18 — implemented in commit 83514c3; the SMITH summary was refreshed in commit efc86af.)_
+
+_(Ascension wire param graduated 2026-05-18 — `int? Ascension` added to `RunNewParams`, plumbed through `Sts2Bindings.StartIroncladRun` and `ReplayHeaderFactory`. See `tests/Sts2Headless.IntegrationTests/AscensionWireParamTests.cs`.)_

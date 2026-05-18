@@ -66,21 +66,39 @@ public class IroncladAgentA0Tests
 
     [Fact]
     [Trait("category", "diagnostic")]
-    public async Task IroncladAgent_WinsAtLeastThreeOfTenSeeds_A0()
+    public async Task IroncladAgent_WinsAtLeastThreeOfTenSeeds_A0() =>
+        await MeasureWinRate(ascension: 0, minWins: 3);
+
+    [Fact]
+    [Trait("category", "diagnostic")]
+    public async Task IroncladAgent_WinRate_A1_Measurement()
+    {
+        // Ascension 1 adds ASCENDERS_BANE to the starter deck and
+        // bumps base monster damage. We don't expect 3/10 wins here —
+        // this is a measurement test, not a regression gate. Records
+        // results to /tmp/ironclad-a1/summary.txt. Threshold is 1 so
+        // a fully-broken agent still fails fast; bump it when the
+        // measured baseline stabilises.
+        await MeasureWinRate(ascension: 1, minWins: 1, outputDir: "/tmp/ironclad-a1");
+    }
+
+    private async Task MeasureWinRate(int ascension, int minWins, string? outputDir = null)
     {
         // ten consecutive integer seeds — small enough to keep CI
         // tractable, large enough to surface non-deterministic regressions
         // in the simulator/planner.
+        var dir = outputDir ?? "/tmp/ironclad-a0";
         var seeds = Enumerable.Range(1, 10).Select(i => (ulong)i).ToArray();
         var results = new List<(ulong seed, bool won, int floor, string termination, string detail)>();
 
-        Directory.CreateDirectory("/tmp/ironclad-a0");
+        Directory.CreateDirectory(dir);
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20));
         foreach (var seed in seeds)
         {
             await using var host = new HostSubprocess();
             var newRun = await host.SendAsync<RunNewResult>(
-                "run/new", new RunNewParams(Character: Character.Ironclad, Seed: seed));
+                "run/new",
+                new RunNewParams(Character: Character.Ironclad, Seed: seed, Ascension: ascension));
 
             // Anchor the win predicate on the *initial* CurrentActIndex
             // observed at run/new so a fresh state with index 1 doesn't
@@ -119,26 +137,20 @@ public class IroncladAgentA0Tests
                 // line stays readable while still preserving the failure
                 // detail for follow-up.
                 await File.WriteAllTextAsync(
-                    $"/tmp/ironclad-a0/seed-{seed}-crash.txt",
+                    $"{dir}/seed-{seed}-crash.txt",
                     $"{ex.GetType().FullName}: {ex.Message}\n\n{ex}\n\n"
                     + $"inner: {ex.InnerException?.GetType().FullName}: "
                     + $"{ex.InnerException?.Message}\n{ex.InnerException}");
                 results.Add((seed, false, -1, ex.GetType().Name,
-                    $"see /tmp/ironclad-a0/seed-{seed}-crash.txt: {ex.Message}"));
+                    $"see {dir}/seed-{seed}-crash.txt: {ex.Message}"));
             }
         }
 
         var wins = results.Count(r => r.won);
         var summary = string.Join("\n",
             results.Select(r => $"seed={r.seed} won={r.won} floor={r.floor} term={r.termination} | {r.detail}"));
-        await File.WriteAllTextAsync("/tmp/ironclad-a0/summary.txt", summary);
-        // Current threshold is 3/10 — the floor we last verified on
-        // 2026-05-18. The stretch goal is 5/10 (half wins) but getting
-        // there needs deeper combat-planner work than v1 ships with.
-        // Don't lower this threshold to make a regression pass — fix
-        // the regression instead. See /tmp/ironclad-a0-tuning.md for
-        // the per-iteration history.
-        Assert.True(wins >= 3,
-            $"expected at least 3/10 wins, got {wins}/10\n{summary}");
+        await File.WriteAllTextAsync($"{dir}/summary.txt", summary);
+        Assert.True(wins >= minWins,
+            $"expected at least {minWins}/10 wins at ascension={ascension}, got {wins}/10\n{summary}");
     }
 }

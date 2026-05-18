@@ -470,8 +470,11 @@ public sealed partial class Sts2Bindings
     // instead of MapRoom. Callers can then drive run/select_event_option
     // to dismiss the event; LocPatches + the Texture2D / StringName stubs
     // are what let the event populate options in the first place.
-    public RunHandle StartIroncladRun(ulong seed, bool withNeow = false)
+    public RunHandle StartIroncladRun(ulong seed, bool withNeow = false, int ascensionLevel = 0)
     {
+        if (ascensionLevel < 0)
+            throw new ArgumentOutOfRangeException(nameof(ascensionLevel),
+                $"ascensionLevel must be non-negative, got {ascensionLevel}");
         // A new run cannot inherit pending rewards from a previous one — the
         // reward-set objects belong to the prior RunManager state and become
         // invalid after the second run/new wipes that state.
@@ -509,7 +512,7 @@ public sealed partial class Sts2Bindings
         var runState = _runStateCreateForTest.Invoke(null, new Dictionary<string, object?>
         {
             ["players"] = playerArray,
-            ["ascensionLevel"] = 0,
+            ["ascensionLevel"] = ascensionLevel,
             ["seed"] = $"sts2headless-{seed}",
         }) ?? throw new InvalidOperationException("RunState.CreateForTest returned null");
 

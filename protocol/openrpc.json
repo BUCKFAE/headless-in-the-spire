@@ -20,7 +20,7 @@
     },
     {
       "name": "run/new",
-      "summary": "Start a new run. Defaults: Ironclad, seed=1, withNeow=false.",
+      "summary": "Start a new run. Defaults: Ironclad, seed=1, withNeow=false, ascension=0.",
       "paramStructure": "by-name",
       "params": [
         {
@@ -2106,6 +2106,13 @@
           "withNeow": {
             "type": [
               "boolean",
+              "null"
+            ],
+            "default": null
+          },
+          "ascension": {
+            "type": [
+              "integer",
               "null"
             ],
             "default": null

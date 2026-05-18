@@ -371,7 +371,13 @@ public sealed record HostPingResult(
 public sealed record RunNewParams(
     [property: JsonPropertyName("character")] Character? Character = null,
     [property: JsonPropertyName("seed")] ulong? Seed = null,
-    [property: JsonPropertyName("withNeow")] bool? WithNeow = null);
+    [property: JsonPropertyName("withNeow")] bool? WithNeow = null,
+    // Ascension level. 0 (default) matches the previous wire behavior.
+    // Higher levels enable harder content (ASCENDERS_BANE curse,
+    // tougher monsters, …). The engine's RunState.CreateForTest takes
+    // ascensionLevel directly; we plumb the wire value through
+    // Sts2Bindings.StartIroncladRun → CreateForTest.
+    [property: JsonPropertyName("ascension")] int? Ascension = null);
 
 public sealed record RunNewResult(
     [property: JsonPropertyName("ok")] bool Ok,
