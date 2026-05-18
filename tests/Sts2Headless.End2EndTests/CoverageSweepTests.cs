@@ -7,10 +7,10 @@ using Xunit;
 namespace Sts2Headless.End2EndTests;
 
 // First slice of the content-coverage sweep:
-//   * Drive a fixed set of (character, seed) pairs through the greedy
-//     agent with a 999/999 HP cheat (same approach as
-//     BeatAct1BossOnSeed42Tests — keep the agent alive long enough to
-//     surface late-game content; mid-run death cuts coverage short).
+//   * Drive a fixed set of (character, seed, agent) tuples with a
+//     999/999 HP cheat (same approach as BeatAct1BossOnSeed42Tests —
+//     keep the agent alive long enough to surface late-game content;
+//     mid-run death cuts coverage short).
 //   * CoverageRecorder hooks the AgentDriver and accumulates seen/played/
 //     used/faced sets per run.
 //   * After every run, CoverageAggregator unions the report into a
@@ -25,13 +25,17 @@ namespace Sts2Headless.End2EndTests;
 // (which `dotnet test --filter` can't override).
 //
 // EXTENDING the sweep:
-//   * Add to s_runs below — each row is (character, seed).
+//   * Add to s_runs below — each row is (character, seed, agentLabel,
+//     agentFactory). The label appears in the per-run output and the
+//     aggregator's `runLabels`; the factory runs once per row so each
+//     iteration gets a fresh agent.
 //   * Per-run HP/cheat tweaks go in the inner loop; if you find a
 //     character that needs a different cheat shape (Silent's discard
 //     pile, Defect's orbs interfering with greedy targeting), branch
 //     here rather than in the agent.
-//   * If you want a non-greedy agent for one slot, swap `new GreedyAgent()`
-//     for the appropriate IAgent — the CoverageRecorder is agent-agnostic.
+//   * Specialised agents that expose new content (e.g. PotionDrinkingAgent
+//     for the potion / *_POWER surface that the never-drinking
+//     GreedyAgent can't reach) earn their seed on the matrix.
 public class CoverageSweepTests : IClassFixture<HostSubprocess>
 {
     private readonly HostSubprocess _host;
@@ -43,16 +47,19 @@ public class CoverageSweepTests : IClassFixture<HostSubprocess>
         _output = output;
     }
 
-    // The sweep matrix. Start small — five Ironclad seeds. Adding rows
-    // here multiplies wall-time linearly; sustain ~5 minutes total or
-    // split into tiers.
-    private static readonly (Character Character, ulong Seed)[] s_runs =
+    // The sweep matrix. Start small — five Ironclad seeds for the
+    // baseline GreedyAgent plus one PotionDrinkingAgent seed to surface
+    // the ~40-entry potion / *_POWER content that the never-drinking
+    // greedy can't reach. Adding rows multiplies wall-time linearly;
+    // sustain ~5 minutes total or split into tiers.
+    private static readonly (Character Character, ulong Seed, string AgentLabel, Func<IAgent> AgentFactory)[] s_runs =
     [
-        (Character.Ironclad, 42uL),
-        (Character.Ironclad, 1uL),
-        (Character.Ironclad, 2uL),
-        (Character.Ironclad, 3uL),
-        (Character.Ironclad, 100uL),
+        (Character.Ironclad, 42uL,  "greedy",   () => new GreedyAgent()),
+        (Character.Ironclad, 1uL,   "greedy",   () => new GreedyAgent()),
+        (Character.Ironclad, 2uL,   "greedy",   () => new GreedyAgent()),
+        (Character.Ironclad, 3uL,   "greedy",   () => new GreedyAgent()),
+        (Character.Ironclad, 100uL, "greedy",   () => new GreedyAgent()),
+        (Character.Ironclad, 42uL,  "potions",  () => new PotionDrinkingAgent()),
     ];
 
     [Fact]
@@ -78,18 +85,18 @@ public class CoverageSweepTests : IClassFixture<HostSubprocess>
         // spinning the whole sweep into a multi-hour hang.
         var perRunBudget = TimeSpan.FromMinutes(3);
 
-        foreach (var (character, seed) in s_runs)
+        foreach (var (character, seed, agentLabel, agentFactory) in s_runs)
         {
             await _host.SendAsync<RunNewResult>("run/new",
                 new RunNewParams(Character: character, Seed: seed));
 
-            // Pump HP so the greedy agent survives long enough to surface
+            // Pump HP so the agent survives long enough to surface
             // mid-and-late-Act content; the agent's combat play is unmodified.
             await _host.SendAsync<DebugSetHpResult>(
                 "debug/set_hp", new DebugSetHpParams(Hp: 999, MaxHp: 999));
 
             var recorder = new CoverageRecorder();
-            var agent = new GreedyAgent();
+            var agent = agentFactory();
             using var cts = new CancellationTokenSource(perRunBudget);
 
             RunOutcome outcome;
@@ -113,12 +120,13 @@ public class CoverageSweepTests : IClassFixture<HostSubprocess>
             }
 
             var report = recorder.Snapshot();
-            aggregator.Add(report, runLabel: $"{character}-seed-{seed}");
+            aggregator.Add(report, runLabel: $"{character}-seed-{seed}-{agentLabel}");
             _output.WriteLine(
-                $"[{character} seed={seed}] " +
+                $"[{character} seed={seed} agent={agentLabel}] " +
                 $"terminated={outcome.TerminatedBy} steps={outcome.Steps} " +
                 $"cards_seen={report.CardsSeen.Count} cards_played={report.CardsPlayed.Count} " +
                 $"relics_seen={report.RelicsSeen.Count} potions_seen={report.PotionsSeen.Count} " +
+                $"potions_used={report.PotionsUsed.Count} " +
                 $"monsters_faced={report.MonstersFaced.Count} powers_seen={report.PowersSeen.Count}");
         }
 

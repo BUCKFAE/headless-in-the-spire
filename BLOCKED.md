@@ -16,11 +16,7 @@ the open question, and the cheapest unblocking step.
 - **Cheapest unblock:** Confirm whether previewability is a CURRENT need (replay determinism? agent decision-making?) or speculative. If speculative, leave the catalog summary as-is and revisit when a caller surfaces.
 - **Discovered:** 2026-05-18 via fill-engine-gaps catalog scan (pass 1a).
 
-### Potion-drinking agent
-- **Surface:** `src/Sts2Headless.Agents/GreedyAgent.cs` (no current `UsePotion` decision logic). Coverage report shows `potions: used: 0` across the entire sweep — the greedy agent never drinks. The wire surface (`potion/use`) is already wired.
-- **Question:** Should the greedy agent learn to drink (when full? before tough combat? per character?), or should a separate `PotionDrinkingAgent` be added so the greedy stays minimal and a second sweep row exercises potion paths? The first changes existing baseline behaviour (one agent does more); the second multiplies coverage seeds.
-- **Cheapest unblock:** Add a `PotionDrinkingAgent` that wraps `GreedyAgent` and additionally drinks any owned potion at the start of a non-trivial combat. Add one row to `CoverageSweepTests.s_runs` using it. ~40+ potions and their derived `*_POWER` ids become reachable.
-- **Discovered:** 2026-05-18 via fill-engine-gaps coverage delta (pass 1c) — `used: 0`, biggest single coverage lever identified.
+_(Potion-drinking agent graduated 2026-05-18 — `PotionDrinkingAgent` composes a `GreedyAgent` (sealed) and overrides `Decide` to drink the first usable potion at combat round 1 (IsPlayPhase + IsInProgress gated), targeting enemy 0 for `TargetType.AnyEnemy` potions. `CoverageSweepTests.s_runs` refactored to `(Character, ulong, AgentLabel, AgentFactory)` so multiple agent variants share the sweep; one row added running PotionDrinkingAgent on seed 42. Unit coverage in `PotionDrinkingAgentTests`.)_
 
 _(Run modifiers wire param graduated 2026-05-18 — `IReadOnlyList<ModifierId>? Modifiers` added to `RunNewParams`, validated (Unknown rejected as InvalidParams) and echoed in `RunNewResult.Modifiers`. Wire strings flow to `ReplayHeaderFactory.Create` so the replay header is accurate. **Caveat: today modifiers are header-only metadata; engine plumb-through that would actually alter starting state (DRAFT decks, SEALED_DECK constraints) is still TODO.** Coverage in `tests/Sts2Headless.IntegrationTests/ModifiersWireParamTests.cs`.)_
 
