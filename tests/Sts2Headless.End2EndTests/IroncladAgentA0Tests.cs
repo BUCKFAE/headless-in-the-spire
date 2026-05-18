@@ -65,12 +65,12 @@ public class IroncladAgentA0Tests
     }
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task IroncladAgent_WinsAtLeastThreeOfTenSeeds_A0() =>
         await MeasureWinRate(ascension: 0, seedCount: 10, minWins: 3);
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task IroncladAgent_WinRate_A0_50Seeds()
     {
         // Broader-sample measurement of A0 win rate. 50 seeds gives a
@@ -83,7 +83,7 @@ public class IroncladAgentA0Tests
     }
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task IroncladAgent_WinRate_A1_Measurement()
     {
         // Ascension 1 adds ASCENDERS_BANE to the starter deck and

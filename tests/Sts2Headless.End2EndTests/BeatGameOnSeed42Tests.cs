@@ -57,7 +57,7 @@ public class BeatGameOnSeed42Tests
     public BeatGameOnSeed42Tests(ITestOutputHelper output) => _output = output;
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task CheatingHellRaisingSeed42Agent_Ironclad_ReachesArchitectTerminus_WithMaxHpCheat()
     {
         var replayRoot = Path.Combine(Path.GetTempPath(), "sts2-replays-beatgame-" + Guid.NewGuid().ToString("N"));

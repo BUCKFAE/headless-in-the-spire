@@ -11,7 +11,7 @@ namespace Sts2Headless.UnitTests;
 public class IntentProbeTests
 {
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public void DumpIntentTypes()
     {
         var vendor = ResolveRepoPath("vendor/sts2.dll");

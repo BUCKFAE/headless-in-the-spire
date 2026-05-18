@@ -12,7 +12,7 @@ namespace Sts2Headless.End2EndTests;
 // the seed's terrain (enemies, intent shapes, rewards, events) is a stable
 // reference for agent-development work without re-running the test.
 //
-// Diagnostic, not regression: `[Trait("category", "diagnostic")]` keeps it
+// Diagnostic, not regression: `[Trait("Category", "Diagnostic")]` keeps it
 // out of the default test run; invoke explicitly with
 // `dotnet test --filter "FullyQualifiedName~Seed42Recon"`.
 public class Seed42ReconTests : IClassFixture<HostSubprocess>
@@ -27,7 +27,7 @@ public class Seed42ReconTests : IClassFixture<HostSubprocess>
     }
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task RecordSeed42Terrain()
     {
         var inner = new HostSubprocessTransport(_host);

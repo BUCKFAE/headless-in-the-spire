@@ -33,7 +33,7 @@ public class CardIdEnumerationProbeTests
     }
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public void DumpCardEnumeration()
     {
         // Load sts2 *in-process* (not via the host subprocess) so this

@@ -159,13 +159,13 @@ clean:
 test-unit:
     @dotnet test tests/Sts2Headless.UnitTests/Sts2Headless.UnitTests.csproj {{MSBUILD_MAX_CPU}} --nologo
 
-# Run the integration suite (loads vendor/sts2.dll; run `just setup` first). Excludes Category=Gap (red-on-purpose tests under HarnessGaps/ — run those via `just test-gaps`).
+# Run the integration suite (loads vendor/sts2.dll; run `just setup` first). Excludes Category=Gap (red-on-purpose tests under HarnessGaps/ — run those via `just test-gaps`) and Category=Diagnostic (flaky-by-design probes — invoke individually via `--filter "Category=Diagnostic"`).
 test-integration:
-    @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category!=Gap" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+    @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category!=Gap&Category!=Diagnostic" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
 
-# Run the end-to-end suite (multi-room arcs; same vendor/sts2.dll requirement). Same Gap exclusion as `test-integration`.
+# Run the end-to-end suite (multi-room arcs; same vendor/sts2.dll requirement). Same Gap + Diagnostic exclusion as `test-integration`.
 test-end2end:
-    @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category!=Gap" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+    @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category!=Gap&Category!=Diagnostic" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
 
 # Run ONLY the HarnessGaps tests (Category=Gap, born red on purpose — they document harness limitations with a planned fix). Green means a gap closed and the test should graduate out of HarnessGaps/. See tests/Sts2Headless.IntegrationTests/HarnessGaps/README.md.
 test-gaps:

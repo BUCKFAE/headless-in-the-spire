@@ -8,7 +8,7 @@ namespace Sts2Headless.UnitTests;
 public class PlayerPotionsProbeTests
 {
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public void DumpPlayerMembers()
     {
         var vendor = ResolveRepoPath("vendor/sts2.dll");

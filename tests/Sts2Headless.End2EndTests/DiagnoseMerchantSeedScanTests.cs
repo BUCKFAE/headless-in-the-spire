@@ -13,7 +13,7 @@ namespace Sts2Headless.End2EndTests;
 //
 // Each seed walk caps at a few floors so the scan finishes quickly; we're
 // looking for "merchant reachable early," not "merchant exists somewhere."
-// Trait("category", "diagnostic") keeps this out of the default test run.
+// Trait("Category", "Diagnostic") keeps this out of the default test run.
 public class DiagnoseMerchantSeedScanTests : IClassFixture<HostSubprocess>
 {
     private readonly HostSubprocess _host;
@@ -26,7 +26,7 @@ public class DiagnoseMerchantSeedScanTests : IClassFixture<HostSubprocess>
     }
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task ScanSeeds_FindMerchantOnGreedyPath()
     {
         const int firstSeed = 1;

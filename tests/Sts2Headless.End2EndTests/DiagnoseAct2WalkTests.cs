@@ -26,7 +26,7 @@ namespace Sts2Headless.End2EndTests;
 //   1. the stop condition never matches (we drive until something stops us),
 //   2. the markdown trace lands in /tmp/seed42-postact1-walk.md.
 //
-// [Trait("category", "diagnostic")] keeps this out of the default run.
+// [Trait("Category", "Diagnostic")] keeps this out of the default run.
 public class DiagnoseAct2WalkTests : IClassFixture<HostSubprocess>
 {
     private readonly HostSubprocess _host;
@@ -39,7 +39,7 @@ public class DiagnoseAct2WalkTests : IClassFixture<HostSubprocess>
     }
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task CheatingHellRaisingSeed42Agent_DriveBeyondAct1Boss_DumpsTrace()
     {
         await _host.SendAsync<RunNewResult>(

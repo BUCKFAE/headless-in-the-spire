@@ -14,7 +14,7 @@ namespace Sts2Headless.UnitTests;
 public class MonsterHangDiscoveryTests
 {
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public void DumpMonsterAndPowerTypes()
     {
         var vendor = ResolveRepoPath("vendor/sts2.dll");

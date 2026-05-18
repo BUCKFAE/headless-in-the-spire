@@ -11,8 +11,8 @@ namespace Sts2Headless.End2EndTests;
 // timeout surfaces the exact wire call sequence — answers "which combat
 // is the agent stuck in?" rather than "the agent is stuck somewhere."
 //
-// [Trait("category", "diagnostic")] keeps it out of the default test run;
-// invoke explicitly via `--filter "Trait=category=diagnostic"` or by name.
+// [Trait("Category", "Diagnostic")] keeps it out of the default test run;
+// invoke explicitly via `--filter "Category=Diagnostic"` or by name.
 public class DiagnoseBossWalkTests : IClassFixture<HostSubprocess>
 {
     private readonly HostSubprocess _host;
@@ -25,7 +25,7 @@ public class DiagnoseBossWalkTests : IClassFixture<HostSubprocess>
     }
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task DriveBossWalk_WithFullLogging()
     {
         await _host.SendAsync<RunNewResult>(

@@ -16,7 +16,7 @@ namespace Sts2Headless.End2EndTests;
 public class IroncladAgentSeedTraceTests
 {
     [Theory]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     [InlineData(1uL)]
     [InlineData(3uL)]
     [InlineData(7uL)]

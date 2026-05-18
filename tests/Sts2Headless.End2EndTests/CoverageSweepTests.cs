@@ -56,7 +56,7 @@ public class CoverageSweepTests : IClassFixture<HostSubprocess>
     ];
 
     [Fact]
-    [Trait("category", "coverage-sweep")]
+    [Trait("Category", "CoverageSweep")]
     public async Task GreedyAgent_Sweep_DumpsCoverageReport()
     {
         // Off-by-default gate. Set via `just coverage`; absence keeps

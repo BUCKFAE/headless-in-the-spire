@@ -27,7 +27,7 @@ public class BeatAct1BossOnSeed42Tests : IClassFixture<HostSubprocess>
     }
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task CheatingHellRaisingSeed42Agent_Ironclad_BeatsVantom_WithMaxHpCheat()
     {
         await _host.SendAsync<RunNewResult>(

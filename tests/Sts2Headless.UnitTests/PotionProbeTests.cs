@@ -10,7 +10,7 @@ namespace Sts2Headless.UnitTests;
 public class PotionProbeTests
 {
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public void DumpPotionTypes()
     {
         var vendor = ResolveRepoPath("vendor/sts2.dll");

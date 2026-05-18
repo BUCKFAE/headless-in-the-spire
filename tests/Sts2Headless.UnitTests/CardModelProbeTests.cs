@@ -10,7 +10,7 @@ namespace Sts2Headless.UnitTests;
 public class CardModelProbeTests
 {
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public void DumpCardSystem()
     {
         var vendor = ResolveRepoPath("vendor/sts2.dll");

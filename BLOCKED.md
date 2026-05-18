@@ -34,11 +34,7 @@ the open question, and the cheapest unblocking step.
 - **Cheapest unblock:** Single hard-coded set in `CoverageAggregator`, exclude from both `universe` count and `missing` list, no separate section. Touches one file, gives an honest reachable-coverage %.
 - **Discovered:** 2026-05-18 via fill-engine-gaps coverage delta (pass 1c).
 
-### Diagnostic-test trait case mismatch
-- **Surface:** ~14 test files use `[Trait("category", "diagnostic")]` (lowercase `category`); the `just test-integration`/`just test-end2end` recipes filter `Category!=Gap` (capital `C`). xUnit traits are case-sensitive, so the diagnostic tests are NOT excluded as their authors intended — they run during `just test` and any that fail (currently `InfiniteLoopGuardTests.PommelHellraiserLoop_ImmortalPlayer_TripsAnyBudget` at `tests/Sts2Headless.End2EndTests/InfiniteLoopGuardTests.cs:122`) make `just test` red on a clean checkout.
-- **Question:** Rename all `category`→`Category` and update justfile filters to `Category!=Gap & Category!=Diagnostic`, or pick a different correction (e.g., leave the trait but add a `Skip` attribute on individual flaky cases)? Renaming touches ~14 files plus justfile but is mechanical.
-- **Cheapest unblock:** Confirm the trait/filter naming convention going forward, then rename + filter-update in one commit.
-- **Discovered:** 2026-05-18 via fill-engine-gaps verification of `just test` baseline (Phase 3 pre-flight failed on a clean HEAD).
+_(Diagnostic-test trait case mismatch graduated 2026-05-18 — renamed `[Trait("category", "diagnostic")]` → `[Trait("Category", "Diagnostic")]` across 23 sites and updated `just test-integration` / `just test-end2end` to filter `Category!=Gap&Category!=Diagnostic`. CoverageSweep got the same casing treatment.)_
 
 _(SMITH rest-site card-pick entry graduated 2026-05-18 — implemented in commit 83514c3; the SMITH summary was refreshed in commit efc86af.)_
 

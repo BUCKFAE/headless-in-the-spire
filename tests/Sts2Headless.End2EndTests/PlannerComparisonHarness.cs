@@ -31,7 +31,7 @@ public class PlannerComparisonHarness
     };
 
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task CompareAllPlanners_A0_IroncladSeeds1To10()
     {
         Directory.CreateDirectory("/tmp/ironclad-a0");

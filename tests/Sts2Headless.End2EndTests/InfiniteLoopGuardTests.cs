@@ -118,7 +118,7 @@ public class InfiniteLoopGuardTests : IClassFixture<HostSubprocess>
     // running cleanly; the DEFEND-only test above is the load-bearing
     // regression.
     [Fact]
-    [Trait("category", "diagnostic")]
+    [Trait("Category", "Diagnostic")]
     public async Task PommelHellraiserLoop_ImmortalPlayer_TripsAnyBudget()
     {
         await _host.SendAsync<RunNewResult>(
