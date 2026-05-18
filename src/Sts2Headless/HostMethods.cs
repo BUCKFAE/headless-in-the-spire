@@ -95,6 +95,7 @@ public static class HostMethods
         var seed = @params?.Seed ?? 1uL;
         var withNeow = @params?.WithNeow ?? false;
         var ascension = @params?.Ascension ?? 0;
+        var modifiers = @params?.Modifiers ?? Array.Empty<ModifierId>();
 
         if (character != Character.Ironclad)
         {
@@ -103,6 +104,14 @@ public static class HostMethods
         if (ascension < 0)
         {
             throw new ArgumentException($"ascension must be non-negative, got {ascension}");
+        }
+        for (var i = 0; i < modifiers.Count; i++)
+        {
+            if (modifiers[i] == ModifierId.Unknown)
+            {
+                throw new WireException(WireErrorCode.InvalidParams,
+                    $"modifiers[{i}] is ModifierId.Unknown — pass a known modifier id (see ModifierId enum)");
+            }
         }
 
         // Finalise any prior recorder BEFORE bindings.StartIroncladRun runs
@@ -128,6 +137,13 @@ public static class HostMethods
         if (!string.IsNullOrEmpty(replayOut))
         {
             var (gameVersion, sha) = ReplayHeaderFactory.ReadGameVersionPin(repoRoot);
+            // Serialise each ModifierId through EnvelopeIo.JsonOptions and strip
+            // the surrounding quotes so the replay header carries the engine's
+            // wire-name (e.g. "ALL_STAR"), matching what CombatReplayWriter
+            // records natively.
+            var modifierWireNames = modifiers
+                .Select(m => JsonSerializer.Serialize(m, EnvelopeIo.JsonOptions).Trim('"'))
+                .ToList();
             var header = ReplayHeaderFactory.Create(
                 sts2: bindings.Sts2,
                 gameVersion: gameVersion,
@@ -135,7 +151,7 @@ public static class HostMethods
                 seed: seed.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 character: character,
                 ascension: ascension,
-                modifiers: Array.Empty<string>(),
+                modifiers: modifierWireNames,
                 startTime: DateTimeOffset.UtcNow);
             recorder = new ReplayRecorder(bindings.Sts2, replayOut, header);
             ReplayHook.Install(bindings.Sts2);
@@ -170,7 +186,8 @@ public static class HostMethods
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+            OwnedPotions: s.OwnedPotions,
+            Modifiers: modifiers);
     }
 
     private static RunStateResult RunState(Sts2Bindings bindings, Session session)

@@ -362,6 +362,7 @@ class RunNewParams(BaseModel):
     seed: int | None = None
     with_neow: Annotated[bool | None, Field(alias="withNeow")] = None
     ascension: int | None = None
+    modifiers: list[str] | None = None
 
 
 class RunPlayCardParams(BaseModel):
@@ -792,6 +793,7 @@ class RunNewResult(BaseModel):
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
     owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
+    modifiers: list[str]
 
 
 class RunPlayCardResult(BaseModel):

@@ -2116,6 +2116,16 @@
               "null"
             ],
             "default": null
+          },
+          "modifiers": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "default": null
           }
         }
       },
@@ -2192,6 +2202,12 @@
             "items": {
               "$ref": "#/components/schemas/OwnedPotion"
             }
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -2205,7 +2221,8 @@
           "availableRestSiteOptions",
           "availableMerchantItems",
           "relics",
-          "ownedPotions"
+          "ownedPotions",
+          "modifiers"
         ]
       },
       "RunPlayCardParams": {

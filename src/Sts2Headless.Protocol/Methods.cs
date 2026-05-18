@@ -377,7 +377,16 @@ public sealed record RunNewParams(
     // tougher monsters, …). The engine's RunState.CreateForTest takes
     // ascensionLevel directly; we plumb the wire value through
     // Sts2Bindings.StartIroncladRun → CreateForTest.
-    [property: JsonPropertyName("ascension")] int? Ascension = null);
+    [property: JsonPropertyName("ascension")] int? Ascension = null,
+    // Run modifiers (DRAFT, SEALED_DECK, HOARDER, …). Currently used
+    // only as replay-header metadata — the engine plumb-through that
+    // would actually alter starting state is a follow-up. Today the
+    // wire validates the list (every entry must be a known
+    // ModifierId; ModifierId.Unknown is rejected as InvalidParams) and
+    // records what the caller asked for in the replay header, but
+    // gameplay is unaffected. Null/omitted = no modifiers (today's
+    // behavior).
+    [property: JsonPropertyName("modifiers")] IReadOnlyList<ModifierId>? Modifiers = null);
 
 public sealed record RunNewResult(
     [property: JsonPropertyName("ok")] bool Ok,
@@ -409,7 +418,11 @@ public sealed record RunNewResult(
     // starter relic and anything obtained mid-run; order matches sts2's
     // Player.Relics walk (acquisition order).
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
-    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions,
+    // Echo of RunNewParams.Modifiers, normalised to a non-null list
+    // (empty when the caller omitted the field). Lets callers confirm
+    // the wire shape they got back matches what they asked for.
+    [property: JsonPropertyName("modifiers")] IReadOnlyList<ModifierId> Modifiers);
 
 // ── run/state ────────────────────────────────────────────────────────────
 
