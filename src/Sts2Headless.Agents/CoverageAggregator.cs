@@ -139,19 +139,39 @@ public sealed class CoverageAggregator
         return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
     }
 
+    // Test-fixture and scripted-kill ids that exist in the generated
+    // manifests but aren't reachable through normal play (`ARCHITECT` is
+    // a cutscene kill per documentation/sts2-game-facts.md; the rest are
+    // engine probes). Excluded from the universe count and the missing
+    // list so coverage % reflects what an agent can actually hit. Widen
+    // as more unreachable-by-design ids surface.
+    internal static bool IsEngineExcluded(string id)
+    {
+        if (id.StartsWith("DEPRECATED_", StringComparison.Ordinal)) return true;
+        if (id.StartsWith("FAKE_", StringComparison.Ordinal)) return true;
+        if (id.StartsWith("MOCK_", StringComparison.Ordinal)) return true;
+        if (id.EndsWith("_DUMMY", StringComparison.Ordinal)) return true;
+        if (id.EndsWith("_ATTACK_MOVE_MONSTER", StringComparison.Ordinal)) return true;
+        return id is "ONE_HP_MONSTER" or "TEN_HP_MONSTER" or "TEST_SUBJECT" or "ARCHITECT";
+    }
+
     private static object ManifestStats(
         IReadOnlyCollection<string> observed,
         IReadOnlyCollection<string> universe,
         IReadOnlyCollection<string>? secondary,
         IReadOnlyCollection<string>? tertiary)
     {
-        var universeSet = new HashSet<string>(universe, StringComparer.Ordinal);
+        var universeFiltered = universe.Where(id => !IsEngineExcluded(id)).ToList();
+        var universeSet = new HashSet<string>(universeFiltered, StringComparer.Ordinal);
         var seenInUniverse = observed.Where(universeSet.Contains).ToHashSet(StringComparer.Ordinal);
-        var unknownObserved = observed.Where(x => !universeSet.Contains(x)).OrderBy(s => s, StringComparer.Ordinal).ToList();
-        var missing = universe.Except(seenInUniverse, StringComparer.Ordinal).OrderBy(s => s, StringComparer.Ordinal).ToList();
+        // An excluded id appearing in observations is expected (the engine
+        // can still mention TEST_SUBJECT etc. during diagnostics); don't
+        // flag it as unknown — that warning is for genuine manifest drift.
+        var unknownObserved = observed.Where(x => !universeSet.Contains(x) && !IsEngineExcluded(x)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+        var missing = universeFiltered.Except(seenInUniverse, StringComparer.Ordinal).OrderBy(s => s, StringComparer.Ordinal).ToList();
         return new
         {
-            universe = universe.Count,
+            universe = universeFiltered.Count,
             seen = seenInUniverse.Count,
             secondary = secondary?.Count,
             tertiary = tertiary?.Count,
@@ -181,19 +201,20 @@ public sealed class CoverageAggregator
         string? tertiaryName,
         IReadOnlyCollection<string>? tertiary)
     {
-        var universeSet = new HashSet<string>(universe, StringComparer.Ordinal);
+        var universeFiltered = universe.Where(id => !IsEngineExcluded(id)).ToList();
+        var universeSet = new HashSet<string>(universeFiltered, StringComparer.Ordinal);
         var seenInUniverse = observed.Where(universeSet.Contains).ToHashSet(StringComparer.Ordinal);
-        var missing = universe.Except(seenInUniverse, StringComparer.Ordinal).OrderBy(s => s, StringComparer.Ordinal).ToList();
-        var unknown = observed.Where(x => !universeSet.Contains(x)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+        var missing = universeFiltered.Except(seenInUniverse, StringComparer.Ordinal).OrderBy(s => s, StringComparer.Ordinal).ToList();
+        var unknown = observed.Where(x => !universeSet.Contains(x) && !IsEngineExcluded(x)).OrderBy(s => s, StringComparer.Ordinal).ToList();
 
         sb.AppendLine($"## {title}");
         sb.AppendLine();
-        sb.AppendLine($"- universe (manifest):  **{universe.Count}**");
-        sb.AppendLine($"- seen:                 **{seenInUniverse.Count}** ({Percent(seenInUniverse.Count, universe.Count)})");
+        sb.AppendLine($"- universe (reachable): **{universeFiltered.Count}** (of {universe.Count} manifest; {universe.Count - universeFiltered.Count} engine-excluded)");
+        sb.AppendLine($"- seen:                 **{seenInUniverse.Count}** ({Percent(seenInUniverse.Count, universeFiltered.Count)})");
         if (secondaryName is not null && secondary is not null)
-            sb.AppendLine($"- {secondaryName}:{new string(' ', Math.Max(1, 18 - secondaryName.Length))}**{secondary.Count}** ({Percent(secondary.Count, universe.Count)})");
+            sb.AppendLine($"- {secondaryName}:{new string(' ', Math.Max(1, 18 - secondaryName.Length))}**{secondary.Count}** ({Percent(secondary.Count, universeFiltered.Count)})");
         if (tertiaryName is not null && tertiary is not null)
-            sb.AppendLine($"- {tertiaryName}:{new string(' ', Math.Max(1, 18 - tertiaryName.Length))}**{tertiary.Count}** ({Percent(tertiary.Count, universe.Count)})");
+            sb.AppendLine($"- {tertiaryName}:{new string(' ', Math.Max(1, 18 - tertiaryName.Length))}**{tertiary.Count}** ({Percent(tertiary.Count, universeFiltered.Count)})");
         sb.AppendLine($"- missing:              **{missing.Count}**");
 
         if (missing.Count > 0)

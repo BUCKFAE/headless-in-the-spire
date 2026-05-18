@@ -28,11 +28,7 @@ the open question, and the cheapest unblocking step.
 - **Cheapest unblock:** Add a `PotionDrinkingAgent` that wraps `GreedyAgent` and additionally drinks any owned potion at the start of a non-trivial combat. Add one row to `CoverageSweepTests.s_runs` using it. ~40+ potions and their derived `*_POWER` ids become reachable.
 - **Discovered:** 2026-05-18 via fill-engine-gaps coverage delta (pass 1c) — `used: 0`, biggest single coverage lever identified.
 
-### Coverage universe filter for engine-excluded ids
-- **Surface:** `src/Sts2Headless.Agents/CoverageAggregator.cs:142-172` (`ManifestStats`) and `:174-227` (`RenderManifestSection`). The "missing" calculation today subtracts `seen` from the full `*IdNames.AllWireNames` set, which includes test fixtures (`DEPRECATED_*`, `FAKE_*`, `MOCK_*`, `*_DUMMY`, `ONE_HP_MONSTER`, `TEN_HP_MONSTER`, `*_ATTACK_MOVE_MONSTER`, `TEST_SUBJECT`) and scripted-kill ids (`ARCHITECT` — never fought per `documentation/sts2-game-facts.md`).
-- **Question:** Where should the exclusion list live — hard-coded in `CoverageAggregator` (one list), pulled from a `*Id.Filter.cs` companion to each manifest (per-kind), or derived from a naming convention (`DEPRECATED_*`, etc.)? And: should excluded ids be hidden entirely from the report, or surfaced in a separate "engine-excluded" section so a regression that re-enables them is visible?
-- **Cheapest unblock:** Single hard-coded set in `CoverageAggregator`, exclude from both `universe` count and `missing` list, no separate section. Touches one file, gives an honest reachable-coverage %.
-- **Discovered:** 2026-05-18 via fill-engine-gaps coverage delta (pass 1c).
+_(Coverage universe filter graduated 2026-05-18 — `IsEngineExcluded(string id)` in `CoverageAggregator` filters `DEPRECATED_*`, `FAKE_*`, `MOCK_*`, `*_DUMMY`, `*_ATTACK_MOVE_MONSTER`, plus `ONE_HP_MONSTER` / `TEN_HP_MONSTER` / `TEST_SUBJECT` / `ARCHITECT` literals out of the universe and the missing list. Markdown report now shows `universe (reachable): X (of Y manifest; Z engine-excluded)` so the trim stays visible.)_
 
 _(Diagnostic-test trait case mismatch graduated 2026-05-18 — renamed `[Trait("category", "diagnostic")]` → `[Trait("Category", "Diagnostic")]` across 23 sites and updated `just test-integration` / `just test-end2end` to filter `Category!=Gap&Category!=Diagnostic`. CoverageSweep got the same casing treatment.)_
 
