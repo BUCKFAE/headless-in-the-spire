@@ -1,4 +1,5 @@
 using Sts2Headless.Agents;
+using Sts2Headless.BattleAgent;
 using Sts2Headless.Cheats;
 using Sts2Headless.IntegrationTests;
 using Sts2Headless.Protocol.Methods;
@@ -47,11 +48,19 @@ public class CoverageSweepTests : IClassFixture<HostSubprocess>
         _output = output;
     }
 
-    // The sweep matrix. Start small — five Ironclad seeds for the
-    // baseline GreedyAgent plus one PotionDrinkingAgent seed to surface
-    // the ~40-entry potion / *_POWER content that the never-drinking
-    // greedy can't reach. Adding rows multiplies wall-time linearly;
-    // sustain ~5 minutes total or split into tiers.
+    // The sweep matrix. Three agent tiers:
+    //   * `greedy` — five seeds. Fast, low-fidelity baseline. Never
+    //     wins fights but exercises the run-flow + first-room content.
+    //   * `potions` — one seed. Surfaces the ~40-entry potion /
+    //     *_POWER surface the never-drinking GreedyAgent can't reach.
+    //   * `ironclad` — one seed. The production combat-planning agent
+    //     (Sts2Headless.BattleAgent.IroncladAgent). Wins fights, so
+    //     reaches mid-Act 2 / Act 3 content that the greedy baseline
+    //     never sees. The 999/999 HP cheat in the inner loop still
+    //     applies, so it won't tilt on a single bad hand.
+    //
+    // Adding rows multiplies wall-time linearly; sustain ~5 minutes
+    // total or split into tiers.
     private static readonly (Character Character, ulong Seed, string AgentLabel, Func<IAgent> AgentFactory)[] s_runs =
     [
         (Character.Ironclad, 42uL,  "greedy",   () => new GreedyAgent()),
@@ -60,6 +69,7 @@ public class CoverageSweepTests : IClassFixture<HostSubprocess>
         (Character.Ironclad, 3uL,   "greedy",   () => new GreedyAgent()),
         (Character.Ironclad, 100uL, "greedy",   () => new GreedyAgent()),
         (Character.Ironclad, 42uL,  "potions",  () => new PotionDrinkingAgent()),
+        (Character.Ironclad, 42uL,  "ironclad", () => new IroncladAgent()),
     ];
 
     [Fact]
