@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Description>In-memory unit tests for the BattleAgent combat framework. No host, no sts2.dll — pure tests on SimState transitions, card-effect application, evaluator scoring, and planner ordering. Engine-parity checks live in Sts2Headless.IntegrationTests; full-run win-rate checks live in Sts2Headless.End2EndTests.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.BattleAgent\Sts2Headless.BattleAgent.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.BattleAgent.Core\Sts2Headless.BattleAgent.Core.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>

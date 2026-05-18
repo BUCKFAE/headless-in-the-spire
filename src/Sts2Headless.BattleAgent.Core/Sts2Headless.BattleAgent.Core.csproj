@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Framework for forward-looking combat decision-making. Defines ICombatModel / ICardEffectCatalog / IEvaluator / ICombatPlanner and ships a reference CombatModel + IroncladCardCatalog + HeuristicEvaluator + ExhaustivePlanner. Alternate planners (MCTS, minimax) plug into the same interfaces without touching consumers. Pure C#, no host or sts2.dll dependency.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>

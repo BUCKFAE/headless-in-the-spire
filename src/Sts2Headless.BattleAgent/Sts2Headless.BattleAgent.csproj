@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Production IAgent that uses the BattleAgent.Core combat framework to plan turns, and per-phase policies (Draft / Path / Rest / Events) to drive the rest of a run. Composes everything into IroncladAgent — the canonical agent for beating the game with Ironclad.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+    <ProjectReference Include="..\Sts2Headless.BattleAgent.Core\Sts2Headless.BattleAgent.Core.csproj" />
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>
