@@ -4,7 +4,46 @@ Engineering work that surfaced during the autonomous bug-hunting pass but
 needs a human decision before it can land. Each entry names the surface,
 the open question, and the cheapest unblocking step.
 
-_(none currently — the SMITH rest-site entry graduated 2026-05-18; the
-implementation routed the SMITH card-pick through the existing
-`HeadlessCardSelector` queue and is covered by
-`tests/Sts2Headless.IntegrationTests/RestSiteSmithTests.cs`.)_
+### Multi-character run support
+- **Surface:** `src/Sts2Headless/HostMethods.cs:98-101` — `if (character != Character.Ironclad) throw new ArgumentException("...not yet supported (only Ironclad)")`. `Sts2Bindings.StartIroncladRun` is the only available entry point on the bindings layer.
+- **Question:** Which characters to add and in what order (Silent / Defect / Watcher / Regent / Necrobinder), and whether `bindings.StartIroncladRun` should become `StartRun(character, …)` or a per-character family (`StartSilentRun`, …). Either shape needs character-specific starting decks, relics, and engine-side bootstrap differences.
+- **Cheapest unblock:** Pick one new character (suggest Silent — closest to Ironclad in run shape) and confirm whether the bindings layer takes a character enum or stays per-character. Once decided, multi-character coverage in `CoverageSweepTests.s_runs` follows mechanically.
+- **Discovered:** 2026-05-18 via fill-engine-gaps TODO scan (pass 1b) + coverage delta (pass 1c). The coverage report classifies ~80% of missing Cards/Relics/Powers as "off-class content the sweep cannot reach with single-character runs".
+
+### Ascension parameter on RunNewParams
+- **Surface:** `src/Sts2Headless/HostMethods.cs:132-136` — ascension currently hardcoded to 0 in the replay header (`ReplayHeaderFactory.Create(..., ascension: 0, ...)`), with a TODO comment "Once the wire surfaces it, plumb through to here." `RunNewParams` in `Methods.cs` has no Ascension field today.
+- **Question:** Wire shape for ascension — accept on `RunNewParams` as `int Ascension = 0` (simple), or as an `Ascension` enum (catches typos at compile time but freezes the supported set)? Whichever, decide how to pipe it into `bindings.StartIroncladRun` (the bindings call signature must change too).
+- **Cheapest unblock:** Add `int Ascension = 0` to `RunNewParams`, surface a `bindings.StartIroncladRun(seed, withNeow, ascension)` overload, and wire it into the replay header. Ascension-locked content (`ASCENDERS_BANE`, `BLACK_BLOOD`) becomes reachable with a single new sweep row.
+- **Discovered:** 2026-05-18 via fill-engine-gaps TODO scan (pass 1b) + coverage delta (pass 1c) — `ASCENDERS_BANE` is flagged unreachable.
+
+### Run modifiers on RunNewParams
+- **Surface:** `src/Sts2Headless/HostMethods.cs:136` — `modifiers: Array.Empty<string>()` hardcoded in the replay header; `RunNewParams` has no `Modifiers` field.
+- **Question:** Wire shape — `IReadOnlyList<string>` of modifier names (matches the replay header's current type) or `IReadOnlyList<ModifierId>` enum (matches CLAUDE.md's "Prefer enums over strings on the wire" rule and would use the existing `ModifierId.g.cs` manifest)? The enum form is the house style but freezes the surface to currently-known modifiers.
+- **Cheapest unblock:** Add `IReadOnlyList<ModifierId>? Modifiers = null` (enum + nullable for back-compat); validate non-Unknown values; plumb through to the bindings layer.
+- **Discovered:** 2026-05-18 via fill-engine-gaps TODO scan (pass 1b).
+
+### Treasure room previewable pick/skip
+- **Surface:** `src/Sts2Headless.Protocol/MethodCatalog.cs:69` — `run/leave_treasure_room` summary explicitly mentions a "future slice can split this into previewable pick/skip". Today the engine's `TreasureRoomRelicSynchronizer` auto-picks the single relic offering on entry; the wire method just exits to MapRoom.
+- **Question:** Two-step shape — does it become `run/preview_treasure_room` (returns the relic offering) + `run/pick_treasure_room` (accept or skip), or a single `run/leave_treasure_room(skip: bool)` with the preview surfaced through the existing snapshot's `treasureRoom` block? The two-step preview is cleaner but adds a new method; the param-on-leave is non-breaking but less symmetric with merchant/event flows.
+- **Cheapest unblock:** Confirm whether previewability is a CURRENT need (replay determinism? agent decision-making?) or speculative. If speculative, leave the catalog summary as-is and revisit when a caller surfaces.
+- **Discovered:** 2026-05-18 via fill-engine-gaps catalog scan (pass 1a).
+
+### Potion-drinking agent
+- **Surface:** `src/Sts2Headless.Agents/GreedyAgent.cs` (no current `UsePotion` decision logic). Coverage report shows `potions: used: 0` across the entire sweep — the greedy agent never drinks. The wire surface (`potion/use`) is already wired.
+- **Question:** Should the greedy agent learn to drink (when full? before tough combat? per character?), or should a separate `PotionDrinkingAgent` be added so the greedy stays minimal and a second sweep row exercises potion paths? The first changes existing baseline behaviour (one agent does more); the second multiplies coverage seeds.
+- **Cheapest unblock:** Add a `PotionDrinkingAgent` that wraps `GreedyAgent` and additionally drinks any owned potion at the start of a non-trivial combat. Add one row to `CoverageSweepTests.s_runs` using it. ~40+ potions and their derived `*_POWER` ids become reachable.
+- **Discovered:** 2026-05-18 via fill-engine-gaps coverage delta (pass 1c) — `used: 0`, biggest single coverage lever identified.
+
+### Coverage universe filter for engine-excluded ids
+- **Surface:** `src/Sts2Headless.Agents/CoverageAggregator.cs:142-172` (`ManifestStats`) and `:174-227` (`RenderManifestSection`). The "missing" calculation today subtracts `seen` from the full `*IdNames.AllWireNames` set, which includes test fixtures (`DEPRECATED_*`, `FAKE_*`, `MOCK_*`, `*_DUMMY`, `ONE_HP_MONSTER`, `TEN_HP_MONSTER`, `*_ATTACK_MOVE_MONSTER`, `TEST_SUBJECT`) and scripted-kill ids (`ARCHITECT` — never fought per `documentation/sts2-game-facts.md`).
+- **Question:** Where should the exclusion list live — hard-coded in `CoverageAggregator` (one list), pulled from a `*Id.Filter.cs` companion to each manifest (per-kind), or derived from a naming convention (`DEPRECATED_*`, etc.)? And: should excluded ids be hidden entirely from the report, or surfaced in a separate "engine-excluded" section so a regression that re-enables them is visible?
+- **Cheapest unblock:** Single hard-coded set in `CoverageAggregator`, exclude from both `universe` count and `missing` list, no separate section. Touches one file, gives an honest reachable-coverage %.
+- **Discovered:** 2026-05-18 via fill-engine-gaps coverage delta (pass 1c).
+
+### Diagnostic-test trait case mismatch
+- **Surface:** ~14 test files use `[Trait("category", "diagnostic")]` (lowercase `category`); the `just test-integration`/`just test-end2end` recipes filter `Category!=Gap` (capital `C`). xUnit traits are case-sensitive, so the diagnostic tests are NOT excluded as their authors intended — they run during `just test` and any that fail (currently `InfiniteLoopGuardTests.PommelHellraiserLoop_ImmortalPlayer_TripsAnyBudget` at `tests/Sts2Headless.End2EndTests/InfiniteLoopGuardTests.cs:122`) make `just test` red on a clean checkout.
+- **Question:** Rename all `category`→`Category` and update justfile filters to `Category!=Gap & Category!=Diagnostic`, or pick a different correction (e.g., leave the trait but add a `Skip` attribute on individual flaky cases)? Renaming touches ~14 files plus justfile but is mechanical.
+- **Cheapest unblock:** Confirm the trait/filter naming convention going forward, then rename + filter-update in one commit.
+- **Discovered:** 2026-05-18 via fill-engine-gaps verification of `just test` baseline (Phase 3 pre-flight failed on a clean HEAD).
+
+_(SMITH rest-site card-pick entry graduated 2026-05-18 — implemented in commit 83514c3; the SMITH summary was refreshed in commit efc86af.)_
