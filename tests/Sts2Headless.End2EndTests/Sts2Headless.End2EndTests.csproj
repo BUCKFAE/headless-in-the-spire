@@ -32,6 +32,10 @@
     <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+    <!-- Production IroncladAgent + its combat framework — the subject of
+         the A0 win-rate tests in this project. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.BattleAgent.Core\Sts2Headless.BattleAgent.Core.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.BattleAgent\Sts2Headless.BattleAgent.csproj" />
   </ItemGroup>
 
   <ItemGroup>
