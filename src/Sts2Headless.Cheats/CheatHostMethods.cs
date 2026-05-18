@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Sts2Headless.Protocol;
 using Sts2Headless.Runtime;
@@ -11,10 +10,9 @@ namespace Sts2Headless.Cheats;
 // type) — the host registers each entry by adapting the Func into a
 // StdioHost.Handler via GateDebug.
 //
-// Mirrors the pattern in Sts2Headless.HostMethods for the core surface:
-// each handler deserialises typed params, dispatches into Sts2Bindings,
-// and re-serialises the typed result. Sharing EnvelopeIo.JsonOptions
-// keeps the cheat wire shape from drifting from the core wire shape.
+// Handlers deserialise typed params, dispatch into Sts2Bindings, and
+// re-serialise the typed result via the shared Protocol.WireHandlers.Typed
+// adapter — same wire shape (EnvelopeIo.JsonOptions) as the core host.
 public static class CheatHostMethods
 {
     // Returns the cheat dispatch table keyed by wire-method name. The host
@@ -24,11 +22,11 @@ public static class CheatHostMethods
         Sts2Bindings bindings, Func<RunHandle?> getRun) =>
         new Dictionary<string, Func<JsonNode?, JsonNode?>>
         {
-            ["debug/give_relic"] = Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, getRun, p)),
-            ["debug/set_hp"] = Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, getRun, p)),
-            ["debug/replace_deck"] = Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
-            ["debug/read_deck"] = Typed<DebugReadDeckParams, DebugReadDeckResult>(_ => DebugReadDeck(bindings, getRun)),
-            ["debug/kill_all_enemies"] = Typed<DebugKillAllEnemiesParams, DebugKillAllEnemiesResult>(_ => DebugKillAllEnemies(bindings, getRun)),
+            ["debug/give_relic"] = WireHandlers.Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, getRun, p)),
+            ["debug/set_hp"] = WireHandlers.Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, getRun, p)),
+            ["debug/replace_deck"] = WireHandlers.Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
+            ["debug/read_deck"] = WireHandlers.Typed<DebugReadDeckParams, DebugReadDeckResult>(_ => DebugReadDeck(bindings, getRun)),
+            ["debug/kill_all_enemies"] = WireHandlers.Typed<DebugKillAllEnemiesParams, DebugKillAllEnemiesResult>(_ => DebugKillAllEnemies(bindings, getRun)),
         };
 
     private static DebugSetHpResult DebugSetHp(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugSetHpParams? @params)
@@ -159,15 +157,4 @@ public static class CheatHostMethods
             DeckSize: s.DeckSize);
     }
 
-    // Adapter — same shape as the core's HostMethods.Typed<>, kept private
-    // here so the cheat surface is wire-compatible without depending on the
-    // exe's adapter. Sharing EnvelopeIo.JsonOptions is what keeps the wire
-    // shape (camelCase, enum converters, etc.) from drifting.
-    private static Func<JsonNode?, JsonNode?> Typed<TParams, TResult>(Func<TParams?, TResult> handler)
-        => raw =>
-        {
-            var p = raw is null ? default : raw.Deserialize<TParams>(EnvelopeIo.JsonOptions);
-            var r = handler(p);
-            return JsonSerializer.SerializeToNode(r, EnvelopeIo.JsonOptions);
-        };
 }

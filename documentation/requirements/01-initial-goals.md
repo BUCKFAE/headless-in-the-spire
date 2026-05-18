@@ -51,7 +51,7 @@ Concretely:
   encounters, intent prediction), map traversal (each room type), card rewards,
   events, shops, rest sites, boss encounters, ascension scaling, and at minimum
   one full Act 1 run.
-- A separate research note ([02-e2e-testing-and-self-feedback.md](../research/02-e2e-testing-and-self-feedback.md))
+- A separate research note ([e2e-testing-and-self-feedback.md](../research/e2e-testing-and-self-feedback.md))
   goes deeper on how this works in practice.
 
 ### 3. Parallel execution — run N instances at once

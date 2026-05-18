@@ -5,7 +5,7 @@ Snapshot date: 2026-05-13. This document is a candid reflection on how I
 when working on this project, what signals I can trust, what failure modes
 I'm prone to, and what the codebase can do to keep me honest.
 
-It is a companion to [02-e2e-testing-and-self-feedback.md](./02-e2e-testing-and-self-feedback.md),
+It is a companion to [e2e-testing-and-self-feedback.md](./e2e-testing-and-self-feedback.md),
 which covers the test-suite design from the human perspective. This one is
 from the agent's perspective: what the inner loop feels like, and where it
 breaks.
@@ -31,7 +31,7 @@ The loop I want to run in practice:
 5. If something is unclear, rerun **a single failing test in isolation with
    more verbose output**. Not "rerun everything with debug logging on" —
    that drowns me.
-6. When I think I'm done, run `just replay-corpus`. That surfaces whatever I
+6. When I think I'm done, run the replay corpus. That surfaces whatever I
    didn't think about.
 7. Only then would I claim the change is good.
 
@@ -76,7 +76,7 @@ detectable, not to rely on me catching myself.
 - **Making the symptom go away instead of fixing the root cause.** Catching
   a thrown exception to "make the test pass."
   → Counter: tests assert on observable state, not on "doesn't throw."
-  `just check-game-compat` runs before tests, so I can't mask compat
+  The reflection-manifest diff runs before tests, so I can't mask compat
   breakage with a try/catch.
 
 - **Mocking out the hard interaction.**
@@ -86,9 +86,8 @@ detectable, not to rely on me catching myself.
 
 - **Quietly weakening a test to make a change land.**
   → Counter: snapshot updates are a separate explicit command
-  (`UPDATE_SNAPSHOTS=1` / `just rerecord-snapshots`) and always produce a
-  reviewable diff. CI refuses updates. Any snapshot rewrite shows up in the
-  PR.
+  (`UPDATE_SNAPSHOTS=1`) and always produce a reviewable diff. CI refuses
+  updates. Any snapshot rewrite shows up in the PR.
 
 - **Confirmation bias when reading output.** Skimming stdout for "PASS" and
   missing a warning.
@@ -156,11 +155,10 @@ Concrete asks, prioritised:
 2. **Structured failure artefacts**: snapshot diff, replay divergence
    point, or stack trace + asserting line. Bounded size — failures should
    fit on one screen.
-3. **A separate replay-corpus command** (`just replay-corpus`) for the
-   heavier regression net. Run before claiming a change is done.
-4. **A separate compat command** (`just check-game-compat`) for the
-   reflection-manifest diff and Harmony-apply smoke. Run after any game
-   version bump.
+3. **A separate replay-corpus command** for the heavier regression net.
+   Run before claiming a change is done.
+4. **A separate compat command** for the reflection-manifest diff and
+   Harmony-apply smoke. Run after any game version bump.
 5. **A debugging runbook** under `documentation/runbooks/debugging.md`,
    updated whenever a non-obvious failure is investigated. This is the
    place I read first before asking.
@@ -169,9 +167,10 @@ Concrete asks, prioritised:
    how to verify the test would fail against an unfixed bug.
 7. **Determinism canary on by default** in every test run.
 
-The first four exist as commands in the bump workflow in
-[02-architecture-decisions.md](../requirements/02-architecture-decisions.md);
-the runbook is the next thing to grow.
+The bump workflow in
+[02-architecture-decisions.md](../requirements/02-architecture-decisions.md)
+describes several of these as planned steps; the runbook is the next thing
+to grow.
 
 ## When in doubt
 

@@ -51,6 +51,14 @@ for testing, AI experimentation, and replay recording.
   production host must never set it. Treat any unexplained appearance of
   `--enable-debug` in process args or deployment configs as a
   security/correctness concern, not a convenience.
+- **Replay artefacts adopt the game's own formats (AD-8).** Per-combat
+  `.mcr` files and per-run `.run` JSON are written verbatim through the
+  engine's own writers (CombatReplayWriter / SaveManager.SaveRun) — never
+  hand-roll a parallel replay format. New replay code goes in
+  `src/Sts2Headless.Replay/` and lands under `vendor/replays/` (gitignored;
+  proprietary content). The pinned `modelIdHash` makes replays
+  game-version-specific; expect `.mcr` files to invalidate on a
+  `GAME_VERSION` bump.
 - **C# is the source of behavioral truth (AD-6).** Drivers, agents,
   scenarios, fixtures, replay corpora, and regression tests are authored in
   C# — `src/Sts2Headless.Agents/` for drivers / agents,
@@ -115,8 +123,17 @@ src/
                                      Deliberately separate from Protocol so an
                                      agent that only references Protocol can't
                                      resolve cheat extensions. AD-7.
+  Sts2Headless.Replay/         lib — replay recording substrate (AD-8). Hooks
+                                     the engine's CombatReplay writer; emits
+                                     `.mcr` per combat + `.run` per run.
   Sts2Headless.Agents/         lib — drivers / agents that talk to a running
                                      host via ITransport (AD-6).
+  Sts2Headless.BattleAgent.Core/ lib — combat-planning primitives: CombatModel,
+                                     SimAction/SimState, exhaustive + MCTS
+                                     planners, heuristic evaluator. No I/O.
+  Sts2Headless.BattleAgent/    lib — Ironclad combat agent + path / draft /
+                                     event / rest policies built on
+                                     BattleAgent.Core.
   Sts2Headless.SchemaExport/   exe — emits protocol/openrpc.json from Protocol
                                      records (AD-5). Run via `just export-schema`.
   GodotStubs/                  lib — no-op GodotSharp.dll replacement (grown on demand)
@@ -126,6 +143,8 @@ tests/
                                      real host subprocess + sts2.dll.
   Sts2Headless.End2EndTests/   xUnit — multi-room arcs / replays. See
                                      documentation/testing.md.
+  Sts2Headless.BattleAgent.UnitTests/  xUnit — combat planner / model /
+                                     policy tests for BattleAgent.Core.
 Sts2Headless.slnx              solution at repo root
 scripts/                       bootstrap shell scripts (bash)
 protocol/openrpc.json          generated wire-protocol schema (AD-5)

@@ -168,11 +168,12 @@ Version bumps follow a three-stage compat check:
 Bump workflow:
 
 1. Update `vendor/sts2.dll` and `GAME_VERSION`.
-2. `just check-game-compat` → fix any reported breakages in core.
+2. Run the reflection-manifest diff (stage 1 above) → fix any reported
+   breakages in core.
 3. `just test` (fast tier) → must pass.
-4. `just rerecord-snapshots` → re-runs every scenario and replay, writes
-   new snapshots under `snapshots/<new-version>/`. Diff is reviewed by a
-   human and compared against published patch notes:
+4. Re-record every scenario and replay snapshot under
+   `snapshots/<new-version>/`. Diff is reviewed by a human and compared
+   against published patch notes:
    - **Content drift** (numeric changes in HP / damage / cost / card text)
      is normally accepted as-is.
    - **Structural drift** (a field went from present to null, an enum

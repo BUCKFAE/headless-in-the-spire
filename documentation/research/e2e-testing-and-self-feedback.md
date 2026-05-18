@@ -146,8 +146,7 @@ A top-level `just test` / `make test` / `dotnet test` that:
 ### Fast iteration
 
 - Total wall time for the unit + scenario layers should be **under 30 seconds**
-  to keep the inner loop tight. The full replay + fuzz tier can run in a
-  separate `just test-full` command.
+  to keep the inner loop tight. The full replay + fuzz tier runs separately.
 - Process reuse: one host process running N scenarios is much faster than N
   process boots.
 - Parallel test execution by default. This is exactly what goal (3) buys us at
@@ -177,13 +176,13 @@ entire golden-replay corpus and report any divergence. When Claude makes a
 change to combat or state serialisation, the loop is:
 
 1. `just test` (fast tier) — green.
-2. `just replay-corpus` (heavy tier) — green or "diverged at replay X turn Y,
+2. Replay corpus (heavy tier) — green or "diverged at replay X turn Y,
    expected `<A>`, got `<B>`".
 
 If a divergence is intentional (e.g. snapshot format changed), there's a
-controlled regeneration path: `just regenerate-replays` re-records the corpus
-under the new code, the diff lands in the PR, a human reviews. Without a human
-review, replay regeneration never happens silently.
+controlled regeneration path: re-record the corpus under the new code, the
+diff lands in the PR, a human reviews. Without a human review, replay
+regeneration never happens silently.
 
 ### Structured action and state vocabularies
 

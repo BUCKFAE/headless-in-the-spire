@@ -683,17 +683,11 @@ public static class HostMethods
             OwnedPotions: s.OwnedPotions);
     }
 
-    // Adapter that turns a typed Func<TParams?, TResult> into the JsonNode-
-    // shaped delegate StdioHost.Handler expects. Deserialisation tolerates a
-    // missing or null params object (TParams? default); the caller decides
-    // whether to throw for required fields.
+    // Wraps the shared WireHandlers.Typed adapter into StdioHost.Handler —
+    // structurally identical signatures, but the exe owns its own delegate
+    // type so handler dictionaries stay strongly typed.
     private static StdioHost.Handler Typed<TParams, TResult>(Func<TParams?, TResult> handler)
-        => raw =>
-        {
-            var p = raw is null ? default : raw.Deserialize<TParams>(EnvelopeIo.JsonOptions);
-            var r = handler(p);
-            return JsonSerializer.SerializeToNode(r, EnvelopeIo.JsonOptions);
-        };
+        => new(WireHandlers.Typed(handler).Invoke);
 
     private static StdioHost.Handler TypedNoParams<TResult>(Func<TResult> handler)
         => _ => JsonSerializer.SerializeToNode(handler(), EnvelopeIo.JsonOptions);
