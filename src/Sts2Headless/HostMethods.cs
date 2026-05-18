@@ -220,26 +220,7 @@ public static class HostMethods
 
         bindings.EnterMapCoord(run, args.Col, args.Row);
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunSelectMapNodeResult(
-            Ok: true,
-            Col: args.Col,
-            Row: args.Row,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunSelectMapNodeResult(args.Col, args.Row);
     }
 
     private static RunSelectEventOptionResult RunSelectEventOption(Sts2Bindings bindings, Session session, RunSelectEventOptionParams? @params)
@@ -251,25 +232,7 @@ public static class HostMethods
 
         bindings.SelectEventOption(run, args.OptionIndex);
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunSelectEventOptionResult(
-            Ok: true,
-            OptionIndex: args.OptionIndex,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunSelectEventOptionResult(args.OptionIndex);
     }
 
     private static RunSelectRestSiteOptionResult RunSelectRestSiteOption(Sts2Bindings bindings, Session session, RunSelectRestSiteOptionParams? @params)
@@ -306,25 +269,7 @@ public static class HostMethods
             selector?.ClearPending();
         }
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunSelectRestSiteOptionResult(
-            Ok: true,
-            OptionIndex: args.OptionIndex,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunSelectRestSiteOptionResult(args.OptionIndex);
     }
 
     private static RunLeaveTreasureRoomResult RunLeaveTreasureRoom(Sts2Bindings bindings, Session session)
@@ -334,24 +279,7 @@ public static class HostMethods
 
         bindings.LeaveTreasureRoom(run);
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunLeaveTreasureRoomResult(
-            Ok: true,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunLeaveTreasureRoomResult();
     }
 
     private static RunBuyMerchantItemResult RunBuyMerchantItem(Sts2Bindings bindings, Session session, RunBuyMerchantItemParams? @params)
@@ -390,25 +318,7 @@ public static class HostMethods
                 "(likely insufficient gold or already sold). Re-read availableMerchantItems for the current state.");
         }
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunBuyMerchantItemResult(
-            Ok: true,
-            ItemIndex: args.ItemIndex,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunBuyMerchantItemResult(args.ItemIndex);
     }
 
     private static RunLeaveMerchantRoomResult RunLeaveMerchantRoom(Sts2Bindings bindings, Session session)
@@ -418,24 +328,7 @@ public static class HostMethods
 
         bindings.LeaveMerchantRoom(run);
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunLeaveMerchantRoomResult(
-            Ok: true,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunLeaveMerchantRoomResult();
     }
 
     private static RunEndTurnResult RunEndTurn(Sts2Bindings bindings, Session session)
@@ -445,24 +338,7 @@ public static class HostMethods
 
         bindings.EndTurn(run);
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunEndTurnResult(
-            Ok: true,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunEndTurnResult();
     }
 
     private static RunPlayCardResult RunPlayCard(Sts2Bindings bindings, Session session, RunPlayCardParams? @params)
@@ -498,26 +374,7 @@ public static class HostMethods
             selector?.ClearPending();
         }
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunPlayCardResult(
-            Ok: true,
-            CardIndex: args.CardIndex,
-            TargetIndex: args.TargetIndex,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunPlayCardResult(args.CardIndex, args.TargetIndex);
     }
 
     private static RunUsePotionResult RunUsePotion(Sts2Bindings bindings, Session session, RunUsePotionParams? @params)
@@ -529,26 +386,7 @@ public static class HostMethods
 
         bindings.UsePotion(run, args.PotionIndex, args.TargetIndex);
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunUsePotionResult(
-            Ok: true,
-            PotionIndex: args.PotionIndex,
-            TargetIndex: args.TargetIndex,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunUsePotionResult(args.PotionIndex, args.TargetIndex);
     }
 
     private static RunSelectRewardResult RunSelectReward(Sts2Bindings bindings, Session session, RunSelectRewardParams? @params)
@@ -560,26 +398,7 @@ public static class HostMethods
 
         bindings.SelectReward(run, args.RewardIndex, args.CardIndex);
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunSelectRewardResult(
-            Ok: true,
-            RewardIndex: args.RewardIndex,
-            CardIndex: args.CardIndex,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunSelectRewardResult(args.RewardIndex, args.CardIndex);
     }
 
     private static RunSkipRewardResult RunSkipReward(Sts2Bindings bindings, Session session, RunSkipRewardParams? @params)
@@ -591,25 +410,7 @@ public static class HostMethods
 
         bindings.SkipReward(run, args.RewardIndex);
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunSkipRewardResult(
-            Ok: true,
-            RewardIndex: args.RewardIndex,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunSkipRewardResult(args.RewardIndex);
     }
 
     private static RunEnterNextActResult RunEnterNextAct(Sts2Bindings bindings, Session session)
@@ -629,24 +430,7 @@ public static class HostMethods
             throw new WireException(WireErrorCode.InvalidParams, ex.Message);
         }
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunEnterNextActResult(
-            Ok: true,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunEnterNextActResult();
     }
 
     private static RunProceedEventResult RunProceedEvent(Sts2Bindings bindings, Session session)
@@ -663,24 +447,7 @@ public static class HostMethods
             throw new WireException(WireErrorCode.InvalidParams, ex.Message);
         }
 
-        var s = bindings.ReadSnapshot(run);
-        return new RunProceedEventResult(
-            Ok: true,
-            CurrentRoomType: s.CurrentRoomType,
-            ActFloor: s.ActFloor,
-            CurrentActIndex: s.CurrentActIndex,
-            IsGameOver: s.IsGameOver,
-            IsVictory: s.IsVictory,
-            IsDead: s.IsDead,
-            Hp: s.CurrentHp,
-            AvailableMapNodes: s.AvailableMapNodes,
-            AvailableEventOptions: s.AvailableEventOptions,
-            AvailableRestSiteOptions: s.AvailableRestSiteOptions,
-            AvailableMerchantItems: s.AvailableMerchantItems,
-            CombatState: s.CombatState,
-            RewardsState: s.RewardsState,
-            Relics: s.Relics,
-            OwnedPotions: s.OwnedPotions);
+        return bindings.ReadSnapshot(run).ToRunProceedEventResult();
     }
 
     // Wraps the shared WireHandlers.Typed adapter into StdioHost.Handler —
