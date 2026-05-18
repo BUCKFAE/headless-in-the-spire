@@ -172,10 +172,16 @@ class HeuristicAgent:
         return SelectReward(reward_index=head.index)
 
     def decide_rest_site(self, state: GameSnapshot) -> Action:
-        # Mirrors HeuristicAgent.DecideRestSite in C#: prefer HEAL, then any
-        # enabled non-SMITH option, then any enabled option. SMITH opens a
-        # card-select sub-flow we have not wired up; subclasses that want
-        # to upgrade override this hook and drive the follow-up themselves.
+        # Prefer HEAL → SMITH → any enabled option. SMITH's card-pick
+        # prompt is routed via the host's ICardSelector — passing [[0]]
+        # tells it to upgrade the first upgradable card
+        # (CardSelectCmd.FromDeckForUpgrade pre-filters the deck, so
+        # index 0 is always legal when SMITH itself is enabled).
+        #
+        # The C# HeuristicAgent.DecideRestSite uses RunStateResult and
+        # branches on Hp/MaxHp (SMITH at full HP); GameSnapshot is a
+        # narrower Protocol that doesn't carry MaxHp, so the Python
+        # default goes a step less smart but stays consistent.
         options = state.available_rest_site_options
         heal = next(
             (o for o in options if o.is_enabled and o.option_id.upper() == "HEAL"),
@@ -183,12 +189,12 @@ class HeuristicAgent:
         )
         if heal is not None:
             return SelectRestSiteOption(option_index=heal.index)
-        non_smith = next(
-            (o for o in options if o.is_enabled and o.option_id.upper() != "SMITH"),
+        smith = next(
+            (o for o in options if o.is_enabled and o.option_id.upper() == "SMITH"),
             None,
         )
-        if non_smith is not None:
-            return SelectRestSiteOption(option_index=non_smith.index)
+        if smith is not None:
+            return SelectRestSiteOption(option_index=smith.index, card_select_indices=((0,),))
         any_enabled = next((o for o in options if o.is_enabled), None)
         if any_enabled is not None:
             return SelectRestSiteOption(option_index=any_enabled.index)

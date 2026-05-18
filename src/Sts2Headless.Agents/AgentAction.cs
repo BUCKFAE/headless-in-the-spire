@@ -24,7 +24,14 @@ public sealed record UsePotion(int PotionIndex, int? TargetIndex = null) : Agent
 // Map / event / room transitions.
 public sealed record SelectMapNode(int Col, int Row) : AgentAction;
 public sealed record SelectEventOption(int OptionIndex) : AgentAction;
-public sealed record SelectRestSiteOption(int OptionIndex) : AgentAction;
+// CardSelectIndices is the same hint-array shape PlayCard uses; it
+// reaches the engine via the host's ICardSelector queue. SMITH is the
+// canonical consumer (one prompt over the deck's upgradable subset);
+// pass [[0]] to upgrade the first upgradable card. Omit for HEAL and
+// other options that don't prompt for cards.
+public sealed record SelectRestSiteOption(
+    int OptionIndex,
+    IReadOnlyList<IReadOnlyList<int>>? CardSelectIndices = null) : AgentAction;
 public sealed record LeaveTreasureRoom : AgentAction;
 public sealed record BuyMerchantItem(int ItemIndex) : AgentAction;
 public sealed record LeaveMerchantRoom : AgentAction;

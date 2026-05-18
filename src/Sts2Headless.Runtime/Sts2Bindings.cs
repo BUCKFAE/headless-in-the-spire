@@ -1139,18 +1139,23 @@ public sealed partial class Sts2Bindings
 
     // Fire RunManager.RestSiteSynchronizer.ChooseLocalOption(optionIndex)
     // and pump the sync context so synchronous follow-ups complete inside
-    // the call. After non-SMITH picks (HEAL, future DIG, …), sts2 clears
-    // the room's Options list but doesn't auto-transition to MapRoom —
-    // sts2-cli's ForceToMap pattern covers this. Mirror it: if Options is
-    // empty after the synchronous call, drive the engine through
-    // ProceedFromTerminalRewardsScreen → EnterRoom(MapRoom) so the next
-    // wire snapshot reports MapRoom, the post-rest contract callers rely on.
+    // the call. After single-pick options sts2 clears the room's Options
+    // list but doesn't auto-transition to MapRoom — sts2-cli's ForceToMap
+    // pattern covers this. Mirror it: if Options is empty after the
+    // synchronous call, EnterRoom(MapRoom) so the next wire snapshot
+    // reports MapRoom, the post-rest contract callers rely on.
     //
-    // SMITH ALSO clears Options (the pick "took") so the same ForceToMap
-    // path fires and the agent isn't stuck — but the upgrade itself
-    // silently no-ops because the engine awaits a card-pick that has no
-    // wire surface to be served from. See BLOCKED.md for the follow-up
-    // wire surface this needs.
+    // SMITH's CardSelectCmd.FromDeckForUpgrade prompt is intercepted by
+    // the installed HeadlessCardSelector — callers stage card indices via
+    // RunSelectRestSiteOptionParams.CardSelectIndices, which HostMethods
+    // queues into the selector before invoking us. The selector returns
+    // those cards synchronously inside the await, so the upgrade has
+    // already happened by the time ChooseLocalOption's task completes.
+    //
+    // ShouldDisableRemainingRestSiteOptions hooks (e.g. a multi-pick
+    // relic) can leave Options non-empty after a pick — the auto-advance
+    // guard below skips MapRoom in that case and the next snapshot
+    // surfaces the remaining options for another pick.
     public void SelectRestSiteOption(RunHandle handle, int optionIndex)
     {
         if (_runManagerRestSiteSynchronizer is null || _restSiteSyncChooseLocalOption is null)
@@ -1165,12 +1170,12 @@ public sealed partial class Sts2Bindings
         if (result is Task t) t.GetAwaiter().GetResult();
         _syncCtx?.Pump();
 
-        // Auto-advance after any pick — HEAL / DIG / SMITH all leave
-        // Options empty once accepted, and the engine doesn't auto-flip
-        // CurrentRoom. We force it. The SMITH upgrade itself silently
-        // no-ops in headless because the engine awaits a card-pick we
-        // can't serve yet (see BLOCKED.md), but the room transition
-        // still fires so the agent keeps moving.
+        // Auto-advance after any pick — HEAL / SMITH / DIG / ... all
+        // leave Options empty once accepted (single-pick default), and
+        // the engine doesn't auto-flip CurrentRoom. We force it. If a
+        // ShouldDisableRemainingRestSiteOptions hook keeps options
+        // enabled (multi-pick relic), the guard below skips MapRoom and
+        // the agent picks again on the next snapshot.
         if (_restSiteRoomOptions is not null && _runManagerEnterRoom is not null && _mapRoomType is not null)
         {
             var room = _runStateCurrentRoom.GetValue(handle.RunState);
@@ -2433,6 +2438,45 @@ public sealed partial class Sts2Bindings
     // Reflection is done inline (no fields cached in BindingState) — the
     // call is rare, and locating the members on demand keeps the bootstrap
     // path unchanged for the common case where deck replacement isn't used.
+    // Read the player's deck as (cardId, upgradeLevel) pairs, in
+    // Deck.Cards insertion order. Mirrors ReplaceDeck's input shape so
+    // a debug test can round-trip a replace → read assertion.
+    //
+    // CardId reads ModelId.Entry on the card's canonical model
+    // (CardModel.Id.Entry returns the wire string id, e.g.
+    // "POMMEL_STRIKE"). UpgradeLevel reads CurrentUpgradeLevel — 0 for
+    // base, 1 for "+1", etc. — the same int CardModel.UpgradeInternal
+    // increments. A null or unrecognised card surfaces a clean error
+    // so a reflection drift doesn't quietly skew the test's assertion.
+    public IReadOnlyList<(string CardId, int UpgradeLevel)> ReadDeck(RunHandle handle)
+    {
+        var deck = _playerDeck.GetValue(handle.Player)
+            ?? throw new InvalidOperationException("debug/read_deck: Player.Deck was null");
+        if (_deckCards.GetValue(deck) is not System.Collections.IEnumerable cards)
+            return Array.Empty<(string, int)>();
+
+        var result = new List<(string CardId, int UpgradeLevel)>();
+        foreach (var card in cards)
+        {
+            if (card is null) continue;
+            var cardType = card.GetType();
+            var idProp = cardType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException($"debug/read_deck: card type {cardType.FullName} has no Id property");
+            var modelId = idProp.GetValue(card)
+                ?? throw new InvalidOperationException($"debug/read_deck: card.Id was null on {cardType.FullName}");
+            var entryProp = modelId.GetType().GetProperty("Entry", BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException($"debug/read_deck: ModelId type {modelId.GetType().FullName} has no Entry property");
+            var cardId = entryProp.GetValue(modelId) as string
+                ?? throw new InvalidOperationException($"debug/read_deck: ModelId.Entry returned non-string on {cardType.FullName}");
+
+            var upgradeProp = cardType.GetProperty("CurrentUpgradeLevel", BindingFlags.Public | BindingFlags.Instance);
+            var upgradeLevel = upgradeProp is null ? 0 : Convert.ToInt32(upgradeProp.GetValue(card) ?? 0);
+
+            result.Add((cardId, upgradeLevel));
+        }
+        return result;
+    }
+
     public IReadOnlyList<string> ReplaceDeck(RunHandle handle, IReadOnlyList<(string CardId, int UpgradeLevel)> cards)
     {
         if (_modelIdCtor is null)

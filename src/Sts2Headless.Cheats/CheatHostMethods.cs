@@ -27,6 +27,7 @@ public static class CheatHostMethods
             ["debug/give_relic"] = Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, getRun, p)),
             ["debug/set_hp"] = Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, getRun, p)),
             ["debug/replace_deck"] = Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
+            ["debug/read_deck"] = Typed<DebugReadDeckParams, DebugReadDeckResult>(_ => DebugReadDeck(bindings, getRun)),
             ["debug/kill_all_enemies"] = Typed<DebugKillAllEnemiesParams, DebugKillAllEnemiesResult>(_ => DebugKillAllEnemies(bindings, getRun)),
         };
 
@@ -112,6 +113,17 @@ public static class CheatHostMethods
             Ok: true,
             DeckSize: s.DeckSize,
             CardIds: added);
+    }
+
+    private static DebugReadDeckResult DebugReadDeck(Sts2Bindings bindings, Func<RunHandle?> getRun)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+
+        var cards = bindings.ReadDeck(run)
+            .Select(c => new CardSpec(c.CardId, c.UpgradeLevel))
+            .ToList();
+        return new DebugReadDeckResult(Ok: true, DeckSize: cards.Count, Cards: cards);
     }
 
     private static DebugKillAllEnemiesResult DebugKillAllEnemies(Sts2Bindings bindings, Func<RunHandle?> getRun)

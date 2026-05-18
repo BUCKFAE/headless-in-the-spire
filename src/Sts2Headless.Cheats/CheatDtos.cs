@@ -87,6 +87,26 @@ public sealed record DebugReplaceDeckResult(
     [property: JsonPropertyName("deckSize")] int DeckSize,
     [property: JsonPropertyName("cardIds")] IReadOnlyList<string> CardIds);
 
+// ── debug/read_deck ──────────────────────────────────────────────────────
+
+// Read every card in the player's deck as (cardId, upgradeLevel) pairs.
+// Mirrors `debug/replace_deck` shape so tests can round-trip:
+// `replace_deck([...])` → … → `read_deck()` and compare. Order is the
+// deck's insertion order (the engine's Deck.Cards list).
+//
+// Use case: pinning the effect of an upgrade — e.g. asserting that after
+// `run/select_rest_site_option(SMITH, cardSelectIndices: [[0]])` a card
+// in the deck has upgradeLevel > 0. The core wire surface deliberately
+// keeps the deck out of `RunStateResult` (it's a coverage-heavy field
+// agents rarely consume); this debug method gives tests the inspection
+// hook without putting the same data on every snapshot.
+public sealed record DebugReadDeckParams();
+
+public sealed record DebugReadDeckResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("deckSize")] int DeckSize,
+    [property: JsonPropertyName("cards")] IReadOnlyList<CardSpec> Cards);
+
 // ── debug/kill_all_enemies ───────────────────────────────────────────────
 
 // Drops every alive enemy in the current combat to 0 HP by writing the

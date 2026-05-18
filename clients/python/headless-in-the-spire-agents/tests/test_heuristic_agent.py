@@ -82,7 +82,7 @@ def test_default_rest_site_prefers_heal() -> None:
     assert HeuristicAgent().decide(snap) == SelectRestSiteOption(option_index=1)
 
 
-def test_default_rest_site_skips_smith_when_heal_missing() -> None:
+def test_default_rest_site_picks_smith_when_heal_missing() -> None:
     snap = build_snapshot(
         room=RoomType.rest_site_room,
         rest_site_options=[
@@ -90,9 +90,13 @@ def test_default_rest_site_skips_smith_when_heal_missing() -> None:
             rest_site_option(index=1, option_id="DIG"),
         ],
     )
-    # SMITH opens a card-select sub-flow we don't drive; the default
-    # picks any other enabled option before falling back to SMITH.
-    assert HeuristicAgent().decide(snap) == SelectRestSiteOption(option_index=1)
+    # SMITH outranks unknown options like DIG in the default heuristic —
+    # the wire surface routes the card-pick prompt through the host's
+    # ICardSelector, so SMITH is no longer a no-op. Pinning the
+    # card_select_indices=[[0]] hint here would be brittle (engine pre-
+    # filters to upgradable cards) so we just assert SMITH was chosen.
+    action = HeuristicAgent().decide(snap)
+    assert action == SelectRestSiteOption(option_index=0, card_select_indices=((0,),))
 
 
 def test_default_rest_site_only_smith_left() -> None:
@@ -100,7 +104,9 @@ def test_default_rest_site_only_smith_left() -> None:
         room=RoomType.rest_site_room,
         rest_site_options=[rest_site_option(index=0, option_id="SMITH")],
     )
-    assert HeuristicAgent().decide(snap) == SelectRestSiteOption(option_index=0)
+    assert HeuristicAgent().decide(snap) == SelectRestSiteOption(
+        option_index=0, card_select_indices=((0,),)
+    )
 
 
 def test_default_rest_site_raises_when_nothing_enabled() -> None:

@@ -346,6 +346,27 @@
       "x-debugOnly": true
     },
     {
+      "name": "debug/read_deck",
+      "summary": "Test affordance — read every card in the player's deck as (CardId, UpgradeLevel) pairs. Mirrors debug/replace_deck's input shape so tests can round-trip. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugReadDeckParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugReadDeckResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
       "name": "debug/kill_all_enemies",
       "summary": "Test affordance — drop every alive enemy in the current combat to 0 HP by writing the engine's Creature._currentHp backing field, then drain and auto-advance so rewards generate through the normal path. No-op (killed=0) outside combat. Bypasses on-kill listeners. Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -570,6 +591,31 @@
           "ok",
           "killed",
           "combatEnded"
+        ]
+      },
+      "DebugReadDeckParams": {
+        "type": "object"
+      },
+      "DebugReadDeckResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "deckSize": {
+            "type": "integer"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardSpec"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "deckSize",
+          "cards"
         ]
       },
       "DebugReplaceDeckParams": {
@@ -2643,6 +2689,19 @@
         "properties": {
           "optionIndex": {
             "type": "integer"
+          },
+          "cardSelectIndices": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "default": null
           }
         },
         "required": [

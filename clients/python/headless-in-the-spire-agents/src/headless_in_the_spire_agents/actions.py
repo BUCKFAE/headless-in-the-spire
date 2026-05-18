@@ -58,13 +58,17 @@ class SelectRestSiteOption:
     """Pick one of the rest-site options (HEAL, SMITH, ...) by its wire index.
 
     The host enforces which options are legal — locked / depleted options
-    have `is_enabled=false` on the wire and should never be picked. The
-    SMITH branch additionally opens a card-select sub-flow that is not
-    yet driven from Python; subclasses that pick SMITH must implement
-    the follow-up themselves.
+    have `is_enabled=false` on the wire and should never be picked.
+    `card_select_indices` is the same hint-array shape `PlayCard` uses;
+    it routes through the host's ICardSelector queue so the engine's
+    SMITH prompt (CardSelectCmd.FromDeckForUpgrade over the deck's
+    upgradable subset) resolves headlessly. Pass `[[0]]` for SMITH to
+    upgrade the first upgradable card; omit for HEAL and other options
+    that don't prompt for cards.
     """
 
     option_index: int
+    card_select_indices: tuple[tuple[int, ...], ...] | None = None
 
 
 @dataclass(frozen=True, slots=True)

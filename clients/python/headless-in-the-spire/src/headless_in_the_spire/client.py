@@ -40,6 +40,7 @@ METHOD_NAMES: dict[str, str] = {
     "debug/give_relic": "debug_give_relic",
     "debug/set_hp": "debug_set_hp",
     "debug/replace_deck": "debug_replace_deck",
+    "debug/read_deck": "debug_read_deck",
     "debug/kill_all_enemies": "debug_kill_all_enemies",
 }
 
@@ -261,6 +262,14 @@ class Client:
     ) -> m.DebugReplaceDeckResult:
         result = self._transport.call("debug/replace_deck", _dump(params), timeout=timeout)
         return m.DebugReplaceDeckResult.model_validate(result)
+
+    def debug_read_deck(
+        self,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugReadDeckResult:
+        result = self._transport.call("debug/read_deck", None, timeout=timeout)
+        return m.DebugReadDeckResult.model_validate(result)
 
     def debug_kill_all_enemies(
         self,

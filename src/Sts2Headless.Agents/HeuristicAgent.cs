@@ -77,20 +77,31 @@ public abstract class HeuristicAgent : IAgent
         throw new NoLegalActionException("event phase with no unlocked options", state);
     }
 
-    // Default: prefer HEAL → any enabled non-SMITH → first enabled.
-    // SMITH branches into a card-select sub-flow we haven't wired up.
+    // Default: SMITH if at full HP (HEAL would be wasted), HEAL if we're
+    // hurt, else any enabled option. SMITH upgrades the first card the
+    // engine offers — FromDeckForUpgrade pre-filters the deck to
+    // upgradable cards, so index 0 is always a legal pick when SMITH
+    // itself is enabled. CardSelectIndices feeds the engine's
+    // ICardSelector queue.
     protected virtual AgentAction DecideRestSite(RunStateResult state)
     {
-        var pick = state.AvailableRestSiteOptions.FirstOrDefault(o =>
-                       o.IsEnabled
-                       && string.Equals(o.OptionId, "HEAL", StringComparison.OrdinalIgnoreCase))
-                   ?? state.AvailableRestSiteOptions.FirstOrDefault(o =>
-                       o.IsEnabled
-                       && !string.Equals(o.OptionId, "SMITH", StringComparison.OrdinalIgnoreCase))
-                   ?? state.AvailableRestSiteOptions.FirstOrDefault(o => o.IsEnabled);
-        if (pick is null)
+        var heal = state.AvailableRestSiteOptions.FirstOrDefault(o =>
+            o.IsEnabled
+            && string.Equals(o.OptionId, "HEAL", StringComparison.OrdinalIgnoreCase));
+        var smith = state.AvailableRestSiteOptions.FirstOrDefault(o =>
+            o.IsEnabled
+            && string.Equals(o.OptionId, "SMITH", StringComparison.OrdinalIgnoreCase));
+
+        var atFullHp = state.Hp >= state.MaxHp;
+        if (smith is not null && (atFullHp || heal is null))
+            return new SelectRestSiteOption(smith.Index, new[] { new[] { 0 } });
+        if (heal is not null)
+            return new SelectRestSiteOption(heal.Index);
+
+        var any = state.AvailableRestSiteOptions.FirstOrDefault(o => o.IsEnabled);
+        if (any is null)
             throw new NoLegalActionException("rest site with no enabled options", state);
-        return new SelectRestSiteOption(pick.Index);
+        return new SelectRestSiteOption(any.Index);
     }
 
     // Default: claim the chest. No real player decision today.

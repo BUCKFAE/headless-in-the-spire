@@ -135,7 +135,8 @@ public static class AgentDriver
                 break;
             case SelectRestSiteOption rs:
                 _ = await host.SendAsync<RunSelectRestSiteOptionResult>(
-                    "run/select_rest_site_option", new RunSelectRestSiteOptionParams(rs.OptionIndex));
+                    "run/select_rest_site_option",
+                    new RunSelectRestSiteOptionParams(rs.OptionIndex, rs.CardSelectIndices));
                 break;
             case LeaveTreasureRoom:
                 _ = await host.SendAsync<RunLeaveTreasureRoomResult>("run/leave_treasure_room");

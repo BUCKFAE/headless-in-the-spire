@@ -74,6 +74,21 @@ class DebugKillAllEnemiesResult(BaseModel):
     combat_ended: Annotated[bool, Field(alias="combatEnded")]
 
 
+class DebugReadDeckParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+
+class DebugReadDeckResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    deck_size: Annotated[int, Field(alias="deckSize")]
+    cards: list[CardSpec]
+
+
 class DebugReplaceDeckParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -379,6 +394,9 @@ class RunSelectRestSiteOptionParams(BaseModel):
         populate_by_name=True,
     )
     option_index: Annotated[int, Field(alias="optionIndex")]
+    card_select_indices: Annotated[
+        list[list[int]] | None, Field(alias="cardSelectIndices")
+    ] = None
 
 
 class RunSelectRewardParams(BaseModel):

@@ -34,6 +34,12 @@ public static class CheatMethodCatalog
             Summary: "Test affordance — replace the player's deck with a curated list of (CardId, UpgradeLevel) pairs. Routes through RunState.CreateCard so the new cards are properly tracked; bypasses on-deck-change listeners. Requires --enable-debug.",
             IsDebugOnly: true),
 
+        new("debug/read_deck",
+            ParamsType: typeof(DebugReadDeckParams),
+            ResultType: typeof(DebugReadDeckResult),
+            Summary: "Test affordance — read every card in the player's deck as (CardId, UpgradeLevel) pairs. Mirrors debug/replace_deck's input shape so tests can round-trip. Requires --enable-debug.",
+            IsDebugOnly: true),
+
         new("debug/kill_all_enemies",
             ParamsType: typeof(DebugKillAllEnemiesParams),
             ResultType: typeof(DebugKillAllEnemiesResult),

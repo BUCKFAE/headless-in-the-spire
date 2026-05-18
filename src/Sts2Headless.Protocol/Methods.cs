@@ -537,14 +537,24 @@ public sealed record RunSelectEventOptionResult(
 // next snapshot's AvailableRestSiteOptions tells the caller whether the
 // state advanced.
 //
-// HEAL exits the rest site to MapRoom cleanly. SMITH also flips the room
-// to MapRoom (because the host force-advances after any pick that empties
-// Options), but the upgrade itself silently no-ops — the engine awaits a
-// card-pick that has no wire surface yet (see BLOCKED.md for the three
-// candidate shapes). Callers picking SMITH today should treat it as a
-// wasted rest site rather than a hang.
+// cardSelectIndices: optional hint for options that prompt the player to
+// pick cards from the deck. SMITH is the canonical case — it raises one
+// CardSelectCmd.FromDeckForUpgrade prompt whose options are the deck's
+// upgradable cards (engine pre-filters). For SMITH, send [[0]] to upgrade
+// the first upgradable card; with a SmithCount-boosting relic, send
+// [[0,1,...]] up to SmithCount picks. Each inner array is one prompt, in
+// the order the engine raises them. Omitted hints fall back to the
+// selector's first-N default — safe for SMITH because the engine already
+// filtered the option list to "upgradable".
+//
+// HEAL/SMITH/DIG/HATCH/... all leave Options empty once accepted (single-
+// pick default) and the host force-advances to MapRoom. A
+// ShouldDisableRemainingRestSiteOptions hook can leave additional options
+// enabled for multi-pick relics; the next snapshot's AvailableRestSiteOptions
+// surfaces them and the agent can call this method again.
 public sealed record RunSelectRestSiteOptionParams(
-    [property: JsonPropertyName("optionIndex")] int OptionIndex);
+    [property: JsonPropertyName("optionIndex")] int OptionIndex,
+    [property: JsonPropertyName("cardSelectIndices")] IReadOnlyList<IReadOnlyList<int>>? CardSelectIndices = null);
 
 public sealed record RunSelectRestSiteOptionResult(
     [property: JsonPropertyName("ok")] bool Ok,

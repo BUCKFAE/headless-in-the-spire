@@ -277,7 +277,32 @@ public static class HostMethods
         var args = @params
             ?? throw new ArgumentException("run/select_rest_site_option requires params {optionIndex}");
 
-        bindings.SelectRestSiteOption(run, args.OptionIndex);
+        // Stage any caller-supplied card-select hints in the selector's
+        // queue before the option runs. SMITH raises one
+        // CardSelectCmd.FromDeckForUpgrade prompt the engine intercepts
+        // via our installed selector; this is how indices reach it.
+        // Mirrors the play_card pattern (HostMethods.cs RunPlayCard).
+        var selector = bindings.CardSelector;
+        if (selector is not null)
+        {
+            selector.ClearPending();
+            if (args.CardSelectIndices is { Count: > 0 } hints)
+            {
+                foreach (var hint in hints)
+                {
+                    selector.QueueSelection(hint);
+                }
+            }
+        }
+
+        try
+        {
+            bindings.SelectRestSiteOption(run, args.OptionIndex);
+        }
+        finally
+        {
+            selector?.ClearPending();
+        }
 
         var s = bindings.ReadSnapshot(run);
         return new RunSelectRestSiteOptionResult(

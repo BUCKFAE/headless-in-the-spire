@@ -35,6 +35,12 @@ public static class CheatClient
             "debug/replace_deck",
             new DebugReplaceDeckParams(cards.Select(c => new CardSpec(c.CardId, c.UpgradeLevel)).ToList()));
 
+    // debug/read_deck — read every card in the player's deck as a list of
+    // (cardId, upgradeLevel) tuples, in deck insertion order. Mirrors
+    // ReplaceDeckAsync's input shape so tests can round-trip cleanly.
+    public static Task<DebugReadDeckResult> ReadDeckAsync(this ITransport transport) =>
+        transport.SendAsync<DebugReadDeckResult>("debug/read_deck", new DebugReadDeckParams());
+
     // debug/kill_all_enemies — drop every alive enemy in the current combat
     // to 0 HP via the engine's Creature._currentHp backing field. No-op
     // outside combat. Bypasses on-kill listeners.

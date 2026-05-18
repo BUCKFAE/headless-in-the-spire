@@ -4,51 +4,7 @@ Engineering work that surfaced during the autonomous bug-hunting pass but
 needs a human decision before it can land. Each entry names the surface,
 the open question, and the cheapest unblocking step.
 
-## SMITH rest-site option needs a follow-up card-pick wire surface
-
-**Surface.** `run/select_rest_site_option(SMITH)` is *not* a hang in
-practice — `Sts2Bindings.SelectRestSiteOption`'s "Options is empty →
-EnterRoom(MapRoom)" force-advance (`src/Sts2Headless.Runtime/Sts2Bindings.cs:1167-1192`)
-also fires after SMITH, so the next snapshot lands on MapRoom and the
-agent can keep moving. The real gap is **silently broken semantics**:
-no card actually upgrades, because the engine's SMITH path awaits a
-card-pick that has no wire to be served from. The room flips, the rest
-site is "spent", and the player loses the upgrade they paid for. The
-stale bindings comment ("SMITH leaves the room pending a card-select;
-we leave that alone so a future card-select wire can resume it") implies
-the player is stuck — they're not, but the upgrade is a no-op.
-
-**Why it's blocked.** The card-pick happens *between* two wire calls
-(after `select_rest_site_option`, before the implicit "leave"), and the
-right shape for it is a UX choice the agent has to make explicit. Three
-plausible designs:
-
-1. **Two calls** — `run/select_rest_site_option(SMITH)` returns a snapshot
-   with a new `pendingCardSelection: { cards: [...], reason: "smith" }`
-   field; a separate `run/rest_site_pick_card(cardIndex)` resolves it.
-   - Pros: mirrors how rewards work (`available` list + `select_reward`).
-   - Cons: introduces a new ambient "pending" state to every snapshot.
-2. **Combined call** — `run/select_rest_site_option(SMITH, cardIndex)`
-   takes the card index up-front; agent inspects the deck via a separate
-   `run/state` query before deciding.
-   - Pros: stateless, no new snapshot field, single round-trip.
-   - Cons: caller has to predict the deck order, no preview of "is this
-     card upgradable" without the snapshot saying so.
-3. **Reuse `ICardSelector` bridge** — the `HeadlessCardSelector` shipped
-   for Headbutt already queues caller-supplied card indices for in-combat
-   prompts; the same queue plus a new `RunSelectRestSiteOptionParams.SmithCardIndex`
-   field could feed it.
-   - Pros: leverages existing bridge.
-   - Cons: SMITH's engine path probably doesn't go through `CardSelectCmd`
-     — needs investigation before this is viable.
-
-Until one of the three is chosen, the Python and C# heuristic agents
-both deliberately skip SMITH (`HeuristicAgent.DecideRestSite` prefers
-HEAL → any non-SMITH → SMITH last; the Python
-`HeuristicAgent.decide_rest_site` mirrors that exactly).
-
-**Cheapest unblock.** Spend ~30 minutes probing the engine's SMITH path
-(`RestSiteSynchronizer` + whatever handler the SMITH option calls)
-to confirm whether it routes through `CardSelectCmd` or its own
-synchronizer. That investigation rules in or out option 3 and makes the
-decision between 1 and 2 a UX call.
+_(none currently — the SMITH rest-site entry graduated 2026-05-18; the
+implementation routed the SMITH card-pick through the existing
+`HeadlessCardSelector` queue and is covered by
+`tests/Sts2Headless.IntegrationTests/RestSiteSmithTests.cs`.)_
