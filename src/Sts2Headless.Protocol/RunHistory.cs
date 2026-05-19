@@ -24,6 +24,7 @@ namespace Sts2Headless.Protocol.Methods;
 // a new game-side value surfaces as Unknown rather than a parse error
 // — the same posture as `RoomType` / `MapNodeType`.
 
+[SchemaSnakeCase]
 public sealed record RunHistoryDocument(
     int SchemaVersion,
     int Ascension,
@@ -149,6 +150,7 @@ public enum BadgeRarity
 
 // ── Per-act sub-records ──────────────────────────────────────────────
 
+[SchemaSnakeCase]
 public sealed record MapPointHistoryEntry(
     RunHistoryMapPointType MapPointType,
     IReadOnlyList<MapPointRoom>? Rooms,
@@ -159,6 +161,7 @@ public sealed record MapPointHistoryEntry(
 // string since it can be any of EncounterId / EventId / etc. depending
 // on room_type, and the cross-typing isn't worth the discrimination at
 // this layer.
+[SchemaSnakeCase]
 public sealed record MapPointRoom(
     RunHistoryRoomType RoomType,
     string? ModelId,
@@ -169,6 +172,7 @@ public sealed record MapPointRoom(
 // numeric counters of 0 may or may not appear in the JSON. All
 // collection fields default to empty so consumers can iterate freely
 // without null checks.
+[SchemaSnakeCase]
 public sealed record MapPointPlayerStats(
     long PlayerId,
     IReadOnlyList<HistoryChoiceEntry>? AncientChoice,
@@ -193,11 +197,21 @@ public sealed record MapPointPlayerStats(
 // with localisation keys and which one was picked. The `title` block
 // carries a localisation reference (`{ key, table }`); we keep it as a
 // nested record so the consumer doesn't have to flatten it manually.
+// `TextKey` is the one field in this record whose on-disk casing breaks
+// the SnakeCaseLower convention used by the surrounding fields — the
+// game writes it as literal `TextKey` (PascalCase) while sibling fields
+// stay snake_case (`title`, `was_chosen`). Pin the wire name explicitly
+// so the System.Text.Json + the schema-export pipeline both treat it as
+// PascalCase instead of inferring `text_key`. Without this the C#
+// parser silently reads the field as the empty string, and the
+// generated Python model receives an alias mismatch downstream.
+[SchemaSnakeCase]
 public sealed record HistoryChoiceEntry(
-    string TextKey,
+    [property: JsonPropertyName("TextKey")] string TextKey,
     HistoryLocalisationKey Title,
     bool WasChosen);
 
+[SchemaSnakeCase]
 public sealed record HistoryEventChoice(
     HistoryLocalisationKey Title);
 
@@ -205,29 +219,35 @@ public sealed record HistoryEventChoice(
 // `choice` field is a single string id (e.g. "RELIC.GOLDEN_PEARL"),
 // not a list of localisation-keyed options. The game's serialiser
 // emits both shapes from different code paths so we mirror both.
+[SchemaSnakeCase]
 public sealed record HistoryRelicChoice(
     string? Choice,
     bool WasPicked);
 
+[SchemaSnakeCase]
 public sealed record HistoryLocalisationKey(
     string Key,
     string Table);
 
+[SchemaSnakeCase]
 public sealed record HistoryCardRef(
     string Id,
     int? FloorAddedToDeck);
 
+[SchemaSnakeCase]
 public sealed record HistoryCardTransformation(
     HistoryCardRef OriginalCard,
     HistoryCardRef FinalCard);
 
 // modifiers[] entry. Engine model is richer; we keep this as an opaque
 // string + flag set until a use case demands more granularity.
+[SchemaSnakeCase]
 public sealed record RunHistoryModifier(
     string? Id);
 
 // ── Per-player end-of-run snapshot ──────────────────────────────────
 
+[SchemaSnakeCase]
 public sealed record RunHistoryPlayer(
     long Id,
     // The game's RunHistory serialises the character as a full
@@ -243,10 +263,12 @@ public sealed record RunHistoryPlayer(
     IReadOnlyList<HistoryOwnedPotion>? Potions,
     IReadOnlyList<HistoryBadge>? Badges);
 
+[SchemaSnakeCase]
 public sealed record HistoryOwnedPotion(
     string Id,
     int SlotIndex);
 
+[SchemaSnakeCase]
 public sealed record HistoryBadge(
     string Id,
     BadgeRarity Rarity);

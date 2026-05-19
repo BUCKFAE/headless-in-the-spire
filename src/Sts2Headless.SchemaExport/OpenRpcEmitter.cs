@@ -171,10 +171,21 @@ internal static class OpenRpcEmitter
             },
         };
 
+        // Reused for types marked [SchemaSnakeCase] — `RunHistoryDocument`
+        // and its nested records (AD-8). The host serialises these via
+        // `RunHistoryDocument.JsonOptions` (`SnakeCaseLower`), so the
+        // emitted schema must match or downstream clients silently lose
+        // every field whose Python identifier differs from the wire key.
+        var snakeOptions = new JsonSerializerOptions(options)
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        };
+
         var schemas = new JsonObject();
         foreach (var t in hoistSet.OrderBy(t => t.Name, StringComparer.Ordinal))
         {
-            var schema = options.GetJsonSchemaAsNode(t, exporterOptions);
+            var typeOptions = IsSnakeCaseType(t) ? snakeOptions : options;
+            var schema = typeOptions.GetJsonSchemaAsNode(t, exporterOptions);
             schemas[t.Name] = schema;
         }
 
@@ -220,8 +231,11 @@ internal static class OpenRpcEmitter
         {
             if (!IsNullableProperty(propInfo, nullabilityContext)) continue;
 
+            var namingPolicy = IsSnakeCaseType(t)
+                ? JsonNamingPolicy.SnakeCaseLower
+                : JsonNamingPolicy.CamelCase;
             var jsonName = propInfo.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
-                ?? JsonNamingPolicy.CamelCase.ConvertName(propInfo.Name);
+                ?? namingPolicy.ConvertName(propInfo.Name);
             if (properties[jsonName] is not JsonObject propSchema) continue;
 
             // Bare-$ref to a hoisted type — wrap with anyOf null. Other
@@ -262,6 +276,16 @@ internal static class OpenRpcEmitter
         if (Nullable.GetUnderlyingType(prop.PropertyType) is not null) return true;
         return ctx.Create(prop).ReadState == NullabilityState.Nullable;
     }
+
+    // `[SchemaSnakeCase]` opts a record out of the default PascalCase /
+    // camelCase wire convention (`EnvelopeIo.JsonOptions` has no naming
+    // policy, so System.Text.Json passes property names through verbatim;
+    // we layer camelCase on the client-codegen side via the schema). The
+    // attribute lives on `RunHistoryDocument` + nested History records,
+    // whose host-side `JsonOptions` set `SnakeCaseLower`. Without this
+    // mirror, generated clients silently desync from the on-wire shape.
+    private static bool IsSnakeCaseType(Type t) =>
+        t.GetCustomAttribute<SchemaSnakeCaseAttribute>() is not null;
 
     private static JsonArray BuildMethods()
     {

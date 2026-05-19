@@ -775,25 +775,25 @@
       "HistoryBadge": {
         "type": "object",
         "properties": {
-          "Id": {
+          "id": {
             "type": "string"
           },
-          "Rarity": {
+          "rarity": {
             "$ref": "#/components/schemas/BadgeRarity"
           }
         },
         "required": [
-          "Id",
-          "Rarity"
+          "id",
+          "rarity"
         ]
       },
       "HistoryCardRef": {
         "type": "object",
         "properties": {
-          "Id": {
+          "id": {
             "type": "string"
           },
-          "FloorAddedToDeck": {
+          "floor_added_to_deck": {
             "type": [
               "integer",
               "null"
@@ -801,23 +801,22 @@
           }
         },
         "required": [
-          "Id",
-          "FloorAddedToDeck"
+          "id"
         ]
       },
       "HistoryCardTransformation": {
         "type": "object",
         "properties": {
-          "OriginalCard": {
+          "original_card": {
             "$ref": "#/components/schemas/HistoryCardRef"
           },
-          "FinalCard": {
+          "final_card": {
             "$ref": "#/components/schemas/HistoryCardRef"
           }
         },
         "required": [
-          "OriginalCard",
-          "FinalCard"
+          "original_card",
+          "final_card"
         ]
       },
       "HistoryChoiceEntry": {
@@ -826,76 +825,75 @@
           "TextKey": {
             "type": "string"
           },
-          "Title": {
+          "title": {
             "$ref": "#/components/schemas/HistoryLocalisationKey"
           },
-          "WasChosen": {
+          "was_chosen": {
             "type": "boolean"
           }
         },
         "required": [
           "TextKey",
-          "Title",
-          "WasChosen"
+          "title",
+          "was_chosen"
         ]
       },
       "HistoryEventChoice": {
         "type": "object",
         "properties": {
-          "Title": {
+          "title": {
             "$ref": "#/components/schemas/HistoryLocalisationKey"
           }
         },
         "required": [
-          "Title"
+          "title"
         ]
       },
       "HistoryLocalisationKey": {
         "type": "object",
         "properties": {
-          "Key": {
+          "key": {
             "type": "string"
           },
-          "Table": {
+          "table": {
             "type": "string"
           }
         },
         "required": [
-          "Key",
-          "Table"
+          "key",
+          "table"
         ]
       },
       "HistoryOwnedPotion": {
         "type": "object",
         "properties": {
-          "Id": {
+          "id": {
             "type": "string"
           },
-          "SlotIndex": {
+          "slot_index": {
             "type": "integer"
           }
         },
         "required": [
-          "Id",
-          "SlotIndex"
+          "id",
+          "slot_index"
         ]
       },
       "HistoryRelicChoice": {
         "type": "object",
         "properties": {
-          "Choice": {
+          "choice": {
             "type": [
               "string",
               "null"
             ]
           },
-          "WasPicked": {
+          "was_picked": {
             "type": "boolean"
           }
         },
         "required": [
-          "Choice",
-          "WasPicked"
+          "was_picked"
         ]
       },
       "HostPingResult": {
@@ -1001,10 +999,10 @@
       "MapPointHistoryEntry": {
         "type": "object",
         "properties": {
-          "MapPointType": {
+          "map_point_type": {
             "$ref": "#/components/schemas/RunHistoryMapPointType"
           },
-          "Rooms": {
+          "rooms": {
             "type": [
               "array",
               "null"
@@ -1013,7 +1011,7 @@
               "$ref": "#/components/schemas/MapPointRoom"
             }
           },
-          "PlayerStats": {
+          "player_stats": {
             "type": [
               "array",
               "null"
@@ -1024,18 +1022,16 @@
           }
         },
         "required": [
-          "MapPointType",
-          "Rooms",
-          "PlayerStats"
+          "map_point_type"
         ]
       },
       "MapPointPlayerStats": {
         "type": "object",
         "properties": {
-          "PlayerId": {
+          "player_id": {
             "type": "integer"
           },
-          "AncientChoice": {
+          "ancient_choice": {
             "type": [
               "array",
               "null"
@@ -1044,7 +1040,7 @@
               "$ref": "#/components/schemas/HistoryChoiceEntry"
             }
           },
-          "CardsGained": {
+          "cards_gained": {
             "type": [
               "array",
               "null"
@@ -1053,7 +1049,7 @@
               "$ref": "#/components/schemas/HistoryCardRef"
             }
           },
-          "CardsRemoved": {
+          "cards_removed": {
             "type": [
               "array",
               "null"
@@ -1062,7 +1058,7 @@
               "$ref": "#/components/schemas/HistoryCardRef"
             }
           },
-          "CardsTransformed": {
+          "cards_transformed": {
             "type": [
               "array",
               "null"
@@ -1071,7 +1067,7 @@
               "$ref": "#/components/schemas/HistoryCardTransformation"
             }
           },
-          "EventChoices": {
+          "event_choices": {
             "type": [
               "array",
               "null"
@@ -1080,7 +1076,7 @@
               "$ref": "#/components/schemas/HistoryEventChoice"
             }
           },
-          "RelicChoices": {
+          "relic_choices": {
             "type": [
               "array",
               "null"
@@ -1089,81 +1085,74 @@
               "$ref": "#/components/schemas/HistoryRelicChoice"
             }
           },
-          "CurrentGold": {
+          "current_gold": {
             "type": "integer"
           },
-          "CurrentHp": {
+          "current_hp": {
             "type": "integer"
           },
-          "DamageTaken": {
+          "damage_taken": {
             "type": "integer"
           },
-          "GoldGained": {
+          "gold_gained": {
             "type": "integer"
           },
-          "GoldLost": {
+          "gold_lost": {
             "type": "integer"
           },
-          "GoldSpent": {
+          "gold_spent": {
             "type": "integer"
           },
-          "GoldStolen": {
+          "gold_stolen": {
             "type": "integer"
           },
-          "HpHealed": {
+          "hp_healed": {
             "type": "integer"
           },
-          "MaxHp": {
+          "max_hp": {
             "type": "integer"
           },
-          "MaxHpGained": {
+          "max_hp_gained": {
             "type": "integer"
           },
-          "MaxHpLost": {
+          "max_hp_lost": {
             "type": "integer"
           }
         },
         "required": [
-          "PlayerId",
-          "AncientChoice",
-          "CardsGained",
-          "CardsRemoved",
-          "CardsTransformed",
-          "EventChoices",
-          "RelicChoices",
-          "CurrentGold",
-          "CurrentHp",
-          "DamageTaken",
-          "GoldGained",
-          "GoldLost",
-          "GoldSpent",
-          "GoldStolen",
-          "HpHealed",
-          "MaxHp",
-          "MaxHpGained",
-          "MaxHpLost"
+          "player_id",
+          "current_gold",
+          "current_hp",
+          "damage_taken",
+          "gold_gained",
+          "gold_lost",
+          "gold_spent",
+          "gold_stolen",
+          "hp_healed",
+          "max_hp",
+          "max_hp_gained",
+          "max_hp_lost"
         ]
       },
       "MapPointRoom": {
         "type": "object",
         "properties": {
-          "RoomType": {
+          "room_type": {
             "$ref": "#/components/schemas/RunHistoryRoomType"
           },
-          "ModelId": {
+          "model_id": {
             "type": [
               "string",
               "null"
             ]
           },
-          "TurnsTaken": {
+          "turns_taken": {
             "type": "integer"
           }
         },
         "required": [
-          "RoomType",
-          "ModelId",
-          "TurnsTaken"
+          "room_type",
+          "turns_taken"
         ]
       },
       "MerchantItem": {
@@ -1707,25 +1696,25 @@
       "RunHistoryDocument": {
         "type": "object",
         "properties": {
-          "SchemaVersion": {
+          "schema_version": {
             "type": "integer"
           },
-          "Ascension": {
+          "ascension": {
             "type": "integer"
           },
-          "BuildId": {
+          "build_id": {
             "type": "string"
           },
-          "GameMode": {
+          "game_mode": {
             "$ref": "#/components/schemas/GameMode"
           },
-          "KilledByEncounter": {
+          "killed_by_encounter": {
             "type": "string"
           },
-          "KilledByEvent": {
+          "killed_by_event": {
             "type": "string"
           },
-          "MapPointHistory": {
+          "map_point_history": {
             "type": "array",
             "items": {
               "type": "array",
@@ -1734,53 +1723,53 @@
               }
             }
           },
-          "Modifiers": {
+          "modifiers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RunHistoryModifier"
             }
           },
-          "PlatformType": {
+          "platform_type": {
             "$ref": "#/components/schemas/PlatformType"
           },
-          "Players": {
+          "players": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RunHistoryPlayer"
             }
           },
-          "RunTime": {
+          "run_time": {
             "type": "integer"
           },
-          "Seed": {
+          "seed": {
             "type": "string"
           },
-          "StartTime": {
+          "start_time": {
             "type": "integer"
           },
-          "WasAbandoned": {
+          "was_abandoned": {
             "type": "boolean"
           },
-          "Win": {
+          "win": {
             "type": "boolean"
           }
         },
         "required": [
-          "SchemaVersion",
-          "Ascension",
-          "BuildId",
-          "GameMode",
-          "KilledByEncounter",
-          "KilledByEvent",
-          "MapPointHistory",
-          "Modifiers",
-          "PlatformType",
-          "Players",
-          "RunTime",
-          "Seed",
-          "StartTime",
-          "WasAbandoned",
-          "Win"
+          "schema_version",
+          "ascension",
+          "build_id",
+          "game_mode",
+          "killed_by_encounter",
+          "killed_by_event",
+          "map_point_history",
+          "modifiers",
+          "platform_type",
+          "players",
+          "run_time",
+          "seed",
+          "start_time",
+          "was_abandoned",
+          "win"
         ]
       },
       "RunHistoryMapPointType": {
@@ -1799,30 +1788,28 @@
       "RunHistoryModifier": {
         "type": "object",
         "properties": {
-          "Id": {
+          "id": {
             "type": [
               "string",
               "null"
             ]
           }
         },
-        "required": [
-          "Id"
-        ]
+        "required": []
       },
       "RunHistoryPlayer": {
         "type": "object",
         "properties": {
-          "Id": {
+          "id": {
             "type": "integer"
           },
-          "Character": {
+          "character": {
             "type": "string"
           },
-          "MaxPotionSlotCount": {
+          "max_potion_slot_count": {
             "type": "integer"
           },
-          "Deck": {
+          "deck": {
             "type": [
               "array",
               "null"
@@ -1831,7 +1818,7 @@
               "$ref": "#/components/schemas/HistoryCardRef"
             }
           },
-          "Relics": {
+          "relics": {
             "type": [
               "array",
               "null"
@@ -1840,7 +1827,7 @@
               "$ref": "#/components/schemas/HistoryCardRef"
             }
           },
-          "Potions": {
+          "potions": {
             "type": [
               "array",
               "null"
@@ -1849,7 +1836,7 @@
               "$ref": "#/components/schemas/HistoryOwnedPotion"
             }
           },
-          "Badges": {
+          "badges": {
             "type": [
               "array",
               "null"
@@ -1860,13 +1847,9 @@
           }
         },
         "required": [
-          "Id",
-          "Character",
-          "MaxPotionSlotCount",
-          "Deck",
-          "Relics",
-          "Potions",
-          "Badges"
+          "id",
+          "character",
+          "max_potion_slot_count"
         ]
       },
       "RunHistoryRoomType": {
