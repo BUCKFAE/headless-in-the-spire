@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "headless-in-the-spire-mcp"
+description = "Model Context Protocol server exposing the headless-in-the-spire wire surface to AI assistants."
+readme = "README.md"
+# Pinned to 3.13 in lockstep with the workspace root (../../../.python-version)
+# and the sibling client packages. Bump in all of them.
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Julian Schubert" }]
+dynamic = ["version"]
+dependencies = [
+    # Workspace member — resolved against the in-repo path by [tool.uv.sources]
+    # below. The MCP server is a wire-protocol consumer; reusing the typed
+    # Client (and its generated pydantic DTOs) is what keeps this layer thin
+    # and AD-6-compliant (no parallel behavioural truth).
+    "headless-in-the-spire",
+    # Official Anthropic MCP SDK (FastMCP). MIT-licensed; pydantic v2 native.
+    # Pinned >=1.2 to get the stable FastMCP API and pydantic-v2-only path.
+    "mcp>=1.2",
+]
+
+[project.scripts]
+# Lets users add the server to a client config as `headless-in-the-spire-mcp`
+# instead of `uv run python -m …`. The module entry point under [project] still
+# works (`python -m headless_in_the_spire_mcp`) for development.
+headless-in-the-spire-mcp = "headless_in_the_spire_mcp.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/buckfae/headless-in-the-spire"
+
+# uv-specific: tell the resolver that `headless-in-the-spire` above is the
+# sibling workspace member, not a PyPI package.
+[tool.uv.sources]
+headless-in-the-spire = { workspace = true }
+
+[tool.hatch.version]
+path = "src/headless_in_the_spire_mcp/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/headless_in_the_spire_mcp"]
+
+# Ruff and pyright are configured at the workspace root pyproject.toml so
+# every Python member shares the same rules; no per-package overrides yet.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

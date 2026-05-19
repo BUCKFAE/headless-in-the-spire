@@ -156,6 +156,10 @@ uv.lock                        resolved Python deps — committed for reproducib
 clients/python/
   headless-in-the-spire/       wire client — generated pydantic v2 DTOs + transport
   headless-in-the-spire-agents/ algorithms / drivers on top of the wire client (AD-5)
+  headless-in-the-spire-mcp/   MCP (Model Context Protocol) server wrapping the wire
+                                client — lets any MCP-aware AI assistant (Claude
+                                Desktop / Claude Code) drive a run end-to-end.
+                                See documentation/research/mcp-integration.md.
 ```
 
 ## Conventions

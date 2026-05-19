@@ -76,6 +76,11 @@ build-generator:
 run: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build
 
+# Run the headless-in-the-spire MCP server over stdio (clients/python/headless-in-the-spire-mcp). Adds the server to any MCP-aware AI (Claude Desktop / Claude Code / etc.). Pass `--enable-debug` to expose AD-7 debug tools — never use in production.
+run-mcp *args:
+    @bash scripts/check-uv.sh
+    @uv run --frozen headless-in-the-spire-mcp {{args}}
+
 # Load vendor/sts2.dll and report missing GodotStubs surface (diagnostic).
 inspect-sts2: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --inspect-sts2

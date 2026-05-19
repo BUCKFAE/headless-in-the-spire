@@ -1,0 +1,9 @@
+{
+  "_comment": "Project-local MCP server registration. Picked up automatically by Claude Code (and similar) when running from inside this repo. The MCP server itself lives at clients/python/headless-in-the-spire-mcp — see its README for setup details.",
+  "mcpServers": {
+    "headless-in-the-spire": {
+      "command": "uv",
+      "args": ["run", "--frozen", "headless-in-the-spire-mcp"]
+    }
+  }
+}
