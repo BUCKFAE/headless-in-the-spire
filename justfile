@@ -167,18 +167,22 @@ clean:
 test-unit:
     @dotnet test tests/Sts2Headless.UnitTests/Sts2Headless.UnitTests.csproj {{MSBUILD_MAX_CPU}} --nologo
 
-# Run the integration suite (loads vendor/sts2.dll; run `just setup` first). Excludes Category=Gap (red-on-purpose tests under HarnessGaps/ — run those via `just test-gaps`) and Category=Diagnostic (flaky-by-design probes — invoke individually via `--filter "Category=Diagnostic"`).
+# Run the integration suite (loads vendor/sts2.dll; run `just setup` first). Excludes Category=Gap (red-on-purpose tests under HarnessGaps/ — run those via `just test-gaps`), Category=Diagnostic (flaky-by-design probes — invoke individually via `--filter "Category=Diagnostic"`), and Category=Benchmark (slow throughput probes — invoke via `just bench-parallel`).
 test-integration:
-    @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category!=Gap&Category!=Diagnostic" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+    @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category!=Gap&Category!=Diagnostic&Category!=Benchmark" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
 
-# Run the end-to-end suite (multi-room arcs; same vendor/sts2.dll requirement). Same Gap + Diagnostic exclusion as `test-integration`.
+# Run the end-to-end suite (multi-room arcs; same vendor/sts2.dll requirement). Same Gap + Diagnostic + Benchmark exclusion as `test-integration`.
 test-end2end:
-    @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category!=Gap&Category!=Diagnostic" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+    @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category!=Gap&Category!=Diagnostic&Category!=Benchmark" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
 
 # Run ONLY the HarnessGaps tests (Category=Gap, born red on purpose — they document harness limitations with a planned fix). Green means a gap closed and the test should graduate out of HarnessGaps/. See tests/Sts2Headless.IntegrationTests/HarnessGaps/README.md.
 test-gaps:
     @dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category=Gap" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
     @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category=Gap" -- xUnit.MaxParallelThreads={{XUNIT_THREADS}}
+
+# Run the HostPool parallel-runs throughput benchmark (Category=Benchmark, off by default). Tune workers/runs via STS2_BENCH_WORKERS / STS2_BENCH_RUNS / STS2_BENCH_MAX_STEPS env vars. Goal #3 measurement: how many concurrent headless runs/day a workstation can drive.
+bench-parallel:
+    @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~ParallelHostThroughputBenchmark" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
 
 # Run the content-coverage sweep (greedy agent over multiple seeds with 999 HP cheat) and dump documentation/coverage/latest.{md,json}. Gitignored — proprietary content sourced from vendor/sts2.dll. Off by default in `just test-end2end`; this recipe sets RUN_COVERAGE_SWEEP=1 to opt in.
 coverage:
