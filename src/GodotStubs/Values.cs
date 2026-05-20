@@ -165,6 +165,13 @@ public readonly struct Callable
     public Callable(GodotObject _, StringName __) { }
     public static Callable From(System.Action _) => default;
     public static Callable From<T>(System.Action<T> _) => default;
+
+    // from: CreatureCmd.Stun → schedules a `CallDeferred(Variant[])` on the
+    //   creature's animator. The eel's STUNNED state hits this on the agent
+    //   path after Pommel Strike (TERROR_EEL_ELITE in the encounter sweep).
+    //   No-op'd in headless — the engine doesn't need the deferred call
+    //   to actually run since the visible side effects are UI-only.
+    public void CallDeferred(params Variant[] _) { }
 }
 
 // from: MegaCrit.Sts2.Core.Events.EventOption.Chosen → chain into

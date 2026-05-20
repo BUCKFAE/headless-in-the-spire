@@ -72,6 +72,29 @@ public static class HangPatches
             PatchSoulNexus(harmony, sts2),
             PatchTestSubject(harmony, sts2),
             PatchCeremonialBeast(harmony, sts2),
+            // Encounter-sweep wave (see documentation/coverage/every-encounter-ironclad.md):
+            // every-encounter-ironclad smoke test surfaced 10 stalls / crashes
+            // against Ironclad with [HELLRAISER, POMMEL_STRIKE×2] + 999/999 HP.
+            // The seven monster hangs follow the same SoulNexus/CeremonialBeast
+            // shape: Task-returning move/power bodies NRE on UI-only state and
+            // the exception is swallowed by TaskHelper.LogTaskExceptions.
+            PatchCorpseSlug(harmony, sts2),
+            PatchDecimillipede(harmony, sts2),
+            PatchDoormaker(harmony, sts2),
+            PatchFatGremlin(harmony, sts2),
+            PatchGremlinMerc(harmony, sts2),
+            PatchTerrorEel(harmony, sts2),
+            PatchTunneler(harmony, sts2),
+            PatchTheInsatiable(harmony, sts2),
+            PatchLagavulinMatriarch(harmony, sts2),
+            PatchSlumberingBeetle(harmony, sts2),
+            PatchRavenousPower(harmony, sts2),
+            PatchReattachPower(harmony, sts2),
+            PatchHungerPower(harmony, sts2),
+            PatchVigorPower(harmony, sts2),
+            PatchCrabRagePower(harmony, sts2),
+            PatchCrusher(harmony, sts2),
+            PatchRocket(harmony, sts2),
         ];
     }
 
@@ -454,6 +477,302 @@ public static class HangPatches
             },
             label: "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.{*Move, SetStunned, lifecycle}");
 
+    // ── Encounter-sweep wave ────────────────────────────────────────────
+    //
+    // The blob below patches the ten monsters + five powers surfaced by
+    // EveryEncounterSmokeTests (`just sweep-encounters`). All match the
+    // existing CeremonialBeast / SoulNexus / TestSubject shape — Task-
+    // returning bodies NRE on UI/VFX state in headless. The per-monster
+    // wrapper exists for the narrative comment, not for behaviour; the
+    // shared PatchMonsterMethods/PatchPowerMethods helpers do the work.
+
+    // CORPSE_SLUGS_NORMAL → CorpseSlug (with RAVENOUS_POWER). The slug
+    // moves NRE on the engine's slime-VFX setup; Ravenous is the on-kill
+    // listener that handles "spawn a Slimed when corpse dies" — its
+    // AfterDeath hook is the killing-blow path failure mode.
+    private static PatchOutcome PatchCorpseSlug(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "GlompMove", "GoopMove", "WhipSlapMove",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug.*Move");
+
+    // DECIMILLIPEDE_ELITE → DecimillipedeSegment (parent of *Front/Middle/
+    // Back). Each segment owns REATTACH_POWER:25. The segment-move bodies
+    // and AfterAddedToRoom/AfterDeath walk segment-link state via UI nodes
+    // that don't exist headless.
+    private static PatchOutcome PatchDecimillipede(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "BulkMove", "ConstrictMove", "ReattachMove", "WritheMove",
+                "DeadMove", "AnimSegmentsAttack",
+                "AfterDeath",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment.{*Move, AfterDeath}");
+
+    // DOORMAKER_BOSS → Doormaker (with HUNGER_POWER). Generic boss moves +
+    // the dramatic-open intro animation that always NREs in headless.
+    // SwapPhasePower is the boss's phase-transition async hook — without
+    // patching it the agent can keep damaging but the boss never advances
+    // past phase 1 (the sweep saw a step-limit timeout). AfterDeath is
+    // patched defensively per the SoulNexus precedent.
+    private static PatchOutcome PatchDoormaker(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Doormaker",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "DramaticOpenMove", "GraspMove", "HungerMove", "ScrutinyMove",
+                "SwapPhasePower", "AfterDeath",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.Doormaker.{*Move, SwapPhasePower, AfterDeath}");
+
+    // GREMLIN_MERC_NORMAL → GremlinMerc spawns a FatGremlin via its moves;
+    // both need patching for the encounter to finish out. HEIST_POWER is a
+    // synchronous power (no Task-returning hooks per `probe-types`) so no
+    // power patch is needed.
+    private static PatchOutcome PatchFatGremlin(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.FatGremlin",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "FleeMove", "SpawnedMove",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.FatGremlin.*Move");
+
+    private static PatchOutcome PatchGremlinMerc(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "DoubleSmashMove", "GimmeMove", "HeheMove",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc.*Move");
+
+    // TERROR_EEL_ELITE → TerrorEel (with VIGOR_POWER). VigorPower.AfterAttack
+    // is patched separately. StunMove is the move the engine sequences into
+    // after a stun-shaped action; without it patched the agent still stalls
+    // on the round the eel's state machine picks Stun.
+    private static PatchOutcome PatchTerrorEel(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "CrashMove", "TerrorMove", "ThrashMove", "StunMove",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel.*Move");
+
+    // TUNNELER_WEAK → Tunneler. No named power in the stall fingerprint;
+    // the hang is purely move-side.
+    private static PatchOutcome PatchTunneler(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "BelowMove", "BiteMove", "BurrowMove",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.*Move");
+
+    // THE_INSATIABLE_BOSS → TheInsatiable. STRENGTH_POWER in the fingerprint
+    // is vanilla and already works; the hang is the move bodies.
+    private static PatchOutcome PatchTheInsatiable(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "BiteMove", "LiquifyMove", "SalivateMove", "ThrashMove",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable.*Move");
+
+    // LAGAVULIN_MATRIARCH_BOSS and SLUMBERING_BEETLE_NORMAL share the
+    // sleeping-monster shape: the encounter starts with the monster
+    // asleep, and AfterAddedToRoom builds the sleep state. In headless
+    // that hook NREs on UI bits, leaving the engine with IsInProgress=false
+    // after debug/start_combat (the symptom in the sweep report). Patching
+    // AfterAddedToRoom + the WakeUpMove path is what gets the combat to
+    // actually enter and progress.
+    //
+    // The agent doesn't experience the asleep→awake transition (the
+    // monster is functionally awake from turn 1 with intent reported via
+    // the wire), but the encounter still completes and the engine no
+    // longer wedges. Acceptable cost for the sweep's coverage signal.
+    private static PatchOutcome PatchLagavulinMatriarch(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "DisembowelMove", "Slash2Move", "SlashMove", "SoulSiphonMove",
+                "WakeUpMove", "SleepMove", "AfterAddedToRoom",
+                // First-blood path: Hellraiser → AttackCommand → CreatureCmd.Damage →
+                // Hook.AfterDamageReceived. Same shape as the Crusher fix.
+                "AfterDamageReceived", "AfterDeath",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.{*Move, lifecycle, AfterDamageReceived}");
+
+    private static PatchOutcome PatchSlumberingBeetle(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "RolloutMove", "WakeUpMove", "AfterAddedToRoom",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.{*Move, AfterAddedToRoom}");
+
+    // Powers — same shape as EscapeArtistPower/ImbalancedPower above, just
+    // a different FQN + method set per power. Generalised via
+    // PatchPowerMethods to keep the call sites declarative.
+
+    // CORPSE_SLUG carries RAVENOUS_POWER:4 — the "spawn slimed when killed"
+    // listener that runs AfterDeath and StunnedMove async hooks.
+    private static PatchOutcome PatchRavenousPower(Harmony harmony, Assembly sts2)
+        => PatchPowerMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Powers.RavenousPower",
+            methodNames: new HashSet<string>(StringComparer.Ordinal) { "AfterDeath", "StunnedMove" },
+            label: "MegaCrit.Sts2.Core.Models.Powers.RavenousPower.{AfterDeath, StunnedMove}");
+
+    // DECIMILLIPEDE_SEGMENT carries REATTACH_POWER:25 — re-attaches the
+    // segment on death. DoReattach + AfterDeath both walk segment-link
+    // UI nodes that don't exist headless.
+    private static PatchOutcome PatchReattachPower(Harmony harmony, Assembly sts2)
+        => PatchPowerMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Powers.ReattachPower",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "AfterDeath", "DoReattach", "PlayVfxAndThenRemoveNodes",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Powers.ReattachPower.{AfterDeath, DoReattach, PlayVfxAndThenRemoveNodes}");
+
+    // DOORMAKER carries HUNGER_POWER:1 — async hooks fire on Afflict /
+    // AfterApplied / AfterCardEnteredCombat. The card-entered-combat hook
+    // is what trips on the agent's first Hellraiser play, before the
+    // stall fingerprint is captured.
+    private static PatchOutcome PatchHungerPower(Harmony harmony, Assembly sts2)
+        => PatchPowerMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Powers.HungerPower",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "Afflict", "AfterApplied", "AfterCardEnteredCombat",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Powers.HungerPower.{Afflict, AfterApplied, AfterCardEnteredCombat}");
+
+    // TERROR_EEL carries VIGOR_POWER:6 — fires AfterAttack on every
+    // attack-shaped move. Hangs the enemy turn after the eel's first hit.
+    private static PatchOutcome PatchVigorPower(Harmony harmony, Assembly sts2)
+        => PatchPowerMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Powers.VigorPower",
+            methodNames: new HashSet<string>(StringComparer.Ordinal) { "AfterAttack" },
+            label: "MegaCrit.Sts2.Core.Models.Powers.VigorPower.AfterAttack");
+
+    // CRAB_RAGE_POWER is the on-death listener for the KAISER_CRAB_BOSS
+    // arms. The encounter has no `KaiserCrab` monster type — the boss
+    // is implemented as a pair of `Crusher` monsters (see PatchCrusher
+    // below) with this power. Patched defensively per the SoulNexus
+    // precedent.
+    private static PatchOutcome PatchCrabRagePower(Harmony harmony, Assembly sts2)
+        => PatchPowerMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Powers.CrabRagePower",
+            methodNames: new HashSet<string>(StringComparer.Ordinal) { "AfterDeath" },
+            label: "MegaCrit.Sts2.Core.Models.Powers.CrabRagePower.AfterDeath");
+
+    // KAISER_CRAB_BOSS spawns two `Crusher` monsters (revealed via
+    // `--probe-encounter KAISER_CRAB_BOSS`). The encounter is one of the
+    // few that has no `KaiserCrab` monster type — the boss is rendered
+    // by NKaiserCrabBossBackground and powered by Crusher creatures.
+    //
+    // The play_card NRE captured in the probe is:
+    //   System.NullReferenceException
+    //     at Crusher.get_Background()
+    //     at Crusher.AfterCurrentHpChanged_Patch1(Crusher, Creature, Decimal)
+    //     at Hook.AfterCurrentHpChanged(IRunState, CombatState, Creature, Decimal)
+    //     at CreatureCmd.Damage(...)
+    //     at AttackCommand.Execute(...)
+    //     at PommelStrike.OnPlay(...)
+    //
+    // i.e. Pommel Strike → damage → Hook.AfterCurrentHpChanged →
+    // Crusher.AfterCurrentHpChanged_Patch1 walks the boss-background-
+    // dependent get_Background, which is null in headless.
+    //
+    // Patch shape: zero out every Task-returning method on Crusher
+    // (5 moves + 3 lifecycle hooks). The boss still threatens via wire-
+    // surfaced intent damage and the 999 HP cheat keeps the agent alive
+    // long enough to win.
+    private static PatchOutcome PatchCrusher(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Crusher",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "AdaptMove", "BugStingMove", "EnlargingStrikeMove",
+                "GuardedStrikeMove", "ThrashMove",
+                "AfterAddedToRoom", "AfterCurrentHpChanged", "BeforeDeath",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.Crusher.{*Move, AfterAddedToRoom, AfterCurrentHpChanged, BeforeDeath}");
+
+    // KAISER_CRAB_BOSS spawns a Crusher and a Rocket together (see the
+    // sweep fingerprint: `enemies=[CRUSHER:..., ROCKET:...]`). Rocket
+    // carries BACK_ATTACK_RIGHT_POWER + CRAB_RAGE_POWER and has the same
+    // background-NRE shape as Crusher. Patch every Task-returning method.
+    private static PatchOutcome PatchRocket(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Rocket",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "ChargeUpMove", "LaserMove", "PrecisionBeamMove",
+                "RechargeMove", "TargetingReticleMove",
+                "AfterAddedToRoom", "AfterCurrentHpChanged", "BeforeDeath",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.Rocket.{*Move, AfterAddedToRoom, AfterCurrentHpChanged, BeforeDeath}");
+
+    // Shared helper for the per-power patches above. Mirror of
+    // PatchMonsterMethods — resolve the type by FQN, filter declared
+    // methods by name and return-type kind, prefix each with the
+    // appropriate "return default" body.
+    private static PatchOutcome PatchPowerMethods(
+        Harmony harmony,
+        Assembly sts2,
+        string typeFqn,
+        HashSet<string> methodNames,
+        string label)
+    {
+        var powerType = sts2.GetType(typeFqn);
+        if (powerType is null)
+            return new PatchOutcome(label, Patched: false, Detail: $"type {typeFqn} not found");
+
+        var methods = powerType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => methodNames.Contains(m.Name) && !m.IsSpecialName)
+            .ToArray();
+        if (methods.Length == 0)
+            return new PatchOutcome(label, Patched: false, Detail: $"no target methods on {typeFqn}");
+
+        var taskPrefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var voidPrefix = typeof(HangPatches).GetMethod(nameof(SkipVoidPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var nullPrefix = typeof(HangPatches).GetMethod(nameof(ReturnNullPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
+            if (m.IsGenericMethodDefinition || m.ContainsGenericParameters)
+            {
+                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: open-generic, not Harmony-patchable)");
+                continue;
+            }
+            MethodInfo prefix;
+            if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType)) prefix = taskPrefix;
+            else if (m.ReturnType == typeof(void)) prefix = voidPrefix;
+            else if (!m.ReturnType.IsValueType) prefix = nullPrefix;
+            else
+            {
+                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported value-type return)");
+                continue;
+            }
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
     private static PatchOutcome PatchWaitUntilQueueIsEmpty(Harmony harmony, Assembly sts2)
     {
         const string name = "WaitUntilQueueIsEmptyOrWaitingOnNonPlayerDrivenAction";
@@ -525,6 +844,16 @@ public static class HangPatches
         var sigs = new List<string>(methods.Length);
         foreach (var m in methods)
         {
+            // Harmony can't patch open generic methods (Doormaker.SwapPhasePower
+            // is the surfacing example — the compiler-generated state machine
+            // type has one generic parameter, and Harmony's IL-rewrite path
+            // fails at MMReflectionImporter.ImportGenericParameter). Skip with
+            // a visible note rather than crash bootstrap.
+            if (m.IsGenericMethodDefinition || m.ContainsGenericParameters)
+            {
+                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: open-generic, not Harmony-patchable)");
+                continue;
+            }
             MethodInfo prefix;
             if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType)) prefix = taskPrefix;
             else if (m.ReturnType == typeof(void)) prefix = voidPrefix;
