@@ -60,6 +60,9 @@ node_modules/
 # Playwright artefacts (HTML report + per-test traces / videos / screenshots).
 playwright-report/
 test-results/
+# Per-session lock for the `/loop` skill — auto-managed under .claude/.
+# Stable .claude/skills/ content is checked in; this lock is not.
+.claude/scheduled_tasks.lock
 
 ## IntelliJ
 .idea
