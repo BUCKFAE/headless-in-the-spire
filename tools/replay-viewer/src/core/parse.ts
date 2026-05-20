@@ -31,18 +31,32 @@ import type {
 
 export function parseManifest(raw: unknown): ReplayManifest {
   const obj = expectObject(raw, "manifest");
-  return {
+  const out: ReplayManifest = {
     version: expectInt(obj["version"], "manifest.version"),
     header: parseManifestHeader(obj["header"], "manifest.header"),
     combats: expectArray(obj["combats"], "manifest.combats").map((c, i) =>
       parseCombatEntry(c, `manifest.combats[${i}]`),
     ),
   };
+  if (obj["display_name"] !== undefined && obj["display_name"] !== null) {
+    out.display_name = expectString(obj["display_name"], "manifest.display_name");
+  }
+  if (obj["outcome"] !== undefined && obj["outcome"] !== null) {
+    const outcome = expectString(obj["outcome"], "manifest.outcome");
+    if (!["unknown", "victory", "defeat", "abandoned"].includes(outcome)) {
+      throw new Error(`manifest.outcome: unexpected value "${outcome}"`);
+    }
+    out.outcome = outcome as "unknown" | "victory" | "defeat" | "abandoned";
+  }
+  if (obj["ended_at_unix"] !== undefined && obj["ended_at_unix"] !== null) {
+    out.ended_at_unix = expectInt(obj["ended_at_unix"], "manifest.ended_at_unix");
+  }
+  return out;
 }
 
 function parseManifestHeader(raw: unknown, path: string): ReplayManifestHeader {
   const obj = expectObject(raw, path);
-  return {
+  const out: ReplayManifestHeader = {
     game_version: expectString(obj["game_version"], `${path}.game_version`),
     sts2_dll_sha256: expectString(obj["sts2_dll_sha256"], `${path}.sts2_dll_sha256`),
     model_id_hash: expectInt(obj["model_id_hash"], `${path}.model_id_hash`),
@@ -57,6 +71,10 @@ function parseManifestHeader(raw: unknown, path: string): ReplayManifestHeader {
     ),
     start_time_unix: expectInt(obj["start_time_unix"], `${path}.start_time_unix`),
   };
+  if (obj["agent"] !== undefined && obj["agent"] !== null) {
+    out.agent = expectString(obj["agent"], `${path}.agent`);
+  }
+  return out;
 }
 
 function parseCombatEntry(raw: unknown, path: string): ReplayCombatEntry {

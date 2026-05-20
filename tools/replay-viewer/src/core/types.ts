@@ -16,10 +16,17 @@
 
 // ── manifest.json (run-level index) ───────────────────────────────────
 
+export type ReplayRunOutcome = "unknown" | "victory" | "defeat" | "abandoned";
+
 export interface ReplayManifest {
   version: number;
   header: ReplayManifestHeader;
   combats: ReplayCombatEntry[];
+  // Populated at finalize. Older recordings (manifest version 1) don't
+  // carry these; the viewer falls back to deriving them on the fly.
+  display_name?: string;
+  outcome?: ReplayRunOutcome;
+  ended_at_unix?: number;
 }
 
 export interface ReplayManifestHeader {
@@ -34,6 +41,9 @@ export interface ReplayManifestHeader {
   ascension: number;
   modifiers: string[];
   start_time_unix: number;
+  // Agent label (e.g. "GreedyAgent", "manual"). Optional for back-compat
+  // with manifests recorded before STS2_REPLAY_AGENT was a thing.
+  agent?: string;
 }
 
 export interface ReplayCombatEntry {

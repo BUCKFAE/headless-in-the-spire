@@ -10,27 +10,25 @@ import {
   renderRunHeader,
   type FloorRow,
 } from "./view/floors";
+import { fetchRunsIndex, loadRunByRelPath } from "./core/replay-source";
+import type { ReplayRunIndexEntry } from "./core/runs-index";
 
-// Entry point. Two load paths:
+// Entry point. Three load paths, in priority order:
 //
-//   1. Directory picker (primary): user picks a run directory; we read
+//   1. Sidebar (primary in dev): on load we GET /replays/runs.json; if
+//      present, we render a list of runs in the left sidebar. Clicking
+//      a row pulls that run's manifest + timelines + run.json via HTTP
+//      and renders it.
+//
+//   2. Directory picker (fallback): user picks a run directory; we read
 //      manifest.json + every *.mcr.timeline.json inside, build a
-//      Session, persist the raw JSON to localStorage, and render the
-//      run overview with clickable combat rows.
+//      Session, persist the raw JSON to localStorage, and render.
 //
-//   2. Single-file fallback: user picks a manifest or a timeline file
-//      directly. The manifest path opens a Session-without-timelines
-//      (clickable rows render as disabled). The timeline path renders
-//      a single timeline without the run context.
+//   3. Single-file fallback: manifest or timeline directly. Manifest →
+//      Session-without-timelines. Timeline → single-combat view.
 //
-// On page load we try to restore from localStorage. If a session is
-// there, we render it and the user can immediately interact; if not,
-// the empty state is shown.
-//
-// The `currentSession` + `selectedMcr` state lives in this module —
-// the renderer is pure-functional and returns a fresh DOM tree on
-// each call. Re-rendering the whole page on every selection change
-// is cheap because the DOM tree is small (manifest + one combat).
+// localStorage restore is consulted on initial load so a reload keeps
+// what the user was looking at.
 
 const $directoryInput = mustFindInput("directory-input");
 const $manifestInput = mustFindInput("manifest-input");
@@ -40,11 +38,125 @@ const $output = mustFindEl("output");
 const $detail = mustFindEl("detail");
 const $errors = mustFindEl("errors");
 const $status = mustFindEl("status");
+const $runsList = mustFindEl("runs-list");
+const $sidebarStatus = mustFindEl("sidebar-status");
+const $sidebarEmpty = mustFindEl("sidebar-empty");
+const $sidebarCollapse = mustFindEl("sidebar-collapse");
+const $sidebarShow = mustFindEl("sidebar-show");
+const $reloadRuns = mustFindEl("reload-runs");
 
 let currentSession: Session | null = null;
 let selectedMcr: string | null = null;
 let materialisedFloors: FloorRow[] = [];
 let selectedFloorIndex: number | null = null;
+let selectedRunRelPath: string | null = null;
+
+// ── Sidebar ─────────────────────────────────────────────────────────
+
+const SIDEBAR_STATE_KEY = "sts2-replay-viewer:sidebar-collapsed";
+
+function setSidebarCollapsed(collapsed: boolean): void {
+  document.body.classList.toggle("sidebar-collapsed", collapsed);
+  window.localStorage.setItem(SIDEBAR_STATE_KEY, collapsed ? "1" : "0");
+}
+
+function initSidebarToggle(): void {
+  setSidebarCollapsed(window.localStorage.getItem(SIDEBAR_STATE_KEY) === "1");
+
+  $sidebarCollapse.addEventListener("click", () => setSidebarCollapsed(true));
+  $sidebarShow.addEventListener("click", () => setSidebarCollapsed(false));
+
+  // Backslash to toggle — a single unmodified key that doesn't conflict
+  // with browser shortcuts and is reachable on every common layout.
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "\\" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      setSidebarCollapsed(!document.body.classList.contains("sidebar-collapsed"));
+    }
+  });
+}
+
+async function refreshSidebar(): Promise<void> {
+  $sidebarStatus.textContent = "loading…";
+  $runsList.replaceChildren();
+  $sidebarEmpty.hidden = true;
+
+  const { index, reason } = await fetchRunsIndex();
+  if (!index) {
+    $sidebarStatus.textContent = "";
+    $sidebarEmpty.hidden = false;
+    $sidebarEmpty.textContent =
+      reason ?? "No runs.json available — record a run, or open a run from disk via the panel below.";
+    return;
+  }
+  $sidebarStatus.textContent = `${index.runs.length} run${index.runs.length === 1 ? "" : "s"}`;
+  if (index.runs.length === 0) {
+    $sidebarEmpty.hidden = false;
+    $sidebarEmpty.textContent = "No runs yet — record one and click ↻.";
+    return;
+  }
+  for (const entry of index.runs) {
+    $runsList.appendChild(renderRunRow(entry));
+  }
+  highlightSelectedRow();
+}
+
+function renderRunRow(entry: ReplayRunIndexEntry): HTMLLIElement {
+  const li = document.createElement("li");
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "run-row";
+  btn.dataset["relPath"] = entry.rel_path;
+
+  const outcomeBadge = document.createElement("span");
+  outcomeBadge.className = `run-row-outcome ${entry.outcome}`;
+  outcomeBadge.textContent = entry.outcome;
+
+  const name = document.createElement("span");
+  name.className = "run-row-name";
+  name.append(outcomeBadge, document.createTextNode(entry.display_name));
+
+  const meta = document.createElement("span");
+  meta.className = "run-row-meta";
+  meta.textContent = `seed=${entry.seed} · ${entry.combat_count} combats · ${entry.game_version}`;
+
+  btn.append(name, meta);
+  btn.addEventListener("click", () => void selectRun(entry));
+  li.appendChild(btn);
+  return li;
+}
+
+function highlightSelectedRow(): void {
+  for (const btn of $runsList.querySelectorAll<HTMLButtonElement>(".run-row")) {
+    btn.classList.toggle("is-selected", btn.dataset["relPath"] === selectedRunRelPath);
+  }
+}
+
+async function selectRun(entry: ReplayRunIndexEntry): Promise<void> {
+  await tryRender(async () => {
+    setStatus(`loading ${entry.display_name}…`);
+    const session = await loadRunByRelPath(entry);
+    currentSession = session;
+    selectedMcr = null;
+    selectedFloorIndex = null;
+    materialisedFloors = session.runHistory ? materialiseFloors(session.runHistory) : [];
+    selectedRunRelPath = entry.rel_path;
+    highlightSelectedRow();
+    rerender();
+    setStatus(
+      session.runHistory
+        ? `loaded ${entry.display_name} (${materialisedFloors.length} floors)`
+        : `loaded ${entry.display_name} (no run.json yet)`,
+    );
+  });
+}
+
+initSidebarToggle();
+$reloadRuns.addEventListener("click", () => void refreshSidebar());
+void refreshSidebar();
+
+// ── Existing flows: localStorage restore + file pickers ─────────────
 
 // Try restore on initial load.
 const restored = loadSession();
@@ -82,6 +194,8 @@ $directoryInput.addEventListener("change", async () => {
     selectedMcr = null;
     selectedFloorIndex = null;
     materialisedFloors = session.runHistory ? materialiseFloors(session.runHistory) : [];
+    selectedRunRelPath = null;
+    highlightSelectedRow();
     // Build the raw-JSON snapshot for persistence. We can't reuse the
     // `inputs` array directly because the timeline keys for persistence
     // must match the manifest's `mcr_file` paths exactly (the ingest
@@ -146,6 +260,8 @@ $clearBtn.addEventListener("click", () => {
   selectedMcr = null;
   selectedFloorIndex = null;
   materialisedFloors = [];
+  selectedRunRelPath = null;
+  highlightSelectedRow();
   $output.replaceChildren();
   $detail.replaceChildren();
   setStatus("cleared");

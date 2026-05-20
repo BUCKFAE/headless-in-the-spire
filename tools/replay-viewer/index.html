@@ -11,17 +11,144 @@
         --border: #d0d0d0;
         --muted: #777;
         --accent: #06c;
+        --sidebar-width: 320px;
+        --sidebar-bg: #fafafa;
       }
       @media (prefers-color-scheme: dark) {
-        :root { --border: #444; --muted: #999; --accent: #5ad; }
+        :root { --border: #444; --muted: #999; --accent: #5ad; --sidebar-bg: #1a1a1a; }
       }
+      * { box-sizing: border-box; }
       body {
         font-family: system-ui, sans-serif;
-        max-width: 1280px;
-        margin: 1rem auto;
-        padding: 0 1rem;
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: var(--sidebar-width) 1fr;
       }
-      header h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+      body.sidebar-collapsed { grid-template-columns: 0 1fr; }
+
+      /* ── Sidebar ────────────────────────────────────────────────── */
+      .sidebar {
+        background: var(--sidebar-bg);
+        border-right: 1px solid var(--border);
+        overflow-y: auto;
+        overflow-x: hidden;
+        max-height: 100vh;
+        position: sticky;
+        top: 0;
+      }
+      body.sidebar-collapsed .sidebar { display: none; }
+      .sidebar-header {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        position: sticky;
+        top: 0;
+        background: var(--sidebar-bg);
+      }
+      .sidebar-header h2 {
+        margin: 0;
+        flex: 1;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .sidebar-header button {
+        width: 1.75rem;
+        height: 1.75rem;
+        border: 1px solid var(--border);
+        background: transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: var(--mono);
+        font-size: 0.875rem;
+        line-height: 1;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: inherit;
+      }
+      .sidebar-header button:hover { border-color: var(--accent); color: var(--accent); }
+      .sidebar-status { padding: 0.5rem 1rem; color: var(--muted); font-size: 0.8125rem; }
+      .sidebar-empty { padding: 1rem; color: var(--muted); font-size: 0.875rem; line-height: 1.4; }
+      .runs-list { list-style: none; margin: 0; padding: 0.5rem 0; }
+      .runs-list li { padding: 0; }
+      .run-row {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem 1rem;
+        background: transparent;
+        border: 0;
+        border-left: 3px solid transparent;
+        cursor: pointer;
+        font: inherit;
+        color: inherit;
+      }
+      .run-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+      .run-row.is-selected {
+        background: color-mix(in srgb, var(--accent) 14%, transparent);
+        border-left-color: var(--accent);
+      }
+      .run-row-name { display: block; font-size: 0.875rem; line-height: 1.3; }
+      .run-row-meta {
+        display: block;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 0.125rem;
+      }
+      .run-row-outcome {
+        display: inline-block;
+        padding: 0 0.375rem;
+        border-radius: 3px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-right: 0.375rem;
+      }
+      .run-row-outcome.victory { background: #1f8c4f; color: #fff; }
+      .run-row-outcome.defeat { background: #b33a3a; color: #fff; }
+      .run-row-outcome.abandoned { background: #888; color: #fff; }
+      .run-row-outcome.unknown { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+
+      /* ── Show-sidebar button (only visible when collapsed) ──────── */
+      .sidebar-show {
+        display: none;
+        position: fixed;
+        top: 0.5rem;
+        left: 0.5rem;
+        z-index: 10;
+        width: 1.75rem;
+        height: 1.75rem;
+        border: 1px solid var(--border);
+        background: var(--sidebar-bg);
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: var(--mono);
+        font-size: 1rem;
+        line-height: 1;
+        padding: 0;
+        align-items: center;
+        justify-content: center;
+      }
+      body.sidebar-collapsed .sidebar-show { display: flex; }
+      .sidebar-show:hover { border-color: var(--accent); color: var(--accent); }
+
+      /* ── Main content (existing layout, slightly reflowed) ──────── */
+      .main {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 1rem 1rem 2rem;
+        width: 100%;
+      }
+      header h1 { font-size: 1.25rem; margin-bottom: 0.25rem; margin-top: 0; }
       header p { color: var(--muted); margin-top: 0; }
       .picker {
         display: flex;
@@ -36,10 +163,14 @@
       .picker label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.875rem; }
       .picker label small { color: var(--muted); }
       .picker button { padding: 0.375rem 0.75rem; }
+      .picker summary { cursor: pointer; color: var(--muted); font-size: 0.875rem; padding: 0.5rem 0; }
+      .picker details[open] summary { margin-bottom: 0.5rem; }
       .status { color: var(--muted); font-size: 0.875rem; }
       .errors { color: #c00; font-family: var(--mono); white-space: pre-wrap; }
       .layout { display: grid; grid-template-columns: minmax(320px, 1fr) 2fr; gap: 1rem; }
       @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+
+      /* ── Existing run/floor styles (unchanged) ──────────────────── */
       .viewer-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; margin-bottom: 1rem; }
       .viewer-meta dt { font-weight: 600; }
       .viewer-meta dd { margin: 0; }
@@ -104,32 +235,47 @@
     </style>
   </head>
   <body>
-    <header>
-      <h1>STS2 Headless — Replay Viewer</h1>
-      <p>Pick a run directory (e.g. <code>vendor/replays/&lt;version&gt;/&lt;run-id&gt;/</code>); the page caches the load so a reload restores it.</p>
-    </header>
-    <div class="picker">
-      <label>
-        <strong>Run directory</strong>
-        <small>auto-discovers manifest.json + timelines</small>
-        <input id="directory-input" type="file" webkitdirectory />
-      </label>
-      <label>
-        manifest.json only
-        <input id="manifest-input" type="file" accept=".json,application/json" />
-      </label>
-      <label>
-        single timeline.json
-        <input id="timeline-input" type="file" accept=".json,application/json" />
-      </label>
-      <button id="clear-session" type="button">Clear</button>
-      <span id="status" class="status"></span>
-    </div>
-    <div id="errors" class="errors"></div>
-    <div class="layout">
-      <main id="output"></main>
-      <aside id="detail"></aside>
-    </div>
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <button id="sidebar-collapse" type="button" title="Hide sidebar (\\)" aria-label="Hide sidebar">«</button>
+        <h2>Runs</h2>
+        <button id="reload-runs" type="button" title="Reload runs.json" aria-label="Reload runs.json">↻</button>
+      </div>
+      <div id="sidebar-status" class="sidebar-status"></div>
+      <ul id="runs-list" class="runs-list"></ul>
+      <div id="sidebar-empty" class="sidebar-empty" hidden></div>
+    </aside>
+    <button id="sidebar-show" class="sidebar-show" type="button" title="Show sidebar (\\)" aria-label="Show sidebar">»</button>
+
+    <main class="main">
+      <header>
+        <h1>STS2 Headless — Replay Viewer</h1>
+        <p>Pick a run from the sidebar. Runs are read from <code>vendor/replays/runs.json</code> when the dev server is up.</p>
+      </header>
+      <details class="picker">
+        <summary>Load from disk (drag-drop / manual)</summary>
+        <label>
+          <strong>Run directory</strong>
+          <small>auto-discovers manifest.json + timelines</small>
+          <input id="directory-input" type="file" webkitdirectory />
+        </label>
+        <label>
+          manifest.json only
+          <input id="manifest-input" type="file" accept=".json,application/json" />
+        </label>
+        <label>
+          single timeline.json
+          <input id="timeline-input" type="file" accept=".json,application/json" />
+        </label>
+        <button id="clear-session" type="button">Clear</button>
+        <span id="status" class="status"></span>
+      </details>
+      <div id="errors" class="errors"></div>
+      <div class="layout">
+        <section id="output"></section>
+        <aside id="detail"></aside>
+      </div>
+    </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
