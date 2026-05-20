@@ -1,0 +1,278 @@
+using System.Collections.Immutable;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
+using Xunit;
+
+namespace Sts2Headless.IntegrationTests;
+
+// Stub-surface guard. Every MemberReference sts2.dll holds against a
+// `Godot.*` TypeRef must be matched by a TypeDef/Method/Field combination
+// in our GodotStubs build output (AssemblyName=GodotSharp). A miss here is
+// a future MissingMethodException waiting to surface at runtime — the
+// failure mode that hard-locked seed 42's treasure-chest open
+// (`Godot.Colors.get_Black()`) and the card-removal path before it.
+//
+// Metadata-only on both sides:
+//   * sts2.dll is read via PEReader; never loaded into the runtime, so
+//     AD-4 is preserved (the test project takes no code reference either).
+//   * GodotSharp.dll is also read via PEReader (not Assembly.Load),
+//     against the build output the test runner copies into bin/.
+//
+// Two facts:
+//   * The narrow one (default) pins Color + Colors, the hot value-type
+//     surface that drove the bugs above. It must stay green.
+//   * The broad one (Category=Diagnostic) reports the full Godot.* gap
+//     surface — informational. Used to seed targeted stub fills when a
+//     run surfaces a new MissingMethodException class, without committing
+//     to "speculative mirroring" of all 700+ unused members.
+public class GodotStubsCoverageTests
+{
+    [Fact]
+    public void Color_And_Colors_References_From_Sts2_Resolve_On_GodotStubs()
+    {
+        var missing = ComputeMissing(t => t == "Godot.Color" || t == "Godot.Colors");
+        Assert.True(
+            missing.Count == 0,
+            $"GodotStubs is missing {missing.Count} Color/Colors member(s) referenced by sts2.dll — "
+            + "add them to src/GodotStubs/Values.cs (Color) or src/GodotStubs/CombatStubs.cs (Colors).\n"
+            + string.Join('\n', missing.Select(m => "  - " + m)));
+    }
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public void All_Godot_References_From_Sts2_Resolve_On_GodotStubs()
+    {
+        var missing = ComputeMissing(IsGodotType);
+        // Diagnostic-only — asserts the full surface so devs running
+        // `--filter Category=Diagnostic` get a concrete gap list to seed
+        // targeted stub work. Not part of `just test-integration`.
+        Assert.True(
+            missing.Count == 0,
+            $"GodotStubs is missing {missing.Count} member(s) referenced by sts2.dll. "
+            + "Diagnostic only — fill on demand as runtime paths surface them.\n"
+            + string.Join('\n', missing.Select(m => "  - " + m)));
+    }
+
+    private static List<string> ComputeMissing(Func<string, bool> typeFilter)
+    {
+        var repoRoot = LocateRepoRoot();
+        var sts2Path = Path.Combine(repoRoot, "vendor", "sts2.dll");
+        Assert.True(File.Exists(sts2Path),
+            $"vendor/sts2.dll not present at {sts2Path} — run `just setup` first.");
+
+        var stubPath = Path.Combine(AppContext.BaseDirectory, "GodotSharp.dll");
+        Assert.True(File.Exists(stubPath),
+            $"GodotSharp.dll not in test bin at {stubPath} — GodotStubs build output missing.");
+
+        var required = CollectGodotReferences(sts2Path, typeFilter);
+        Assert.True(required.Count > 0,
+            "no matching MemberReferences in sts2.dll — the test filter is broken, not the stub.");
+
+        var available = CollectStubMembers(stubPath);
+
+        return required
+            .Where(r => !available.Contains(r))
+            .OrderBy(s => s, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    // Walk sts2.dll's MemberReference table; capture every member whose
+    // parent TypeRef passes the supplied filter. Returns canonical
+    // `Type.Member(sig)` strings — same shape as CollectStubMembers below
+    // so a set diff is the whole audit.
+    private static HashSet<string> CollectGodotReferences(string sts2Path, Func<string, bool> typeFilter)
+    {
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        using var pe = new PEReader(File.OpenRead(sts2Path));
+        var md = pe.GetMetadataReader();
+        var provider = new SigToString();
+
+        foreach (var handle in md.MemberReferences)
+        {
+            var mr = md.GetMemberReference(handle);
+
+            // Parent may be a TypeRef directly or a TypeSpec (closed generic)
+            // wrapping one. Peel back to the underlying TypeRef so e.g.
+            // Array<T> members land on the open generic Array.
+            TypeReferenceHandle? parentRef = mr.Parent.Kind switch
+            {
+                HandleKind.TypeReference => (TypeReferenceHandle)mr.Parent,
+                HandleKind.TypeSpecification => ResolveTypeSpecToRef(md, (TypeSpecificationHandle)mr.Parent),
+                _ => null,
+            };
+            if (parentRef is null) continue;
+
+            var parentFqn = QualifiedTypeName(md, parentRef.Value);
+            if (!typeFilter(parentFqn)) continue;
+
+            var memberName = md.GetString(mr.Name);
+            string key = mr.GetKind() switch
+            {
+                MemberReferenceKind.Method => MethodKey(parentFqn, memberName,
+                    mr.DecodeMethodSignature(provider, genericContext: null)),
+                MemberReferenceKind.Field => FieldKey(parentFqn, memberName,
+                    mr.DecodeFieldSignature(provider, genericContext: null)),
+                _ => throw new InvalidOperationException("unknown member ref kind"),
+            };
+            result.Add(key);
+        }
+
+        return result;
+    }
+
+    // Walk GodotSharp.dll's TypeDefinition table; emit `Type.Member(sig)`
+    // strings for every method (including ctors and property accessors —
+    // they're MethodDefs at the metadata layer) and every field.
+    // Auto-property backing fields are filtered: sts2 never holds a
+    // MemberRef against them.
+    private static HashSet<string> CollectStubMembers(string stubPath)
+    {
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        using var pe = new PEReader(File.OpenRead(stubPath));
+        var md = pe.GetMetadataReader();
+        var provider = new SigToString();
+
+        foreach (var typeHandle in md.TypeDefinitions)
+        {
+            var td = md.GetTypeDefinition(typeHandle);
+            var typeFqn = QualifiedTypeName(md, typeHandle);
+            if (string.IsNullOrEmpty(typeFqn) || typeFqn == "<Module>") continue;
+
+            foreach (var methodHandle in td.GetMethods())
+            {
+                var method = md.GetMethodDefinition(methodHandle);
+                var name = md.GetString(method.Name);
+                var sig = method.DecodeSignature(provider, genericContext: null);
+                result.Add(MethodKey(typeFqn, name, sig));
+            }
+
+            foreach (var fieldHandle in td.GetFields())
+            {
+                var field = md.GetFieldDefinition(fieldHandle);
+                var name = md.GetString(field.Name);
+                if (name.Contains("k__BackingField", StringComparison.Ordinal)) continue;
+                var fieldType = field.DecodeSignature(provider, genericContext: null);
+                result.Add(FieldKey(typeFqn, name, fieldType));
+            }
+        }
+
+        return result;
+    }
+
+    private static bool IsGodotType(string fqn)
+        => fqn == "Godot"
+        || fqn.StartsWith("Godot.", StringComparison.Ordinal)
+        || fqn.StartsWith("Godot+", StringComparison.Ordinal);
+
+    private static string MethodKey(string typeFqn, string name, MethodSignature<string> sig)
+        => $"{typeFqn}.{name}({string.Join(",", sig.ParameterTypes)})";
+
+    private static string FieldKey(string typeFqn, string name, string fieldType)
+        => $"{typeFqn}.{name}:{fieldType}";
+
+    private static string QualifiedTypeName(MetadataReader md, TypeReferenceHandle handle)
+    {
+        var tr = md.GetTypeReference(handle);
+        var name = md.GetString(tr.Name);
+        if (tr.ResolutionScope.Kind == HandleKind.TypeReference)
+        {
+            var parent = QualifiedTypeName(md, (TypeReferenceHandle)tr.ResolutionScope);
+            return $"{parent}+{name}";
+        }
+        var ns = md.GetString(tr.Namespace);
+        return string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
+    }
+
+    private static string QualifiedTypeName(MetadataReader md, TypeDefinitionHandle handle)
+    {
+        var td = md.GetTypeDefinition(handle);
+        var name = md.GetString(td.Name);
+        if (td.IsNested)
+        {
+            var declaring = QualifiedTypeName(md, td.GetDeclaringType());
+            return $"{declaring}+{name}";
+        }
+        var ns = md.GetString(td.Namespace);
+        return string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
+    }
+
+    private static TypeReferenceHandle? ResolveTypeSpecToRef(MetadataReader md, TypeSpecificationHandle handle)
+    {
+        var recorder = new TypeRefRecorder();
+        md.GetTypeSpecification(handle).DecodeSignature(recorder, genericContext: (object?)null);
+        return recorder.First;
+    }
+
+    private static string LocateRepoRoot()
+    {
+        var dir = AppContext.BaseDirectory;
+        for (var i = 0; i < 8; i++)
+        {
+            if (File.Exists(Path.Combine(dir, "Sts2Headless.slnx"))) return dir;
+            var p = Directory.GetParent(dir);
+            if (p is null) break;
+            dir = p.FullName;
+        }
+        throw new InvalidOperationException("repo root not found");
+    }
+
+    // Stringifies method/field signatures into the short, namespaceless
+    // form used by both walks. Keeping them identical is the whole point —
+    // `Single` vs `System.Single` would yield a false-positive gap report.
+    private sealed class SigToString : ISignatureTypeProvider<string, object?>
+    {
+        public string GetPrimitiveType(PrimitiveTypeCode typeCode) => typeCode.ToString();
+        public string GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle h, byte rawKind)
+            => reader.GetString(reader.GetTypeDefinition(h).Name);
+        public string GetTypeFromReference(MetadataReader reader, TypeReferenceHandle h, byte rawKind)
+        {
+            var tr = reader.GetTypeReference(h);
+            var name = reader.GetString(tr.Name);
+            if (tr.ResolutionScope.Kind == HandleKind.TypeReference)
+            {
+                var parent = GetTypeFromReference(reader, (TypeReferenceHandle)tr.ResolutionScope, rawKind);
+                return $"{parent}+{name}";
+            }
+            return name;
+        }
+        public string GetSZArrayType(string e) => $"{e}[]";
+        public string GetArrayType(string e, ArrayShape s) => $"{e}[{new string(',', s.Rank - 1)}]";
+        public string GetPointerType(string e) => $"{e}*";
+        public string GetByReferenceType(string e) => $"ref {e}";
+        public string GetGenericMethodParameter(object? c, int i) => $"!!{i}";
+        public string GetGenericTypeParameter(object? c, int i) => $"!{i}";
+        public string GetGenericInstantiation(string t, ImmutableArray<string> args)
+            => $"{t}<{string.Join(",", args)}>";
+        public string GetModifiedType(string m, string u, bool req) => u;
+        public string GetPinnedType(string e) => e;
+        public string GetTypeFromSpecification(MetadataReader r, object? c, TypeSpecificationHandle h, byte k)
+            => r.GetTypeSpecification(h).DecodeSignature(this, c);
+        public string GetFunctionPointerType(MethodSignature<string> s) => "fnptr";
+    }
+
+    // Captures the first underlying TypeRef of a TypeSpec — closed generics
+    // like `Array<int>` resolve here so member-refs against them group
+    // with the open Array's members. Same trick as ListMembersCommand.
+    private sealed class TypeRefRecorder : ISignatureTypeProvider<int, object?>
+    {
+        public TypeReferenceHandle? First { get; private set; }
+        public int GetTypeFromReference(MetadataReader r, TypeReferenceHandle h, byte k)
+        {
+            First ??= h;
+            return 0;
+        }
+        public int GetGenericInstantiation(int t, ImmutableArray<int> args) => 0;
+        public int GetPrimitiveType(PrimitiveTypeCode c) => 0;
+        public int GetTypeFromDefinition(MetadataReader r, TypeDefinitionHandle h, byte k) => 0;
+        public int GetSZArrayType(int e) => 0;
+        public int GetArrayType(int e, ArrayShape s) => 0;
+        public int GetPointerType(int e) => 0;
+        public int GetByReferenceType(int e) => 0;
+        public int GetGenericMethodParameter(object? c, int i) => 0;
+        public int GetGenericTypeParameter(object? c, int i) => 0;
+        public int GetModifiedType(int m, int u, bool req) => 0;
+        public int GetPinnedType(int e) => 0;
+        public int GetTypeFromSpecification(MetadataReader r, object? c, TypeSpecificationHandle h, byte k) => 0;
+        public int GetFunctionPointerType(MethodSignature<int> s) => 0;
+    }
+}

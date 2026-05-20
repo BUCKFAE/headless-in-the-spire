@@ -43,12 +43,28 @@ public readonly struct Vector2
     public override bool Equals(object? obj) => false;
     public override int GetHashCode() => 0;
 }
-public readonly struct Vector2I { }
+public readonly struct Vector2I
+{
+    // from: GodotStubsCoverageTests audit — sts2 holds a MemberRef against
+    //   `Vector2I.get_One()` (same shape as Vector2.get_Zero). Static
+    //   value-type getters are JIT-resolved at call-site, so the gap would
+    //   surface as MissingMethodException the first time any code path
+    //   touched it. Default-struct return is the correct One semantically
+    //   (no consumer reads x/y back in headless mode).
+    public static Vector2I One => default;
+}
 public readonly struct Vector3
 {
     // from: monster move VFX constructs world-space targets via
     //   `new Vector3(x, y, z)`. Body is a no-op; no consumer reads back.
     public Vector3(float _, float __, float ___) { }
+
+    // from: GodotStubsCoverageTests audit — paired with Vector2's static
+    //   getters; sts2 references both Up and Zero (e.g. camera/anchor
+    //   defaults in scenes never instantiated in headless mode). No-op
+    //   defaults are safe because no consumer reads the components back.
+    public static Vector3 Up => default;
+    public static Vector3 Zero => default;
 }
 public readonly struct Rect2
 {
@@ -86,6 +102,29 @@ public readonly struct Color
     public readonly float G;
     public readonly float B;
     public readonly float A;
+
+    // from: ModelDb subtypes that parse colors out of hex strings expressed
+    //   as `ReadOnlySpan<char>` (the span overload is the IL-resolved path
+    //   for `Color.FromHtml("…")` literals). Surfaced via the
+    //   GodotStubsCoverageTests audit alongside the Black/Cyan/… gap.
+    public static Color FromHtml(System.ReadOnlySpan<char> _) => default;
+
+    // from: VFX/UI lerp tweens that interpolate between two colors over a
+    //   tween parameter. Body is no-op; the returned color is fed back into
+    //   Tween which is itself a no-op in headless mode.
+    public Color Lerp(Color _, float __) => default;
+
+    // from: equality checks against constants (`color == Colors.Black`) and
+    //   VFX multiply paths (`tint * 0.5f`, `tint * other`). Same surfacing
+    //   pattern as Vector2: define `==`/`!=` together with Equals/GetHashCode
+    //   to satisfy CS0660/CS0661, even though only op_Equality and op_Multiply
+    //   are MemberRef'd by sts2.dll.
+    public static bool operator ==(Color _, Color __) => false;
+    public static bool operator !=(Color _, Color __) => true;
+    public static Color operator *(Color _, Color __) => default;
+    public static Color operator *(Color _, float __) => default;
+    public override bool Equals(object? obj) => false;
+    public override int GetHashCode() => 0;
 }
 // Variant is Godot's universal value box. sts2's Tween calls pass strongly-typed
 // args (Color, float, Vector2, StringName, …) that the IL implicitly converts

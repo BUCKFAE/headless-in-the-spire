@@ -432,9 +432,12 @@ public static class ClassDB { }
 //   constants when staging VFX tints. MissingMethodException surfaces inside
 //   the move's async chain and gets swallowed by TaskHelper.LogTaskExceptions,
 //   leaving the enemy turn half-transitioned (the combat-stall pattern).
-//   Real Godot exposes ~140 named static color properties; we add them on
-//   demand as probe-combat-stall surfaces each one. Body always returns
-//   `default` — color data is never read in headless paths.
+//   The set below is the closed surface — `just list-members Godot.Colors`
+//   confirms sts2.dll references exactly these 14 getters and no others.
+//   `GodotStubsCoverageTests.Color_And_Colors_References_From_Sts2_Resolve`
+//   pins the surface so a game-version bump that adds a new named color
+//   surfaces as a red unit test, not as a runtime MissingMethodException.
+//   Body always returns `default` — color data is never read in headless paths.
 public static class Colors
 {
     public static Color Green => default;
@@ -450,6 +453,23 @@ public static class Colors
     //   that reads these.
     public static Color Red => default;
     public static Color Blue => default;
+    // from: treasure-chest open path (NTreasureRoom → chest-open VFX) and
+    //   the card-removal screen — both hard-locked seed 42 on 2026-05-20
+    //   with "Method not found: 'Godot.Color Godot.Colors.get_Black()'".
+    //   The remaining colors (Cyan, DarkGray, DarkRed, DimGray, Gold, Gray,
+    //   Magenta, Purple, Transparent) round out the full Godot.Colors
+    //   reference surface from sts2.dll; the audit test would fail without
+    //   them.
+    public static Color Black => default;
+    public static Color Cyan => default;
+    public static Color DarkGray => default;
+    public static Color DarkRed => default;
+    public static Color DimGray => default;
+    public static Color Gold => default;
+    public static Color Gray => default;
+    public static Color Magenta => default;
+    public static Color Purple => default;
+    public static Color Transparent => default;
 }
 public static class DisplayServer { }
 public static class Geometry2D { }

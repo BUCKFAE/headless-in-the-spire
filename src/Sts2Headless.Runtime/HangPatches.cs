@@ -71,6 +71,7 @@ public static class HangPatches
             PatchImbalancedPowerAfterDamageGiven(harmony, sts2),
             PatchSoulNexus(harmony, sts2),
             PatchTestSubject(harmony, sts2),
+            PatchCeremonialBeast(harmony, sts2),
         ];
     }
 
@@ -253,48 +254,10 @@ public static class HangPatches
     // the player; pure no-op of the whole monster would make Act 1 boring
     // rather than survivable.
     private static PatchOutcome PatchVantomDismemberMove(Harmony harmony, Assembly sts2)
-    {
-        const string label = "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove";
-        var vantomType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.Vantom");
-        if (vantomType is null)
-        {
-            return new PatchOutcome(label, Patched: false, Detail: "type MegaCrit.Sts2.Core.Models.Monsters.Vantom not found");
-        }
-
-        var methods = vantomType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(m => m.Name == "DismemberMove" && !m.IsSpecialName)
-            .ToArray();
-        if (methods.Length == 0)
-        {
-            return new PatchOutcome(label, Patched: false, Detail: "DismemberMove not found on Vantom");
-        }
-
-        var sigs = new List<string>(methods.Length);
-        foreach (var m in methods)
-        {
-            MethodInfo prefix;
-            if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
-            {
-                prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
-            }
-            else if (m.ReturnType == typeof(void))
-            {
-                prefix = typeof(HangPatches).GetMethod(nameof(SkipVoidPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
-            }
-            else if (!m.ReturnType.IsValueType)
-            {
-                prefix = typeof(HangPatches).GetMethod(nameof(ReturnNullPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
-            }
-            else
-            {
-                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported value-type return)");
-                continue;
-            }
-            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
-            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
-        }
-        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
-    }
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Vantom",
+            methodNames: new HashSet<string>(StringComparer.Ordinal) { "DismemberMove" },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove");
 
     // EscapeArtistPower carries an AfterTurnEnd hook (PlayerChoiceContext,
     // CombatSide) → Task. THIEVING_HOPPER (Act 2 enemy) ships with
@@ -354,35 +317,13 @@ public static class HangPatches
     // the agent doesn't actually take damage anyway, so the loss of move
     // effects is acceptable for the goal-state multi-act drive.
     private static PatchOutcome PatchThievingHopperMoves(Harmony harmony, Assembly sts2)
-    {
-        const string label = "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper.*Move";
-        var monsterType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper");
-        if (monsterType is null)
-        {
-            return new PatchOutcome(label, Patched: false, Detail: "type ThievingHopper not found");
-        }
-
-        var moveNames = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "ThieveryMove", "NabMove", "HatTrickMove", "FlutterMove", "EscapeMove",
-        };
-        var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(m => moveNames.Contains(m.Name) && typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
-            .ToArray();
-        if (methods.Length == 0)
-        {
-            return new PatchOutcome(label, Patched: false, Detail: "no Task-returning Move methods on ThievingHopper");
-        }
-
-        var prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
-        var sigs = new List<string>(methods.Length);
-        foreach (var m in methods)
-        {
-            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
-            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
-        }
-        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
-    }
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "ThieveryMove", "NabMove", "HatTrickMove", "FlutterMove", "EscapeMove",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper.*Move");
 
     // BowlbugRock (Act 2 enemy on seed 42 floor 12) has two move methods
     // — HeadbuttMove and DizzyMove. Same shape as Vantom.DismemberMove
@@ -390,35 +331,10 @@ public static class HangPatches
     // headless, exception swallowed by TaskHelper.LogTaskExceptions,
     // combat half-transitioned. Replace both with Task.CompletedTask.
     private static PatchOutcome PatchBowlbugRockMoves(Harmony harmony, Assembly sts2)
-    {
-        const string label = "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock.*Move";
-        var monsterType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock");
-        if (monsterType is null)
-        {
-            return new PatchOutcome(label, Patched: false, Detail: "type BowlbugRock not found");
-        }
-
-        var moveNames = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "HeadbuttMove", "DizzyMove",
-        };
-        var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(m => moveNames.Contains(m.Name) && typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
-            .ToArray();
-        if (methods.Length == 0)
-        {
-            return new PatchOutcome(label, Patched: false, Detail: "no Task-returning Move methods on BowlbugRock");
-        }
-
-        var prefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
-        var sigs = new List<string>(methods.Length);
-        foreach (var m in methods)
-        {
-            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
-            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
-        }
-        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
-    }
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock",
+            methodNames: new HashSet<string>(StringComparer.Ordinal) { "HeadbuttMove", "DizzyMove" },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock.*Move");
 
     // ImbalancedPower carries an AfterDamageGiven hook that fires whenever
     // the holder lands damage. BowlbugRock ships with IMBALANCED_POWER:1
@@ -466,52 +382,21 @@ public static class HangPatches
     //   * Three Move methods → Task.CompletedTask via ReturnDefaultTaskPrefix.
     //   * AfterDeath (void) → SkipVoidPrefix (same as Vantom.DismemberMove's
     //     void overload).
+    // BeforeRemovedFromRoom is the actual offender on the killing-blow path
+    // observed in BeatGameOnSeed42Tests Act 3 floor 7 — the sts2 call chain
+    // is StrikeIronclad.OnPlay → AttackCommand → CreatureCmd.Kill →
+    // CombatManager.RemoveCreature → this method, which NREs walking
+    // UI-only state. Patched alongside the Move methods + AfterDeath for
+    // defense in depth.
     private static PatchOutcome PatchSoulNexus(Harmony harmony, Assembly sts2)
-    {
-        const string label = "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus.{*Move, AfterDeath}";
-        var monsterType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.SoulNexus");
-        if (monsterType is null)
-        {
-            return new PatchOutcome(label, Patched: false, Detail: "type SoulNexus not found");
-        }
-
-        // BeforeRemovedFromRoom() is the actual offender on the killing-blow
-        // path observed in BeatGameOnSeed42Tests Act 3 floor 7 — the
-        // sts2 call chain is StrikeIronclad.OnPlay → AttackCommand →
-        // CreatureCmd.Kill → CombatManager.RemoveCreature → this method,
-        // which NREs because it walks UI-only state. Patched alongside
-        // the Move methods + AfterDeath for defense in depth.
-        var moveNames = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "SoulBurnMove", "MaelstromMove", "DrainLifeMove",
-            "AfterDeath", "BeforeRemovedFromRoom",
-        };
-        var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(m => moveNames.Contains(m.Name) && !m.IsSpecialName)
-            .ToArray();
-        if (methods.Length == 0)
-        {
-            return new PatchOutcome(label, Patched: false, Detail: "no target methods on SoulNexus");
-        }
-
-        var taskPrefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
-        var voidPrefix = typeof(HangPatches).GetMethod(nameof(SkipVoidPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
-        var sigs = new List<string>(methods.Length);
-        foreach (var m in methods)
-        {
-            MethodInfo prefix;
-            if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType)) prefix = taskPrefix;
-            else if (m.ReturnType == typeof(void)) prefix = voidPrefix;
-            else
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
             {
-                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported return)");
-                continue;
-            }
-            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
-            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
-        }
-        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
-    }
+                "SoulBurnMove", "MaelstromMove", "DrainLifeMove",
+                "AfterDeath", "BeforeRemovedFromRoom",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus.{*Move, lifecycle}");
 
     // TestSubject is the Act 2 boss. Its enemy-phase moves walk UI-only
     // state (animation queues, VFX setup) and NRE in headless — the
@@ -530,46 +415,44 @@ public static class HangPatches
     //     defensively (same as SoulNexus.BeforeRemovedFromRoom) covers
     //     the killing-blow path.
     private static PatchOutcome PatchTestSubject(Harmony harmony, Assembly sts2)
-    {
-        const string label = "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.{*Move, AfterAddedToRoom, Revive, TriggerDeadState}";
-        var monsterType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.TestSubject");
-        if (monsterType is null)
-        {
-            return new PatchOutcome(label, Patched: false, Detail: "type TestSubject not found");
-        }
-
-        var moveNames = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "BiteMove", "SkullBashMove", "MultiClawMove", "Phase3LacerateMove",
-            "BigPounceMove", "BurningGrowlMove", "RespawnMove",
-            "Revive", "TriggerDeadState", "AfterAddedToRoom",
-        };
-        var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(m => moveNames.Contains(m.Name) && !m.IsSpecialName)
-            .ToArray();
-        if (methods.Length == 0)
-        {
-            return new PatchOutcome(label, Patched: false, Detail: "no target methods on TestSubject");
-        }
-
-        var taskPrefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
-        var voidPrefix = typeof(HangPatches).GetMethod(nameof(SkipVoidPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
-        var sigs = new List<string>(methods.Length);
-        foreach (var m in methods)
-        {
-            MethodInfo prefix;
-            if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType)) prefix = taskPrefix;
-            else if (m.ReturnType == typeof(void)) prefix = voidPrefix;
-            else
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TestSubject",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
             {
-                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported return)");
-                continue;
-            }
-            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
-            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
-        }
-        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
-    }
+                "BiteMove", "SkullBashMove", "MultiClawMove", "Phase3LacerateMove",
+                "BigPounceMove", "BurningGrowlMove", "RespawnMove",
+                "Revive", "TriggerDeadState", "AfterAddedToRoom",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.{*Move, AfterAddedToRoom, Revive, TriggerDeadState}");
+
+    // CeremonialBeast is the Act 1 boss reachable on seed 1. Same shape as
+    // TestSubject / SoulNexus: Task-returning move bodies walk UI-only state
+    // (animation triggers _stunTrigger / _unstunTrigger / _stunSfx, VFX setup)
+    // and NRE in headless. The exception is swallowed by
+    // TaskHelper.LogTaskExceptions; CombatManager is left half-transitioned
+    // (IsPlayPhase=False, hand empty, round counter frozen), and the
+    // StallDetector fires after 8 identical snapshots.
+    //
+    // The wedging move on the observed repro is the stun-self path:
+    // CEREMONIAL_BEAST telegraphs intent=Stun, then enters SetStunned →
+    // StunnedMove, which references UI animation infrastructure that
+    // doesn't exist headless. Other moves (Plow / Crush / Stamp / Stomp /
+    // BeastCry) are patched defensively — they have the same UI-dependent
+    // shape and would trip on the round they happen to execute.
+    //
+    // Lifecycle hooks (AfterDeath, BeforeRemovedFromRoom, AfterAddedToRoom)
+    // are patched defensively per the SoulNexus precedent — the killing-
+    // blow path needs them to no-op rather than NRE.
+    private static PatchOutcome PatchCeremonialBeast(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast",
+            methodNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "PlowMove", "CrushMove", "StampMove", "StompMove", "BeastCryMove",
+                "SetStunned", "StunnedMove",
+                "AfterAddedToRoom", "AfterDeath", "BeforeRemovedFromRoom",
+            },
+            label: "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.{*Move, SetStunned, lifecycle}");
 
     private static PatchOutcome PatchWaitUntilQueueIsEmpty(Harmony harmony, Assembly sts2)
     {
@@ -602,6 +485,59 @@ public static class HangPatches
             hosts.Add(m.DeclaringType?.FullName ?? "<unknown>");
         }
         return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", hosts));
+    }
+
+    // Shared helper for the monster *Move / lifecycle-hook patches below
+    // (Vantom, ThievingHopper, BowlbugRock, SoulNexus, TestSubject,
+    // CeremonialBeast). Every monster needs the same three-step shape:
+    // resolve the type by FQN, filter declared methods to a name set,
+    // and prefix each by return-type kind (Task → CompletedTask via
+    // ReturnDefaultTaskPrefix, void → SkipVoidPrefix, reference returns
+    // → ReturnNullPrefix, unsupported value-type returns → skip-and-log).
+    //
+    // Adding a new monster is now one method that calls this helper with
+    // a type FQN + a set of move/lifecycle method names. The wrapper
+    // method retains its narrative comment block (which engine call
+    // chain NREs, what gameplay cost we accept by no-op'ing it) — that
+    // documentation is the actual value the per-monster file structure
+    // preserves; the boilerplate it surrounded is what we're collapsing.
+    private static PatchOutcome PatchMonsterMethods(
+        Harmony harmony,
+        Assembly sts2,
+        string typeFqn,
+        HashSet<string> methodNames,
+        string label)
+    {
+        var monsterType = sts2.GetType(typeFqn);
+        if (monsterType is null)
+            return new PatchOutcome(label, Patched: false, Detail: $"type {typeFqn} not found");
+
+        var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => methodNames.Contains(m.Name) && !m.IsSpecialName)
+            .ToArray();
+        if (methods.Length == 0)
+            return new PatchOutcome(label, Patched: false, Detail: $"no target methods on {typeFqn}");
+
+        var taskPrefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var voidPrefix = typeof(HangPatches).GetMethod(nameof(SkipVoidPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var nullPrefix = typeof(HangPatches).GetMethod(nameof(ReturnNullPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        var sigs = new List<string>(methods.Length);
+        foreach (var m in methods)
+        {
+            MethodInfo prefix;
+            if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType)) prefix = taskPrefix;
+            else if (m.ReturnType == typeof(void)) prefix = voidPrefix;
+            else if (!m.ReturnType.IsValueType) prefix = nullPrefix;
+            else
+            {
+                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported value-type return)");
+                continue;
+            }
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
+        }
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
     }
 
     // Harmony prefix signatures: returning false skips the original method;
