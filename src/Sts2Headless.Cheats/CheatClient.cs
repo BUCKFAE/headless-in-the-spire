@@ -46,4 +46,14 @@ public static class CheatClient
     // outside combat. Bypasses on-kill listeners.
     public static Task<DebugKillAllEnemiesResult> KillAllEnemiesAsync(this ITransport transport) =>
         transport.SendAsync<DebugKillAllEnemiesResult>("debug/kill_all_enemies", new DebugKillAllEnemiesParams());
+
+    // debug/start_combat — force-start a combat against the chosen encounter
+    // id (matches the EncounterId enum's wire string, e.g. "SLIMES_NORMAL").
+    // Bypasses map progression. Unknown ids surface as InvalidParams; the
+    // engine does not validate act/character compatibility, so the caller
+    // owns the choice of which combats make sense for the current run.
+    public static Task<DebugStartCombatResult> StartCombatAsync(
+        this ITransport transport, string encounterId) =>
+        transport.SendAsync<DebugStartCombatResult>(
+            "debug/start_combat", new DebugStartCombatParams(encounterId));
 }

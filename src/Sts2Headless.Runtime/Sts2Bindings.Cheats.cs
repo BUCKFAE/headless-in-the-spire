@@ -230,6 +230,141 @@ public sealed partial class Sts2Bindings
         return result;
     }
 
+    // Test affordance: force-start a specific combat against the chosen
+    // `encounterId` (e.g. "SLIMES_NORMAL", "DOORMAKER_BOSS"). Mirrors the
+    // engine path sts2-cli uses for its "/enter_room combat ..." command:
+    //   1. ModelDb.GetById<EncounterModel>(new ModelId("ENCOUNTER", id))
+    //   2. encounter.ToMutable()                       (engine guards
+    //      CombatRoom ctor against canonical models)
+    //   3. new CombatRoom(mutableEncounter, runState)
+    //   4. RunManager.Instance.EnterRoom(room).GetAwaiter().GetResult()
+    //   5. _syncCtx.Pump() + DrainActionExecutor       (same shape as the
+    //      cheat-relic / kill-all-enemies post-mutation handshake).
+    //
+    // Bypasses the map-progression path so callers can stage any encounter
+    // from any room state (MapRoom, RestRoom, even a previously-finished
+    // CombatRoom). The engine does not validate Act/Character compatibility
+    // at CombatRoom construction — starting Doormaker in Act 1 works, but
+    // act-specific monster scenes that fail to bind via GodotStubs will
+    // surface as a MissingMethodException, which is exactly the signal the
+    // EveryEncounterSmokeTests sweep is built to catch.
+    //
+    // Reflection is inline (no BindingState changes) because the call is
+    // test-only — same reasoning as ReplaceDeck's inline lookups.
+    public (bool InProgress, int EnemyCount) StartCombat(RunHandle handle, string encounterId)
+    {
+        if (_modelIdCtor is null)
+            throw new InvalidOperationException("debug/start_combat: ModelId(string,string) ctor not bound — bootstrap likely failed");
+        if (_runManagerEnterRoom is null)
+            throw new InvalidOperationException("debug/start_combat: RunManager.EnterRoom not bound — cannot drive room transition");
+
+        var encounterModelType = Sts2.GetType("MegaCrit.Sts2.Core.Models.EncounterModel")
+            ?? throw new InvalidOperationException("debug/start_combat: EncounterModel type not found in sts2 assembly");
+        var combatRoomType = Sts2.GetType("MegaCrit.Sts2.Core.Rooms.CombatRoom")
+            ?? throw new InvalidOperationException("debug/start_combat: CombatRoom type not found in sts2 assembly");
+        var modelDbType = Sts2.GetType("MegaCrit.Sts2.Core.Models.ModelDb")
+            ?? throw new InvalidOperationException("debug/start_combat: ModelDb type not found");
+
+        var getByIdGeneric = modelDbType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == "GetById" && m.IsGenericMethodDefinition && m.GetParameters().Length == 1)
+            ?? throw new InvalidOperationException("debug/start_combat: ModelDb.GetById<T>(ModelId) not found");
+        var getByIdEncounter = getByIdGeneric.MakeGenericMethod(encounterModelType);
+
+        var modelId = _modelIdCtor.Invoke(new object?[] { "ENCOUNTER", encounterId });
+        object? canonical;
+        try
+        {
+            canonical = getByIdEncounter.Invoke(null, new[] { modelId });
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"debug/start_combat: unknown encounter id \"{encounterId}\" — {tie.InnerException.Message}");
+        }
+        if (canonical is null)
+            throw new InvalidOperationException($"debug/start_combat: unknown encounter id \"{encounterId}\"");
+
+        // EncounterModel.ToMutable() is the engine's canonical→per-run-mutable
+        // bridge; the CombatRoom ctor throws CanonicalModelException without it
+        // (same shape as RelicCmd.Obtain in GiveRelic above).
+        var toMutable = encounterModelType.GetMethod("ToMutable", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes)
+            ?? throw new InvalidOperationException("debug/start_combat: EncounterModel.ToMutable() not found");
+        var mutable = toMutable.Invoke(canonical, null)
+            ?? throw new InvalidOperationException($"debug/start_combat: EncounterModel.ToMutable() returned null for \"{encounterId}\"");
+
+        // CombatRoom(EncounterModel, RunState). The encounter parameter type
+        // is the canonical EncounterModel (or any base); we accept any ctor
+        // whose first parameter is assignable from EncounterModel and whose
+        // second is the RunState type — defensive against signature jitter.
+        var runStateType = handle.RunState.GetType();
+        var combatRoomCtor = combatRoomType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+            .FirstOrDefault(c =>
+            {
+                var ps = c.GetParameters();
+                return ps.Length == 2
+                    && ps[0].ParameterType.IsAssignableFrom(encounterModelType)
+                    && ps[1].ParameterType.IsAssignableFrom(runStateType);
+            })
+            ?? throw new InvalidOperationException("debug/start_combat: CombatRoom(EncounterModel, RunState) ctor not found");
+
+        object combatRoom;
+        try
+        {
+            combatRoom = combatRoomCtor.Invoke(new[] { mutable, handle.RunState })
+                ?? throw new InvalidOperationException($"debug/start_combat: CombatRoom ctor returned null for \"{encounterId}\"");
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"debug/start_combat: CombatRoom construction failed for \"{encounterId}\" — {tie.InnerException.Message}");
+        }
+
+        // Same EnterRoom + pump + drain shape Sts2Bindings.cs:813 uses to
+        // exit combat into MapRoom; here we go the other direction. Await
+        // any Task the engine returns so the room transition is synchronous
+        // from the caller's perspective.
+        try
+        {
+            var enterResult = _runManagerEnterRoom.Invoke(handle.RunManager, new[] { (object)combatRoom });
+            if (enterResult is Task t) t.GetAwaiter().GetResult();
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"debug/start_combat: RunManager.EnterRoom failed for \"{encounterId}\" — {tie.InnerException.Message}");
+        }
+        _syncCtx?.Pump();
+        DrainActionExecutor(handle);
+
+        // Read-back: a successful start leaves CombatManager.IsInProgress=true
+        // and at least one alive enemy. We surface both so the wire result
+        // tells the caller whether the engine actually flipped into combat
+        // (vs. silently no-op'd into some half-state).
+        var inProgress = false;
+        var enemyCount = 0;
+        if (_combatManagerInstance is not null && _combatManagerIsInProgress is not null)
+        {
+            var cm = _combatManagerInstance.GetValue(null);
+            if (cm is not null)
+            {
+                inProgress = (bool)_combatManagerIsInProgress.GetValue(cm)!;
+                if (_combatManagerDebugOnlyGetState is not null && _combatStateEnemies is not null)
+                {
+                    var state = _combatManagerDebugOnlyGetState.Invoke(cm, null);
+                    if (state is not null && _combatStateEnemies.GetValue(state) is System.Collections.IEnumerable enemies)
+                    {
+                        foreach (var e in enemies)
+                        {
+                            if (e is null) continue;
+                            if (_enemyIsAlive is null || (bool)_enemyIsAlive.GetValue(e)!) enemyCount++;
+                        }
+                    }
+                }
+            }
+        }
+        return (inProgress, enemyCount);
+    }
+
     public IReadOnlyList<string> ReplaceDeck(RunHandle handle, IReadOnlyList<(string CardId, int UpgradeLevel)> cards)
     {
         if (_modelIdCtor is null)

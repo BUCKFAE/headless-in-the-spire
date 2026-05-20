@@ -52,6 +52,16 @@ if (args.Contains("--probe-combat-stall"))
     return ProbeCombatStallCommand.Run(vendorDir, args);
 }
 
+if (args.Contains("--probe-types"))
+{
+    return ProbeTypesCommand.Run(vendorDir, args);
+}
+
+if (args.Contains("--probe-encounter"))
+{
+    return ProbeEncounterCommand.Run(vendorDir, args);
+}
+
 if (args.Contains("--generate-content-ids") || args.Contains("--generate-card-ids"))
 {
     // `--generate-card-ids` retained as an alias so older shell history

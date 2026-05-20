@@ -45,5 +45,11 @@ public static class CheatMethodCatalog
             ResultType: typeof(DebugKillAllEnemiesResult),
             Summary: "Test affordance — drop every alive enemy in the current combat to 0 HP by writing the engine's Creature._currentHp backing field, then drain and auto-advance so rewards generate through the normal path. No-op (killed=0) outside combat. Bypasses on-kill listeners. Requires --enable-debug.",
             IsDebugOnly: true),
+
+        new("debug/start_combat",
+            ParamsType: typeof(DebugStartCombatParams),
+            ResultType: typeof(DebugStartCombatResult),
+            Summary: "Test affordance — force-start a specific combat against the chosen encounter id (e.g. \"SLIMES_NORMAL\"), bypassing map progression. Constructs CombatRoom(EncounterModel.ToMutable(), runState) and drives RunManager.EnterRoom; the engine does not validate act/character compatibility. Returns InvalidParams for unknown ids. Requires --enable-debug.",
+            IsDebugOnly: true),
     };
 }

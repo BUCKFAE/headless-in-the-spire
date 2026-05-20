@@ -194,6 +194,12 @@ coverage:
     @echo ""
     @echo "report: documentation/coverage/latest.md"
 
+# Run the encounter-sweep smoke test (Ironclad with Hellraiser+Pommel deck vs every encounter in EncounterId.g.cs via debug/start_combat). Fails on Crash, tolerates Win/Loss/Timeout. Off by default; RUN_ENCOUNTER_SWEEP=1 opts in. Report at documentation/coverage/every-encounter-ironclad.md.
+sweep-encounters:
+    @RUN_ENCOUNTER_SWEEP=1 dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~EveryEncounterSmokeTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/every-encounter-ironclad.md"
+
 # Run every Python workspace member's tests via the uv workspace .venv.
 test-python:
     @bash scripts/check-uv.sh

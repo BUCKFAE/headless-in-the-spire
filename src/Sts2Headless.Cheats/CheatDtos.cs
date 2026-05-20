@@ -107,6 +107,34 @@ public sealed record DebugReadDeckResult(
     [property: JsonPropertyName("deckSize")] int DeckSize,
     [property: JsonPropertyName("cards")] IReadOnlyList<CardSpec> Cards);
 
+// ── debug/start_combat ───────────────────────────────────────────────────
+
+// Force-start a specific combat against the chosen encounter, bypassing
+// map progression. Mirrors the sts2-cli "/enter_room combat ..." path:
+// resolves the EncounterModel via ModelDb.GetById, mutates it for the run,
+// constructs CombatRoom(encounter, runState), and drives
+// RunManager.Instance.EnterRoom to flip the room. Bypasses the natural
+// map-selection event chain — listeners that react to "player entered a
+// monster node from the map" will not fire.
+//
+// Use case: the EveryEncounterSmokeTests sweep places the Ironclad with a
+// known deck in front of every encounter id sts2 ships, verifying that
+// nothing in the combat surface (cards, monster intents, powers, scenes)
+// crashes with MissingMethodException / MissingFieldException — the same
+// shape as the treasure-room chest-open bug. Losses are expected for
+// some encounters; the test signal is "no crash."
+//
+// `encounterId` is the wire string id (matches EncounterId enum's wire
+// form, e.g. "SLIMES_NORMAL"). Unknown ids return InvalidParams.
+public sealed record DebugStartCombatParams(
+    [property: JsonPropertyName("encounterId")] string EncounterId);
+
+public sealed record DebugStartCombatResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("encounterId")] string EncounterId,
+    [property: JsonPropertyName("inProgress")] bool InProgress,
+    [property: JsonPropertyName("enemyCount")] int EnemyCount);
+
 // ── debug/kill_all_enemies ───────────────────────────────────────────────
 
 // Drops every alive enemy in the current combat to 0 HP by writing the

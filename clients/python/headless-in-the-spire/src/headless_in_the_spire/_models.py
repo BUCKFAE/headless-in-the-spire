@@ -123,6 +123,23 @@ class DebugSetHpResult(BaseModel):
     is_game_over: Annotated[bool, Field(alias="isGameOver")]
 
 
+class DebugStartCombatParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    encounter_id: Annotated[str, Field(alias="encounterId")]
+
+
+class DebugStartCombatResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    encounter_id: Annotated[str, Field(alias="encounterId")]
+    in_progress: Annotated[bool, Field(alias="inProgress")]
+    enemy_count: Annotated[int, Field(alias="enemyCount")]
+
+
 class EventOption(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,

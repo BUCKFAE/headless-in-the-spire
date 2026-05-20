@@ -27,6 +27,7 @@ public static class CheatHostMethods
             ["debug/replace_deck"] = WireHandlers.Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
             ["debug/read_deck"] = WireHandlers.Typed<DebugReadDeckParams, DebugReadDeckResult>(_ => DebugReadDeck(bindings, getRun)),
             ["debug/kill_all_enemies"] = WireHandlers.Typed<DebugKillAllEnemiesParams, DebugKillAllEnemiesResult>(_ => DebugKillAllEnemies(bindings, getRun)),
+            ["debug/start_combat"] = WireHandlers.Typed<DebugStartCombatParams, DebugStartCombatResult>(p => DebugStartCombat(bindings, getRun, p)),
         };
 
     private static DebugSetHpResult DebugSetHp(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugSetHpParams? @params)
@@ -134,6 +135,34 @@ public static class CheatHostMethods
         // for why — this gets fired on every tick by full-run tests).
         var (killed, combatEnded) = bindings.KillAllEnemies(run);
         return new DebugKillAllEnemiesResult(Ok: true, Killed: killed, CombatEnded: combatEnded);
+    }
+
+    private static DebugStartCombatResult DebugStartCombat(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugStartCombatParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/start_combat requires params {encounterId}");
+        if (string.IsNullOrWhiteSpace(args.EncounterId))
+            throw new WireException(WireErrorCode.InvalidParams,
+                "debug/start_combat: encounterId must be non-empty");
+
+        try
+        {
+            var (inProgress, enemyCount) = bindings.StartCombat(run, args.EncounterId);
+            return new DebugStartCombatResult(
+                Ok: true,
+                EncounterId: args.EncounterId,
+                InProgress: inProgress,
+                EnemyCount: enemyCount);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("unknown encounter id"))
+        {
+            // Surface unknown ids as InvalidParams so generated clients get
+            // the right code (same pattern as ReplaceDeck's unknown-card path).
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
     }
 
     private static DebugGiveRelicResult DebugGiveRelic(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugGiveRelicParams? @params)

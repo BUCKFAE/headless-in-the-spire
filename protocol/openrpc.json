@@ -386,6 +386,27 @@
         }
       },
       "x-debugOnly": true
+    },
+    {
+      "name": "debug/start_combat",
+      "summary": "Test affordance — force-start a specific combat against the chosen encounter id (e.g. \"SLIMES_NORMAL\"), bypassing map progression. Constructs CombatRoom(EncounterModel.ToMutable(), runState) and drives RunManager.EnterRoom; the engine does not validate act/character compatibility. Returns InvalidParams for unknown ids. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugStartCombatParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugStartCombatResult"
+        }
+      },
+      "x-debugOnly": true
     }
   ],
   "components": {
@@ -693,6 +714,40 @@
           "hp",
           "maxHp",
           "isGameOver"
+        ]
+      },
+      "DebugStartCombatParams": {
+        "type": "object",
+        "properties": {
+          "encounterId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "encounterId"
+        ]
+      },
+      "DebugStartCombatResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "encounterId": {
+            "type": "string"
+          },
+          "inProgress": {
+            "type": "boolean"
+          },
+          "enemyCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "encounterId",
+          "inProgress",
+          "enemyCount"
         ]
       },
       "Enemy": {

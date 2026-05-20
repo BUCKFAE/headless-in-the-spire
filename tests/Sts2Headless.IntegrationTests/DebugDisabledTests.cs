@@ -64,6 +64,18 @@ public class DebugDisabledTests
     }
 
     [Fact]
+    public async Task DebugStartCombat_WithoutEnableDebugFlag_ReturnsDebugDisabledError()
+    {
+        await using var host = NoDebugHost.Start();
+
+        var err = await host.ExpectErrorAsync(
+            "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));
+
+        Assert.Equal(WireErrorCode.DebugMethodDisabled, err.Code);
+        Assert.Contains("debug/start_combat", err.Message);
+    }
+
+    [Fact]
     public async Task NonDebugMethod_StillWorks_WithoutEnableDebugFlag()
     {
         await using var host = NoDebugHost.Start();
