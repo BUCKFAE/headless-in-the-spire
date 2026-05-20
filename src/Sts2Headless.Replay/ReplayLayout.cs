@@ -41,6 +41,14 @@ public static class ReplayLayout
     // gitignored via the existing /vendor rule.
     public const string DefaultRootRelative = "vendor/replays";
 
+    // Sentinel values that, when set in STS2_REPLAY_OUT, mean "do not
+    // record." Matched case-insensitively. Anything else is interpreted
+    // as a filesystem path.
+    private static readonly HashSet<string> DisableSentinels = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "off", "disabled", "none", "false", "0", "no",
+    };
+
     public static string RunDirectory(string root, string gameVersion, string runId)
         => Path.Combine(root, gameVersion, runId);
 
@@ -74,5 +82,27 @@ public static class ReplayLayout
         var seedSlice = seed.Length <= 8 ? seed : seed[..8];
         var pid = processId.ToString(CultureInfo.InvariantCulture);
         return $"{ts}-{seedSlice}-{pid}";
+    }
+
+    // Decides where (if anywhere) the recorder should write, given the
+    // raw STS2_REPLAY_OUT value and the repo root.
+    //
+    //   * null / empty                     → default to <repoRoot>/vendor/replays
+    //   * "off" / "disabled" / "none" / …  → disabled (returns null)
+    //   * anything else                    → that path verbatim
+    //
+    // Callers treat a null return as "do not record." The default-on
+    // posture is deliberate: with recording off-by-default, ad-hoc and
+    // interactive runs disappear unless the operator remembers a magic
+    // env var. Test fixtures that don't want disk churn pass
+    // STS2_REPLAY_OUT=off explicitly.
+    public static string? ResolveRoot(string? envValue, string repoRoot)
+    {
+        if (string.IsNullOrWhiteSpace(envValue))
+            return Path.Combine(repoRoot, DefaultRootRelative);
+        var trimmed = envValue.Trim();
+        if (DisableSentinels.Contains(trimmed))
+            return null;
+        return trimmed;
     }
 }

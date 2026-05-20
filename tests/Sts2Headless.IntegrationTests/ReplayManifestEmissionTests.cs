@@ -67,26 +67,38 @@ public class ReplayManifestEmissionTests
     }
 
     [Fact]
-    public async Task RunNew_Without_Replay_Env_Var_Produces_No_Files()
+    public async Task HostSubprocess_With_OptOut_Produces_No_Files()
     {
-        // RecordingHost sets STS2_REPLAY_OUT; HostSubprocess (the default
-        // fixture) does not. We use HostSubprocess here to lock in the
-        // negative invariant: by default, no replay files are written
-        // anywhere — recording is strictly opt-in.
-        await using var host = new HostSubprocess();
-        await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
-
-        // The recorder's default root, if it had been on, would have been
-        // vendor/replays/ under the repo root. Assert nothing landed there
-        // in the time window of this test.
+        // Recording is on-by-default at the host level (lands in
+        // vendor/replays/). The HostSubprocess test fixture sets
+        // STS2_REPLAY_OUT=off so generic integration tests don't
+        // pollute the repo. This test locks in that opt-out: when the
+        // sentinel is set, no replay files are written anywhere.
+        //
+        // Detection: snapshot-diff. A wall-clock window
+        // (File.GetCreationTimeUtc > now-30s) was tried first but proved
+        // brittle — local dev activity (probe-combat-stall, ad-hoc
+        // record-* recipes) seeds vendor/replays/ with recent files, and
+        // the assertion then fired on files this test never touched. The
+        // diff makes the invariant precise: only paths created BETWEEN
+        // the pre-host snapshot and the post-host snapshot count.
         var repoRoot = Runtime.Paths.LocateRepoRoot();
         var defaultRoot = Path.Combine(repoRoot, ReplayLayout.DefaultRootRelative);
-        if (!Directory.Exists(defaultRoot)) return;
-        var freshlyWritten = Directory.GetFiles(defaultRoot, "*", SearchOption.AllDirectories)
-            .Where(f => File.GetCreationTimeUtc(f) > DateTime.UtcNow.AddSeconds(-30))
-            .ToList();
-        Assert.Empty(freshlyWritten);
+        var before = SnapshotReplayRoot(defaultRoot);
+
+        await using var host = new HostSubprocess();
+        await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        await host.DisposeAsync();
+
+        var after = SnapshotReplayRoot(defaultRoot);
+        var added = after.Except(before).ToList();
+        Assert.Empty(added);
     }
+
+    private static HashSet<string> SnapshotReplayRoot(string root) =>
+        Directory.Exists(root)
+            ? new HashSet<string>(Directory.GetFiles(root, "*", SearchOption.AllDirectories), StringComparer.Ordinal)
+            : new HashSet<string>(StringComparer.Ordinal);
 
     private sealed class TempReplayRoot : IDisposable
     {

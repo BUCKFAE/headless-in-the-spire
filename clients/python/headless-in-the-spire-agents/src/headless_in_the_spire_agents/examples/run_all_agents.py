@@ -1,8 +1,10 @@
 """Run every Python agent against the host and record their replays.
 
 For each (agent, seed) pair the script:
-1. Spawns its own host subprocess with `STS2_REPLAY_OUT=<out>/<agent.name>`,
-   so finished runs land in a per-agent folder.
+1. Spawns its own host subprocess with `STS2_REPLAY_OUT=<out>` shared
+   across all agents, plus `STS2_REPLAY_AGENT=<agent.name>` so the
+   recorder stamps the agent into each manifest. Runs all land in one
+   browsable tree — the viewer reads <out>/runs.json to enumerate them.
 2. Starts a fresh run with the requested character + seed.
 3. Drives the agent to completion (or hits `--max-steps`).
 4. Prints one prefixed status line on entry and one on exit.
@@ -83,17 +85,18 @@ def _log(task: _Task, message: str) -> None:
 
 
 def _run_one(task: _Task, out_root: Path, max_steps: int) -> _TaskResult:
-    # Per-agent replay root: the host's recorder treats this as the
-    # parent and creates its own `<game_version>/<timestamp>-<seed>/`
-    # subtree below it (today's behaviour). Folder-by-agent is what
-    # gives us `replays/<agent-name>/...` grouping for free.
-    agent_root = out_root / task.agent_name
-    agent_root.mkdir(parents=True, exist_ok=True)
+    # Shared replay root for every agent. The recorder writes each run
+    # into <out>/<game-version>/<run-id>/, and the agent identity lands
+    # in the manifest's header via STS2_REPLAY_AGENT (read by the host
+    # at run/new). One canonical place = one runs.json the viewer can
+    # enumerate.
+    out_root.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ)
-    env["STS2_REPLAY_OUT"] = str(agent_root.resolve())
+    env["STS2_REPLAY_OUT"] = str(out_root.resolve())
+    env["STS2_REPLAY_AGENT"] = task.agent_name
 
     agent = AGENT_FACTORIES[task.agent_name](task.seed)
-    _log(task, f"start (out={agent_root})")
+    _log(task, f"start (out={out_root}, agent={task.agent_name})")
     started = time.monotonic()
     try:
         with Client.spawn(env=env) as client:
@@ -170,8 +173,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--out",
         type=Path,
-        default=Path("replays"),
-        help="Replay root (default: ./replays). Each agent gets its own subfolder.",
+        default=Path("vendor/replays"),
+        help=(
+            "Replay root (default: vendor/replays — the same canonical root "
+            "the viewer reads). All agents land here; the manifest's "
+            "header.agent field carries the agent identity."
+        ),
     )
     parser.add_argument(
         "--workers",

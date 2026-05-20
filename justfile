@@ -117,21 +117,20 @@ list-members fqn: build
 stdio: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --stdio
 
-# Drive every Python agent (greedy, random, block, attack) in parallel and record into replays/<agent-name>/. Each worker spawns its own host subprocess (and its own sts2.dll), so default --workers is conservative. Forward extra flags after `--`, e.g. `just record-all -- --seeds 1 2 3 --workers 8`.
+# Drive every Python agent (greedy, random, block, attack) in parallel and record into vendor/replays/ (one shared root; the manifest stamps the agent name). Each worker spawns its own host subprocess (and its own sts2.dll), so default --workers is conservative. Forward extra flags after `--`, e.g. `just record-all -- --seeds 1 2 3 --workers 8`.
 record-all *args: build
     @uv run --frozen python -m headless_in_the_spire_agents.examples.run_all_agents {{args}}
 
-# Drive a seed=42 Act-1-Boss run with recording enabled and dump the resulting replay directory tree (AD-8). Produces vendor/replays/<game-version>/<run-id>/{manifest.json, combats/*.mcr, run.json on engine-side death/victory}. Useful as a smoke-test for the recording substrate end-to-end.
+# Drive a short RandomAgent run on seed=42 with recording enabled, then dump the recorded directory tree (AD-8). Produces vendor/replays/sample/<game-version>/<run-id>/{manifest.json, combats/*.mcr, run.json on engine-side death/victory} plus a top-level runs.json the viewer reads. Useful as a smoke-test for the recording substrate end-to-end.
 record-sample-replay: build
     @rm -rf vendor/replays/sample
-    @mkdir -p vendor/replays/sample
-    @STS2_REPLAY_OUT=$(pwd)/vendor/replays/sample dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj --filter "FullyQualifiedName~BeatAct1BossOnSeed42" --nologo --no-build
+    @uv run --frozen python -m headless_in_the_spire_agents.examples.run_all_agents --agents random --seeds 42 --out vendor/replays/sample --max-steps 25
     @echo
     @echo "=== recorded replay ==="
     @find vendor/replays/sample -type f | sort
     @echo
-    @echo "=== manifest.json ==="
-    @find vendor/replays/sample -name manifest.json -exec cat {} \;
+    @echo "=== runs.json ==="
+    @cat vendor/replays/sample/runs.json 2>/dev/null || echo "(no runs.json — recording produced nothing)"
 
 # Walk vendor/replays/ (or the given root) and rewrite runs.json. The host rebuilds it on every recorder finalize, so you only need this after manually copying recordings in/out of the tree.
 rebuild-replay-index *root: build

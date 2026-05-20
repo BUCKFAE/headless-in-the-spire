@@ -127,14 +127,16 @@ public static class HostMethods
         // dismiss the event once it's surfaced through AvailableEventOptions.
         var run = bindings.StartIroncladRun(seed, withNeow, ascension);
 
-        // AD-8: spin up the recording substrate when STS2_REPLAY_OUT is
-        // set. Default behaviour (env unset) is no recording — preserves
-        // existing test-suite behaviour and keeps disk writes opt-in. The
-        // hook is install-once (idempotent), so subsequent runs reuse the
-        // same Harmony patches; only the bound recorder changes.
+        // AD-8: recording is on by default. STS2_REPLAY_OUT unset → land
+        // in <repoRoot>/vendor/replays. An explicit path overrides;
+        // STS2_REPLAY_OUT=off|disabled|none|0|no|false disables. The hook
+        // is install-once (idempotent), so subsequent runs reuse the same
+        // Harmony patches; only the bound recorder changes.
         ReplayRecorder? recorder = null;
-        var replayOut = Environment.GetEnvironmentVariable("STS2_REPLAY_OUT");
-        if (!string.IsNullOrEmpty(replayOut))
+        var replayOut = ReplayLayout.ResolveRoot(
+            Environment.GetEnvironmentVariable("STS2_REPLAY_OUT"),
+            repoRoot);
+        if (replayOut is not null)
         {
             var (gameVersion, sha) = ReplayHeaderFactory.ReadGameVersionPin(repoRoot);
             // Serialise each ModifierId through EnvelopeIo.JsonOptions and strip
@@ -144,6 +146,7 @@ public static class HostMethods
             var modifierWireNames = modifiers
                 .Select(m => JsonSerializer.Serialize(m, EnvelopeIo.JsonOptions).Trim('"'))
                 .ToList();
+            var agent = Environment.GetEnvironmentVariable("STS2_REPLAY_AGENT");
             var header = ReplayHeaderFactory.Create(
                 sts2: bindings.Sts2,
                 gameVersion: gameVersion,
@@ -152,7 +155,8 @@ public static class HostMethods
                 character: character,
                 ascension: ascension,
                 modifiers: modifierWireNames,
-                startTime: DateTimeOffset.UtcNow);
+                startTime: DateTimeOffset.UtcNow,
+                agent: agent);
             recorder = new ReplayRecorder(bindings.Sts2, replayOut, header);
             ReplayHook.Install(bindings.Sts2);
             ReplayHook.Bind(recorder);
@@ -488,7 +492,7 @@ public static class HostMethods
     {
         var recorder = session.Recorder
             ?? throw new InvalidOperationException(
-                "run/history requires recording to be active — set STS2_REPLAY_OUT and call run/new first.");
+                "run/history requires recording to be active — STS2_REPLAY_OUT is set to a disable sentinel (off/disabled/none) or this run/new completed before recording was enabled. Unset STS2_REPLAY_OUT (or point it at a directory) and call run/new again.");
         // ReplayQuery throws InvalidOperationException with a
         // caller-meaningful message when run.json isn't on disk yet.
         return ReplayQuery.LoadAsWireJson(recorder.RunDirectory);

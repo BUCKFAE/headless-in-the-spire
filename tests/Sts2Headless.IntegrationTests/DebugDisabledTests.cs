@@ -106,6 +106,9 @@ internal sealed class NoDebugHost : IAsyncDisposable
         psi.ArgumentList.Add("--stdio");
         // Deliberately NO --enable-debug. This is what makes the gate
         // observable in tests.
+        // Opt out of always-on recording (AD-8): tests don't write to
+        // vendor/replays. See HostSubprocess for the parallel comment.
+        psi.Environment["STS2_REPLAY_OUT"] = "off";
 
         var proc = Process.Start(psi)
             ?? throw new InvalidOperationException("failed to start no-debug host subprocess");
