@@ -1,4 +1,5 @@
 using Sts2Headless;
+using Sts2Headless.Replay;
 using Sts2Headless.Runtime;
 
 // Skeleton entry: validates that the toolchain wires together and that
@@ -67,6 +68,23 @@ if (args.Contains("--probe-modeldb"))
 if (args.Contains("--probe-listener-dispatch"))
 {
     return ProbeListenerDispatchCommand.Run(vendorDir, repoRoot);
+}
+
+// `--rebuild-replay-index <root>?` — walks <root>/<version>/<run-id>/manifest.json
+// and rewrites <root>/runs.json. Useful after manually copying recordings
+// in/out of vendor/replays. With no root argument, defaults to
+// <repoRoot>/vendor/replays. Doesn't load sts2.dll.
+{
+    var rebuildIdx = Array.IndexOf(args, "--rebuild-replay-index");
+    if (rebuildIdx >= 0)
+    {
+        var rootArg = rebuildIdx + 1 < args.Length && !args[rebuildIdx + 1].StartsWith('-')
+            ? args[rebuildIdx + 1]
+            : Path.Combine(repoRoot, ReplayLayout.DefaultRootRelative);
+        var n = ReplayIndex.Rebuild(rootArg);
+        Console.WriteLine($"rebuilt {ReplayLayout.RunsIndexPath(rootArg)} with {n} run(s)");
+        return 0;
+    }
 }
 
 

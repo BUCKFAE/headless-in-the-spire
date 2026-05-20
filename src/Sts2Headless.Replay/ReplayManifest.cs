@@ -19,12 +19,22 @@ namespace Sts2Headless.Replay;
 
 // Top-level manifest document. version is the manifest's own schema (not
 // the game's); bump on shape changes so old recordings stay readable.
+//
+// DisplayName / Outcome / EndedAtUnix are populated at finalize time and
+// exist so a UI (or the runs-index aggregator) can show a human-readable
+// label without re-parsing each combat. They derive from Header + Combats
+// + (when present) run.json, so they are redundant — but recomputing them
+// on every viewer load would force the viewer to know our derivation
+// rules, which we don't want.
 public sealed record ReplayManifest(
     int Version,
     ReplayHeader Header,
-    IReadOnlyList<ReplayCombatEntry> Combats)
+    IReadOnlyList<ReplayCombatEntry> Combats,
+    string? DisplayName = null,
+    ReplayCombatOutcome Outcome = ReplayCombatOutcome.Unknown,
+    long? EndedAtUnix = null)
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public static JsonSerializerOptions JsonOptions { get; } = new()
     {
@@ -59,9 +69,15 @@ public sealed record ReplayHeader(
     Character Character,
     int Ascension,
     IReadOnlyList<string> Modifiers,
-    long StartTimeUnix)
+    long StartTimeUnix,
+    string Agent = ReplayHeader.UnknownAgent)
 {
     public const int CurrentProtocolVersion = 1;
+
+    // Sentinel used when no STS2_REPLAY_AGENT was supplied. Distinct
+    // from an empty string so the viewer can show "unknown" rather than
+    // collapsing the field altogether.
+    public const string UnknownAgent = "unknown";
 
     // Schema version of `RunHistory` JSON we mirror. The pinned game
     // (v0.103.2) writes schema_version=9; bump alongside any AD-3

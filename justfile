@@ -133,6 +133,10 @@ record-sample-replay: build
     @echo "=== manifest.json ==="
     @find vendor/replays/sample -name manifest.json -exec cat {} \;
 
+# Walk vendor/replays/ (or the given root) and rewrite runs.json. The host rebuilds it on every recorder finalize, so you only need this after manually copying recordings in/out of the tree.
+rebuild-replay-index *root: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --rebuild-replay-index {{root}}
+
 # Regenerate protocol/openrpc.json from Sts2Headless.Protocol records (AD-5).
 export-schema: build
     @dotnet run --project src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj --no-build

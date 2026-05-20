@@ -33,6 +33,7 @@ public static class ReplayLayout
 {
     public const string ManifestFileName = "manifest.json";
     public const string RunHistoryFileName = "run.json";
+    public const string RunsIndexFileName = "runs.json";
     public const string CombatsDirectoryName = "combats";
 
     // Default repo-relative root. Under vendor/ because the bytes are
@@ -52,17 +53,26 @@ public static class ReplayLayout
     public static string CombatsDirectory(string runDirectory)
         => Path.Combine(runDirectory, CombatsDirectoryName);
 
+    public static string RunsIndexPath(string root)
+        => Path.Combine(root, RunsIndexFileName);
+
     public static string CombatFileName(int actIndex, int floor, string roomSlug)
         => string.Create(CultureInfo.InvariantCulture, $"act{actIndex + 1}-floor{floor}-{roomSlug}.mcr");
 
-    // RunId is a sortable timestamp + short seed slice. The timestamp lets
-    // a directory listing order recordings chronologically; the seed slice
-    // disambiguates simultaneous recordings in CI parallel suites without
-    // pulling in a GUID dependency.
+    // RunId is a sortable timestamp + short seed slice + process id. The
+    // timestamp orders a listing chronologically; the seed slice
+    // disambiguates simultaneous starts that happen to share a second;
+    // the pid disambiguates the same-second-same-seed case that arises
+    // when a HostPool of N workers all takes the same task off a queue
+    // with overlapping run starts.
     public static string NewRunId(DateTimeOffset startTime, string seed)
+        => NewRunId(startTime, seed, Environment.ProcessId);
+
+    public static string NewRunId(DateTimeOffset startTime, string seed, int processId)
     {
         var ts = startTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
         var seedSlice = seed.Length <= 8 ? seed : seed[..8];
-        return $"{ts}-{seedSlice}";
+        var pid = processId.ToString(CultureInfo.InvariantCulture);
+        return $"{ts}-{seedSlice}-{pid}";
     }
 }

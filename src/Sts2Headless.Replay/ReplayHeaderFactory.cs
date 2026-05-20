@@ -27,7 +27,8 @@ public static class ReplayHeaderFactory
         Character character,
         int ascension,
         IReadOnlyList<string> modifiers,
-        DateTimeOffset startTime)
+        DateTimeOffset startTime,
+        string? agent = null)
     {
         var modelIdHash = ReadModelIdHash(sts2);
         var gitCommit = ReadGitCommit(sts2);
@@ -42,7 +43,8 @@ public static class ReplayHeaderFactory
             Character: character,
             Ascension: ascension,
             Modifiers: modifiers,
-            StartTimeUnix: startTime.ToUnixTimeSeconds());
+            StartTimeUnix: startTime.ToUnixTimeSeconds(),
+            Agent: string.IsNullOrWhiteSpace(agent) ? ReplayHeader.UnknownAgent : agent);
     }
 
     // Reads GAME_VERSION (AD-3 pin) and returns the parsed (version, sha256)

@@ -24,6 +24,7 @@ namespace Sts2Headless.Replay;
 public sealed class ReplayRecorder
 {
     private readonly Assembly _sts2;
+    private readonly string _root;
     private readonly CombatReplayBytes _bytes;
     private readonly CombatTimelineEmitter _timeline;
     private readonly FieldInfo _replayField;
@@ -79,6 +80,7 @@ public sealed class ReplayRecorder
     public ReplayRecorder(Assembly sts2, string root, ReplayHeader header)
     {
         _sts2 = sts2;
+        _root = root;
         Header = header;
         _bytes = new CombatReplayBytes(sts2);
         _timeline = new CombatTimelineEmitter(sts2);
@@ -264,10 +266,21 @@ public sealed class ReplayRecorder
     public bool IsFinalized { get; private set; }
 
     // Backstop for runs whose final combat ended without triggering
-    // CombatReplayWriter.WriteReplay (e.g. abandoned mid-combat). Mostly
-    // a no-op in practice — the engine flushes per-combat at
-    // CombatManager.EndCombatInternal — but kept so a future engine
-    // path that drops the natural flush still leaves something on disk.
+    // CombatReplayWriter.WriteReplay. Two ways this happens:
+    //
+    //  * Host shutdown caught a combat mid-flight (no engine-side
+    //    combat-end fired): Abandoned.
+    //
+    //  * Player death in TestMode: the engine's OnEnded path is gated
+    //    on TestMode.IsOff (CreatureCmd.Kill), and we run TestMode.IsOn
+    //    by bootstrap, so death-path SaveRunHistory and the combat
+    //    cleanup that nulls _replay both skip. The replay buffer is
+    //    still in memory and IsGameOver=true. That's Defeat, not
+    //    Abandoned — the player is dead, the run is over.
+    //
+    // The IsGameOver read is the same authoritative signal
+    // WriteRunHistoryIfMissing uses to fill run.json's victory/abandoned
+    // fields, so manifest outcome and run.json stay consistent.
     private void FinalFlush(object runManager)
     {
         var runManagerType = runManager.GetType();
@@ -281,11 +294,11 @@ public sealed class ReplayRecorder
         if (events == 0 && checksums == 0) return;
         var context = ReadCurrentCombatContext()
             ?? new PendingCombatContext(0, 0, RoomType.Unknown, null, "unknown");
-        // FinalFlush only fires when the host tears down with a combat
-        // still in flight (CombatManager.EndCombatInternal never ran for
-        // this one) — that's the Abandoned case. A player death drives
-        // through OnCombatWriteReplay, not here.
-        FlushPendingCombat(replay, context, events, checksums, ReplayCombatOutcome.Abandoned);
+        var engineIsGameOver = (bool?)_runManagerIsGameOver.GetValue(runManager) ?? false;
+        var outcome = engineIsGameOver
+            ? ReplayCombatOutcome.Defeat
+            : ReplayCombatOutcome.Abandoned;
+        FlushPendingCombat(replay, context, events, checksums, outcome);
     }
 
     // Synthesises run.json for runs that the engine itself never
@@ -376,12 +389,113 @@ public sealed class ReplayRecorder
 
     private void WriteManifest()
     {
+        var endedAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var (engineIsGameOver, engineIsAbandoned, engineIsVictory) = ReadEngineEndState();
+        var outcome = DeriveRunOutcome(_combats, engineIsGameOver, engineIsAbandoned, engineIsVictory);
+        var displayName = BuildDisplayName(Header, outcome, _combats.Count);
         var manifest = new ReplayManifest(
             Version: ReplayManifest.CurrentVersion,
             Header: Header,
-            Combats: _combats.ToArray());
+            Combats: _combats.ToArray(),
+            DisplayName: displayName,
+            Outcome: outcome,
+            EndedAtUnix: endedAtUnix);
         var json = manifest.Serialize();
         File.WriteAllText(ReplayLayout.ManifestPath(RunDirectory), json);
+
+        // Refresh the parent-root index so the viewer (and any other
+        // tooling enumerating runs) sees this run without recursing.
+        // Failures here don't invalidate the run — the manifest is the
+        // load-bearing artifact, the index is a convenience.
+        try
+        {
+            ReplayIndex.Rebuild(_root);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"ReplayRecorder.WriteManifest: failed to rebuild runs index: {ex.Message}");
+        }
+    }
+
+    // Run-level outcome rollup. Engine state — if available — is
+    // authoritative: it's what the game itself thinks happened, and
+    // matches the victory/is_abandoned fields run.json carries. The
+    // combat-list rollup is the fallback for cases where the engine
+    // instance is gone by manifest time (host-side error path, run
+    // not started yet).
+    private static ReplayCombatOutcome DeriveRunOutcome(
+        IReadOnlyList<ReplayCombatEntry> combats,
+        bool? engineIsGameOver,
+        bool? engineIsAbandoned,
+        bool? engineIsVictory)
+    {
+        if (engineIsGameOver == true)
+        {
+            // The engine officially considers the run finished. If the
+            // engine's own abandoned flag is set, honour it; otherwise
+            // game-over without victory means the player died.
+            if (engineIsAbandoned == true) return ReplayCombatOutcome.Abandoned;
+            if (engineIsVictory == true) return ReplayCombatOutcome.Victory;
+            return ReplayCombatOutcome.Defeat;
+        }
+
+        // Engine doesn't yet think the run is over but we're writing a
+        // manifest — host shutdown caught an in-progress run. That's
+        // Abandoned at the run level, unless the combat list shows a
+        // Defeat (rare: a death that did go through OnCombatWriteReplay
+        // but the engine cleanup hasn't completed by manifest time).
+        if (combats.Count == 0)
+        {
+            return engineIsGameOver is null ? ReplayCombatOutcome.Unknown : ReplayCombatOutcome.Abandoned;
+        }
+        foreach (var c in combats)
+        {
+            if (c.Outcome == ReplayCombatOutcome.Defeat) return ReplayCombatOutcome.Defeat;
+        }
+        foreach (var c in combats)
+        {
+            if (c.Outcome == ReplayCombatOutcome.Abandoned) return ReplayCombatOutcome.Abandoned;
+        }
+        return combats[^1].Outcome;
+    }
+
+    // Reads RunManager.Instance's end-state flags. Null entries mean
+    // the instance is gone (typically only true if WriteManifest fires
+    // before any run was started, which only happens in error paths) —
+    // the caller treats nulls as "no signal."
+    private (bool? IsGameOver, bool? IsAbandoned, bool? IsVictory) ReadEngineEndState()
+    {
+        var runManagerType = _sts2.GetType("MegaCrit.Sts2.Core.Runs.RunManager");
+        var instance = runManagerType?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+        if (instance is null) return (null, null, null);
+        var gameOver = (bool?)_runManagerIsGameOver.GetValue(instance);
+        var abandoned = (bool?)_runManagerIsAbandoned.GetValue(instance);
+        // RunManager.IsVictory is the public flag the engine flips in
+        // OnEnded(isVictory: true) — present on the type but read-only
+        // for us. Defaults to null if the property is absent (older
+        // pin without it).
+        var victoryProp = runManagerType?.GetProperty("IsVictory", BindingFlags.Public | BindingFlags.Instance);
+        var victory = victoryProp is null ? null : (bool?)victoryProp.GetValue(instance);
+        return (gameOver, abandoned, victory);
+    }
+
+    // Display name shape: "yyyy-MM-dd HH:mm — Character (Agent) — Outcome [floor=N]".
+    // Local time on purpose — the recordings are operator-facing artifacts,
+    // and a developer scanning the sidebar wants to see the time they
+    // recognise. The floor count is added so two same-second runs of the
+    // same agent are still visually distinct.
+    private static string BuildDisplayName(ReplayHeader header, ReplayCombatOutcome outcome, int combatCount)
+    {
+        var startedLocal = DateTimeOffset.FromUnixTimeSeconds(header.StartTimeUnix).ToLocalTime();
+        var stamp = startedLocal.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+        var outcomeLabel = outcome switch
+        {
+            ReplayCombatOutcome.Victory => "Victory",
+            ReplayCombatOutcome.Defeat => "Defeat",
+            ReplayCombatOutcome.Abandoned => "Abandoned",
+            _ => "In progress",
+        };
+        return $"{stamp} — {header.Character} ({header.Agent}) — {outcomeLabel} [{combatCount} combats]";
     }
 
     private void FlushPendingCombat(object replay, PendingCombatContext pending, int events, int checksums, ReplayCombatOutcome outcome)
