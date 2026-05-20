@@ -132,6 +132,10 @@ record-sample-replay: build
     @echo "=== runs.json ==="
     @cat vendor/replays/sample/runs.json 2>/dev/null || echo "(no runs.json — recording produced nothing)"
 
+# Hand a fresh game to Claude Code over the project's .mcp.json MCP server and let it drive one full STS2 run end-to-end. Streams Claude's reasoning + tool calls live (one line per SDK stream-json event, formatted via scripts/format-claude-stream.jq). Replays land in vendor/replays/<game-version>/<run-id>/ (default root) with STS2_REPLAY_AGENT=claude-code stamped into the manifest. Only the mcp__headless-in-the-spire__* tools are allowed, so Claude cannot touch the repo. Burns Claude API tokens; Ctrl-C to stop early.
+play-claude: build
+    @bash -c "set -o pipefail; STS2_REPLAY_AGENT=claude-code claude -p 'You are playing one full run of Slay the Spire 2 through the headless-in-the-spire MCP server. Start with run_new (pick a character and seed). Use summarize_state for cheap polls between actions; reach for run_state only when you need the full structural payload. Drive the run end-to-end: traverse the map, play cards and end turns in combat, claim or skip rewards, resolve events, rest at fires, shop at merchants. Continue until the run ends (death or victory) or you are demonstrably stuck. Do not ask for confirmation — just play.' --model sonnet --allowedTools 'mcp__headless-in-the-spire__*' --output-format stream-json --verbose | jq -r --unbuffered -f scripts/format-claude-stream.jq"
+
 # Walk vendor/replays/ (or the given root) and rewrite runs.json. The host rebuilds it on every recorder finalize, so you only need this after manually copying recordings in/out of the tree.
 rebuild-replay-index *root: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --rebuild-replay-index {{root}}
