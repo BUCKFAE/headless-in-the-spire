@@ -57,6 +57,7 @@ from headless_in_the_spire._models import (
     DebugGiveRelicParams,
     DebugReplaceDeckParams,
     DebugSetHpParams,
+    DebugStartCombatParams,
     RunBuyMerchantItemParams,
     RunNewParams,
     RunPlayCardParams,
@@ -432,6 +433,19 @@ def _register_debug_tools(mcp: FastMCP, handle: _HostHandle) -> None:
         introspection.
         """
         return _dump(handle.client().debug_read_deck())
+
+    @mcp.tool()
+    def debug_start_combat(encounter_id: str) -> dict[str, Any]:
+        """Force-start a specific combat against the chosen encounter,
+        bypassing map progression. `encounter_id` is the wire string id
+        (matches `EncounterId`, e.g. `"SLIMES_NORMAL"`). Debug only;
+        corrupts replay fidelity.
+        """
+        return _dump(
+            handle.client().debug_start_combat(
+                DebugStartCombatParams(encounter_id=encounter_id),
+            )
+        )
 
     @mcp.tool()
     def debug_kill_all_enemies() -> dict[str, Any]:

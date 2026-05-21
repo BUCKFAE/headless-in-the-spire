@@ -126,6 +126,7 @@ Debug (only registered with `--enable-debug`, mirroring AD-7):
 | `debug_set_hp` | `debug/set_hp` |
 | `debug_replace_deck` | `debug/replace_deck` |
 | `debug_read_deck` | `debug/read_deck` |
+| `debug_start_combat` | `debug/start_combat` |
 | `debug_kill_all_enemies` | `debug/kill_all_enemies` |
 
 Without `--enable-debug`, debug tools are *not registered* — they don't appear

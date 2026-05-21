@@ -41,6 +41,7 @@ METHOD_NAMES: dict[str, str] = {
     "debug/set_hp": "debug_set_hp",
     "debug/replace_deck": "debug_replace_deck",
     "debug/read_deck": "debug_read_deck",
+    "debug/start_combat": "debug_start_combat",
     "debug/kill_all_enemies": "debug_kill_all_enemies",
 }
 
@@ -270,6 +271,15 @@ class Client:
     ) -> m.DebugReadDeckResult:
         result = self._transport.call("debug/read_deck", None, timeout=timeout)
         return m.DebugReadDeckResult.model_validate(result)
+
+    def debug_start_combat(
+        self,
+        params: m.DebugStartCombatParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugStartCombatResult:
+        result = self._transport.call("debug/start_combat", _dump(params), timeout=timeout)
+        return m.DebugStartCombatResult.model_validate(result)
 
     def debug_kill_all_enemies(
         self,
