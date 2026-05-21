@@ -8,8 +8,35 @@ namespace Sts2Headless.Runtime;
 // by return-type kind. The shared PatchMonsterMethods helper at the bottom
 // does the work; per-monster wrappers exist for the narrative comment
 // (which call chain NREs, what gameplay cost we accept by no-op'ing it).
+//
+// Each (TypeFqn, MethodNames) pair lives on a private static `MonsterPatchEntry`
+// field that the wrapper passes to PatchMonsterMethods. `EnumerateMonsterPatchEntries`
+// reflects over those fields so MonsterPatchAuditor can walk every patched
+// method's IL without duplicating the registry — adding a new entry below
+// auto-extends the audit's input set.
+
+// Data shape for one monster's patch set: the FQN to resolve from sts2.dll,
+// the set of declared method names to patch on that type, and a human-
+// readable label that flows through to the PatchOutcome record.
+internal sealed record MonsterPatchEntry(
+    string TypeFqn,
+    IReadOnlySet<string> MethodNames,
+    string Label);
+
 public static partial class HangPatches
 {
+    // Reflection-based registry. Every `MonsterPatchEntry` static field on
+    // this class is enumerated as a registry member. Cheaper to maintain
+    // than a hand-curated list and impossible to forget — adding a new
+    // _xEntry field is the entire wiring step.
+    internal static IReadOnlyList<MonsterPatchEntry> EnumerateMonsterPatchEntries() =>
+        typeof(HangPatches)
+            .GetFields(BindingFlags.NonPublic | BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(MonsterPatchEntry))
+            .Select(f => (MonsterPatchEntry)f.GetValue(null)!)
+            .OrderBy(e => e.TypeFqn, StringComparer.Ordinal)
+            .ToList();
+
     // Vantom (Act 1 elite-ish encounter) executes DismemberMove during its
     // enemy turn. The body NREs internally — not on a missing Godot stub
     // (no MissingMethodException surfaces; just a bare NRE), so reflective
@@ -33,11 +60,12 @@ public static partial class HangPatches
     // Other Vantom moves are left intact so the encounter still threatens
     // the player; pure no-op of the whole monster would make Act 1 boring
     // rather than survivable.
+    private static readonly MonsterPatchEntry _vantomEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Vantom",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal) { "DismemberMove" },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove");
     private static PatchOutcome PatchVantomDismemberMove(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Vantom",
-            methodNames: new HashSet<string>(StringComparer.Ordinal) { "DismemberMove" },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove");
+        => PatchMonsterMethods(harmony, sts2, _vantomEntry);
 
     // ThievingHopper (Act 2 enemy on seed 42 floor 3) carries five move
     // methods on the monster type — ThieveryMove, NabMove, HatTrickMove,
@@ -54,25 +82,27 @@ public static partial class HangPatches
     // and the engine flips back to play phase. With the 999/999 HP cheat
     // the agent doesn't actually take damage anyway, so the loss of move
     // effects is acceptable for the goal-state multi-act drive.
+    private static readonly MonsterPatchEntry _thievingHopperEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "ThieveryMove", "NabMove", "HatTrickMove", "FlutterMove", "EscapeMove",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper.*Move");
     private static PatchOutcome PatchThievingHopperMoves(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "ThieveryMove", "NabMove", "HatTrickMove", "FlutterMove", "EscapeMove",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper.*Move");
+        => PatchMonsterMethods(harmony, sts2, _thievingHopperEntry);
 
     // BowlbugRock (Act 2 enemy on seed 42 floor 12) has two move methods
     // — HeadbuttMove and DizzyMove. Same shape as Vantom.DismemberMove
     // and ThievingHopper.*Move: Task-returning bodies that NRE in
     // headless, exception swallowed by TaskHelper.LogTaskExceptions,
     // combat half-transitioned. Replace both with Task.CompletedTask.
+    private static readonly MonsterPatchEntry _bowlbugRockEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal) { "HeadbuttMove", "DizzyMove" },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock.*Move");
     private static PatchOutcome PatchBowlbugRockMoves(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock",
-            methodNames: new HashSet<string>(StringComparer.Ordinal) { "HeadbuttMove", "DizzyMove" },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock.*Move");
+        => PatchMonsterMethods(harmony, sts2, _bowlbugRockEntry);
 
     // SoulNexus (Act 3 enemy on seed 42) carries three Task-returning
     // move methods (SoulBurnMove, MaelstromMove, DrainLifeMove) and a
@@ -92,15 +122,16 @@ public static partial class HangPatches
     // CombatManager.RemoveCreature → this method, which NREs walking
     // UI-only state. Patched alongside the Move methods + AfterDeath for
     // defense in depth.
+    private static readonly MonsterPatchEntry _soulNexusEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "SoulBurnMove", "MaelstromMove", "DrainLifeMove",
+            "AfterDeath", "BeforeRemovedFromRoom",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus.{*Move, lifecycle}");
     private static PatchOutcome PatchSoulNexus(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "SoulBurnMove", "MaelstromMove", "DrainLifeMove",
-                "AfterDeath", "BeforeRemovedFromRoom",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus.{*Move, lifecycle}");
+        => PatchMonsterMethods(harmony, sts2, _soulNexusEntry);
 
     // TestSubject is the Act 2 boss. Its enemy-phase moves walk UI-only
     // state (animation queues, VFX setup) and NRE in headless — the
@@ -118,16 +149,17 @@ public static partial class HangPatches
     //     from CombatManager when the boss enters / dies. Patching these
     //     defensively (same as SoulNexus.BeforeRemovedFromRoom) covers
     //     the killing-blow path.
+    private static readonly MonsterPatchEntry _testSubjectEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TestSubject",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "BiteMove", "SkullBashMove", "MultiClawMove", "Phase3LacerateMove",
+            "BigPounceMove", "BurningGrowlMove", "RespawnMove",
+            "Revive", "TriggerDeadState", "AfterAddedToRoom",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.{*Move, AfterAddedToRoom, Revive, TriggerDeadState}");
     private static PatchOutcome PatchTestSubject(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TestSubject",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "BiteMove", "SkullBashMove", "MultiClawMove", "Phase3LacerateMove",
-                "BigPounceMove", "BurningGrowlMove", "RespawnMove",
-                "Revive", "TriggerDeadState", "AfterAddedToRoom",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.{*Move, AfterAddedToRoom, Revive, TriggerDeadState}");
+        => PatchMonsterMethods(harmony, sts2, _testSubjectEntry);
 
     // CeremonialBeast is the Act 1 boss reachable on seed 1. Same shape as
     // TestSubject / SoulNexus: Task-returning move bodies walk UI-only state
@@ -147,16 +179,17 @@ public static partial class HangPatches
     // Lifecycle hooks (AfterDeath, BeforeRemovedFromRoom, AfterAddedToRoom)
     // are patched defensively per the SoulNexus precedent — the killing-
     // blow path needs them to no-op rather than NRE.
+    private static readonly MonsterPatchEntry _ceremonialBeastEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "PlowMove", "CrushMove", "StampMove", "StompMove", "BeastCryMove",
+            "SetStunned", "StunnedMove",
+            "AfterAddedToRoom", "AfterDeath", "BeforeRemovedFromRoom",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.{*Move, SetStunned, lifecycle}");
     private static PatchOutcome PatchCeremonialBeast(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "PlowMove", "CrushMove", "StampMove", "StompMove", "BeastCryMove",
-                "SetStunned", "StunnedMove",
-                "AfterAddedToRoom", "AfterDeath", "BeforeRemovedFromRoom",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.{*Move, SetStunned, lifecycle}");
+        => PatchMonsterMethods(harmony, sts2, _ceremonialBeastEntry);
 
     // ── Encounter-sweep wave ────────────────────────────────────────────
     //
@@ -171,29 +204,31 @@ public static partial class HangPatches
     // moves NRE on the engine's slime-VFX setup; Ravenous is the on-kill
     // listener that handles "spawn a Slimed when corpse dies" — its
     // AfterDeath hook is the killing-blow path failure mode.
+    private static readonly MonsterPatchEntry _corpseSlugEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "GlompMove", "GoopMove", "WhipSlapMove",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug.*Move");
     private static PatchOutcome PatchCorpseSlug(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "GlompMove", "GoopMove", "WhipSlapMove",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug.*Move");
+        => PatchMonsterMethods(harmony, sts2, _corpseSlugEntry);
 
     // DECIMILLIPEDE_ELITE → DecimillipedeSegment (parent of *Front/Middle/
     // Back). Each segment owns REATTACH_POWER:25. The segment-move bodies
     // and AfterAddedToRoom/AfterDeath walk segment-link state via UI nodes
     // that don't exist headless.
+    private static readonly MonsterPatchEntry _decimillipedeEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "BulkMove", "ConstrictMove", "ReattachMove", "WritheMove",
+            "DeadMove", "AnimSegmentsAttack",
+            "AfterDeath",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment.{*Move, AfterDeath}");
     private static PatchOutcome PatchDecimillipede(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "BulkMove", "ConstrictMove", "ReattachMove", "WritheMove",
-                "DeadMove", "AnimSegmentsAttack",
-                "AfterDeath",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment.{*Move, AfterDeath}");
+        => PatchMonsterMethods(harmony, sts2, _decimillipedeEntry);
 
     // DOORMAKER_BOSS → Doormaker. Originally this patch no-op'd every
     // move method + SwapPhasePower, which silently stripped the boss
@@ -220,71 +255,77 @@ public static partial class HangPatches
     // SwapPhasePower run normally. AfterDeath stays patched
     // defensively per the SoulNexus precedent (its body may walk
     // post-mortem UI state).
+    private static readonly MonsterPatchEntry _doormakerEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Doormaker",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "UpdateVisual", "AfterDeath",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.Doormaker.{UpdateVisual, AfterDeath}");
     private static PatchOutcome PatchDoormaker(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Doormaker",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "UpdateVisual", "AfterDeath",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.Doormaker.{UpdateVisual, AfterDeath}");
+        => PatchMonsterMethods(harmony, sts2, _doormakerEntry);
 
     // GREMLIN_MERC_NORMAL → GremlinMerc spawns a FatGremlin via its moves;
     // both need patching for the encounter to finish out. HEIST_POWER is a
     // synchronous power (no Task-returning hooks per `probe-types`) so no
     // power patch is needed.
+    private static readonly MonsterPatchEntry _fatGremlinEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.FatGremlin",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "FleeMove", "SpawnedMove",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.FatGremlin.*Move");
     private static PatchOutcome PatchFatGremlin(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.FatGremlin",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "FleeMove", "SpawnedMove",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.FatGremlin.*Move");
+        => PatchMonsterMethods(harmony, sts2, _fatGremlinEntry);
 
+    private static readonly MonsterPatchEntry _gremlinMercEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "DoubleSmashMove", "GimmeMove", "HeheMove",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc.*Move");
     private static PatchOutcome PatchGremlinMerc(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "DoubleSmashMove", "GimmeMove", "HeheMove",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc.*Move");
+        => PatchMonsterMethods(harmony, sts2, _gremlinMercEntry);
 
     // TERROR_EEL_ELITE → TerrorEel (with VIGOR_POWER). VigorPower.AfterAttack
     // is patched separately. StunMove is the move the engine sequences into
     // after a stun-shaped action; without it patched the agent still stalls
     // on the round the eel's state machine picks Stun.
+    private static readonly MonsterPatchEntry _terrorEelEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "CrashMove", "TerrorMove", "ThrashMove", "StunMove",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel.*Move");
     private static PatchOutcome PatchTerrorEel(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "CrashMove", "TerrorMove", "ThrashMove", "StunMove",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel.*Move");
+        => PatchMonsterMethods(harmony, sts2, _terrorEelEntry);
 
     // TUNNELER_WEAK → Tunneler. No named power in the stall fingerprint;
     // the hang is purely move-side.
+    private static readonly MonsterPatchEntry _tunnelerEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "BelowMove", "BiteMove", "BurrowMove",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.*Move");
     private static PatchOutcome PatchTunneler(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "BelowMove", "BiteMove", "BurrowMove",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.*Move");
+        => PatchMonsterMethods(harmony, sts2, _tunnelerEntry);
 
     // THE_INSATIABLE_BOSS → TheInsatiable. STRENGTH_POWER in the fingerprint
     // is vanilla and already works; the hang is the move bodies.
+    private static readonly MonsterPatchEntry _theInsatiableEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "BiteMove", "LiquifyMove", "SalivateMove", "ThrashMove",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable.*Move");
     private static PatchOutcome PatchTheInsatiable(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "BiteMove", "LiquifyMove", "SalivateMove", "ThrashMove",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable.*Move");
+        => PatchMonsterMethods(harmony, sts2, _theInsatiableEntry);
 
     // LAGAVULIN_MATRIARCH_BOSS and SLUMBERING_BEETLE_NORMAL share the
     // sleeping-monster shape: the encounter starts with the monster
@@ -298,27 +339,29 @@ public static partial class HangPatches
     // monster is functionally awake from turn 1 with intent reported via
     // the wire), but the encounter still completes and the engine no
     // longer wedges. Acceptable cost for the sweep's coverage signal.
+    private static readonly MonsterPatchEntry _lagavulinMatriarchEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "DisembowelMove", "Slash2Move", "SlashMove", "SoulSiphonMove",
+            "WakeUpMove", "SleepMove", "AfterAddedToRoom",
+            // First-blood path: Hellraiser → AttackCommand → CreatureCmd.Damage →
+            // Hook.AfterDamageReceived. Same shape as the Crusher fix.
+            "AfterDamageReceived", "AfterDeath",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.{*Move, lifecycle, AfterDamageReceived}");
     private static PatchOutcome PatchLagavulinMatriarch(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "DisembowelMove", "Slash2Move", "SlashMove", "SoulSiphonMove",
-                "WakeUpMove", "SleepMove", "AfterAddedToRoom",
-                // First-blood path: Hellraiser → AttackCommand → CreatureCmd.Damage →
-                // Hook.AfterDamageReceived. Same shape as the Crusher fix.
-                "AfterDamageReceived", "AfterDeath",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.{*Move, lifecycle, AfterDamageReceived}");
+        => PatchMonsterMethods(harmony, sts2, _lagavulinMatriarchEntry);
 
+    private static readonly MonsterPatchEntry _slumberingBeetleEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "RolloutMove", "WakeUpMove", "AfterAddedToRoom",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.{*Move, AfterAddedToRoom}");
     private static PatchOutcome PatchSlumberingBeetle(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "RolloutMove", "WakeUpMove", "AfterAddedToRoom",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.{*Move, AfterAddedToRoom}");
+        => PatchMonsterMethods(harmony, sts2, _slumberingBeetleEntry);
 
     // KAISER_CRAB_BOSS spawns two `Crusher` monsters (revealed via
     // `--probe-encounter KAISER_CRAB_BOSS`). The encounter is one of the
@@ -342,31 +385,33 @@ public static partial class HangPatches
     // (5 moves + 3 lifecycle hooks). The boss still threatens via wire-
     // surfaced intent damage and the 999 HP cheat keeps the agent alive
     // long enough to win.
+    private static readonly MonsterPatchEntry _crusherEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Crusher",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "AdaptMove", "BugStingMove", "EnlargingStrikeMove",
+            "GuardedStrikeMove", "ThrashMove",
+            "AfterAddedToRoom", "AfterCurrentHpChanged", "BeforeDeath",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.Crusher.{*Move, AfterAddedToRoom, AfterCurrentHpChanged, BeforeDeath}");
     private static PatchOutcome PatchCrusher(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Crusher",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "AdaptMove", "BugStingMove", "EnlargingStrikeMove",
-                "GuardedStrikeMove", "ThrashMove",
-                "AfterAddedToRoom", "AfterCurrentHpChanged", "BeforeDeath",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.Crusher.{*Move, AfterAddedToRoom, AfterCurrentHpChanged, BeforeDeath}");
+        => PatchMonsterMethods(harmony, sts2, _crusherEntry);
 
     // KAISER_CRAB_BOSS spawns a Crusher and a Rocket together (see the
     // sweep fingerprint: `enemies=[CRUSHER:..., ROCKET:...]`). Rocket
     // carries BACK_ATTACK_RIGHT_POWER + CRAB_RAGE_POWER and has the same
     // background-NRE shape as Crusher. Patch every Task-returning method.
+    private static readonly MonsterPatchEntry _rocketEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Rocket",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal)
+        {
+            "ChargeUpMove", "LaserMove", "PrecisionBeamMove",
+            "RechargeMove", "TargetingReticleMove",
+            "AfterAddedToRoom", "AfterCurrentHpChanged", "BeforeDeath",
+        },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.Rocket.{*Move, AfterAddedToRoom, AfterCurrentHpChanged, BeforeDeath}");
     private static PatchOutcome PatchRocket(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2,
-            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Rocket",
-            methodNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "ChargeUpMove", "LaserMove", "PrecisionBeamMove",
-                "RechargeMove", "TargetingReticleMove",
-                "AfterAddedToRoom", "AfterCurrentHpChanged", "BeforeDeath",
-            },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.Rocket.{*Move, AfterAddedToRoom, AfterCurrentHpChanged, BeforeDeath}");
+        => PatchMonsterMethods(harmony, sts2, _rocketEntry);
 
     // Shared helper for the monster *Move / lifecycle-hook patches above
     // (Vantom, ThievingHopper, BowlbugRock, SoulNexus, TestSubject,
@@ -382,22 +427,17 @@ public static partial class HangPatches
     // chain NREs, what gameplay cost we accept by no-op'ing it) — that
     // documentation is the actual value the per-monster file structure
     // preserves; the boilerplate it surrounded is what we're collapsing.
-    private static PatchOutcome PatchMonsterMethods(
-        Harmony harmony,
-        Assembly sts2,
-        string typeFqn,
-        HashSet<string> methodNames,
-        string label)
+    private static PatchOutcome PatchMonsterMethods(Harmony harmony, Assembly sts2, MonsterPatchEntry entry)
     {
-        var monsterType = sts2.GetType(typeFqn);
+        var monsterType = sts2.GetType(entry.TypeFqn);
         if (monsterType is null)
-            return new PatchOutcome(label, Patched: false, Detail: $"type {typeFqn} not found");
+            return new PatchOutcome(entry.Label, Patched: false, Detail: $"type {entry.TypeFqn} not found");
 
         var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(m => methodNames.Contains(m.Name) && !m.IsSpecialName)
+            .Where(m => entry.MethodNames.Contains(m.Name) && !m.IsSpecialName)
             .ToArray();
         if (methods.Length == 0)
-            return new PatchOutcome(label, Patched: false, Detail: $"no target methods on {typeFqn}");
+            return new PatchOutcome(entry.Label, Patched: false, Detail: $"no target methods on {entry.TypeFqn}");
 
         var taskPrefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
         var voidPrefix = typeof(HangPatches).GetMethod(nameof(SkipVoidPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
@@ -447,7 +487,7 @@ public static partial class HangPatches
             harmony.Patch(m, prefix: new HarmonyMethod(pickedPrefix));
             sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
         }
-        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+        return new PatchOutcome(entry.Label, Patched: true, Detail: string.Join(", ", sigs));
     }
 
     private static MethodInfo? PickPrefix(MethodInfo m, MethodInfo taskPrefix, MethodInfo voidPrefix, MethodInfo nullPrefix)
