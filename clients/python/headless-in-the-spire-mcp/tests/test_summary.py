@@ -96,6 +96,7 @@ def test_combat_section_lists_hand_and_enemies():
                     "cost": 1,
                     "canPlay": True,
                     "targetType": TargetType.any_enemy.value,
+                    "upgraded": False,
                 },
                 {
                     "index": 1,
@@ -103,6 +104,7 @@ def test_combat_section_lists_hand_and_enemies():
                     "cost": 2,
                     "canPlay": False,
                     "targetType": TargetType.any_enemy.value,
+                    "upgraded": False,
                 },
             ],
             "enemies": [

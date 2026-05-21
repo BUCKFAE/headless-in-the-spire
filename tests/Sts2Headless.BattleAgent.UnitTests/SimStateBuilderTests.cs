@@ -32,7 +32,7 @@ public sealed class SimStateBuilderTests
     {
         var combat = SampleCombat(hand: new[]
         {
-            new Card(Index: 7, Id: CardId.StrikeIronclad, Cost: 1, CanPlay: true, TargetType: TargetType.AnyEnemy),
+            new Card(Index: 7, Id: CardId.StrikeIronclad, Cost: 1, CanPlay: true, TargetType: TargetType.AnyEnemy, Upgraded: false),
         });
         var sim = SimStateBuilder.FromWire(combat, currentHp: 80, maxHp: 80);
         Assert.Single(sim.Hand);

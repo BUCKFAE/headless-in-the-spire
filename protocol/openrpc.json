@@ -436,6 +436,9 @@
           },
           "targetType": {
             "$ref": "#/components/schemas/TargetType"
+          },
+          "upgraded": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -443,7 +446,8 @@
           "id",
           "cost",
           "canPlay",
-          "targetType"
+          "targetType",
+          "upgraded"
         ]
       },
       "CardRewardOption": {

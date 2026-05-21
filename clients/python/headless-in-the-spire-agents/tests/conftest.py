@@ -53,6 +53,7 @@ def card(
     can_play: bool = True,
     target_type: TargetType = TargetType.any_enemy,
     card_id: str = "test_card",
+    upgraded: bool = False,
 ) -> Card:
     return Card(
         index=index,
@@ -60,6 +61,7 @@ def card(
         cost=cost,
         can_play=can_play,
         target_type=target_type,
+        upgraded=upgraded,
     )
 
 

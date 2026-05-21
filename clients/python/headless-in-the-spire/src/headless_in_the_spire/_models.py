@@ -470,6 +470,7 @@ class Card(BaseModel):
     cost: int
     can_play: Annotated[bool, Field(alias="canPlay")]
     target_type: Annotated[TargetType, Field(alias="targetType")]
+    upgraded: bool
 
 
 class HistoryChoiceEntry(BaseModel):

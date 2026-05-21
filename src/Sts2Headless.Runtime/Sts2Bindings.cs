@@ -217,6 +217,7 @@ public sealed partial class Sts2Bindings
     private readonly MethodInfo? _energyCostGetResolved;
     private readonly MethodInfo? _cardCanPlay;
     private readonly PropertyInfo? _cardTargetType;
+    private readonly PropertyInfo? _cardIsUpgraded;
     private readonly PropertyInfo? _enemyMonster;
     private readonly PropertyInfo? _enemyCurrentHp;
     private readonly PropertyInfo? _enemyMaxHp;
@@ -417,6 +418,7 @@ public sealed partial class Sts2Bindings
         _energyCostGetResolved = c.EnergyCostGetResolved;
         _cardCanPlay = c.CardCanPlay;
         _cardTargetType = c.CardTargetType;
+        _cardIsUpgraded = c.CardIsUpgraded;
         _enemyMonster = c.EnemyMonster;
         _enemyCurrentHp = c.EnemyCurrentHp;
         _enemyMaxHp = c.EnemyMaxHp;
@@ -1166,7 +1168,7 @@ public sealed partial class Sts2Bindings
         var pcs = playerType.GetProperty("PlayerCombatState", BindingFlags.Public | BindingFlags.Instance);
         PropertyInfo? pcsHand = null, pcsDraw = null, pcsDiscard = null, pcsEnergy = null, pcsMaxEnergy = null;
         PropertyInfo? handCards = null, pileCards = null;
-        PropertyInfo? cardId = null, cardEnergyCost = null, cardTargetType = null;
+        PropertyInfo? cardId = null, cardEnergyCost = null, cardTargetType = null, cardIsUpgraded = null;
         MethodInfo? energyCostGetResolved = null, cardCanPlay = null;
         PropertyInfo? idEntry = null;
         if (pcs is not null)
@@ -1189,6 +1191,7 @@ public sealed partial class Sts2Bindings
                         cardId = cardType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
                         cardEnergyCost = cardType.GetProperty("EnergyCost", BindingFlags.Public | BindingFlags.Instance);
                         cardTargetType = cardType.GetProperty("TargetType", BindingFlags.Public | BindingFlags.Instance);
+                        cardIsUpgraded = cardType.GetProperty("IsUpgraded", BindingFlags.Public | BindingFlags.Instance);
                         energyCostGetResolved = cardEnergyCost?.PropertyType.GetMethod("GetResolved",
                             BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
                         // Prefer the 0-arg CanPlay; the 2-out overload is also
@@ -1336,7 +1339,7 @@ public sealed partial class Sts2Bindings
             handCards, pileCards,
             creaturePowers, creatureBlock, creatureIsDead,
             powerId, powerAmount, idEntry,
-            cardId, cardEnergyCost, energyCostGetResolved, cardCanPlay, cardTargetType,
+            cardId, cardEnergyCost, energyCostGetResolved, cardCanPlay, cardTargetType, cardIsUpgraded,
             enemyMonster, enemyHp, enemyMax, enemyBlock, enemyIsAlive, enemyPowers,
             monsterNextMove, monsterId, monsterIntendsToAttack,
             nextMoveIntents, intentIntentType,
@@ -1487,7 +1490,7 @@ public sealed partial class Sts2Bindings
         PropertyInfo? CreaturePowers, PropertyInfo? CreatureBlock, PropertyInfo? CreatureIsDead,
         PropertyInfo? PowerId, PropertyInfo? PowerAmount, PropertyInfo? IdEntry,
         PropertyInfo? CardId, PropertyInfo? CardEnergyCost, MethodInfo? EnergyCostGetResolved,
-        MethodInfo? CardCanPlay, PropertyInfo? CardTargetType,
+        MethodInfo? CardCanPlay, PropertyInfo? CardTargetType, PropertyInfo? CardIsUpgraded,
         PropertyInfo? EnemyMonster, PropertyInfo? EnemyCurrentHp, PropertyInfo? EnemyMaxHp,
         PropertyInfo? EnemyBlock, PropertyInfo? EnemyIsAlive, PropertyInfo? EnemyPowers,
         PropertyInfo? MonsterNextMove, PropertyInfo? MonsterId, PropertyInfo? MonsterIntendsToAttack,

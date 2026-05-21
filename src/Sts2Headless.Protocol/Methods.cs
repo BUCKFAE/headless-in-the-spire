@@ -256,13 +256,17 @@ public sealed record Intent(
 // run/play_card.cardIndex); Id is the card's stable id string ("STRIKE_RED");
 // Cost is the energy cost after combat modifiers (-1 means unplayable, the
 // sts2 convention for X-cost or perma-disabled cards). TargetType drives
-// whether targetIndex is required on play.
+// whether targetIndex is required on play. Upgraded mirrors the engine's
+// CardModel.IsUpgraded — true when the card is at the max upgrade level for
+// its class; planners (BattleAgent / IroncladCardCatalog) branch on this to
+// pick the upgraded stat row (Strike+1 = 9 dmg, Defend+1 = 8 block, …).
 public sealed record Card(
     [property: JsonPropertyName("index")] int Index,
     [property: JsonPropertyName("id")] CardId Id,
     [property: JsonPropertyName("cost")] int Cost,
     [property: JsonPropertyName("canPlay")] bool CanPlay,
-    [property: JsonPropertyName("targetType")] TargetType TargetType);
+    [property: JsonPropertyName("targetType")] TargetType TargetType,
+    [property: JsonPropertyName("upgraded")] bool Upgraded);
 
 // One enemy in the current combat. Index is the position in the alive-enemy
 // list (pass back via run/play_card.targetIndex when the card's TargetType is

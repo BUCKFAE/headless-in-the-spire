@@ -7,9 +7,6 @@ namespace Sts2Headless.BattleAgent.Core;
 // SimAgent translates back to the wire-shaped AgentAction.
 //
 // Notes / loss of information (acceptable for v1):
-//   - Card.Upgraded is not on the wire today; we always read as base.
-//     When/if the engine surfaces it, set `Upgraded = wireCard.Upgraded`
-//     and add the upgraded-stat branch via IroncladCardCatalog.
 //   - ExhaustPileCount is not on the wire; we initialise to 0. The
 //     simulator tracks exhausts during the turn for FeelNoPain /
 //     DarkEmbrace / Pact's-End-scaling-by-exhaust-size, but the
@@ -25,7 +22,7 @@ public static class SimStateBuilder
             .Select(c => new SimCard(
                 Id: c.Id,
                 Cost: c.Cost,
-                Upgraded: false,                // TODO: surface upgrade on the wire
+                Upgraded: c.Upgraded,
                 TargetType: c.TargetType,
                 CanPlayFlag: c.CanPlay,
                 OriginalHandIndex: c.Index))

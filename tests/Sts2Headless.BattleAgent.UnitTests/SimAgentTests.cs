@@ -49,7 +49,7 @@ public sealed class SimAgentTests
             DiscardPileCount: 0,
             Hand: new[]
             {
-                new Card(Index: 4, Id: CardId.StrikeIronclad, Cost: 1, CanPlay: true, TargetType: TargetType.AnyEnemy),
+                new Card(Index: 4, Id: CardId.StrikeIronclad, Cost: 1, CanPlay: true, TargetType: TargetType.AnyEnemy, Upgraded: false),
             },
             Enemies: new[]
             {

@@ -257,7 +257,8 @@ public sealed partial class Sts2Bindings
                 : 0;
             var canPlay = _cardCanPlay is not null && (bool)(_cardCanPlay.Invoke(card, null) ?? false);
             var targetType = ParseEnum<TargetType>(_cardTargetType?.GetValue(card));
-            result.Add(new Card(i, CardIdNames.FromWire(idWire), cost, canPlay, targetType));
+            var upgraded = _cardIsUpgraded is not null && (bool)(_cardIsUpgraded.GetValue(card) ?? false);
+            result.Add(new Card(i, CardIdNames.FromWire(idWire), cost, canPlay, targetType, upgraded));
         }
         return result;
     }
