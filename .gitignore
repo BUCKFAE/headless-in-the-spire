@@ -69,8 +69,9 @@ test-results/
 # Stable .claude/skills/ content is checked in; this lock is not.
 .claude/scheduled_tasks.lock
 
-## IntelliJ
+## IntelliJ / Rider
 .idea
+*.sln.DotSettings.user
 
 ## MacOS
 .DS_Store
