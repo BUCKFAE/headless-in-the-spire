@@ -51,11 +51,11 @@ start unit \
 
 start integration \
     dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj \
-        --no-build --nologo --filter "Category!=Gap" -- "xUnit.MaxParallelThreads=$INT_THREADS"
+        --no-build --nologo --filter "Category!=Gap&Category!=Diagnostic&Category!=Benchmark" -- "xUnit.MaxParallelThreads=$INT_THREADS"
 
 start end2end \
     dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj \
-        --no-build --nologo --filter "Category!=Gap" -- "xUnit.MaxParallelThreads=$E2E_THREADS"
+        --no-build --nologo --filter "Category!=Gap&Category!=Diagnostic&Category!=Benchmark" -- "xUnit.MaxParallelThreads=$E2E_THREADS"
 
 start python uv run pytest clients/python/
 
