@@ -21,9 +21,43 @@ internal static class ProbeEncounterCommand
         var encounterId = idx >= 0 && idx + 1 < args.Length ? args[idx + 1] : "";
         if (string.IsNullOrWhiteSpace(encounterId))
         {
-            Console.Error.WriteLine("usage: --probe-encounter <encounter-id>");
+            Console.Error.WriteLine("usage: --probe-encounter <encounter-id> [--deck CARD_ID[:upgrade],…]");
             return 1;
         }
+
+        // Optional `--deck CARD:upgrade,CARD,…` to override the default
+        // Hellraiser+Pommel probe deck. Used when the default deck dodges
+        // the bug we're hunting (e.g. QUEEN_BOSS NREs on BLUDGEON-class
+        // decks but the auto-play chain routes around it).
+        var deckIdx = Array.IndexOf(args, "--deck");
+        var overrideDeck = deckIdx >= 0 && deckIdx + 1 < args.Length
+            ? args[deckIdx + 1]
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s =>
+                {
+                    var parts = s.Split(':');
+                    return (Id: parts[0], Up: parts.Length > 1 && int.TryParse(parts[1], out var u) ? u : 0);
+                })
+                .ToArray()
+            : null;
+
+        // Optional `--target <int>` to override the target index for
+        // AnyEnemy cards. Defaults to 0 (first enemy). The agent in the
+        // sweep targets by threat priority, which may pick a different
+        // index than the probe's hardcoded 0 — and the engine NRE may
+        // only fire on a specific target.
+        var targetIdx = Array.IndexOf(args, "--target");
+        int? targetOverride = targetIdx >= 0 && targetIdx + 1 < args.Length
+            && int.TryParse(args[targetIdx + 1], out var tv) ? tv : null;
+
+        // Optional `--relics RELIC_ID,RELIC_ID,…` to grant relics before
+        // start_combat. The encounter sweep grants TOUGH_BANDAGES; passing
+        // it here matches the sweep's exact setup so probe results
+        // mirror the bug-surface state.
+        var relicsIdx = Array.IndexOf(args, "--relics");
+        var relics = relicsIdx >= 0 && relicsIdx + 1 < args.Length
+            ? args[relicsIdx + 1].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            : Array.Empty<string>();
 
         var preamble = RuntimeBootstrap.Run(vendorDir);
         if (preamble.SetupError is not null)
@@ -45,12 +79,20 @@ internal static class ProbeEncounterCommand
         var handle = bindings.StartIroncladRun(seed: 42, withNeow: false);
         Console.WriteLine($"probe-encounter: started Ironclad run, encounter={encounterId}");
 
-        // Replace deck with the sweep's Hellraiser + Pommel×2 set and pump HP.
-        bindings.ReplaceDeck(handle, new (string, int)[]
+        // Replace deck with the sweep's Hellraiser + Pommel×2 set and pump HP,
+        // unless --deck overrides it.
+        var deck = overrideDeck ?? new[]
         {
-            ("HELLRAISER", 0), ("POMMEL_STRIKE", 0), ("POMMEL_STRIKE", 0),
-        });
+            (Id: "HELLRAISER", Up: 0), (Id: "POMMEL_STRIKE", Up: 0), (Id: "POMMEL_STRIKE", Up: 0),
+        };
+        Console.WriteLine($"  deck: {string.Join(", ", deck.Select(c => c.Up > 0 ? $"{c.Id}+{c.Up}" : c.Id))}");
+        bindings.ReplaceDeck(handle, deck.Select(c => (c.Id, c.Up)).ToArray());
         bindings.SetPlayerHp(handle, 999, 999);
+        foreach (var relicId in relics)
+        {
+            Console.WriteLine($"  relic: {relicId}");
+            bindings.GiveRelic(handle, relicId);
+        }
 
         var (inProgress, enemyCount) = bindings.StartCombat(handle, encounterId);
         Console.WriteLine($"  start_combat: inProgress={inProgress} enemyCount={enemyCount}");
@@ -121,7 +163,10 @@ internal static class ProbeEncounterCommand
         // first enemy, then end turn, repeat for a few rounds. Any thrown
         // exception surfaces unwrapped — the NRE we're hunting is somewhere
         // in this sequence on the KAISER_CRAB / LAGAVULIN_MATRIARCH paths.
-        for (var round = 0; round < 6; round++)
+        // 20 rounds is enough to kill weak enemies and surface post-kill
+        // SUMMON / on-death engine hooks — most boss-side bugs that
+        // depend on combat duration show up well inside that window.
+        for (var round = 0; round < 20; round++)
         {
             var snap = bindings.ReadSnapshot(handle);
             var c = snap.CombatState;
@@ -136,7 +181,7 @@ internal static class ProbeEncounterCommand
             {
                 var card = c.Hand[i];
                 if (!card.CanPlay || card.Cost < 0 || card.Cost > c.Energy) continue;
-                var target = card.TargetType == Sts2Headless.Protocol.Methods.TargetType.AnyEnemy ? (int?)0 : null;
+                var target = card.TargetType == Sts2Headless.Protocol.Methods.TargetType.AnyEnemy ? (targetOverride ?? 0) : (int?)null;
                 try
                 {
                     Console.WriteLine($"    play[{i}] {card.Id} cost={card.Cost} target={target}");

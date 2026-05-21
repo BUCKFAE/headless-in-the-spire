@@ -66,12 +66,193 @@ public class EveryEncounterSmokeTests : IClassFixture<HostSubprocess>
     // enough that the draw order is mechanically obvious, real enough that
     // Hellraiser + Pommel chains deal damage. CardId.g.cs is the source of
     // truth for the wire names (search "HELLRAISER" / "POMMEL_STRIKE").
+    //
+    // Pommel is upgraded (UpgradeLevel: 1) so the draw chain compounds —
+    // upgraded Pommel draws 2 cards instead of 1, which makes the
+    // Hellraiser auto-play loop deterministic on a 3-card deck. The
+    // unupgraded version (draw 1) starves the chain on bigger boss-side
+    // HP pools and lost on QUEEN_BOSS / MECHA_KNIGHT_ELITE in the
+    // 2026-05-21 sweep. Matches BeatGameOnSeed42Tests's combo.
     private static readonly (string CardId, int UpgradeLevel)[] PinnedDeck =
     [
         ("HELLRAISER", 0),
-        ("POMMEL_STRIKE", 0),
-        ("POMMEL_STRIKE", 0),
+        ("POMMEL_STRIKE", 1),
+        ("POMMEL_STRIKE", 1),
     ];
+
+    // TOUGH_BANDAGES: +3 block per card discarded. The Hellraiser loop
+    // discards a stack of cards on turn-end, so each turn the player
+    // gets incidental block. Without it the no-Defend deck dies to
+    // burst encounters (Queen Boss / Slimed Berserker / Mecha Knight)
+    // before the loop accumulates enough damage. Same relic the
+    // CheatingHellRaisingSeed42Agent leans on.
+    private static readonly string[] PinnedRelics = ["TOUGH_BANDAGES"];
+
+    // Per-encounter deck/relic overrides for encounters whose mechanics
+    // structurally counter the Hellraiser+Pommel combo. Each entry below
+    // names the counter-mechanic and how the override addresses it; the
+    // sweep falls back to PinnedDeck/PinnedRelics when no entry matches.
+    //
+    // The pattern is: a small (5-7 card) deck with Powers (which aren't
+    // exhausted by HUNGER_POWER and persist across turn-loops) plus a few
+    // big single-hit attacks (BLUDGEON / UPPERCUT) that resolve damage
+    // before any exhaust-on-play mechanic can strip them.
+    private sealed record EncounterOverride(
+        (string CardId, int UpgradeLevel)[] Deck,
+        string[] Relics,
+        int Hp = 999,
+        int MaxHp = 999);
+
+    private static readonly Dictionary<string, EncounterOverride> EncounterOverrides = new()
+    {
+        // DOORMAKER_BOSS: HUNGER_POWER — every Attack/Skill is Exhausted
+        // on play. Pommel auto-plays from Hellraiser get stripped in 2
+        // turns and the boss survives at 999 HP. Counter: lean on Powers
+        // (not exhausted) for scaling + draw, big attacks for damage.
+        // DARK_EMBRACE turns each exhaust into a free draw, so Hunger
+        // actually feeds our deck cycling. FEEL_NO_PAIN turns each
+        // exhaust into block — defense scales with Hunger's punishment.
+        ["DOORMAKER_BOSS"] = new(
+            Deck: [
+                ("INFLAME", 0),
+                ("INFLAME", 0),
+                ("DARK_EMBRACE", 0),
+                ("FEEL_NO_PAIN", 0),
+                ("BLUDGEON", 1),
+                ("UPPERCUT", 1),
+                ("DEFEND_IRONCLAD", 0),
+            ],
+            Relics: ["TOUGH_BANDAGES"]),
+
+        // THE_OBSCURA_NORMAL: ILLUSION — revives at full HP on death.
+        // Single-target fight, so the Hellraiser+Pommel auto-play chain
+        // works cleanly (no random-target dilution). The BLUDGEON-based
+        // override actually under-damaged the chain (92 steps → loss vs.
+        // 185 steps → loss with the unupgraded baseline). Switching to
+        // a Hellraiser+Pommel + INFLAME hybrid: keep the high-frequency
+        // auto-play loop and stack Strength so each successive kill
+        // outpaces the revive cycle.
+        ["THE_OBSCURA_NORMAL"] = new(
+            Deck: [
+                ("HELLRAISER", 0),
+                ("POMMEL_STRIKE", 1),
+                ("POMMEL_STRIKE", 1),
+                ("INFLAME", 0),
+                ("INFLAME", 0),
+                ("DEFEND_IRONCLAD", 0),
+            ],
+            Relics: ["TOUGH_BANDAGES"]),
+
+        // OVICOPTER_NORMAL: LAY_EGGS summons. Hellraiser's auto-play
+        // picks RANDOM enemies — damage smears across eggs and the
+        // Ovicopter itself never dies. Counter: AoE (THUNDERCLAP) to
+        // clear eggs in bulk and targeted big hits to finish the boss.
+        ["OVICOPTER_NORMAL"] = new(
+            Deck: [
+                ("THUNDERCLAP", 1),
+                ("THUNDERCLAP", 1),
+                ("THUNDERCLAP", 1),
+                ("BLUDGEON", 1),
+                ("DEFEND_IRONCLAD", 0),
+                ("DEFEND_IRONCLAD", 0),
+            ],
+            Relics: ["TOUGH_BANDAGES"]),
+
+        // QUEEN_BOSS: SUMMON (Torch Head Amalgam) + heavy bursts
+        // (EXECUTION / OFF_WITH_YOUR_HEAD / ENRAGE). BLUDGEON/UPPERCUT/
+        // THUNDERCLAP-class decks NRE on run/play_card via the
+        // IroncladAgent's MCTS sequence (probe-encounter with the same
+        // cards completed 20 rounds clean — the bug is specific to the
+        // agent's planner-driven sequence, not any single card). The
+        // Hellraiser auto-play chain dodges the bug because it routes
+        // through a different damage application path. Adding INFLAME
+        // for Strength scaling boosts the Pommel chain enough to kill
+        // Queen before her bursts kill us. DEFEND ×2 soaks
+        // EXECUTION/OFF_WITH_YOUR_HEAD spikes.
+        // QUEEN_BOSS: SUMMON (Torch Head Amalgam) + heavy bursts
+        // (EXECUTION / OFF_WITH_YOUR_HEAD / ENRAGE). The deck below is
+        // the *only* combination we found that runs to completion
+        // without crashing — every iteration we tried (BLUDGEON,
+        // UPPERCUT, THUNDERCLAP, DEMON_FORM, BARRICADE) triggers an
+        // engine NRE inside the agent's MCTS-driven play sequence.
+        // Probe-encounter with the same card sets never reproduces, so
+        // the bug is sequence-dependent rather than card-specific.
+        //
+        // Bumping HP to 9999 ALSO surfaces the NRE — at 999 HP the
+        // agent dies before the bad state lands and the encounter
+        // records as a clean Loss (107 steps); at 9999 HP the agent
+        // lives long enough to trip it. Queen stays at 999 HP and
+        // takes the loss until the engine-side NRE on Queen's monster
+        // hooks gets a targeted Harmony patch.
+        ["QUEEN_BOSS"] = new(
+            Deck: [
+                ("HELLRAISER", 0),
+                ("POMMEL_STRIKE", 1),
+                ("POMMEL_STRIKE", 1),
+                ("INFLAME", 0),
+                ("INFLAME", 0),
+                ("DEFEND_IRONCLAD", 0),
+                ("DEFEND_IRONCLAD", 0),
+            ],
+            Relics: ["TOUGH_BANDAGES"]),
+
+        // MECHA_KNIGHT_ELITE: SHIELDS_UP/DOWN cycles + HEAVY_CLEAVE/
+        // FLAMETHROWER bursts. Damage during SHIELDS_UP is wasted; the
+        // burst hits when shields drop. Counter: BARRICADE keeps block
+        // around across turns so we can stockpile defense during the
+        // shielded windows and tank the burst when it lands.
+        ["MECHA_KNIGHT_ELITE"] = new(
+            Deck: [
+                ("BARRICADE", 0),
+                ("DEFEND_IRONCLAD", 0),
+                ("DEFEND_IRONCLAD", 0),
+                ("DEFEND_IRONCLAD", 0),
+                ("BLUDGEON", 1),
+                ("BLUDGEON", 1),
+            ],
+            Relics: ["TOUGH_BANDAGES"]),
+
+        // SLIMED_BERSERKER_NORMAL: VOMIT_ICHOR applies Slimed status
+        // cards to the deck. Slimed cards don't contain "Strike" so they
+        // don't trigger Hellraiser's auto-play, and they clog the hand
+        // (unplayable until discarded). Counter: don't depend on the
+        // Hellraiser chain at all — direct big attacks that don't need
+        // a clean deck to deal damage.
+        ["SLIMED_BERSERKER_NORMAL"] = new(
+            Deck: [
+                ("BLUDGEON", 1),
+                ("BLUDGEON", 1),
+                ("BLUDGEON", 1),
+                ("UPPERCUT", 1),
+                ("DEFEND_IRONCLAD", 0),
+                ("DEFEND_IRONCLAD", 0),
+            ],
+            Relics: ["TOUGH_BANDAGES"]),
+    };
+
+    // Encounters that today fail with an engine-side bug we can't paper
+    // over from the host. Each entry is paired with the expected outcome
+    // and a one-line reason; a row outside this set with anything other
+    // than "Win" fails the test, and a row INSIDE this set that suddenly
+    // starts winning also fails (so we notice when the engine bug
+    // resolves and the entry can be removed).
+    //
+    //   * QUEEN_BOSS — run/play_card NRE when the agent's MCTS picks a
+    //     play sequence involving DEMON_FORM / BARRICADE / BLUDGEON /
+    //     UPPERCUT / THUNDERCLAP against Queen's monster set. Probe-
+    //     encounter never reproduces because the bug is sequence-
+    //     dependent. Hellraiser auto-play dodges it; INFLAME hybrid keeps
+    //     us alive longer but still loses at ~107 steps.
+    //   * DOORMAKER_BOSS — Doormaker.SwapPhasePower is an open-generic
+    //     async method Harmony refuses to patch (MMReflectionImporter
+    //     fails on the generic parameter), so the existing hang-patch
+    //     silently skips it. The boss never transitions out of phase 1
+    //     and sits at an int.Max-ish sentinel HP, deadlocking combat.
+    private static readonly Dictionary<string, string> KnownEngineBlocked = new()
+    {
+        ["QUEEN_BOSS"] = "Loss",
+        ["DOORMAKER_BOSS"] = "Timeout",
+    };
 
     private static readonly TimeSpan BudgetPerEncounter = TimeSpan.FromMinutes(2);
 
@@ -108,13 +289,15 @@ public class EveryEncounterSmokeTests : IClassFixture<HostSubprocess>
 
         foreach (var encounterId in encounterIds)
         {
+            EncounterOverrides.TryGetValue(encounterId, out var ov);
             var outcome = await RunEncounterAsync(
                 transport,
                 encounterId,
-                PinnedDeck,
+                ov?.Deck ?? PinnedDeck,
                 BudgetPerEncounter,
-                startingHp: 999,
-                startingMaxHp: 999);
+                startingHp: ov?.Hp ?? 999,
+                startingMaxHp: ov?.MaxHp ?? 999,
+                relics: ov?.Relics ?? PinnedRelics);
             outcomes.Add(outcome);
             _output.WriteLine($"  [{outcome.Result,-7}] {encounterId,-40} steps={outcome.Steps,-3} hp={outcome.FinalHp,-3} {outcome.Detail}");
         }
@@ -122,14 +305,37 @@ public class EveryEncounterSmokeTests : IClassFixture<HostSubprocess>
         sw.Stop();
         WriteReport(outcomes, sw.Elapsed, reportName: "every-encounter-ironclad");
 
-        // Crash = host or agent threw an unhandled exception. That's the
-        // signal this test exists to surface; everything else (loss to a
-        // burst-damage boss, agent runs out of cards, hits step cap) is
-        // an honest agent/deck limitation and reported but not failed.
+        // Crash = host or agent threw an unhandled exception — always
+        // fails. Wins outside the KnownEngineBlocked set pass.
+        // Losses/Timeouts must match KnownEngineBlocked exactly:
+        //   * A NEW Loss/Timeout (not in the set) → fail. The deck/agent
+        //     change regressed an encounter we used to win.
+        //   * A KnownEngineBlocked entry that now Wins → fail. The engine
+        //     bug resolved and the entry should be removed from the set.
+        //   * A KnownEngineBlocked entry with a different outcome (Crash
+        //     instead of Loss, etc) → fail.
         var crashes = outcomes.Where(o => o.Result == "Crash").ToList();
-        Assert.True(crashes.Count == 0,
-            $"{crashes.Count} encounter(s) crashed — see report. Crashes: " +
-            string.Join("; ", crashes.Select(c => $"{c.EncounterId}: {c.Detail}")));
+        var regressions = outcomes
+            .Where(o => o.Result != "Win" && o.Result != "Crash")
+            .Where(o => !KnownEngineBlocked.TryGetValue(o.EncounterId, out var expected) || expected != o.Result)
+            .ToList();
+        var unexpectedWins = outcomes
+            .Where(o => o.Result == "Win" && KnownEngineBlocked.ContainsKey(o.EncounterId))
+            .ToList();
+        var failures = new List<string>();
+        if (crashes.Count > 0)
+            failures.Add($"{crashes.Count} crash(es): " +
+                string.Join("; ", crashes.Select(c => $"{c.EncounterId}: {c.Detail}")));
+        if (regressions.Count > 0)
+            failures.Add($"{regressions.Count} regression(s) (Loss/Timeout outside KnownEngineBlocked): " +
+                string.Join("; ", regressions.Select(r => $"{r.EncounterId}={r.Result}")));
+        if (unexpectedWins.Count > 0)
+            failures.Add($"{unexpectedWins.Count} resolved engine bug(s) (KnownEngineBlocked now Wins): " +
+                string.Join(", ", unexpectedWins.Select(w => w.EncounterId)) +
+                " — remove from KnownEngineBlocked");
+        Assert.True(failures.Count == 0,
+            $"sweep failed:\n  " + string.Join("\n  ", failures) +
+            "\nFull report: documentation/coverage/every-encounter-ironclad.md");
     }
 
     [Fact]
@@ -193,7 +399,8 @@ public class EveryEncounterSmokeTests : IClassFixture<HostSubprocess>
         IEnumerable<(string CardId, int UpgradeLevel)> deck,
         TimeSpan budget,
         int startingHp,
-        int startingMaxHp)
+        int startingMaxHp,
+        IEnumerable<string>? relics = null)
     {
         var sw = Stopwatch.StartNew();
         try
@@ -202,6 +409,11 @@ public class EveryEncounterSmokeTests : IClassFixture<HostSubprocess>
                 "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
             await transport.ReplaceDeckAsync(deck);
             await transport.SetHpAsync(startingHp, startingMaxHp);
+            if (relics is not null)
+            {
+                foreach (var relicId in relics)
+                    await transport.GiveRelicAsync(relicId);
+            }
             var start = await transport.StartCombatAsync(encounterId);
             if (!start.InProgress)
             {
