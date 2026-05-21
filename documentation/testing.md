@@ -117,8 +117,11 @@ costs us nothing because AD-2 preserved the option.
 
 ```
 just test              # all C# axes + Python parity + Python typecheck/lint
-just test-cs           # C# unit + integration + end2end (when present)
+just test-unit         # C# unit tests only (no vendor/sts2.dll required)
+just test-integration  # C# integration tests (single-slice scenarios)
+just test-end2end      # C# end-to-end tests (multi-room arcs / replays)
 just test-python       # Python parity tests only
+just test-sequential   # all axes, sequential (live logs per suite)
 ```
 
 (Recipes are in the `justfile`; `just --list` enumerates the current set.)
