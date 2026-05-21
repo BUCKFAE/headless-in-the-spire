@@ -119,6 +119,44 @@ public class CombatBudgetGuardTests
     }
 
     [Fact]
+    public void SentinelHpEnemy_AppendsAdvisoryToExceptionMessage()
+    {
+        // Doormaker ships MaxHp ≈ 999999999. When the budget guard trips
+        // on a fight against an enemy at sentinel HP, the exception must
+        // call it out — otherwise "combat exceeded 80 rounds" reads as
+        // a deck/agent problem rather than the design-placeholder /
+        // unrecovered-phase-transition that it actually is.
+        var guard = new CombatBudgetGuard(maxCombatRounds: 3, maxNoProgressRounds: 99);
+        guard.Observe(CombatSnapshot(round: 1, hp: 60, ("DOORMAKER", 999_999_999, 0, [])));
+        guard.Observe(CombatSnapshot(round: 2, hp: 60, ("DOORMAKER", 999_999_998, 0, [])));
+        guard.Observe(CombatSnapshot(round: 3, hp: 60, ("DOORMAKER", 999_999_997, 0, [])));
+        var ex = Assert.Throws<CombatBudgetExceededException>(() =>
+            guard.Observe(CombatSnapshot(round: 4, hp: 60, ("DOORMAKER", 999_999_996, 0, []))));
+        Assert.NotNull(ex.Advisory);
+        Assert.Contains("sentinel-HP", ex.Advisory!);
+        Assert.Contains("DOORMAKER", ex.Advisory!);
+        // The advisory must also land in the exception's Message (the
+        // common consumption path — sweep reports use ex.Message verbatim).
+        Assert.Contains("sentinel-HP", ex.Message);
+    }
+
+    [Fact]
+    public void NormalHpEnemy_LeavesAdvisoryNull()
+    {
+        // Ordinary boss / elite HPs (50–500) never trigger the sentinel
+        // call-out — otherwise the warning becomes noise and stops being
+        // a signal.
+        var guard = new CombatBudgetGuard(maxCombatRounds: 3, maxNoProgressRounds: 99);
+        guard.Observe(CombatSnapshot(round: 1, hp: 60, ("BRUTE", 400, 0, [])));
+        guard.Observe(CombatSnapshot(round: 2, hp: 60, ("BRUTE", 399, 0, [])));
+        guard.Observe(CombatSnapshot(round: 3, hp: 60, ("BRUTE", 398, 0, [])));
+        var ex = Assert.Throws<CombatBudgetExceededException>(() =>
+            guard.Observe(CombatSnapshot(round: 4, hp: 60, ("BRUTE", 397, 0, []))));
+        Assert.Null(ex.Advisory);
+        Assert.DoesNotContain("sentinel-HP", ex.Message);
+    }
+
+    [Fact]
     public void PowerChange_CountsAsProgress()
     {
         var guard = new CombatBudgetGuard(maxCombatRounds: 99, maxNoProgressRounds: 2);

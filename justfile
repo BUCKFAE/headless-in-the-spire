@@ -109,6 +109,14 @@ probe-rewards-natural-chain: build
 probe-combat-stall seed="1" floor="15": build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-combat-stall --seed {{seed}} --floor {{floor}}
 
+# List every type whose name matches one of the substrings, with its declared methods (e.g. `just probe-types Doormaker,SwapPhase`). Shows generic-method args and async state-machine targets when present — useful for picking a Harmony-patchable surface.
+probe-types patterns: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-types {{patterns}}
+
+# Scan every method in sts2.dll for call/callvirt sites that match a method name (e.g. `just probe-callers SwapPhasePower`). Prints caller → closed-instantiation pairs — the way to find Harmony-patchable closed forms of an open-generic target.
+probe-callers patterns: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-callers {{patterns}}
+
 # List every member of <fqn> that sts2.dll references (e.g. `just list-members Godot.OS`).
 list-members fqn: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --list-members {{fqn}}

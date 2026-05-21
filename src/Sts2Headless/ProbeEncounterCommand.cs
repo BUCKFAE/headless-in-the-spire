@@ -166,7 +166,7 @@ internal static class ProbeEncounterCommand
         // 20 rounds is enough to kill weak enemies and surface post-kill
         // SUMMON / on-death engine hooks — most boss-side bugs that
         // depend on combat duration show up well inside that window.
-        for (var round = 0; round < 20; round++)
+        for (var round = 0; round < 50; round++)
         {
             var snap = bindings.ReadSnapshot(handle);
             var c = snap.CombatState;
@@ -175,7 +175,7 @@ internal static class ProbeEncounterCommand
                 Console.WriteLine($"  combat ended (round={round})");
                 break;
             }
-            Console.WriteLine($"  round={c.Round} energy={c.Energy}/{c.MaxEnergy} hand={c.Hand.Count}");
+            Console.WriteLine($"  round={c.Round} energy={c.Energy}/{c.MaxEnergy} hand={c.Hand.Count} enemies=[{string.Join(",", c.Enemies.Select(e => $"{e.MonsterId}:hp={e.Hp}/{e.MaxHp}"))}]");
             var playedThisRound = 0;
             for (var i = 0; i < c.Hand.Count && playedThisRound < 6; i++)
             {

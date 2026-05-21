@@ -67,7 +67,26 @@ internal static class ProbeTypesCommand
                             ? $"Task" + (rt.IsGenericType ? $"<{rt.GetGenericArguments()[0].Name}>" : "")
                             : rt.Name;
                         var ps = string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name));
-                        Console.WriteLine($"    {m.Name}({ps}) -> {rtName}");
+                        var genericMarker = "";
+                        if (m.IsGenericMethodDefinition)
+                        {
+                            var gargs = m.GetGenericArguments();
+                            var constraints = gargs.Select(g =>
+                            {
+                                var c = g.GetGenericParameterConstraints().Select(t => t.Name).ToArray();
+                                return c.Length == 0 ? g.Name : $"{g.Name}:{string.Join("+", c)}";
+                            });
+                            genericMarker = $"<{string.Join(",", constraints)}>";
+                        }
+                        var asyncSm = m.GetCustomAttributesData()
+                            .FirstOrDefault(a => a.AttributeType.Name == "AsyncStateMachineAttribute");
+                        var smSuffix = "";
+                        if (asyncSm is not null && asyncSm.ConstructorArguments.Count == 1
+                            && asyncSm.ConstructorArguments[0].Value is Type smType)
+                        {
+                            smSuffix = $"  [sm: {smType.Name}]";
+                        }
+                        Console.WriteLine($"    {m.Name}{genericMarker}({ps}) -> {rtName}{smSuffix}");
                     }
                     catch (Exception ex)
                     {

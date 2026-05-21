@@ -243,15 +243,16 @@ public class EveryEncounterSmokeTests : IClassFixture<HostSubprocess>
     //     encounter never reproduces because the bug is sequence-
     //     dependent. Hellraiser auto-play dodges it; INFLAME hybrid keeps
     //     us alive longer but still loses at ~107 steps.
-    //   * DOORMAKER_BOSS — Doormaker.SwapPhasePower is an open-generic
-    //     async method Harmony refuses to patch (MMReflectionImporter
-    //     fails on the generic parameter), so the existing hang-patch
-    //     silently skips it. The boss never transitions out of phase 1
-    //     and sits at an int.Max-ish sentinel HP, deadlocking combat.
+    //   * DOORMAKER_BOSS — resolved 2026-05-21. Was blamed on open-
+    //     generic SwapPhasePower; real cause was the move-body patches
+    //     stripping CreatureCmd.SetMaxAndCurrentHp + PowerCmd.Apply
+    //     (gameplay) along with the UI calls (intended target). Fix
+    //     patches Cmd.CustomScaledWait + Doormaker.UpdateVisual and
+    //     leaves the move bodies untouched. See
+    //     DoormakerPhaseTransitionTests.cs for the regression contract.
     private static readonly Dictionary<string, string> KnownEngineBlocked = new()
     {
         ["QUEEN_BOSS"] = "Loss",
-        ["DOORMAKER_BOSS"] = "Timeout",
     };
 
     private static readonly TimeSpan BudgetPerEncounter = TimeSpan.FromMinutes(2);

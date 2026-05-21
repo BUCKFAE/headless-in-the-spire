@@ -167,6 +167,10 @@ public class Sprite2D : Node2D
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
     public new class SignalName : Node2D.SignalName { }
+
+    // from: Doormaker.UpdateVisual swaps the boss sprite when transitioning
+    //   phase. Auto-property is enough — no headless reader looks at it back.
+    public Texture2D? Texture { get; set; }
 }
 
 public class GpuParticles2D : Node2D

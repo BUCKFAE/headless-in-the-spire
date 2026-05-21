@@ -57,6 +57,21 @@ if (args.Contains("--probe-types"))
     return ProbeTypesCommand.Run(vendorDir, args);
 }
 
+if (args.Contains("--probe-callers"))
+{
+    return ProbeCallersCommand.Run(vendorDir, args);
+}
+
+if (args.Contains("--probe-creatures"))
+{
+    return ProbeCreaturesCommand.Run(vendorDir, args);
+}
+
+if (args.Contains("--probe-method-body"))
+{
+    return ProbeMethodBodyCommand.Run(vendorDir, args);
+}
+
 if (args.Contains("--probe-encounter"))
 {
     return ProbeEncounterCommand.Run(vendorDir, args);

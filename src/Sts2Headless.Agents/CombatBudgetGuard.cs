@@ -115,7 +115,8 @@ public sealed class CombatBudgetGuard
                 budget: _maxCombatRounds,
                 observed: combat.Round,
                 encounter: encounterKey,
-                fingerprint: VitalsFingerprint(state, combat));
+                fingerprint: VitalsFingerprint(state, combat),
+                advisory: BuildAdvisory(combat));
         }
 
         // (2) Round-over-round no-progress detection. We compare
@@ -136,7 +137,8 @@ public sealed class CombatBudgetGuard
                         budget: _maxNoProgressRounds,
                         observed: _noProgressRounds,
                         encounter: encounterKey,
-                        fingerprint: currentVitals);
+                        fingerprint: currentVitals,
+                        advisory: BuildAdvisory(combat));
                 }
             }
             else
@@ -164,6 +166,35 @@ public sealed class CombatBudgetGuard
         string.Join(",", combat.Enemies.Select(e =>
             $"{e.MonsterId}:{e.Hp}+{e.Block}|" +
             string.Join("/", e.Powers.Select(p => $"{p.Id}:{p.Amount}"))));
+
+    // Sentinel-HP advisory. Real STS2 bosses have HP in the hundreds;
+    // anything ≥ 100k is either an engine-design placeholder (Doormaker
+    // ships MaxHp=999999999), an "uninitialized phase" marker, or a
+    // headless bug where a phase-transition Task never ran. When the
+    // budget guard trips, surfacing the suspicious enemies in the
+    // exception message turns "combat exceeded N rounds" from a riddle
+    // into a pointer: "this fight never had a real win condition, look
+    // at why HP is X." Doormaker was the surfacing case — a fingerprint
+    // line of `DOORMAKER:999996514+0` should never need a forensic
+    // investigation to understand.
+    private const int SentinelHpThreshold = 100_000;
+
+    internal static string? BuildAdvisory(CombatState combat)
+    {
+        var suspicious = combat.Enemies
+            .Where(e => e.Hp >= SentinelHpThreshold || e.MaxHp >= SentinelHpThreshold)
+            .ToList();
+        if (suspicious.Count == 0) return null;
+        var rows = suspicious.Select(e =>
+            $"    {e.MonsterId}: hp={e.Hp:N0}/{e.MaxHp:N0}{(e.Powers.Count > 0 ? " powers=" + string.Join(",", e.Powers.Select(p => $"{p.Id}:{p.Amount}")) : "")}");
+        return
+            $"  ⚠ sentinel-HP enemy(s) detected (HP ≥ {SentinelHpThreshold:N0}):\n" +
+            string.Join("\n", rows) + "\n" +
+            $"    This is almost never a real fight — it's an engine-design placeholder " +
+            $"(Doormaker ships MaxHp≈10⁹) or a phase-transition Task that NRE'd in " +
+            $"headless. Check HangPatches for the monster's move set; if a Task method " +
+            $"was silently skipped, NoSilentSkipTests will surface the cause.";
+    }
 }
 
 public enum BudgetKind
@@ -181,27 +212,33 @@ public sealed class CombatBudgetExceededException : InvalidOperationException
     public int Observed { get; }
     public string Encounter { get; }
     public string Fingerprint { get; }
+    public string? Advisory { get; }
 
-    public CombatBudgetExceededException(BudgetKind kind, int budget, int observed, string encounter, string fingerprint)
-        : base(BuildMessage(kind, budget, observed, encounter, fingerprint))
+    public CombatBudgetExceededException(BudgetKind kind, int budget, int observed, string encounter, string fingerprint, string? advisory = null)
+        : base(BuildMessage(kind, budget, observed, encounter, fingerprint, advisory))
     {
         Kind = kind;
         Budget = budget;
         Observed = observed;
         Encounter = encounter;
         Fingerprint = fingerprint;
+        Advisory = advisory;
     }
 
-    private static string BuildMessage(BudgetKind kind, int budget, int observed, string encounter, string fingerprint) => kind switch
+    private static string BuildMessage(BudgetKind kind, int budget, int observed, string encounter, string fingerprint, string? advisory)
     {
-        BudgetKind.MaxRounds => $"CombatBudgetGuard: combat exceeded {budget} rounds (observed round={observed}). " +
-            $"Likely an infinite-but-progressing loop (Hellraiser + Pommel Strike-class, or a reactive enemy the agent can't crack).\n" +
-            $"  encounter: {encounter}\n" +
-            $"  fingerprint: {fingerprint}",
-        BudgetKind.MaxNoProgressRounds => $"CombatBudgetGuard: {observed} consecutive rounds without HP/block/power change. " +
-            $"Deadlock detected — neither side is doing anything that matters. Cap was {budget} rounds.\n" +
-            $"  encounter: {encounter}\n" +
-            $"  fingerprint: {fingerprint}",
-        _ => $"CombatBudgetGuard: unknown budget kind {kind}",
-    };
+        var head = kind switch
+        {
+            BudgetKind.MaxRounds => $"CombatBudgetGuard: combat exceeded {budget} rounds (observed round={observed}). " +
+                $"Likely an infinite-but-progressing loop (Hellraiser + Pommel Strike-class, or a reactive enemy the agent can't crack).\n" +
+                $"  encounter: {encounter}\n" +
+                $"  fingerprint: {fingerprint}",
+            BudgetKind.MaxNoProgressRounds => $"CombatBudgetGuard: {observed} consecutive rounds without HP/block/power change. " +
+                $"Deadlock detected — neither side is doing anything that matters. Cap was {budget} rounds.\n" +
+                $"  encounter: {encounter}\n" +
+                $"  fingerprint: {fingerprint}",
+            _ => $"CombatBudgetGuard: unknown budget kind {kind}",
+        };
+        return advisory is null ? head : head + "\n" + advisory;
+    }
 }

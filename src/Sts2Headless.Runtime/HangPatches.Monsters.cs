@@ -195,21 +195,39 @@ public static partial class HangPatches
             },
             label: "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment.{*Move, AfterDeath}");
 
-    // DOORMAKER_BOSS → Doormaker (with HUNGER_POWER). Generic boss moves +
-    // the dramatic-open intro animation that always NREs in headless.
-    // SwapPhasePower is the boss's phase-transition async hook — without
-    // patching it the agent can keep damaging but the boss never advances
-    // past phase 1 (the sweep saw a step-limit timeout). AfterDeath is
-    // patched defensively per the SoulNexus precedent.
+    // DOORMAKER_BOSS → Doormaker. Originally this patch no-op'd every
+    // move method + SwapPhasePower, which silently stripped the boss
+    // of its mechanics: HP stayed at the engine-design sentinel
+    // (999999999, the MaxHp set before DramaticOpenMove runs
+    // CreatureCmd.SetMaxAndCurrentHp(OriginalHp)) and HungerPower
+    // never got applied. Boss combat then "deadlocked" at sentinel HP
+    // until CombatBudgetGuard tripped at round 81.
+    //
+    // IL inspection (`just probe-method-body Doormaker DramaticOpenMove`)
+    // showed each move actually does:
+    //   * gameplay state mutations (CreatureCmd.SetMaxAndCurrentHp,
+    //     PowerCmd.Apply/Remove, DamageCmd.Attack, set_IsPortalOpen,
+    //     SwapPhasePower<T>) — MUST run for the fight to progress
+    //   * a small fixed UI surface (Cmd.CustomScaledWait,
+    //     Doormaker.UpdateVisual, TalkCmd.Play, NRunMusicController) —
+    //     would NRE in headless
+    //
+    // SwapPhasePower<T>'s body is pure PowerCmd.Remove/Apply, no UI at
+    // all — patching it was an over-reach.
+    //
+    // The proper fix patches the helpers (Cmd.CustomScaledWait via
+    // PatchCmdWait + UpdateVisual here) and lets the move bodies and
+    // SwapPhasePower run normally. AfterDeath stays patched
+    // defensively per the SoulNexus precedent (its body may walk
+    // post-mortem UI state).
     private static PatchOutcome PatchDoormaker(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2,
             typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Doormaker",
             methodNames: new HashSet<string>(StringComparer.Ordinal)
             {
-                "DramaticOpenMove", "GraspMove", "HungerMove", "ScrutinyMove",
-                "SwapPhasePower", "AfterDeath",
+                "UpdateVisual", "AfterDeath",
             },
-            label: "MegaCrit.Sts2.Core.Models.Monsters.Doormaker.{*Move, SwapPhasePower, AfterDeath}");
+            label: "MegaCrit.Sts2.Core.Models.Monsters.Doormaker.{UpdateVisual, AfterDeath}");
 
     // GREMLIN_MERC_NORMAL → GremlinMerc spawns a FatGremlin via its moves;
     // both need patching for the encounter to finish out. HEIST_POWER is a
@@ -388,28 +406,106 @@ public static partial class HangPatches
         var sigs = new List<string>(methods.Length);
         foreach (var m in methods)
         {
-            // Harmony can't patch open generic methods (Doormaker.SwapPhasePower
-            // is the surfacing example — the compiler-generated state machine
-            // type has one generic parameter, and Harmony's IL-rewrite path
-            // fails at MMReflectionImporter.ImportGenericParameter). Skip with
-            // a visible note rather than crash bootstrap.
+            // Harmony can't patch the OPEN definition of a generic method
+            // (Doormaker.SwapPhasePower<T:PowerModel> is the surfacing
+            // example — Harmony's IL-rewrite path fails at
+            // MMReflectionImporter.ImportGenericParameter). But every
+            // closed instantiation IS patchable. We scan the type's own
+            // methods + nested compiler-generated state machines for
+            // call/callvirt sites that pin the generic args and patch
+            // each closed form. Sentinel-HP boss phases (Doormaker stuck
+            // at 999996514 HP because SwapPhasePower never ran) get a
+            // real fix instead of a "skipped:" annotation.
             if (m.IsGenericMethodDefinition || m.ContainsGenericParameters)
             {
-                sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: open-generic, not Harmony-patchable)");
+                var closed = FindClosedGenericCallers(monsterType, m);
+                if (closed.Count == 0)
+                {
+                    sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: open-generic with no in-type closed callers)");
+                    continue;
+                }
+                var prefix = PickPrefix(m, taskPrefix, voidPrefix, nullPrefix);
+                if (prefix is null)
+                {
+                    sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported value-type return)");
+                    continue;
+                }
+                foreach (var closedMethod in closed)
+                {
+                    harmony.Patch(closedMethod, prefix: new HarmonyMethod(prefix));
+                    var gargs = string.Join(",", closedMethod.GetGenericArguments().Select(t => t.Name));
+                    sigs.Add($"{m.Name}<{gargs}>() → {closedMethod.ReturnType.Name}");
+                }
                 continue;
             }
-            MethodInfo prefix;
-            if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType)) prefix = taskPrefix;
-            else if (m.ReturnType == typeof(void)) prefix = voidPrefix;
-            else if (!m.ReturnType.IsValueType) prefix = nullPrefix;
-            else
+            var pickedPrefix = PickPrefix(m, taskPrefix, voidPrefix, nullPrefix);
+            if (pickedPrefix is null)
             {
                 sigs.Add($"{m.Name} → {m.ReturnType.Name} (skipped: unsupported value-type return)");
                 continue;
             }
-            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            harmony.Patch(m, prefix: new HarmonyMethod(pickedPrefix));
             sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}) → {m.ReturnType.Name}");
         }
         return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
+    private static MethodInfo? PickPrefix(MethodInfo m, MethodInfo taskPrefix, MethodInfo voidPrefix, MethodInfo nullPrefix)
+    {
+        if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType)) return taskPrefix;
+        if (m.ReturnType == typeof(void)) return voidPrefix;
+        if (!m.ReturnType.IsValueType) return nullPrefix;
+        return null;
+    }
+
+    // Walks the declaring type's own methods and nested compiler-generated
+    // state machines for call/callvirt sites that close the open generic
+    // method `openGeneric`. Returns the de-duplicated set of closed
+    // instantiations. The IL of an async caller `await SwapPhasePower<X>()`
+    // ends up on `Type+<MoveName>d__NN.MoveNext`, so we have to look at
+    // nested types — declared-only on the parent misses every state
+    // machine and would report zero callers for Doormaker.
+    private static List<MethodInfo> FindClosedGenericCallers(Type declaringType, MethodInfo openGeneric)
+    {
+        var found = new List<MethodInfo>();
+        ScanType(declaringType, declaringType, openGeneric, found);
+        foreach (var nested in declaringType.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
+        {
+            ScanType(nested, declaringType, openGeneric, found);
+        }
+        return found;
+    }
+
+    private static void ScanType(Type scanTarget, Type genericOwner, MethodInfo openGeneric, List<MethodInfo> sink)
+    {
+        MethodInfo[] methods;
+        try { methods = scanTarget.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly); }
+        catch { return; }
+        foreach (var m in methods)
+        {
+            if (m.IsAbstract || m.ContainsGenericParameters) continue;
+            List<CodeInstruction> instructions;
+            try { instructions = PatchProcessor.GetCurrentInstructions(m); }
+            catch { continue; }
+            foreach (var ins in instructions)
+            {
+                if (ins.opcode != System.Reflection.Emit.OpCodes.Call
+                    && ins.opcode != System.Reflection.Emit.OpCodes.Callvirt) continue;
+                if (ins.operand is not MethodInfo target) continue;
+                if (target.DeclaringType != genericOwner) continue;
+                if (target.Name != openGeneric.Name) continue;
+                if (!target.IsGenericMethod || target.IsGenericMethodDefinition) continue;
+                if (!sink.Any(c => GenericArgsEqual(c, target))) sink.Add(target);
+            }
+        }
+    }
+
+    private static bool GenericArgsEqual(MethodInfo a, MethodInfo b)
+    {
+        var ga = a.GetGenericArguments();
+        var gb = b.GetGenericArguments();
+        if (ga.Length != gb.Length) return false;
+        for (int i = 0; i < ga.Length; i++) if (ga[i] != gb[i]) return false;
+        return true;
     }
 }

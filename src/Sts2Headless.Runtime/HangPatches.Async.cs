@@ -26,20 +26,32 @@ public static partial class HangPatches
 
     private static PatchOutcome PatchCmdWait(Harmony harmony, Assembly sts2)
     {
-        const string label = "MegaCrit.Sts2.Core.Commands.Cmd.Wait(float)";
+        const string label = "MegaCrit.Sts2.Core.Commands.Cmd.{Wait,CustomScaledWait}";
         var cmdType = sts2.GetType("MegaCrit.Sts2.Core.Commands.Cmd");
         if (cmdType is null)
         {
             return new PatchOutcome(label, Patched: false, Detail: "type MegaCrit.Sts2.Core.Commands.Cmd not found");
         }
 
-        // Wait may have multiple overloads; we patch every static Wait(...) on the type that returns Task.
+        // Every wait-shaped static helper on Cmd returns Task and parks
+        // on a SceneTreeTimer (or scaled variant). They all deadlock in
+        // headless for the same reason and want the same treatment —
+        // return Task.CompletedTask. Doormaker.DramaticOpenMove /
+        // HungerMove / ScrutinyMove / GraspMove all use CustomScaledWait
+        // for the animation-timing pause; without patching it, those
+        // moves' state machines hang at the first await even though
+        // their gameplay (HP setter, PowerCmd.Apply/Remove) had already
+        // run earlier in the body. The Doormaker patches that used to
+        // skip the move bodies entirely (stripping HP/power mutations)
+        // were a sledgehammer for a problem this fine-grained patch
+        // resolves at the actual deadlock site.
         var waits = cmdType.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(m => m.Name == "Wait" && typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
+            .Where(m => (m.Name == "Wait" || m.Name == "CustomScaledWait")
+                && typeof(System.Threading.Tasks.Task).IsAssignableFrom(m.ReturnType))
             .ToArray();
         if (waits.Length == 0)
         {
-            return new PatchOutcome(label, Patched: false, Detail: "no static Wait method returning Task on Cmd");
+            return new PatchOutcome(label, Patched: false, Detail: "no static Wait/CustomScaledWait method returning Task on Cmd");
         }
 
         var prefix = typeof(HangPatches).GetMethod(nameof(ReturnCompletedTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
@@ -47,7 +59,7 @@ public static partial class HangPatches
         foreach (var m in waits)
         {
             harmony.Patch(m, prefix: new HarmonyMethod(prefix));
-            sigs.Add($"Wait({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))})");
+            sigs.Add($"{m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))})");
         }
         return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
     }
