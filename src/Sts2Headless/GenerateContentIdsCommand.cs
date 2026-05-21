@@ -109,7 +109,7 @@ public static class GenerateContentIdsCommand
 
         var (modelDbType, contentById) = ResolveModelDb(preamble.Sts2!);
 
-        var outDir = Path.Combine(repoRoot, "src", "Sts2Headless.Protocol");
+        var outDir = Path.Combine(repoRoot, "src", "Sts2Headless.Protocol", "Methods");
         var anyFailed = false;
 
         foreach (var spec in Kinds)

@@ -8,8 +8,8 @@
     Per-kind stub vs. generated enum.
 
     For each content kind (Card / Relic / Potion / Monster / Encounter /
-    Event / Power / Affliction / Modifier / Enchantment / Orb), the project
-    contains two files:
+    Event / Power / Affliction / Modifier / Enchantment / Orb), the
+    Methods/ folder contains two files:
 
       * {Kind}Id.g.cs        — full enum + wire-name lookup, emitted by
                                 `just generate-content-ids` from the
@@ -24,16 +24,16 @@
     enum; anyone running `dotnet build` standalone (e.g. before vendor/
     is populated) compiles against the stub.
   -->
-  <ItemGroup Condition="Exists('CardId.g.cs')">         <Compile Remove="CardId.Fallback.cs" /> </ItemGroup>
-  <ItemGroup Condition="Exists('RelicId.g.cs')">        <Compile Remove="RelicId.Fallback.cs" /> </ItemGroup>
-  <ItemGroup Condition="Exists('PotionId.g.cs')">       <Compile Remove="PotionId.Fallback.cs" /> </ItemGroup>
-  <ItemGroup Condition="Exists('MonsterId.g.cs')">      <Compile Remove="MonsterId.Fallback.cs" /> </ItemGroup>
-  <ItemGroup Condition="Exists('EncounterId.g.cs')">    <Compile Remove="EncounterId.Fallback.cs" /> </ItemGroup>
-  <ItemGroup Condition="Exists('EventId.g.cs')">        <Compile Remove="EventId.Fallback.cs" /> </ItemGroup>
-  <ItemGroup Condition="Exists('PowerId.g.cs')">        <Compile Remove="PowerId.Fallback.cs" /> </ItemGroup>
-  <ItemGroup Condition="Exists('AfflictionId.g.cs')">   <Compile Remove="AfflictionId.Fallback.cs" /> </ItemGroup>
-  <ItemGroup Condition="Exists('ModifierId.g.cs')">     <Compile Remove="ModifierId.Fallback.cs" /> </ItemGroup>
-  <ItemGroup Condition="Exists('EnchantmentId.g.cs')">  <Compile Remove="EnchantmentId.Fallback.cs" /> </ItemGroup>
-  <ItemGroup Condition="Exists('OrbId.g.cs')">          <Compile Remove="OrbId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/CardId.g.cs')">         <Compile Remove="Methods/CardId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/RelicId.g.cs')">        <Compile Remove="Methods/RelicId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/PotionId.g.cs')">       <Compile Remove="Methods/PotionId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/MonsterId.g.cs')">      <Compile Remove="Methods/MonsterId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/EncounterId.g.cs')">    <Compile Remove="Methods/EncounterId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/EventId.g.cs')">        <Compile Remove="Methods/EventId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/PowerId.g.cs')">        <Compile Remove="Methods/PowerId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/AfflictionId.g.cs')">   <Compile Remove="Methods/AfflictionId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/ModifierId.g.cs')">     <Compile Remove="Methods/ModifierId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/EnchantmentId.g.cs')">  <Compile Remove="Methods/EnchantmentId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/OrbId.g.cs')">          <Compile Remove="Methods/OrbId.Fallback.cs" /> </ItemGroup>
 
 </Project>

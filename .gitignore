@@ -20,7 +20,7 @@ external-tools/
 # (run automatically by `just setup`).
 # *.Fallback.cs (committed) supplies an Unknown-only stub so Protocol
 # still compiles before the generator has produced the real enum.
-/src/Sts2Headless.Protocol/*.g.cs
+/src/Sts2Headless.Protocol/Methods/*.g.cs
 
 # ModelDb introspection dumps, written by `just probe-modeldb`. One file
 # per ModelDb enumeration property + a top-level content-inventory.txt.
