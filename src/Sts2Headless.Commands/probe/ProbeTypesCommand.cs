@@ -1,7 +1,7 @@
 using System.Reflection;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Type/method inspection probe — `just probe-types MonsterName,OtherName`.
 // Loads sts2.dll, finds every type whose simple or full name contains any

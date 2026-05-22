@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+using Sts2Headless.Commands;
 using Sts2Headless.Runtime;
 
 namespace Sts2Headless.IntegrationTests.Coverage;

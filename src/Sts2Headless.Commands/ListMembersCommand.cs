@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Enumerates every member of a given external type that sts2.dll references.
 // Reads the MemberReference table directly via System.Reflection.Metadata —

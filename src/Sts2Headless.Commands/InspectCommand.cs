@@ -3,7 +3,7 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Loads vendor/sts2.dll and tries to enumerate its types. The point is to
 // surface what GodotSharp surface area sts2.dll actually depends on, by

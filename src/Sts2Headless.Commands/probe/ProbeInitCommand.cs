@@ -1,6 +1,6 @@
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Phase-1 diagnostic: load sts2.dll, install the inline sync context, and
 // attach the three Harmony hang-patches. Does NOT invoke any sts2 code paths

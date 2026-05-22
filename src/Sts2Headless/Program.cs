@@ -1,5 +1,5 @@
 using Sts2Headless;
-using Sts2Headless.Replay;
+using Sts2Headless.Commands;
 using Sts2Headless.Runtime;
 
 // Skeleton entry: validates that the toolchain wires together and that
@@ -12,107 +12,10 @@ var gameVersionFile = Path.Combine(repoRoot, "GAME_VERSION");
 
 VendorAssemblyResolver.Install(vendorDir);
 
-if (args.Contains("--inspect-sts2"))
-{
-    return InspectCommand.Run(vendorDir);
-}
-
-if (args.Contains("--probe-init"))
-{
-    return ProbeInitCommand.Run(vendorDir);
-}
-
-if (args.Contains("--probe-bootstrap"))
-{
-    return ProbeBootstrapCommand.Run(vendorDir);
-}
-
-if (args.Contains("--probe-run-state"))
-{
-    return ProbeRunStateCommand.Run(vendorDir);
-}
-
-if (args.Contains("--probe-natural-chain"))
-{
-    return ProbeNaturalChainCommand.Run(vendorDir, repoRoot);
-}
-
-if (args.Contains("--probe-rewards-natural-chain"))
-{
-    return ProbeRewardsNaturalChainCommand.Run(vendorDir, repoRoot);
-}
-
-if (args.Contains("--probe-merchant"))
-{
-    return ProbeMerchantCommand.Run(vendorDir);
-}
-
-if (args.Contains("--probe-combat-stall"))
-{
-    return ProbeCombatStallCommand.Run(vendorDir, args);
-}
-
-if (args.Contains("--probe-types"))
-{
-    return ProbeTypesCommand.Run(vendorDir, args);
-}
-
-if (args.Contains("--probe-callers"))
-{
-    return ProbeCallersCommand.Run(vendorDir, args);
-}
-
-if (args.Contains("--probe-creatures"))
-{
-    return ProbeCreaturesCommand.Run(vendorDir, args);
-}
-
-if (args.Contains("--probe-method-body"))
-{
-    return ProbeMethodBodyCommand.Run(vendorDir, args);
-}
-
-if (args.Contains("--probe-encounter"))
-{
-    return ProbeEncounterCommand.Run(vendorDir, args);
-}
-
-if (args.Contains("--generate-content-ids") || args.Contains("--generate-card-ids"))
-{
-    // `--generate-card-ids` retained as an alias so older shell history
-    // and justfile checkouts keep working through the rename. The new
-    // command always emits every kind's manifest, not just CardId.
-    return GenerateContentIdsCommand.Run(vendorDir, repoRoot);
-}
-
-if (args.Contains("--probe-modeldb"))
-{
-    return ProbeModelDbCommand.Run(vendorDir, repoRoot);
-}
-
-if (args.Contains("--probe-listener-dispatch"))
-{
-    return ProbeListenerDispatchCommand.Run(vendorDir, repoRoot);
-}
-
-// `--rebuild-replay-index <root>?` — walks <root>/<version>/<run-id>/manifest.json
-// and rewrites <root>/runs.json. Useful after manually copying recordings
-// in/out of vendor/replays. With no root argument, defaults to
-// <repoRoot>/vendor/replays. Doesn't load sts2.dll.
-{
-    var rebuildIdx = Array.IndexOf(args, "--rebuild-replay-index");
-    if (rebuildIdx >= 0)
-    {
-        var rootArg = rebuildIdx + 1 < args.Length && !args[rebuildIdx + 1].StartsWith('-')
-            ? args[rebuildIdx + 1]
-            : Path.Combine(repoRoot, ReplayLayout.DefaultRootRelative);
-        var n = ReplayIndex.Rebuild(rootArg);
-        Console.WriteLine($"rebuilt {ReplayLayout.RunsIndexPath(rootArg)} with {n} run(s)");
-        return 0;
-    }
-}
-
-
+// The product path. The stdio host owns the full bootstrap/binding lifecycle,
+// so it stays here on its own branch rather than in the diagnostic command
+// table (CliCommands). Checked first: pairing --stdio with a diagnostic verb is
+// meaningless, and the host should always win that race.
 if (args.Contains("--stdio"))
 {
     var preamble = RuntimeBootstrap.Run(vendorDir);
@@ -166,19 +69,21 @@ if (args.Contains("--stdio"))
     return exitCode;
 }
 
-// --list-members <FQN>: dump every member of <FQN> that sts2.dll references.
-// Used to grow GodotStubs accurately without speculation.
-var listIdx = Array.IndexOf(args, "--list-members");
-if (listIdx >= 0)
+if (args.Contains("--help") || args.Contains("-h"))
 {
-    if (listIdx + 1 >= args.Length)
-    {
-        Console.Error.WriteLine("--list-members needs a fully-qualified type name (e.g. Godot.OS).");
-        return 1;
-    }
-    return ListMembersCommand.Run(vendorDir, args[listIdx + 1]);
+    CliCommands.WriteHelp(Console.Out);
+    return 0;
 }
 
+// Diagnostic / generator commands all live in one dispatch table; adding one
+// there makes it discoverable via --help with no change here.
+var command = CliCommands.Match(args);
+if (command is not null)
+{
+    return command.Invoke(new CliContext(repoRoot, vendorDir, args));
+}
+
+// No recognised verb: print repo / vendor / pin status.
 Console.WriteLine("sts2-headless");
 Console.WriteLine($"  repo:    {repoRoot}");
 Console.WriteLine($"  vendor:  {vendorDir}");

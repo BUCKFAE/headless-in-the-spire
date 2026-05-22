@@ -25,6 +25,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+    <!-- CLI dispatch table — CliCommandsTests pins its behaviour. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.Commands\Sts2Headless.Commands.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Replay\Sts2Headless.Replay.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />

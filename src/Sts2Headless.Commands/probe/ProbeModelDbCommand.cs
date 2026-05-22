@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Text;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Reflective dump of every "All*" enumeration on MegaCrit.Sts2.Core.Models.ModelDb
 // — cards, relics, monsters, events, potions, room types, etc. — so we can

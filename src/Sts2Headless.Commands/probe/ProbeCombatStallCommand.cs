@@ -2,7 +2,7 @@ using System.Reflection;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Diagnose-the-combat-stall probe. Drives the engine through one seed's
 // natural agent-path (heal-between-rooms, play-then-end-turn) and on the

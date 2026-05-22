@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Text;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Emits one {Kind}Id.g.cs per content kind in src/Sts2Headless.Protocol/,
 // sourced from the booted sts2.dll's ModelDb. Generalises the original
@@ -33,6 +33,7 @@ public static class GenerateContentIdsCommand
     // either from a ModelDb.AllX property (NativeProperty) or from a
     // namespace filter over ModelDb's canonical-instance registry
     // (NamespaceFilter).
+    // TODO: Kind should be an enum?
     public sealed record KindSpec(
         string Kind,                       // "Relic"  → RelicId / RelicIdNames / RelicId.g.cs
         EnumerationSource Source);

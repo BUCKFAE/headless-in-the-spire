@@ -2,7 +2,7 @@ using System.Reflection;
 using HarmonyLib;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // `just probe-method-body <Type.FullName> <MethodName>` — dump a single
 // method's full CIL using HarmonyLib's PatchProcessor, with operands

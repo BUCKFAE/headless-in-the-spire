@@ -2,7 +2,7 @@ using System.Collections;
 using System.Reflection;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Phase-3 diagnostic: after bootstrap, walk sts2-cli's StartRun chain
 // reflectively and report which step is first to misbehave, then dump the

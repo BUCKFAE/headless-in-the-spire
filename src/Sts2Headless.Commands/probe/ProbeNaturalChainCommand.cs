@@ -2,7 +2,7 @@ using System.Text;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Phase-1 cataloging probe: drive the engine's natural enemy-turn chain with
 // Player.NetId = 1uL (the contract sts2-cli proves works end-to-end) and dump

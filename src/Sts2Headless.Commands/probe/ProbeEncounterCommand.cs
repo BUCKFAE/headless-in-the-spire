@@ -1,7 +1,7 @@
 using System.Reflection;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // `just probe-encounter <encounter-id>` — start a run, force-enter the
 // given combat via the same engine path debug/start_combat uses, dump

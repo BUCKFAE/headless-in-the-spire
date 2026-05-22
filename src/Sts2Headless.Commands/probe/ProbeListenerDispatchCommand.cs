@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // One-shot probe to find the engine's relic-listener dispatch path.
 //

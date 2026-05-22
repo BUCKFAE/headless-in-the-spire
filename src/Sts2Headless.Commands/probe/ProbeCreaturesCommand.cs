@@ -1,7 +1,7 @@
 using System.Reflection;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // `just probe-creatures <encounter-id>` — start a run, force-enter the
 // combat, then walk every reachable Creature-typed reference inside

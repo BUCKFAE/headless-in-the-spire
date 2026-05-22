@@ -5,6 +5,8 @@
     <Project Path="src/Sts2Headless.BattleAgent/Sts2Headless.BattleAgent.csproj" />
     <Project Path="src/Sts2Headless.BattleAgent.Core/Sts2Headless.BattleAgent.Core.csproj" />
     <Project Path="src/Sts2Headless.Cheats/Sts2Headless.Cheats.csproj" />
+    <Project Path="src/Sts2Headless.Commands/Sts2Headless.Commands.csproj" />
+    <Project Path="src/Sts2Headless.Coverage/Sts2Headless.Coverage.csproj" />
     <Project Path="src/Sts2Headless.Protocol/Sts2Headless.Protocol.csproj" />
     <Project Path="src/Sts2Headless.Replay/Sts2Headless.Replay.csproj" />
     <Project Path="src/Sts2Headless.Runtime/Sts2Headless.Runtime.csproj" />

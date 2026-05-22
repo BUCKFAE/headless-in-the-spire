@@ -1,6 +1,6 @@
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Phase-2 diagnostic: --probe-init + the game-state bootstrap chain.
 //

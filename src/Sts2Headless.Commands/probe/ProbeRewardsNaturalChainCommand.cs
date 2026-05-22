@@ -2,7 +2,7 @@ using System.Text;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Phase-4 cataloging probe: drive the engine's natural reward chain (no
 // try/catch around CardPileCmd.Add / OnSelectWrapper / OnSkipped /

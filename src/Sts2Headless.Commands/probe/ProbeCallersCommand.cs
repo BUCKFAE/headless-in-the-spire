@@ -2,7 +2,7 @@ using System.Reflection;
 using HarmonyLib;
 using Sts2Headless.Runtime;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // Caller-finder probe — `just probe-callers Method[,Other]`. Loads sts2.dll
 // and walks every declared method's CIL looking for call/callvirt to a

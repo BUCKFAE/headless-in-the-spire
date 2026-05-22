@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace Sts2Headless;
+namespace Sts2Headless.Commands;
 
 // One-shot diagnostic: dump the public surface of the merchant types so the
 // binding code in Sts2Bindings.cs can be authored against real members
