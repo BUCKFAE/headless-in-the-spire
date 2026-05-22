@@ -54,10 +54,15 @@ from headless_in_the_spire import Client
 from headless_in_the_spire._models import (
     CardSpec,
     Character,
+    DebugAfflictCardParams,
+    DebugApplyPowerParams,
+    DebugEnchantCardParams,
+    DebugGivePotionParams,
     DebugGiveRelicParams,
     DebugReplaceDeckParams,
     DebugSetHpParams,
     DebugStartCombatParams,
+    DebugStartEventParams,
     RunBuyMerchantItemParams,
     RunNewParams,
     RunPlayCardParams,
@@ -399,6 +404,83 @@ def _register_debug_tools(mcp: FastMCP, handle: _HostHandle) -> None:
         return _dump(
             handle.client().debug_give_relic(
                 DebugGiveRelicParams(relic_id=relic_id),
+            )
+        )
+
+    @mcp.tool()
+    def debug_give_potion(potion_id: str) -> dict[str, Any]:
+        """Grant a potion by wire id. Debug only; corrupts replay fidelity."""
+        return _dump(
+            handle.client().debug_give_potion(
+                DebugGivePotionParams(potion_id=potion_id),
+            )
+        )
+
+    @mcp.tool()
+    def debug_start_event(event_id: str) -> dict[str, Any]:
+        """Force-start a specific event by wire id. Debug only; corrupts
+        replay fidelity.
+        """
+        return _dump(
+            handle.client().debug_start_event(
+                DebugStartEventParams(event_id=event_id),
+            )
+        )
+
+    @mcp.tool()
+    def debug_apply_power(
+        power_id: str,
+        amount: int | None = 1,
+        enemy_index: int | None = None,
+    ) -> dict[str, Any]:
+        """Apply a power to the player, or to an enemy when `enemy_index` is
+        supplied. Debug only; corrupts replay fidelity.
+        """
+        return _dump(
+            handle.client().debug_apply_power(
+                DebugApplyPowerParams(
+                    power_id=power_id,
+                    amount=amount,
+                    enemy_index=enemy_index,
+                ),
+            )
+        )
+
+    @mcp.tool()
+    def debug_afflict_card(
+        affliction_id: str,
+        hand_index: int | None = 0,
+        amount: int | None = 1,
+    ) -> dict[str, Any]:
+        """Attach an affliction to a hand card. Debug only; corrupts replay
+        fidelity.
+        """
+        return _dump(
+            handle.client().debug_afflict_card(
+                DebugAfflictCardParams(
+                    affliction_id=affliction_id,
+                    hand_index=hand_index,
+                    amount=amount,
+                ),
+            )
+        )
+
+    @mcp.tool()
+    def debug_enchant_card(
+        enchantment_id: str,
+        hand_index: int | None = 0,
+        amount: int | None = 1,
+    ) -> dict[str, Any]:
+        """Attach an enchantment to a hand card. Debug only; corrupts replay
+        fidelity.
+        """
+        return _dump(
+            handle.client().debug_enchant_card(
+                DebugEnchantCardParams(
+                    enchantment_id=enchantment_id,
+                    hand_index=hand_index,
+                    amount=amount,
+                ),
             )
         )
 

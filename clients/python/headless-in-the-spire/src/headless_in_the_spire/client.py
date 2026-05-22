@@ -38,6 +38,11 @@ METHOD_NAMES: dict[str, str] = {
     "run/proceed_event": "run_proceed_event",
     "run/history": "run_history",
     "debug/give_relic": "debug_give_relic",
+    "debug/give_potion": "debug_give_potion",
+    "debug/start_event": "debug_start_event",
+    "debug/apply_power": "debug_apply_power",
+    "debug/afflict_card": "debug_afflict_card",
+    "debug/enchant_card": "debug_enchant_card",
     "debug/set_hp": "debug_set_hp",
     "debug/replace_deck": "debug_replace_deck",
     "debug/read_deck": "debug_read_deck",
@@ -245,6 +250,51 @@ class Client:
     ) -> m.DebugGiveRelicResult:
         result = self._transport.call("debug/give_relic", _dump(params), timeout=timeout)
         return m.DebugGiveRelicResult.model_validate(result)
+
+    def debug_give_potion(
+        self,
+        params: m.DebugGivePotionParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugGivePotionResult:
+        result = self._transport.call("debug/give_potion", _dump(params), timeout=timeout)
+        return m.DebugGivePotionResult.model_validate(result)
+
+    def debug_start_event(
+        self,
+        params: m.DebugStartEventParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugStartEventResult:
+        result = self._transport.call("debug/start_event", _dump(params), timeout=timeout)
+        return m.DebugStartEventResult.model_validate(result)
+
+    def debug_apply_power(
+        self,
+        params: m.DebugApplyPowerParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugApplyPowerResult:
+        result = self._transport.call("debug/apply_power", _dump(params), timeout=timeout)
+        return m.DebugApplyPowerResult.model_validate(result)
+
+    def debug_afflict_card(
+        self,
+        params: m.DebugAfflictCardParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugAfflictCardResult:
+        result = self._transport.call("debug/afflict_card", _dump(params), timeout=timeout)
+        return m.DebugAfflictCardResult.model_validate(result)
+
+    def debug_enchant_card(
+        self,
+        params: m.DebugEnchantCardParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugEnchantCardResult:
+        result = self._transport.call("debug/enchant_card", _dump(params), timeout=timeout)
+        return m.DebugEnchantCardResult.model_validate(result)
 
     def debug_set_hp(
         self,
