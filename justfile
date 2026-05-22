@@ -243,6 +243,14 @@ sweep-events:
     @echo ""
     @echo "report: documentation/coverage/sweep-events.md"
 
+# Run the full per-EncounterId smoke sweep (~80 ids, start_combat +
+# fixed Strike/Defend deck + 2 turns + kill_all_enemies). Implicitly
+# exercises every monster's intent path. Crashed → test fails.
+sweep-encounters:
+    @RUN_ENCOUNTER_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~EncounterSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-encounters.md"
+
 # Run a fast subset of every mechanic sweep — N deterministic-random ids
 # per kind. Good for "did I break the smoke surface" checks before
 # launching a full multi-hour pass.
