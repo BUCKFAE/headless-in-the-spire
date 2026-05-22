@@ -40,29 +40,25 @@ public static class BootstrapSequence
         ];
     }
 
-    // Coverage instrumentation: Harmony-postfix every AbstractModel-hook
-    // override declared on a model subtype (relic/card/monster/potion/
-    // power). Must run after InjectModelSubtypes (the patch installer
-    // resolves canonical ids from ModelDb._contentById) and before
-    // CreateIroncladSmoke (so a smoke run sees the same instrumentation
-    // as real runs). Always-on — the only cost is bootstrap-time patching.
+    // Hook instrumentation: Harmony-postfix every AbstractModel-hook
+    // override declared on a concrete model subtype, for every kind in
+    // HookPatchKinds.All. Must run after InjectModelSubtypes (the patch
+    // installer resolves canonical ids from ModelDb._contentById) and
+    // before CreateIroncladSmoke (so a smoke run sees the same
+    // instrumentation as real runs). Always-on — the only cost is
+    // bootstrap-time patching.
     //
-    // All five kinds are bundled into one step so the bootstrap snapshot
-    // (BootstrapSequenceTests) stays a fixed list — adding a new kind
-    // doesn't require touching the test, only the inner per-kind list.
+    // The kind list is single-sourced in HookPatchKinds.cs and kept in
+    // lockstep with GenerateContentIdsCommand.Kinds by
+    // InstrumentationKindParityTest. Bundling every kind into one step
+    // keeps the BootstrapSequenceTests snapshot a fixed list — adding a
+    // new kind only touches HookPatchKinds.cs.
     private static StepOutcome ApplyHookPatches(Assembly sts2)
     {
-        const string label = "ModelHookPatcher.Apply (relic/card/monster/potion/power)";
+        const string label = "ModelHookPatcher.Apply (all kinds)";
         try
         {
-            var outcomes = new[]
-            {
-                RelicHookPatches.Apply(sts2),
-                PowerHookPatches.Apply(sts2),
-                MonsterHookPatches.Apply(sts2),
-                CardHookPatches.Apply(sts2),
-                PotionHookPatches.Apply(sts2),
-            };
+            var outcomes = HookPatchKinds.ApplyAll(sts2);
             var allOk = outcomes.All(o => o.Patched);
             var detail = string.Join("; ", outcomes.Select(o => $"{o.Target}={o.Detail ?? "?"}"));
             return new(label, allOk, detail);

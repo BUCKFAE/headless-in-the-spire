@@ -457,6 +457,18 @@ public enum TriggerKind
     [JsonStringEnumMemberName("monster")] Monster,
     [JsonStringEnumMemberName("potion")] Potion,
     [JsonStringEnumMemberName("power")] Power,
+    // Kinds added alongside the InstrumentationKindParityTest sweep —
+    // every entry in GenerateContentIdsCommand.Kinds now maps to a
+    // TriggerKind. Encounter is included even though sts2's
+    // EncounterModel subtypes have zero AbstractModel hook overrides
+    // today (the patcher walks the namespace, finds nothing, reports
+    // 0 patched — that's a clean pass, not a failure).
+    [JsonStringEnumMemberName("affliction")] Affliction,
+    [JsonStringEnumMemberName("enchantment")] Enchantment,
+    [JsonStringEnumMemberName("encounter")] Encounter,
+    [JsonStringEnumMemberName("event")] Event,
+    [JsonStringEnumMemberName("modifier")] Modifier,
+    [JsonStringEnumMemberName("orb")] Orb,
 }
 
 public sealed record TriggerEvent(

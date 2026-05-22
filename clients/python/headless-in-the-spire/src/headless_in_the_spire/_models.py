@@ -459,6 +459,12 @@ class TriggerKind(Enum):
     monster = "monster"
     potion = "potion"
     power = "power"
+    affliction = "affliction"
+    enchantment = "enchantment"
+    encounter = "encounter"
+    event = "event"
+    modifier = "modifier"
+    orb = "orb"
 
 
 class Card(BaseModel):

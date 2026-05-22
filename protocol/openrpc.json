@@ -3429,7 +3429,13 @@
           "card",
           "monster",
           "potion",
-          "power"
+          "power",
+          "affliction",
+          "enchantment",
+          "encounter",
+          "event",
+          "modifier",
+          "orb"
         ]
       }
     }

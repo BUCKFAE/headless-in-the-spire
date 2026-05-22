@@ -130,7 +130,16 @@ public static class ModelHookPatcher
 
         var detail = $"{patched} patched, {skippedNoId} skipped (no canonical id), {failed} failed";
         if (firstFailures.Count > 0) detail += $" [first: {string.Join(" | ", firstFailures)}]";
-        return new PatchOutcome(label, patched > 0, detail);
+        // Success = the base type resolved, AbstractModel exposed hooks, and
+        // every patch attempt the scan made succeeded. A kind with zero
+        // hook overrides (e.g. Encounter today — EncounterModel subtypes
+        // don't override any AbstractModel hooks) lands as patched=0,
+        // failed=0 and that's a clean pass: we instrumented the kind,
+        // there was just nothing to wire up. Flipping `failed==0` here
+        // (instead of the old `patched>0`) preserves loud failure on
+        // genuine Harmony errors while letting "instrument everything"
+        // include kinds with no current hook surface.
+        return new PatchOutcome(label, failed == 0, detail);
     }
 
     private static HashSet<string> ResolveHookNames(Type abstractModel)

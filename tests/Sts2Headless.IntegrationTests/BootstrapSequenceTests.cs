@@ -57,7 +57,7 @@ public class BootstrapSequenceTests
             ("ModelDb.Inject loop over AbstractModelSubtypes.All", true),
             ("InitProgressData()", true),
             ("ModelIdSerializationCache.Init()", true),
-            ("ModelHookPatcher.Apply (relic/card/monster/potion/power)", true),
+            ("ModelHookPatcher.Apply (all kinds)", true),
             ("Player.CreateForNewRun<Ironclad>(UnlockState.all, 1uL)", true),
         };
 
