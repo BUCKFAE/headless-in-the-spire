@@ -1,6 +1,7 @@
 using Sts2Headless.IntegrationTests.Coverage;
-using Sts2Headless.Runtime;
 using Xunit;
+using Sts2Headless.Runtime.Loading;
+using Sts2Headless.Runtime.Hooks;
 
 namespace Sts2Headless.IntegrationTests;
 

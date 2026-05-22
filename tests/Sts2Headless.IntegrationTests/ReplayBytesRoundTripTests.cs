@@ -3,6 +3,7 @@ using Sts2Headless.IntegrationTests.Coverage;
 using Sts2Headless.Replay;
 using Sts2Headless.Runtime;
 using Xunit;
+using Sts2Headless.Runtime.Loading;
 
 namespace Sts2Headless.IntegrationTests;
 

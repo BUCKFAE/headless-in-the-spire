@@ -1,3 +1,5 @@
+using Sts2Headless.Runtime.Loading;
+
 namespace Sts2Headless.Runtime;
 
 // Locator for the fixture save tree under vendor/sample-saves/. Tests glob

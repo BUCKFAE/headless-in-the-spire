@@ -1,5 +1,6 @@
 using System.Reflection;
-using Sts2Headless.Runtime;
+using Sts2Headless.Runtime.Loading;
+using Sts2Headless.Runtime.Bindings;
 
 namespace Sts2Headless.Commands;
 

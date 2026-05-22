@@ -1,6 +1,8 @@
 using Sts2Headless;
 using Sts2Headless.Commands;
 using Sts2Headless.Runtime;
+using Sts2Headless.Runtime.Bindings;
+using Sts2Headless.Runtime.Loading;
 
 // Skeleton entry: validates that the toolchain wires together and that
 // vendor/ is populated. Does not yet load sts2.dll — that comes once

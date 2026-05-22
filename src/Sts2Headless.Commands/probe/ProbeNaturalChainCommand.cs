@@ -1,6 +1,8 @@
 using System.Text;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
+using Sts2Headless.Runtime.Bindings;
+using Sts2Headless.Runtime.Loading;
 
 namespace Sts2Headless.Commands;
 

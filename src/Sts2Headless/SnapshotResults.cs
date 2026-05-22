@@ -1,5 +1,5 @@
 using Sts2Headless.Protocol.Methods;
-using Sts2Headless.Runtime;
+using Sts2Headless.Runtime.Bindings;
 
 namespace Sts2Headless;
 

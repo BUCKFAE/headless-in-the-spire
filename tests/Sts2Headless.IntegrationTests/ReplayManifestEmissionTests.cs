@@ -61,7 +61,7 @@ public class ReplayManifestEmissionTests
         // The header's sha256 should match GAME_VERSION's pinned value
         // (the recorder reads it from there). Cross-check against the
         // actual file bytes so a stale pin would surface.
-        var repoRoot = Runtime.Paths.LocateRepoRoot();
+        var repoRoot = Runtime.Loading.Paths.LocateRepoRoot();
         var actualSha = ReplayHeaderFactory.ComputeSha256(Path.Combine(repoRoot, "vendor", "sts2.dll"));
         Assert.Equal(actualSha, manifest.Header.Sts2DllSha256);
     }
@@ -82,7 +82,7 @@ public class ReplayManifestEmissionTests
         // the assertion then fired on files this test never touched. The
         // diff makes the invariant precise: only paths created BETWEEN
         // the pre-host snapshot and the post-host snapshot count.
-        var repoRoot = Runtime.Paths.LocateRepoRoot();
+        var repoRoot = Runtime.Loading.Paths.LocateRepoRoot();
         var defaultRoot = Path.Combine(repoRoot, ReplayLayout.DefaultRootRelative);
         var before = SnapshotReplayRoot(defaultRoot);
 

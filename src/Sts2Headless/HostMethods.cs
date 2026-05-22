@@ -3,7 +3,8 @@ using Sts2Headless.Cheats;
 using Sts2Headless.Protocol;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Replay;
-using Sts2Headless.Runtime;
+using Sts2Headless.Runtime.Bindings;
+using Sts2Headless.Runtime.Hooks;
 
 namespace Sts2Headless;
 
