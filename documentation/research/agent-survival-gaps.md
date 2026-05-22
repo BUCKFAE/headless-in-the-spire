@@ -81,7 +81,7 @@ The fix bundles three classes of change:
    - `Godot.Node2D.Scale` (KIN_FOLLOWER/KIN_PRIEST at floor 17,
      surfaced after the card-select slice unblocked deeper Act 1)
 
-2. **`HangPatches.PatchTalkCmdPlay`** (`src/Sts2Headless.Runtime/HangPatches.cs`).
+2. **`HangPatches.PatchTalkCmdPlay`** (`src/Sts2Headless.Runtime/Patches/HangPatches.cs`).
    `BygoneEffigy.WakeMove` and similar intro moves call
    `TalkCmd.Play(LocString, Creature, VfxColor, VfxDuration)`, which
    returns `NSpeechBubbleVfx` and walks UI-only state to construct it.

@@ -111,11 +111,18 @@ just test     # C# unit + integration + Python suites
 ```
 Directory.Build.props          shared csproj settings (net10.0, nullable, etc.)
 src/
-  Sts2Headless/                exe — entry, CLI/probe commands, NDJSON stdio
-                                     dispatch loop (`just stdio`).
+  Sts2Headless/                exe — entry + NDJSON stdio dispatch loop
+                                     (`just stdio`). CLI/probe commands live
+                                     in Sts2Headless.Commands.
+  Sts2Headless.Commands/       lib — CLI subcommands: probe-* (probe-natural-
+                                     chain, probe-modeldb, probe-combat-stall,
+                                     probe-callers, probe-types, probe-method-
+                                     body, …), generate-content-ids, inspect,
+                                     list-members. Diagnostic surface.
   Sts2Headless.Runtime/        lib — vendor resolver, sts2 load, sync ctx,
-                                     Harmony hang patches, bootstrap walker.
-                                     Everything that talks to a live sts2.dll.
+                                     Harmony hang patches (Patches/), bindings
+                                     (Bindings/), bootstrap walker. Everything
+                                     that talks to a live sts2.dll.
   Sts2Headless.Protocol/       lib — JSON-RPC-style envelope, method records,
                                      MethodCatalog (single source of truth).
   Sts2Headless.Cheats/         lib — typed cheat surface (`debug/*` wire
@@ -134,6 +141,16 @@ src/
   Sts2Headless.BattleAgent/    lib — Ironclad combat agent + path / draft /
                                      event / rest policies built on
                                      BattleAgent.Core.
+  Sts2Headless.MechanicSweep/  lib — per-kind smoke sweeps (CardSweep, RelicSweep,
+                                     PotionSweep, PowerSweep, EventSweep,
+                                     EncounterSweep, AfflictionSweep,
+                                     EnchantmentSweep). Drives every id in the
+                                     matching *Id.g.cs through a minimal
+                                     fixture; reports land in
+                                     documentation/coverage/sweep-*.{md,json}.
+                                     SweepKnownIssues catalogs catalog-grade
+                                     crashes; SweepRegistry tracks Implemented
+                                     vs Planned kinds.
   Sts2Headless.SchemaExport/   exe — emits protocol/openrpc.json from Protocol
                                      records (AD-5). Run via `just export-schema`.
   Sts2Headless.Utils/          lib — pure, dependency-free leaf: repo/vendor
@@ -149,10 +166,26 @@ tests/
                                      documentation/testing.md.
   Sts2Headless.BattleAgent.UnitTests/  xUnit — combat planner / model /
                                      policy tests for BattleAgent.Core.
+  Sts2Headless.MechanicSweepTests/  xUnit — opt-in [Trait("Category",
+                                     "MechanicSweep")] wrappers that run the
+                                     per-kind sweeps via env vars
+                                     (RUN_<KIND>_SWEEP=1 / RUN_MECHANIC_SWEEP=1,
+                                     MECHANIC_SWEEP_SAMPLE=N,
+                                     MECHANIC_SWEEP_FOCUS_IDS=a,b,c). Off
+                                     by default — full passes take hours.
+                                     Drive via `just sweep-<kind>` or
+                                     `just sweep-sample N`.
   Sts2Headless.TestSupport/    lib (not a test project) — shared test helpers
                                      (TempDir). No test SDK, no project refs.
 Sts2Headless.slnx              solution at repo root
 scripts/                       bootstrap shell scripts (bash)
+tools/
+  replay-viewer/               TypeScript/Vite frontend that renders .mcr +
+                                 .run replays straight from vendor/replays/.
+                                 Run via `just dev-viewer` (HMR-enabled).
+                                 Standalone; reads no engine bytes — replays
+                                 are wire-shape JSON + the engine's own
+                                 binary .mcr files.
 protocol/openrpc.json          generated wire-protocol schema (AD-5)
 vendor/                        game DLLs (gitignored; populated by `just pull-game-libs`)
 GAME_VERSION                   pinned version string + SHA-256 of vendor/sts2.dll
@@ -166,6 +199,10 @@ clients/python/
                                 client — lets any MCP-aware AI assistant (Claude
                                 Desktop / Claude Code) drive a run end-to-end.
                                 See documentation/research/mcp-integration.md.
+  headless-in-the-spire-utils/ small grab-bag of Python helpers shared across the
+                                workspace — directory scaffolding, path
+                                sanitisation, logging plumbing. The wire client
+                                pulls it in transitively via `{ workspace = true }`.
 ```
 
 ## Conventions

@@ -176,7 +176,7 @@ in).
 
 ### Gotchas for our specific protocol shapes
 
-Read alongside `src/Sts2Headless.Protocol/Methods.cs` for the actual
+Read alongside `src/Sts2Headless.Protocol/Methods/Methods.cs` for the actual
 shapes.
 
 - **String enums with custom wire spellings** (`Character.Ironclad` ↔

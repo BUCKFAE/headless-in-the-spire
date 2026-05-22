@@ -69,7 +69,7 @@ snapshot is identical." Naive tests detect this only after the whole
 cancellation budget expires — minutes for what's effectively an instant
 failure.
 
-`src/Sts2Headless.Agents/StallDetector.cs` is the reusable watchdog,
+`src/Sts2Headless.Agents/Driving/StallDetector.cs` is the reusable watchdog,
 wired automatically by `AgentDriver.PlayRunAsync` — every IAgent gets
 stall detection for free, structurally impossible to forget. It
 fingerprints each snapshot (room + act/floor + hp/gold/deck + combat

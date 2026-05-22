@@ -681,7 +681,7 @@ Concretely:
   own; everything else is the game's bytes.
 - **Wire protocol surfaces a typed `run/history` method.** The `.run`
   JSON schema (schema_version 9 at the v0.103.2 pin) is mirrored as
-  C# records in `Sts2Headless.Protocol/Methods.cs` with the same
+  C# records in `Sts2Headless.Protocol/Methods/Methods.cs` with the same
   enum-codec discipline used for `RoomType` / `MapNodeType` / `CardId`
   etc. (`Unknown` sentinels, `JsonStringEnumConverter`). Clients see the
   artefact through schema, not via hand-rolled JSON parsing. AD-5
@@ -730,7 +730,7 @@ Concretely:
 - **Zero schema drift from the game.** When Mega Crit bumps
   `RunHistory.schema_version` from 9 to 10, our typed mirror bumps with
   it; the change surfaces at codegen time in
-  `Sts2Headless.Protocol/Methods.cs` rather than as a silent
+  `Sts2Headless.Protocol/Methods/Methods.cs` rather than as a silent
   serialisation breakage. The same applies to `.mcr`'s binary layout —
   if `CombatReplay.Serialize` changes, our reader breaks loudly at the
   next pin bump, which is exactly the AD-3 workflow.
