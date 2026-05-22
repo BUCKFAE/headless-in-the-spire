@@ -13,23 +13,49 @@ Use subagents for almost every step — main context only orchestrates.
 The repo is **already heavily instrumented** for gap detection. Don't reinvent;
 combine existing signals:
 
-- `src/Sts2Headless.Protocol/*Id.g.cs` — generated enumerations of every card
-  (578), relic (295), power (271), monster (121), encounter (81), event (66),
-  potion (65), enchantment (24), modifier (18), affliction (9), orb (6).
-- `src/Sts2Headless.Agents/CoverageRecorder.cs` — collects seen / played /
-  used / faced / taken / triggered sets per run; wired automatically into
-  every `AgentDriver.PlayRunAsync`.
-- `tests/Sts2Headless.End2EndTests/CoverageSweepTests.cs` — `just coverage`
-  drives the greedy agent across the seed matrix and writes
-  `documentation/coverage/latest.{md,json}` (gitignored).
-- `src/Sts2Headless/Probe*Command.cs` — `just probe-natural-chain`,
+- `src/Sts2Headless.Protocol/Methods/*Id.g.cs` (+ matching `*Id.Fallback.cs`)
+  — generated enumerations of every card, relic, power, monster, encounter,
+  event, potion, enchantment, modifier, affliction, orb. Each exposes
+  `AllWireNames`. Counts drift on engine bumps — read the file, don't trust a
+  memorised number.
+- `src/Sts2Headless.MechanicSweep/` — per-kind smoke sweeps
+  (`CardSweep`, `RelicSweep`, `PotionSweep`, `PowerSweep`, `EventSweep`,
+  `EncounterSweep`, `AfflictionSweep`, `EnchantmentSweep`). Each runs every
+  id in its `*IdNames.AllWireNames` through a minimal fixture and classifies
+  rows as Played / Crashed / Timeout / Unreachable / Unplayable /
+  KnownUnsafe. Reports land in `documentation/coverage/sweep-<kind>.{md,json}`
+  (gitignored). Wrappers live under `tests/Sts2Headless.MechanicSweepTests/`
+  with the `[Trait("Category", "MechanicSweep")]` opt-in.
+- `src/Sts2Headless.MechanicSweep/SweepKnownIssues.cs` — per-kind allowlist
+  of "this id crashes for a reason we already understand". An id that
+  drops off this list (engine fix) flips Crashed → Played; an id that
+  shows up Crashed and *isn't* in the list is a fresh gap.
+- `src/Sts2Headless.MechanicSweep/SweepRegistry.cs` — `ImplementedSweeps`
+  vs `PlannedSweeps`. The Planned list is a punch-card of kinds we know
+  we want a sweep for but haven't built (today: Modifier, Orb, Monster).
+- `tests/Sts2Headless.IntegrationTests/Coverage/` — parity / drift tests
+  (`ContentManifestDriftTests`, `EveryKindHasASweepTest`,
+  `KnownIssuesParityTest`, `NewContentKindTests`, `HookSurfaceSnapshotTest`,
+  `InstrumentationKindParityTest`). These fail when a manifest, sweep
+  registry, or hook surface drifts out of sync — read their output first
+  before launching detection passes.
+- `src/Sts2Headless.Commands/probe/Probe*Command.cs` — `just probe-natural-chain`,
   `just probe-rewards-natural-chain`, `just probe-combat-stall`,
-  `just probe-modeldb` each surface a different class of gap and exit
+  `just probe-modeldb`, `just probe-method-body`, `just probe-callers`,
+  `just probe-types`. Each surfaces a different class of gap and exits
   non-zero when found.
-- `src/Sts2Headless.Agents/StallDetector.cs` — fingerprint-based hang
-  detector wrapped around every agent run by `AgentDriver`.
+- `src/Sts2Headless.Agents/Driving/StallDetector.cs` + `CombatBudgetGuard.cs`
+  — fingerprint-based hang detector + per-combat step budget, wrapped
+  around every agent run by `AgentDriver`.
 - `tests/Sts2Headless.IntegrationTests/HarnessGaps/` — red-on-purpose tests
-  that document open gaps and graduate out when fixed.
+  that document open gaps and graduate out when fixed. Today the "Open
+  gaps" section is empty; the folder still holds the convention + a
+  graduation history.
+- `tests/Sts2Headless.IntegrationTests/MonsterPatchAuditTests.cs` +
+  `MonsterPatchAuditor` — locked-in snapshot of every monster move/lifecycle
+  method whose Harmony patch strips a gameplay mutation. New patches that
+  expand the strip surface fail the audit; per-monster fixes shrink it.
+  See BLOCKED.md "Move-body patches" entry for the active workflow.
 - `BLOCKED.md` — running list of decisions the user must make before work
   can land. Same file you append "big choices" to.
 
@@ -40,8 +66,9 @@ A "gap" is anything in one of these categories:
 2. A `HostMethods.cs` handler that throws
    `ArgumentException("...not yet supported...")` or
    `NotImplementedException`.
-3. Content in an `*Id.g.cs` that never appears in any coverage
-   "seen" set after the sweep — and the path to surface it is reachable.
+3. Content in an `*Id.g.cs` that the matching `MechanicSweep` reports
+   as Crashed / Timeout / Unreachable / Unplayable *and* is not already
+   covered by a `SweepKnownIssues.<Kind>` row.
 4. A `--probe-*` re-run that exits with code 2 and writes new entries to
    `documentation/research/*-gaps.md`.
 5. A new seed/agent combo that crashes the agent driver with a stall,
@@ -59,14 +86,20 @@ A "gap" is anything in one of these categories:
 Read, in order:
 
 1. `BLOCKED.md` — anything already deferred for human decision.
-2. `documentation/coverage/latest.md` if it exists.
+2. `documentation/coverage/sweep-*.md` if any exist (one per kind that
+   has been swept recently; gitignored). Each lists Crashed / Timeout /
+   KnownUnsafe rows with engine-side stack heads.
 3. `tests/Sts2Headless.IntegrationTests/HarnessGaps/README.md` —
-   the "Open gaps" section.
-4. `git log --oneline -30` — what's recently shipped (avoid re-doing it).
-5. `CLAUDE.md` "Hard rules" section (refresher).
+   the "Open gaps" section (often empty; the file still records the
+   convention + graduation log).
+4. `src/Sts2Headless.MechanicSweep/SweepRegistry.cs` — `PlannedSweeps`
+   list. Each entry is a pre-scored candidate kind.
+5. `git log --oneline -30` — what's recently shipped (avoid re-doing it).
+6. `CLAUDE.md` "Hard rules" section (refresher).
 
-If `BLOCKED.md` or `HarnessGaps/` already lists open candidates, prefer
-those over fresh discovery. They're pre-scored by the user.
+If `BLOCKED.md`, `HarnessGaps/`, or `SweepRegistry.PlannedSweeps`
+already lists open candidates, prefer those over fresh discovery —
+they're pre-scored by the user or by an existing audit.
 
 Pre-flight: `git status` must be clean. If not, stop and report.
 
@@ -102,29 +135,42 @@ ArgumentException(...)` patterns that block specific inputs (e.g.
 characters, ascensions, modifiers). Output to
 `/tmp/fill-engine-gaps-todos.md`.
 
-### 1c — Coverage delta (Bash + Explore subagent)
+### 1c — Sweep delta (Bash + Explore subagent)
 
-Run `just coverage` ONCE per pass (`RUN_COVERAGE_SWEEP=1`, ~3–5 min
-wall-clock total). Then a subagent parses the report:
+Run a fast pass across every kind:
 
-- Read `documentation/coverage/latest.json`.
-- For each kind in {Cards, Relics, Potions, Monsters, EventOptions, Powers},
-  diff the `seen` set against the corresponding `*Id.g.cs` enum members
-  (`AllWireNames` in the Fallback.cs file).
-- For each unseen item, classify:
-  - **Engine gap** — the surface to reach it is broken (e.g. event option
-    never surfaces despite the event being on the floor).
-  - **Coverage gap** — no seed/agent in the matrix triggers the path.
-    Note: this can be fixed by extending `s_runs` in
-    `tests/Sts2Headless.End2EndTests/CoverageSweepTests.cs`.
+```
+just sweep-sample 30        # MECHANIC_SWEEP_SAMPLE=30 across all kinds, ~10–20 min
+```
 
-Output to `/tmp/fill-engine-gaps-coverage.md`. Cap each "unseen list"
-section at 30 items — the goal is a candidate seed, not a full audit.
+For a focused re-sweep of one kind: `just sweep-cards` /
+`just sweep-relics` / etc. (full universe, hours). Don't launch
+`just sweep-all` from this skill unless the user asks — that's a
+multi-hour pass meant for `GAME_VERSION` bumps.
+
+Then a subagent parses the reports:
+
+- Read every `documentation/coverage/sweep-*.json` that exists.
+- Group rows by `Outcome`. Of interest:
+  - **Crashed / Timeout** — a fresh entry that is NOT in
+    `SweepKnownIssues.<Kind>` is a candidate. Include id, stack head,
+    and a one-line proposed fix shape (fixture extension, cheat plumb,
+    leaf-helper patch, …).
+  - **Unreachable / Unplayable** — the sweep couldn't stage the id at
+    all. Surface the reason from `row.Detail`; if the blocker is a
+    missing cheat or wire surface, that's the candidate.
+- Cross-check the universe count against `<Kind>IdNames.AllWireNames` —
+  a mismatch means a stale manifest (`just generate-content-ids` fix).
+
+Output to `/tmp/fill-engine-gaps-coverage.md`. Cap each section at 30
+items — the goal is a candidate seed, not a full audit.
 
 ### 1d — Variant-agent sweep (Bash subagent)
 
-Existing C# agents: `GreedyAgent`, `CheatingHellRaisingSeed42Agent`
-(special-case). Python has Random/Attack/Block but **AD-6 forbids using
+Existing C# agents (under `src/Sts2Headless.Agents/Examples/`):
+`GreedyAgent`, `PotionDrinkingAgent`, `CheatingHellRaisingSeed42Agent`
+(special-case). All three derive from `HeuristicAgent` /
+`IAgent`. Python has Random/Attack/Block but **AD-6 forbids using
 those for behavioral truth**. The variant sweep here means:
 
 - Iterate ~10 new seeds with `GreedyAgent` via the host subprocess
@@ -186,8 +232,15 @@ classify and write next to it:
 - A `HarnessGaps/` test that becomes green after 1–3 file edits.
 - Exposing an existing engine field on an existing DTO (snake_case + enum
   if applicable). Non-breaking.
-- Extending the coverage sweep matrix (`s_runs`) with 1–3 new seeds when
-  diagnosis shows the coverage gap is "no run reached this path".
+- Extending a per-kind sweep fixture (e.g. `CardSweep.cs`,
+  `RelicSweep.cs`) so a previously-Unreachable id can be staged — when
+  diagnosis shows the path exists but the sweep doesn't reach it.
+- Adding a row to `SweepKnownIssues.<Kind>` with a one-line reason
+  when diagnosis confirms the crash is catalog-grade (off-class shape,
+  missing reward pool, …) and not a real bug.
+- Removing a row from `SweepKnownIssues.<Kind>` when a sweep now
+  classifies the id as Played (the engine or harness fix landed
+  separately).
 - A debug method that surfaces a property already read internally
   (must follow AD-7: GateDebug + positive test + negative test).
 - A graduating gap: `*Tests.cs` file moves out of `HarnessGaps/` and
@@ -201,13 +254,22 @@ classify and write next to it:
 ### BIG CHOICE — append to BLOCKED.md, do not implement
 
 - New character implementation (Silent / Defect / Watcher / Regent /
-  Necrobinder). The HostMethods gate at line ~98 throws for these;
+  Necrobinder). The HostMethods character gate (`HostMethods.cs`,
+  search for `character != Character.Ironclad`) throws for these;
   expanding requires character-specific deck/relic/UI plumbing that
-  needs user direction.
-- Wire shape for Ascension parameter on `RunNewParams`.
-- Wire shape for run modifiers on `RunNewParams`.
+  needs user direction. Already on BLOCKED.md as
+  "Multi-character run support".
+- Building a new sweep for a kind currently in
+  `SweepRegistry.PlannedSweeps` (Modifier / Orb / Monster) when the
+  underlying blocker is still open. Note: a Monster sweep is marked
+  optional in the registry because EncounterSweep already exercises
+  monsters transitively — re-confirm necessity before building.
+- Implementing a per-monster patch fix from
+  `MonsterPatchAuditTests.s_expectedDoormakerShape`. Each entry is its
+  own commit and may surface new `Godot.*` stub gaps; the per-monster
+  workflow is documented in BLOCKED.md "Move-body patches" entry.
 - Treasure room pick/skip split (currently auto-picked; previewable
-  pick/skip requires DTO + protocol shape).
+  pick/skip requires DTO + protocol shape — already on BLOCKED.md).
 - Neow event dismissal (no wire method yet; needs design).
 - Relic dynamic state on the wire (charges, counters). Non-breaking to
   add but every new field needs a caller justification per
@@ -244,8 +306,9 @@ For each MECHANICAL candidate, in candidate-list order:
 Use this prompt template verbatim (substitute the bracketed fields):
 
 ```
-Implement this engine gap in the headless-in-the-spire repo at
-/Users/julianschubert/Documents/headless-in-the-spire.
+Implement this engine gap in the headless-in-the-spire repo. Use the
+absolute path of the current working directory (do not assume macOS or
+Linux layout — read pwd from the orchestrator's context).
 
 GAP: [one-paragraph description with file:line references]
 EVIDENCE: [how it was detected — pass 1a/1b/1c/...]
@@ -361,8 +424,8 @@ Mark the candidate done. Move to the next one. Loop until queue empty.
    `HostMethods.GateDebug(...)` and ship with BOTH a positive test and a
    `DebugDisabledTests`-style negative test.
 5. **Vendor** — Never commit anything under `vendor/`. Never commit
-   `documentation/coverage/latest.*` or `documentation/research/modeldb/`
-   (gitignored).
+   `documentation/coverage/sweep-*.{md,json}` or
+   `documentation/research/modeldb/` (all gitignored).
 6. **Enums on the wire** — Never accept a string for a finite domain.
    Add an enum variant + Unknown sentinel.
 7. **HarnessGaps lifecycle** — If a Gap test goes green, drop the trait
@@ -382,8 +445,8 @@ Mark the candidate done. Move to the next one. Loop until queue empty.
   parser half), 1f (the parser half). Brief with absolute paths and an
   explicit "report under N words" cap.
 - **general-purpose** — full tool access. Use for Phase 3 implementation
-  AND for the `just coverage` / `just probe-*` Bash steps if you want
-  the multi-minute wait to happen off main context.
+  AND for the `just sweep-sample N` / `just probe-*` Bash steps if you
+  want the multi-minute wait to happen off main context.
 - **Plan** — when a mechanical candidate turns out to be ambiguous
   mid-implementation; spawn Plan to design before editing.
 

@@ -35,10 +35,11 @@ Extract from the bug description:
 Pre-flight: `git status` must be clean. If not, stop and ask the user — never
 mix a bug repro into in-progress work.
 
-Pre-flight: read `BLOCKED.md` and search project memory
-(`/Users/julianschubert/.claude/projects/-Users-julianschubert-Documents-headless-in-the-spire/memory/`)
-for the symptom keywords. If the bug is already a known/resolved entry,
-surface that to the user before any other work — saves a wasted investigation.
+Pre-flight: read `BLOCKED.md` and search project memory (under
+`~/.claude/projects/`, the directory whose name encodes the current
+repo's absolute path — `MEMORY.md` is the index) for the symptom
+keywords. If the bug is already a known/resolved entry, surface that
+to the user before any other work — saves a wasted investigation.
 
 Output a one-paragraph summary of the parsed report and move on.
 
@@ -61,11 +62,16 @@ Pick one or more based on the suspected category:
 | Content missing on wire (card/relic/power id Unknown) | `just probe-modeldb` + diff against `*Id.g.cs`              |
 | Bootstrap / load failure / vendor resolution          | `just probe-bootstrap` → `just probe-run-state`             |
 | GodotStubs missing method                             | `just list-members <Godot.Type>` for the named type         |
-| Coverage gap (content never seen)                     | `just coverage` and diff against `documentation/coverage/latest.json` |
+| Single-id crash (card/relic/power/event/…) under sweep| `just sweep-<kind>` (or `MECHANIC_SWEEP_FOCUS_IDS=ID1,ID2 dotnet test --filter Category=MechanicSweep`) and read `documentation/coverage/sweep-<kind>.{md,json}` |
+| Harmony patch target: find closed instantiation       | `just probe-callers <MethodName>`                           |
+| Harmony patch target: find/inspect a type's methods   | `just probe-types <substring>`                              |
+| Harmony patch leaf-helper hunt (which helpers does this move body actually call?) | `dotnet run --project src/Sts2Headless -- --probe-method-body <Type.FullName> <MethodName>` |
 
 Run the relevant probe. If it exits non-zero or writes to
 `documentation/research/*-gaps.md`, capture the diff against `git HEAD` — that
-is the engine-side evidence.
+is the engine-side evidence. Sweep reports live in
+`documentation/coverage/sweep-*.{md,json}` (gitignored); a Crashed row
+that is NOT in `SweepKnownIssues.<Kind>` is the engine-side evidence.
 
 ### 1b — Read the related code
 
@@ -75,9 +81,14 @@ Phase 0 and ask it to report:
 - Where the method is declared (`Methods.cs`), catalogued (`MethodCatalog.cs`
   or `CheatMethodCatalog.cs`), and handled (`HostMethods.cs` or
   `CheatHostMethods.cs`).
-- Which `Sts2Bindings.*` reflection call it routes through.
-- Which Harmony patches in `Sts2Headless.Runtime/HangPatches.cs` (or
-  siblings) touch the same engine type.
+- Which `Sts2Bindings.*` reflection call it routes through (the bindings
+  layer lives under `src/Sts2Headless.Runtime/Bindings/`).
+- Which Harmony patches in `src/Sts2Headless.Runtime/Patches/HangPatches.cs`
+  or its siblings (`HangPatches.Async.cs`, `HangPatches.Monsters.cs`,
+  `HangPatches.Powers.cs`, `HangPatches.Cards.cs`) touch the same engine
+  type. For a monster bug, also check whether the target method is locked
+  in by `tests/Sts2Headless.IntegrationTests/MonsterPatchAuditTests.cs`
+  (`s_expectedDoormakerShape`).
 - Any existing test that already covers the green path (so we know where the
   red repro should land).
 
@@ -208,9 +219,12 @@ Process:
    the bootstrap walk and `inspect-sts2` output.
 2. **Walk the catalog.** If a `MethodCatalog` entry mishandles its summary's
    guarantee, read every nearby entry for the same shape.
-3. **Coverage delta.** Run `just coverage` if it isn't already fresh and
-   diff the `seen` set against the `*Id.g.cs` manifest — content that's
-   reachable but never seen is a candidate sibling.
+3. **Sweep delta.** For an id-shaped bug (a single card/relic/power/event
+   crashing), run the matching `just sweep-<kind>` (or, faster, a focused
+   pass: `MECHANIC_SWEEP_FOCUS_IDS=<sibling-candidate-ids> dotnet test
+   --filter Category=MechanicSweep`) and read
+   `documentation/coverage/sweep-<kind>.{md,json}` — Crashed rows that
+   aren't already in `SweepKnownIssues.<Kind>` are sibling candidates.
 4. **Variant seeds.** If the bug surfaced on seed 42, try seeds 1 / 7 / 100
    via an ad-hoc `[Theory]` to see whether the symptom is seed-specific or
    universal.
@@ -250,9 +264,13 @@ the house workflow (see `/fill-engine-gaps` Phase 3 for the canonical version):
 - GodotStubs additions get a `// from: <type>.<member>` comment naming
   the caller in sts2.dll. Do not speculatively widen the stub surface
   beyond what the symptom requires.
-- Harmony patches go in `Sts2Headless.Runtime/HangPatches.cs` (or a
-  sibling) with a comment explaining what engine method is being silenced
-  and why.
+- Harmony patches go in `src/Sts2Headless.Runtime/Patches/HangPatches.cs`
+  or a sibling (`HangPatches.Async.cs`, `.Monsters.cs`, `.Powers.cs`,
+  `.Cards.cs`) with a comment explaining what engine method is being
+  silenced and why. If the patch touches a monster move/lifecycle method,
+  expect `MonsterPatchAuditTests` to require a corresponding update to
+  `s_expectedDoormakerShape` (add the lines you stripped, or remove
+  lines you no longer strip).
 
 Run `just regen` after any change to `Methods.cs` — the pre-commit hook
 will block otherwise.
@@ -319,8 +337,9 @@ Then stop. Do not push; the user pushes.
 
 1. **AD-3** — Never auto-bump `GAME_VERSION`. Hash mismatch = stop, surface.
 2. **AD-4** — Never add a compile-time reference to sts2.dll. Reflection
-   only. The fix lives in `Sts2Headless.Runtime/Sts2Bindings*` or a Harmony
-   patch, never `using MegaCrit.Sts2…`.
+   only. The fix lives in `src/Sts2Headless.Runtime/Bindings/Sts2Bindings*`
+   or a Harmony patch under `src/Sts2Headless.Runtime/Patches/`, never
+   `using MegaCrit.Sts2…`.
 3. **AD-6** — The repro test is C#. Do not write a Python "this is the bug"
    test. Python parity tests verify the client matches C# behavior; they
    are not the regression net for game behavior.
