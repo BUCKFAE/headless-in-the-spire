@@ -25,10 +25,18 @@ name — `Godot.Node`, `Godot.Collections.Dictionary`, etc. That's why the files
 declare `namespace Godot;` even though the project is called GodotStubs, and
 why an IDE (Rider) may warn that the namespace doesn't match the folder/assembly
 name. **That warning is expected here** — renaming the namespaces would break
-the bindings; suppress it at the project level rather than "fixing" it.
+the bindings.
+
 Likewise, members that look "unused" (e.g. a `Dictionary` indexer) are present
 because *sts2* references them via reflection or IL, not because our own code
-calls them.
+calls them — every type carries a `// from:` comment recording the caller that
+forced it, which is also its provenance.
+
+Both inspections are therefore false positives unique to this package, so they
+are suppressed in [`.editorconfig`](.editorconfig) **scoped to this folder
+only** — the same checks keep guarding the rest of the codebase. The compiler
+itself emits zero warnings here (`dotnet build` is clean); the suppressions are
+purely for the IDE.
 
 ## Grows on demand
 
