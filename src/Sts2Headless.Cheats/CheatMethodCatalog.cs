@@ -34,6 +34,12 @@ public static class CheatMethodCatalog
             Summary: "Test affordance — force-start a specific event via EventRoom(model) + RunManager.EnterRoom. Bypasses map progression. Returns the post-EnterRoom room type and current options count. Requires --enable-debug.",
             IsDebugOnly: true),
 
+        new("debug/apply_power",
+            ParamsType: typeof(DebugApplyPowerParams),
+            ResultType: typeof(DebugApplyPowerResult),
+            Summary: "Test affordance — apply a power to a creature via PowerCmd.Apply (engine path). Requires an active combat. Target: enemyIndex null → player; enemyIndex set → enemies[i]. Requires --enable-debug.",
+            IsDebugOnly: true),
+
         new("debug/set_hp",
             ParamsType: typeof(DebugSetHpParams),
             ResultType: typeof(DebugSetHpResult),

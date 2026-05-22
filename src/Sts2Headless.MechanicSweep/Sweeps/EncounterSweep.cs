@@ -174,9 +174,7 @@ public sealed class EncounterSweep
         out bool sampled,
         out int universeSize)
     {
-        var universe = EncounterIdNames.AllWireNames
-            .OrderBy(s => s, StringComparer.Ordinal)
-            .ToList();
+        var universe = SweepInternals.FilterReachable(EncounterIdNames.AllWireNames);
         universeSize = universe.Count;
         sampled = sampleIds is { Count: > 0 };
         return sampled ? sampleIds! : universe;

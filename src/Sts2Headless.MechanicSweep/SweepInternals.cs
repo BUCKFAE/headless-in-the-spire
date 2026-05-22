@@ -61,6 +61,32 @@ internal static class SweepInternals
     // deepest (closest-to-throw) frames land in the first ~200 chars
     // and survive even tight truncation; this gives us room for a
     // second-frame call site too.
+    // Test-fixture and scripted-kill ids that exist in the generated
+    // manifests but aren't reachable through normal play — same filter
+    // posture as the old CoverageAggregator.IsEngineExcluded. Carried
+    // forward into the new sweep matrix so per-id sweeps don't surface
+    // these as crashes (they're engine-internal probes, not playable
+    // content, so any failure on them is a different kind of signal).
+    // Widen as more unreachable-by-design ids surface.
+    public static bool IsEngineExcluded(string id)
+    {
+        if (id.StartsWith("DEPRECATED_", System.StringComparison.Ordinal)) return true;
+        if (id.StartsWith("FAKE_", System.StringComparison.Ordinal)) return true;
+        if (id.StartsWith("MOCK_", System.StringComparison.Ordinal)) return true;
+        if (id.EndsWith("_DUMMY", System.StringComparison.Ordinal)) return true;
+        if (id.EndsWith("_ATTACK_MOVE_MONSTER", System.StringComparison.Ordinal)) return true;
+        return id is "ONE_HP_MONSTER" or "TEN_HP_MONSTER" or "TEST_SUBJECT" or "ARCHITECT";
+    }
+
+    // Standard universe → reachable-set transformation used by every
+    // per-id sweep. Sorted by id, engine-excluded ids dropped.
+    public static System.Collections.Generic.List<string> FilterReachable(
+        System.Collections.Generic.IReadOnlyCollection<string> universe) =>
+        universe
+            .Where(id => !IsEngineExcluded(id))
+            .OrderBy(s => s, System.StringComparer.Ordinal)
+            .ToList();
+
     public static string Truncate(string s) =>
         s.Length > 480 ? string.Concat(s.AsSpan(0, 480), "...") : s;
 

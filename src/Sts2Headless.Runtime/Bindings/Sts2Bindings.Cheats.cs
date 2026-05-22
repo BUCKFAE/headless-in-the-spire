@@ -42,6 +42,186 @@ public sealed partial class Sts2Bindings
         _syncCtx?.Pump();
     }
 
+    // Test affordance: apply a power to the player or to an enemy via
+    // the engine path (PowerCmd.Apply(model, target, amount, source,
+    // cardSource: null, useFinalAmount: false)). Mirrors how the engine
+    // dispatches power application from a card play.
+    //
+    // Target resolution:
+    //   * enemyIndex null  → handle.Player.Creature (the player)
+    //   * enemyIndex >= 0  → the i-th alive enemy in CombatManager.State
+    //
+    // Returns (appliedAmount, targetDescription). Reads the post-apply
+    // power amount off the target's Powers collection by matching the
+    // PowerModel's id; if the power is already present, this reports
+    // the post-stack value, which is what the wire caller would see on
+    // the next snapshot.
+    //
+    // Throws InvalidOperationException for the wire handler to translate
+    // to InvalidParams on:
+    //   * "unknown power id ..."
+    //   * "no active combat"
+    //   * "no enemy at index N"
+    public (int AppliedAmount, string TargetDescription) ApplyPower(
+        RunHandle handle, string powerId, int amount, int? enemyIndex)
+    {
+        if (_modelIdCtor is null)
+            throw new InvalidOperationException("debug/apply_power: ModelId(string,string) ctor not bound");
+
+        var powerModelType = Sts2.GetType("MegaCrit.Sts2.Core.Models.PowerModel")
+            ?? throw new InvalidOperationException("debug/apply_power: PowerModel type not found");
+        var powerCmdType = Sts2.GetType("MegaCrit.Sts2.Core.Commands.PowerCmd")
+            ?? throw new InvalidOperationException("debug/apply_power: PowerCmd type not found");
+        var modelDbType = Sts2.GetType("MegaCrit.Sts2.Core.Models.ModelDb")
+            ?? throw new InvalidOperationException("debug/apply_power: ModelDb type not found");
+        var creatureType = Sts2.GetType("MegaCrit.Sts2.Core.Entities.Creatures.Creature")
+            ?? throw new InvalidOperationException("debug/apply_power: Creature type not found");
+
+        // ModelDb.GetById<PowerModel>(ModelId) — same shape as every
+        // other content kind.
+        var getByIdGeneric = modelDbType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == "GetById" && m.IsGenericMethodDefinition && m.GetParameters().Length == 1)
+            ?? throw new InvalidOperationException("debug/apply_power: ModelDb.GetById<T>(ModelId) not found");
+        var getByIdPower = getByIdGeneric.MakeGenericMethod(powerModelType);
+
+        // Pick the non-generic Apply: (PowerModel, Creature, Decimal,
+        // Creature, CardModel, Boolean). The two generic Apply<T>
+        // overloads need a compile-time type — we have a string id
+        // and resolve to PowerModel at runtime, so non-generic is the
+        // right surface.
+        var apply = powerCmdType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == "Apply"
+                && !m.IsGenericMethodDefinition
+                && m.GetParameters().Length == 6
+                && m.GetParameters()[0].ParameterType.IsAssignableFrom(powerModelType))
+            ?? throw new InvalidOperationException(
+                "debug/apply_power: PowerCmd.Apply(PowerModel, Creature, Decimal, Creature, CardModel, Boolean) not found");
+
+        var modelId = _modelIdCtor.Invoke(new object?[] { "POWER", powerId });
+        object? canonical;
+        try
+        {
+            canonical = getByIdPower.Invoke(null, new[] { modelId });
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"debug/apply_power: unknown power id \"{powerId}\" — {tie.InnerException.Message}");
+        }
+        if (canonical is null)
+            throw new InvalidOperationException($"debug/apply_power: unknown power id \"{powerId}\"");
+
+        // PowerCmd.Apply calls AssertMutable on the model first, so we
+        // need a mutable copy of the canonical. PowerModel doesn't
+        // expose the typed ToMutable() helper that EncounterModel /
+        // RelicModel / PotionModel have; the universal path is
+        // AbstractModel.MutableClone() which returns an AbstractModel
+        // (cast back to PowerModel for the Apply signature). Caught by
+        // DebugApplyPowerTests during initial implementation.
+        var mutableClone = canonical.GetType().GetMethod("MutableClone", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes)
+            ?? throw new InvalidOperationException("debug/apply_power: AbstractModel.MutableClone() not found on canonical PowerModel");
+        var powerModel = mutableClone.Invoke(canonical, null)
+            ?? throw new InvalidOperationException($"debug/apply_power: MutableClone returned null for \"{powerId}\"");
+
+        // Resolve target.
+        object targetCreature;
+        string targetDesc;
+        if (enemyIndex is null)
+        {
+            targetCreature = _playerCreature.GetValue(handle.Player)
+                ?? throw new InvalidOperationException("debug/apply_power: Player.Creature was null");
+            targetDesc = "Player";
+        }
+        else
+        {
+            if (_combatManagerInstance is null || _combatManagerDebugOnlyGetState is null
+                || _combatStateEnemies is null || _enemyIsAlive is null)
+                throw new InvalidOperationException("debug/apply_power: no active combat (combat surface not bound)");
+            var cm = _combatManagerInstance.GetValue(null)
+                ?? throw new InvalidOperationException("debug/apply_power: no active combat (CombatManager.Instance is null)");
+            var state = _combatManagerDebugOnlyGetState.Invoke(cm, null)
+                ?? throw new InvalidOperationException("debug/apply_power: no active combat");
+            if (_combatStateEnemies.GetValue(state) is not System.Collections.IEnumerable enemies)
+                throw new InvalidOperationException("debug/apply_power: combat state has no enemies");
+            object? hit = null;
+            var i = 0;
+            foreach (var enemy in enemies)
+            {
+                if (enemy is null) continue;
+                if (!(bool)_enemyIsAlive.GetValue(enemy)!) continue;
+                if (i == enemyIndex.Value) { hit = enemy; break; }
+                i++;
+            }
+            if (hit is null)
+                throw new InvalidOperationException($"debug/apply_power: no enemy at index {enemyIndex.Value} (alive only)");
+            targetCreature = hit;
+            targetDesc = $"Enemy:{enemyIndex.Value}";
+        }
+
+        // The source defaults to the player. The engine's typical call
+        // site uses the card-playing creature; for a free apply, player
+        // is the safe default — the apply hooks see "player applied this
+        // to target" which matches the natural game shape.
+        var sourceCreature = _playerCreature.GetValue(handle.Player)
+            ?? throw new InvalidOperationException("debug/apply_power: Player.Creature was null (source)");
+
+        // Apply(model, target, amount, source, cardSource=null, useFinalAmount=false).
+        // Decimal amount because PowerCmd takes Decimal across the board
+        // (the engine fractional-power math). int → Decimal via conversion.
+        try
+        {
+            var task = apply.Invoke(null, new object?[]
+            {
+                powerModel,
+                targetCreature,
+                (decimal)amount,
+                sourceCreature,
+                /* cardSource: */ null,
+                /* useFinalAmount: */ false,
+            });
+            if (task is Task t) t.GetAwaiter().GetResult();
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"debug/apply_power: PowerCmd.Apply failed for \"{powerId}\" — {tie.InnerException.Message}");
+        }
+        _syncCtx?.Pump();
+
+        // Read back the resulting amount by walking the target's Powers
+        // collection and matching against powerId. Many powers stack,
+        // so the post-apply amount may exceed the requested amount; that's
+        // honest information for the caller.
+        var resultingAmount = ReadPowerAmount(targetCreature, creatureType, powerId);
+        return (resultingAmount, targetDesc);
+    }
+
+    private static int ReadPowerAmount(object creature, Type creatureType, string powerId)
+    {
+        var powersProp = creatureType.GetProperty("Powers", BindingFlags.Public | BindingFlags.Instance);
+        if (powersProp?.GetValue(creature) is not System.Collections.IEnumerable powers) return 0;
+        foreach (var power in powers)
+        {
+            if (power is null) continue;
+            var idProp = power.GetType().GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+            var modelIdObj = idProp?.GetValue(power);
+            var entryProp = modelIdObj?.GetType().GetProperty("Entry", BindingFlags.Public | BindingFlags.Instance);
+            if (entryProp?.GetValue(modelIdObj) is string entry && string.Equals(entry, powerId, StringComparison.Ordinal))
+            {
+                var amountProp = power.GetType().GetProperty("Amount", BindingFlags.Public | BindingFlags.Instance);
+                if (amountProp?.GetValue(power) is { } raw)
+                {
+                    // Amount is Decimal in the engine; cast to int for
+                    // the wire result (whole-number amounts are the
+                    // common case; non-integer powers will floor).
+                    return Convert.ToInt32(raw);
+                }
+                return 0;
+            }
+        }
+        return 0;
+    }
+
     // Test affordance: force-start a specific event against the active
     // run. Mirrors StartCombat's shape but for EventRoom, which takes a
     // single EventModel ctor argument (verified via the potion-probe-

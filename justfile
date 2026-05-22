@@ -251,6 +251,14 @@ sweep-encounters:
     @echo ""
     @echo "report: documentation/coverage/sweep-encounters.md"
 
+# Run the full per-PowerId smoke sweep (~270 ids, apply_power → 2
+# end_turns → kill_all_enemies). Player-target first, falls back to
+# first enemy on wire-level refusal. Crashed → test fails.
+sweep-powers:
+    @RUN_POWER_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~PowerSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-powers.md"
+
 # Run a fast subset of every mechanic sweep — N deterministic-random ids
 # per kind. Good for "did I break the smoke surface" checks before
 # launching a full multi-hour pass.

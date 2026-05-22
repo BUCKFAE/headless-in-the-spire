@@ -80,9 +80,7 @@ public sealed class RelicSweep
         System.Action<SweepRow>? onRow = null,
         System.Threading.CancellationToken ct = default)
     {
-        var universe = RelicIdNames.AllWireNames
-            .OrderBy(s => s, StringComparer.Ordinal)
-            .ToList();
+        var universe = SweepInternals.FilterReachable(RelicIdNames.AllWireNames);
         var ids = sampleIds is { Count: > 0 } ? sampleIds : universe;
         var sampled = sampleIds is { Count: > 0 };
 

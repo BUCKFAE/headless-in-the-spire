@@ -25,6 +25,7 @@ public static class CheatHostMethods
             ["debug/give_relic"] = WireHandlers.Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, getRun, p)),
             ["debug/give_potion"] = WireHandlers.Typed<DebugGivePotionParams, DebugGivePotionResult>(p => DebugGivePotion(bindings, getRun, p)),
             ["debug/start_event"] = WireHandlers.Typed<DebugStartEventParams, DebugStartEventResult>(p => DebugStartEvent(bindings, getRun, p)),
+            ["debug/apply_power"] = WireHandlers.Typed<DebugApplyPowerParams, DebugApplyPowerResult>(p => DebugApplyPower(bindings, getRun, p)),
             ["debug/set_hp"] = WireHandlers.Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, getRun, p)),
             ["debug/replace_deck"] = WireHandlers.Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
             ["debug/read_deck"] = WireHandlers.Typed<DebugReadDeckParams, DebugReadDeckResult>(_ => DebugReadDeck(bindings, getRun)),
@@ -186,6 +187,40 @@ public static class CheatHostMethods
             MaxHp: s.MaxHp,
             Gold: s.Gold,
             DeckSize: s.DeckSize);
+    }
+
+    private static DebugApplyPowerResult DebugApplyPower(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugApplyPowerParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/apply_power requires params {powerId, amount?, enemyIndex?}");
+        if (string.IsNullOrWhiteSpace(args.PowerId))
+            throw new WireException(WireErrorCode.InvalidParams,
+                "debug/apply_power powerId must be non-empty");
+        if (args.EnemyIndex is < 0)
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"debug/apply_power enemyIndex must be >= 0 if provided (got {args.EnemyIndex})");
+
+        try
+        {
+            var (appliedAmount, target) = bindings.ApplyPower(run, args.PowerId, args.Amount, args.EnemyIndex);
+            return new DebugApplyPowerResult(
+                Ok: true,
+                PowerId: args.PowerId,
+                AppliedAmount: appliedAmount,
+                TargetDescription: target);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("unknown power id", StringComparison.Ordinal))
+        {
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("no enemy at index", StringComparison.Ordinal)
+                                                 || ex.Message.Contains("no active combat", StringComparison.Ordinal))
+        {
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
     }
 
     private static DebugStartEventResult DebugStartEvent(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugStartEventParams? @params)

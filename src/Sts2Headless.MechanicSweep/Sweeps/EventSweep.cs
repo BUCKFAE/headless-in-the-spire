@@ -58,9 +58,7 @@ public sealed class EventSweep
         System.Action<SweepRow>? onRow = null,
         System.Threading.CancellationToken ct = default)
     {
-        var universe = EventIdNames.AllWireNames
-            .OrderBy(s => s, StringComparer.Ordinal)
-            .ToList();
+        var universe = SweepInternals.FilterReachable(EventIdNames.AllWireNames);
         var ids = sampleIds is { Count: > 0 } ? sampleIds : universe;
         var sampled = sampleIds is { Count: > 0 };
 

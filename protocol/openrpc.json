@@ -346,6 +346,27 @@
       "x-debugOnly": true
     },
     {
+      "name": "debug/apply_power",
+      "summary": "Test affordance — apply a power to a creature via PowerCmd.Apply (engine path). Requires an active combat. Target: enemyIndex null → player; enemyIndex set → enemies[i]. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugApplyPowerParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugApplyPowerResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
       "name": "debug/set_hp",
       "summary": "Test affordance — set the player's CurrentHp (and optionally MaxHp) by writing the engine's backing fields. Bypasses damage events, on-hit relics, and game-over detection; the resulting state is not authoritative. Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -594,6 +615,51 @@
           "hand",
           "enemies",
           "playerPowers"
+        ]
+      },
+      "DebugApplyPowerParams": {
+        "type": "object",
+        "properties": {
+          "powerId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer",
+            "default": 1
+          },
+          "enemyIndex": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "powerId"
+        ]
+      },
+      "DebugApplyPowerResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "powerId": {
+            "type": "string"
+          },
+          "appliedAmount": {
+            "type": "integer"
+          },
+          "targetDescription": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "powerId",
+          "appliedAmount",
+          "targetDescription"
         ]
       },
       "DebugGivePotionParams": {

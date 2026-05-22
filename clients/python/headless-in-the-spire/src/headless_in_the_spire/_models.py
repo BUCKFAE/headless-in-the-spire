@@ -40,6 +40,25 @@ class Character(Enum):
     necrobinder = "necrobinder"
 
 
+class DebugApplyPowerParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    power_id: Annotated[str, Field(alias="powerId")]
+    amount: int | None = 1
+    enemy_index: Annotated[int | None, Field(alias="enemyIndex")] = None
+
+
+class DebugApplyPowerResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    power_id: Annotated[str, Field(alias="powerId")]
+    applied_amount: Annotated[int, Field(alias="appliedAmount")]
+    target_description: Annotated[str, Field(alias="targetDescription")]
+
+
 class DebugGivePotionParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,

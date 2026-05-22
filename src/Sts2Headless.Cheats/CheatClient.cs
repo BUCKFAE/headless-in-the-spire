@@ -39,6 +39,15 @@ public static class CheatClient
         this ITransport transport, string eventId) =>
         transport.SendAsync<DebugStartEventResult>("debug/start_event", new DebugStartEventParams(eventId));
 
+    // debug/apply_power — apply a power to a creature via PowerCmd.Apply.
+    // Requires an active combat. enemyIndex null → player target;
+    // enemyIndex set → enemies[i]. amount defaults to 1.
+    public static Task<DebugApplyPowerResult> ApplyPowerAsync(
+        this ITransport transport, string powerId, int amount = 1, int? enemyIndex = null) =>
+        transport.SendAsync<DebugApplyPowerResult>(
+            "debug/apply_power",
+            new DebugApplyPowerParams(powerId, amount, enemyIndex));
+
     // debug/replace_deck — wholesale-replace the player's deck. `cards` is
     // a list of (cardId, upgradeLevel) tuples; upgradeLevel defaults to 0
     // (base card). Pass tuples for convenience; the wire shape uses

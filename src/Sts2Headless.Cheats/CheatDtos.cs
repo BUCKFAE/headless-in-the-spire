@@ -159,6 +159,40 @@ public sealed record DebugStartCombatResult(
     [property: JsonPropertyName("inProgress")] bool InProgress,
     [property: JsonPropertyName("enemyCount")] int EnemyCount);
 
+// ── debug/apply_power ────────────────────────────────────────────────────
+
+// Apply a power to a creature via the engine path
+// (PowerCmd.Apply(PowerModel, target, amount, source, cardSource: null,
+// useFinalAmount: false)). Same posture as debug/give_relic: routes
+// through the real apply pipeline so Before/AfterPowerAmountChanged +
+// any per-power on-apply hooks fire, but bypasses the "must come from a
+// card" expectation.
+//
+// Combat is required — most powers only live for a single combat. Call
+// debug/start_combat first; passing a power that's only meaningful
+// outside combat will still apply but won't do much.
+//
+// Target:
+//   * enemyIndex == null → apply to the player
+//   * enemyIndex >= 0    → apply to enemies[enemyIndex] (alive only)
+public sealed record DebugApplyPowerParams(
+    [property: JsonPropertyName("powerId")] string PowerId,
+    [property: JsonPropertyName("amount")] int Amount = 1,
+    [property: JsonPropertyName("enemyIndex")] int? EnemyIndex = null);
+
+public sealed record DebugApplyPowerResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("powerId")] string PowerId,
+    // Resulting amount of the power on the target creature after Apply.
+    // For stacking powers (Strength, Vulnerable) this grows with each
+    // Apply call; for non-stacking (most "duration" buffs/debuffs) it
+    // sets the duration.
+    [property: JsonPropertyName("appliedAmount")] int AppliedAmount,
+    // Where the power landed — "Player" for the player target, "Enemy:<index>"
+    // for an enemy target. Lets callers verify the target resolution
+    // without a follow-up state read.
+    [property: JsonPropertyName("targetDescription")] string TargetDescription);
+
 // ── debug/start_event ────────────────────────────────────────────────────
 
 // Force-start a specific event against the active run, bypassing map

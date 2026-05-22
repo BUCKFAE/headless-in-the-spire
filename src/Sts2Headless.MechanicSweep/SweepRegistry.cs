@@ -36,6 +36,7 @@ public static class SweepRegistry
         new("Encounter", typeof(EncounterSweep)),
         new("Event",     typeof(EventSweep)),
         new("Potion",    typeof(PotionSweep)),
+        new("Power",     typeof(PowerSweep)),
         new("Relic",     typeof(RelicSweep)),
     ];
 
@@ -46,6 +47,5 @@ public static class SweepRegistry
         new("Modifier",    "needs run modifier plumb-through (BLOCKED.md)"),
         new("Monster",     "covered implicitly by EncounterSweep (each encounter exercises its monsters' intents); standalone sweep optional"),
         new("Orb",         "blocked on Defect character implementation (BLOCKED.md)"),
-        new("Power",       "needs debug/apply_power cheat"),
     ];
 }

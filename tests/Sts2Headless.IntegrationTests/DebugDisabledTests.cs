@@ -100,6 +100,18 @@ public class DebugDisabledTests
     }
 
     [Fact]
+    public async Task DebugApplyPower_WithoutEnableDebugFlag_ReturnsDebugDisabledError()
+    {
+        await using var host = NoDebugHost.Start();
+
+        var err = await host.ExpectErrorAsync(
+            "debug/apply_power", new DebugApplyPowerParams(PowerId: "STRENGTH_POWER", Amount: 1));
+
+        Assert.Equal(WireErrorCode.DebugMethodDisabled, err.Code);
+        Assert.Contains("debug/apply_power", err.Message);
+    }
+
+    [Fact]
     public async Task NonDebugMethod_StillWorks_WithoutEnableDebugFlag()
     {
         await using var host = NoDebugHost.Start();
