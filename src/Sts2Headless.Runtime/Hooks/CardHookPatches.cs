@@ -2,15 +2,11 @@ using Sts2Headless.Protocol.Methods;
 
 namespace Sts2Headless.Runtime.Hooks;
 
-// Coverage instrumentation for cards. Most card behavior runs through
-// the play-action path (CardPlayCmd / OnPlay), already captured by the
-// CardsPlayed axis (action-side, in CoverageRecorder). The AbstractModel
-// hook overrides cards declare are the *passive* side — e.g. cards that
-// listen for AfterTurnEnd / BeforeCombatStart / etc.
-//
-// So the Triggered axis here is strict-subset useful: it tells us which
-// cards have passive listener code that actually fired in a run, on top
-// of the existing "this card was played at least once" data.
+// Hook instrumentation for cards. The AbstractModel hook overrides cards
+// declare are the *passive* side — cards that listen for AfterTurnEnd /
+// BeforeCombatStart / etc. fire here. The active side (CardPlayCmd /
+// OnPlay) goes through the play-action path and isn't routed through this
+// patcher.
 public static class CardHookPatches
 {
     public static ModelHookPatcher.PatchOutcome Apply(System.Reflection.Assembly sts2) =>

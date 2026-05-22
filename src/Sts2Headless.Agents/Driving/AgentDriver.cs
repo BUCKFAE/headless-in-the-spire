@@ -1,5 +1,4 @@
 using Sts2Headless.Agents.Contracts;
-using Sts2Headless.Coverage;
 using Sts2Headless.Protocol.Methods;
 
 namespace Sts2Headless.Agents.Driving;
@@ -31,7 +30,6 @@ public static class AgentDriver
         int maxSteps = DefaultMaxSteps,
         StallDetector? stallDetector = null,
         CombatBudgetGuard? combatBudgetGuard = null,
-        CoverageRecorder? coverageRecorder = null,
         Action<int, RunStateResult, AgentAction>? onStep = null,
         // Pre-decide hook — runs each tick AFTER the snapshot read and
         // game-over / stop-predicate checks, BEFORE the agent decides.
@@ -47,11 +45,6 @@ public static class AgentDriver
         var stall = stallDetector ?? new StallDetector();
         var budget = combatBudgetGuard ?? new CombatBudgetGuard();
         var state = await host.SendAsync<RunStateResult>("run/state");
-        // Observe the initial snapshot so the starter relic, starter deck
-        // (if a card lands in hand pre-action), and any active rewards from
-        // a resumed session show up in the report. Subsequent snapshots are
-        // observed after each ApplyAsync below.
-        coverageRecorder?.Observe(state);
         // Initial budget observation — establishes baseline if a resumed
         // session lands us mid-combat.
         budget.Observe(state);
@@ -84,25 +77,9 @@ public static class AgentDriver
             if (action is StopRun stop)
                 return new RunOutcome(state, step, TerminationReason.AgentStop, AgentStopReason: stop.Reason);
 
-            // Coverage reads from the pre-action snapshot — that's where
-            // Hand[ix] still has the card the agent is about to play. After
-            // ApplyAsync, the hand has already shrunk and the index would
-            // point at the wrong card (or off the end). Order matters. The
-            // recorder takes raw indices (it can't see AgentAction without a
-            // dependency cycle), so we destructure the variant here.
-            if (coverageRecorder is not null)
-            {
-                switch (action)
-                {
-                    case PlayCard pc: coverageRecorder.RecordPlayedCard(state, pc.CardIndex); break;
-                    case UsePotion up: coverageRecorder.RecordUsedPotion(state, up.PotionIndex); break;
-                    case SelectEventOption eo: coverageRecorder.RecordTakenEventOption(state, eo.OptionIndex); break;
-                }
-            }
             state = await ApplyAsync(host, action);
             stall.Observe(state);
             budget.Observe(state);
-            coverageRecorder?.Observe(state);
         }
 
         return new RunOutcome(state, maxSteps, TerminationReason.StepLimit, AgentStopReason: null);

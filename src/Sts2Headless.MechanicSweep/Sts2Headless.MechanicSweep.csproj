@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Per-id "exercise this mechanic in isolation" sweeps. For each CardId / RelicId / PowerId / ... in the manifest, drive the wire through a minimal fixture and classify the outcome (Played / Triggered / Unreachable / Unplayable / Crashed / Timeout). Crashed is the failure signal; everything else is informational. Per-kind sweep classes live under Sweeps/.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <ProjectReference Include="..\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+    <ProjectReference Include="..\Sts2Headless.Cheats\Sts2Headless.Cheats.csproj" />
+  </ItemGroup>
+
+</Project>

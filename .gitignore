@@ -28,11 +28,11 @@ external-tools/
 # probe writes per-kind id lists derived from vendor/sts2.dll.
 /documentation/research/modeldb/
 
-# Per-run + cross-run coverage reports written by `just coverage`. Same
-# proprietary-content rationale as /documentation/research/modeldb/: each
-# report enumerates id sets observed against the manifest universe, so
-# the on-disk markdown/json carries a derivative of vendor/sts2.dll's
-# proprietary content. Regenerate locally.
+# Per-kind mechanic-sweep reports written by `just sweep` (each
+# documentation/coverage/sweep-<kind>.{md,json} enumerates the ids the
+# sweep saw + their outcomes). Same proprietary-content rationale as
+# /documentation/research/modeldb/: the reports derive from vendor/sts2.dll
+# content. Regenerate locally.
 /documentation/coverage/
 /replays/
 

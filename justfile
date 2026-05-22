@@ -196,17 +196,33 @@ test-gaps:
 bench-parallel:
     @dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~ParallelHostThroughputBenchmark" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
 
-# Run the content-coverage sweep (greedy agent over multiple seeds with 999 HP cheat) and dump documentation/coverage/latest.{md,json}. Gitignored — proprietary content sourced from vendor/sts2.dll. Off by default in `just test-end2end`; this recipe sets RUN_COVERAGE_SWEEP=1 to opt in.
-coverage:
-    @RUN_COVERAGE_SWEEP=1 dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~CoverageSweepTests" -- xUnit.MaxParallelThreads=1
-    @echo ""
-    @echo "report: documentation/coverage/latest.md"
+# ── Mechanic sweeps (per-id smoke matrix) ────────────────────────────────
+# Each sweep drives every id in a kind's manifest through a minimal
+# "exercise this one thing" fixture and classifies the outcome.
+# Crashed / Timeout are failure signals; Played / Unreachable / Unplayable
+# are informational. Reports land in documentation/coverage/sweep-<kind>.{md,json}
+# (gitignored — proprietary content from vendor/sts2.dll).
+#
+# Slow by design — full passes can take hours. Use `sweep-sample <N>` for
+# a fast subset that's comparable across runs (deterministic seed=42).
 
-# Run the encounter-sweep smoke test (Ironclad with Hellraiser+Pommel deck vs every encounter in EncounterId.g.cs via debug/start_combat). Fails on Crash, tolerates Win/Loss/Timeout. Off by default; RUN_ENCOUNTER_SWEEP=1 opts in. Report at documentation/coverage/every-encounter-ironclad.md.
-sweep-encounters:
-    @RUN_ENCOUNTER_SWEEP=1 dotnet test tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~EveryEncounterSmokeTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+# Run the full per-CardId smoke sweep (~577 ids, single-card deck +
+# SLIMES_NORMAL fixture, target=0). Crashed → test fails.
+sweep-cards:
+    @RUN_CARD_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~CardSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
     @echo ""
-    @echo "report: documentation/coverage/every-encounter-ironclad.md"
+    @echo "report: documentation/coverage/sweep-cards.md"
+
+# Run a fast subset of every mechanic sweep — N deterministic-random ids
+# per kind. Good for "did I break the smoke surface" checks before
+# launching a full multi-hour pass.
+sweep-sample N="20":
+    @RUN_MECHANIC_SWEEP=1 MECHANIC_SWEEP_SAMPLE={{N}} dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category=MechanicSweep" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+
+# Run the umbrella mechanic sweep — every kind, full universe. Hours.
+# Use after a `GAME_VERSION` bump to find every regression in one go.
+sweep-all:
+    @RUN_MECHANIC_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category=MechanicSweep" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
 
 # Run every Python workspace member's tests via the uv workspace .venv.
 test-python:

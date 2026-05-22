@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
-    <ProjectReference Include="..\Sts2Headless.Coverage\Sts2Headless.Coverage.csproj" />
   </ItemGroup>
 
 </Project>

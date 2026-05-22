@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Description>xUnit wrappers that invoke per-kind MechanicSweep sweeps against a real host subprocess + sts2.dll. Each [Fact] is opt-in via RUN_MECHANIC_SWEEP=1 (umbrella) or a per-kind RUN_&lt;KIND&gt;_SWEEP=1 flag. MECHANIC_SWEEP_SAMPLE=N takes N deterministic-random ids per kind for a fast subset pass. Reports land in documentation/coverage/sweep-&lt;kind&gt;.{md,json}.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sts2Headless.MechanicSweep\Sts2Headless.MechanicSweep.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Cheats\Sts2Headless.Cheats.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+    <!-- The host exe must be built and next to the test binaries so
+         HostSubprocess can spawn it; GodotStubs builds as GodotSharp.dll
+         so sts2.dll's references resolve. Same posture as IntegrationTests /
+         End2EndTests. -->
+    <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- HostSubprocess source-linked from IntegrationTests (same approach
+         End2EndTests uses). If a third project ever needs it, extract it
+         into a Sts2Headless.Testing library; until then a linked file is
+         cheaper than the extraction. -->
+    <Compile Include="..\Sts2Headless.IntegrationTests\HostSubprocess.cs">
+      <Link>HostSubprocess.cs</Link>
+    </Compile>
+  </ItemGroup>
+
+</Project>
