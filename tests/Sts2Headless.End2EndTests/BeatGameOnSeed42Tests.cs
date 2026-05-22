@@ -3,6 +3,7 @@ using Sts2Headless.Agents.Examples;
 using Sts2Headless.IntegrationTests;
 using Sts2Headless.Cheats;
 using Sts2Headless.Protocol.Methods;
+using Sts2Headless.TestSupport;
 using Xunit;
 
 namespace Sts2Headless.End2EndTests;
@@ -61,8 +62,8 @@ public class BeatGameOnSeed42Tests
     [Trait("Category", "Diagnostic")]
     public async Task CheatingHellRaisingSeed42Agent_Ironclad_ReachesArchitectTerminus_WithMaxHpCheat()
     {
-        var replayRoot = Path.Combine(Path.GetTempPath(), "sts2-replays-beatgame-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(replayRoot);
+        using var replayDir = new TempDir("sts2-replays-beatgame");
+        var replayRoot = replayDir.Path;
         _output.WriteLine($"replay root: {replayRoot}");
 
         await using var host = RecordingHost.Start(replayRoot);

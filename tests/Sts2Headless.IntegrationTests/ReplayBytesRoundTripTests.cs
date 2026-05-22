@@ -4,6 +4,8 @@ using Sts2Headless.Replay;
 using Sts2Headless.Runtime;
 using Xunit;
 using Sts2Headless.Runtime.Loading;
+using Sts2Headless.TestSupport;
+using Sts2Headless.Utils;
 
 namespace Sts2Headless.IntegrationTests;
 
@@ -66,7 +68,7 @@ public class ReplayBytesRoundTripTests
         var originalChecksums = serializer.ChecksumCount(parsed);
         Assert.True(originalEvents > 0, "expected the sample .mcr to carry events");
 
-        using var tempDir = new TempDir();
+        using var tempDir = new TempDir("sts2-replay-test");
         var outPath = Path.Combine(tempDir.Path, "round-trip.mcr");
         var result = serializer.Write(parsed, outPath);
         Assert.True(File.Exists(outPath));
@@ -109,12 +111,5 @@ public class ReplayBytesRoundTripTests
         ReplayHook.Install(preamble.Sts2!);
         // No active recorder bound yet — the static slot should be empty.
         Assert.False(ReplayHook.HasActiveRecorder);
-    }
-
-    private sealed class TempDir : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "sts2-replay-test-" + Guid.NewGuid().ToString("N"));
-        public TempDir() => Directory.CreateDirectory(Path);
-        public void Dispose() { try { Directory.Delete(Path, recursive: true); } catch { /* best-effort */ } }
     }
 }

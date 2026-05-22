@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Pure, dependency-free utility surface shared across the solution: repo/vendor path resolution, the GAME_VERSION pin parser, file hashing, and setup-directory helpers. A leaf project (no project references, no sts2.dll) so anything can take a dependency on it.</Description>
+  </PropertyGroup>
+
+</Project>

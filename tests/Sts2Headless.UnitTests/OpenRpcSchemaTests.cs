@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Json.Schema;
 using Xunit;
-using Sts2Headless.Runtime.Loading;
+using Sts2Headless.Utils;
 
 namespace Sts2Headless.UnitTests;
 

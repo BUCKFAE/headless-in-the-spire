@@ -35,6 +35,8 @@
          transitively via Sts2Headless. -->
     <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
     <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />
+    <!-- Shared test helpers (TempDir, used by SetupDirTests). -->
+    <ProjectReference Include="..\Sts2Headless.TestSupport\Sts2Headless.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

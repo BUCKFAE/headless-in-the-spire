@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using Sts2Headless.Runtime.CardSelection;
 using Sts2Headless.Runtime.Patches;
+using Sts2Headless.Utils;
 
 namespace Sts2Headless.Runtime.Loading;
 
@@ -26,16 +27,16 @@ public static class RuntimeBootstrap
 
     public static Result Run(string vendorDir)
     {
-        if (!File.Exists(Path.Combine(vendorDir, "sts2.dll")))
+        if (!File.Exists(Paths.Sts2DllPath(vendorDir)))
         {
-            return new Result(null, "vendor/sts2.dll missing — run `just setup`.", false, false,
+            return new Result(null, Paths.Sts2DllMissingMessage, false, false,
                 Array.Empty<HangPatches.PatchOutcome>(),
                 Array.Empty<LocPatches.PatchOutcome>(),
                 SyncContext: null,
                 CardSelector: new CardSelectorInstaller.InstallOutcome(false, "sts2.dll missing", null));
         }
 
-        var sts2Path = Path.Combine(vendorDir, "sts2.dll");
+        var sts2Path = Paths.Sts2DllPath(vendorDir);
         var sts2 = AssemblyLoadContext.Default.LoadFromAssemblyPath(sts2Path);
 
         var syncCtx = new InlineSynchronizationContext();

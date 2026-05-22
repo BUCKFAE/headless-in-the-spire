@@ -17,6 +17,8 @@
          RunManager.CleanUp prefix the Replay hook installs. -->
     <ProjectReference Include="..\Sts2Headless.Replay\Sts2Headless.Replay.csproj" />
     <ProjectReference Include="..\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+    <!-- Shared repo/vendor paths + GAME_VERSION pin (host ping, bootstrap). -->
+    <ProjectReference Include="..\Sts2Headless.Utils\Sts2Headless.Utils.csproj" />
     <!-- GodotStubs builds as GodotSharp.dll and lands next to our exe, so the
          default loader probing path satisfies sts2.dll's GodotSharp references
          without going through our vendor resolver. -->

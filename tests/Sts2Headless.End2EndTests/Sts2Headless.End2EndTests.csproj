@@ -36,6 +36,8 @@
          the A0 win-rate tests in this project. -->
     <ProjectReference Include="..\..\src\Sts2Headless.BattleAgent.Core\Sts2Headless.BattleAgent.Core.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.BattleAgent\Sts2Headless.BattleAgent.csproj" />
+    <!-- Shared test helpers (TempDir). -->
+    <ProjectReference Include="..\Sts2Headless.TestSupport\Sts2Headless.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>

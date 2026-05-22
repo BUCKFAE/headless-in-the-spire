@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Replay;
+using Sts2Headless.TestSupport;
 using Xunit;
 
 namespace Sts2Headless.IntegrationTests;
@@ -25,7 +26,7 @@ public class ReplayChecksumEmissionTests
     [Fact]
     public async Task RecordedCombat_Produces_Nonzero_Checksums()
     {
-        using var tempReplays = new TempReplayRoot();
+        using var tempReplays = new TempDir("sts2-replays");
         await using var host = RecordingHost.Start(tempReplays.Path);
 
         await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
@@ -139,12 +140,5 @@ public class ReplayChecksumEmissionTests
         // view. A truncated recording at floor 2 still has at least
         // the Neow floor + first combat floor — assert non-empty.
         Assert.NotEmpty(runJson["map_point_history"]!.AsArray());
-    }
-
-    private sealed class TempReplayRoot : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "sts2-replays-" + Guid.NewGuid().ToString("N"));
-        public TempReplayRoot() => Directory.CreateDirectory(Path);
-        public void Dispose() { try { Directory.Delete(Path, recursive: true); } catch { /* best-effort */ } }
     }
 }

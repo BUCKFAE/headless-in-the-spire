@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.Loader;
+using Sts2Headless.Utils;
 
 namespace Sts2Headless.Commands;
 
@@ -16,10 +17,10 @@ internal static class ProbeMerchantCommand
 {
     public static int Run(string vendorDir)
     {
-        var sts2Path = Path.Combine(vendorDir, "sts2.dll");
+        var sts2Path = Paths.Sts2DllPath(vendorDir);
         if (!File.Exists(sts2Path))
         {
-            Console.Error.WriteLine("vendor/sts2.dll missing — run `just setup`.");
+            Console.Error.WriteLine(Paths.Sts2DllMissingMessage);
             return 1;
         }
 

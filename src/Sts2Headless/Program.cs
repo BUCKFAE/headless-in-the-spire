@@ -3,13 +3,14 @@ using Sts2Headless.Commands;
 using Sts2Headless.Runtime;
 using Sts2Headless.Runtime.Bindings;
 using Sts2Headless.Runtime.Loading;
+using Sts2Headless.Utils;
 
 // Skeleton entry: validates that the toolchain wires together and that
 // vendor/ is populated. Does not yet load sts2.dll — that comes once
 // GodotStubs has enough surface to satisfy its references.
 
 var repoRoot = Paths.LocateRepoRoot();
-var vendorDir = Path.Combine(repoRoot, "vendor");
+var vendorDir = Paths.VendorDir(repoRoot);
 var gameVersionFile = Path.Combine(repoRoot, "GAME_VERSION");
 
 VendorAssemblyResolver.Install(vendorDir);

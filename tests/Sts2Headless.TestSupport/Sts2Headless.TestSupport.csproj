@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Shared helpers for the test suites (not a test project itself, so no test SDK / runner). Pure BCL, no project references.</Description>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

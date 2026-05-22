@@ -52,6 +52,8 @@
          bin/, so this reference both lands the exe nearby and keeps it
          rebuilt when its sources change. -->
     <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
+    <!-- Shared test helpers (TempDir). -->
+    <ProjectReference Include="..\Sts2Headless.TestSupport\Sts2Headless.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>
