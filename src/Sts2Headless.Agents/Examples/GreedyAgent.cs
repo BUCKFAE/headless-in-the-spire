@@ -1,6 +1,8 @@
+using Sts2Headless.Agents.Authoring;
+using Sts2Headless.Agents.Contracts;
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Examples;
 
 // "Play whatever's in front of you" agent. Picks the first reasonable
 // option at every decision point, never looks ahead, never plans energy.

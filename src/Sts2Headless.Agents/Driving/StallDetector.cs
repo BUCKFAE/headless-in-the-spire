@@ -1,6 +1,6 @@
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Driving;
 
 // Watchdog for agent drive loops: when K consecutive snapshots have an
 // identical fingerprint, the engine is stuck in the same phase and the

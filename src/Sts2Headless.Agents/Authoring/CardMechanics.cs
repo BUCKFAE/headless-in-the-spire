@@ -1,6 +1,6 @@
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Authoring;
 
 // Static card-mechanics database for the cards seen along seed-42's path
 // (documentation/research/seed42-recon.md). Pure facts about each card —

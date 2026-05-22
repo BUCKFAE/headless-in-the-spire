@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Sts2Headless.Agents.Contracts;
 using Sts2Headless.Protocol;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Hosting;
 
 // Production-grade subprocess wrapper for a single headless host. One
 // process, one stdio pair, sequential request/response. Implements

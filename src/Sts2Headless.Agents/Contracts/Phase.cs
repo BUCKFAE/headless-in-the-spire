@@ -1,6 +1,6 @@
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Contracts;
 
 // Which decision the agent must make next, derived from a snapshot.
 // Mirrors the Python `state.Phase` + `current_phase()` pair; the C#

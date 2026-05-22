@@ -1,6 +1,7 @@
+using Sts2Headless.Agents.Contracts;
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Examples;
 
 // Variant of GreedyAgent that uses one owned potion at the start of
 // every combat before falling through to greedy card-play. The default

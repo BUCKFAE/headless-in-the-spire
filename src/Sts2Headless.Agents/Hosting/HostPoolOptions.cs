@@ -1,4 +1,4 @@
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Hosting;
 
 // Per-process configuration for a single HostProcess. Replay root is the
 // only required field — that's the env var the host reads to know where

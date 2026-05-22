@@ -1,6 +1,6 @@
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Driving;
 
 // Tripwire for infinite-but-progressing combats — the case StallDetector
 // misses on purpose.

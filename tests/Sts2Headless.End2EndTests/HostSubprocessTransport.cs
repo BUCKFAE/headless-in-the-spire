@@ -1,4 +1,4 @@
-using Sts2Headless.Agents;
+using Sts2Headless.Agents.Contracts;
 using Sts2Headless.IntegrationTests;
 
 namespace Sts2Headless.End2EndTests;

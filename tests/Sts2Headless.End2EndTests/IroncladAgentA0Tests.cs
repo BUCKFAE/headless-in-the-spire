@@ -1,4 +1,4 @@
-using Sts2Headless.Agents;
+using Sts2Headless.Agents.Driving;
 using Sts2Headless.BattleAgent;
 using Sts2Headless.IntegrationTests;
 using Sts2Headless.Protocol.Methods;

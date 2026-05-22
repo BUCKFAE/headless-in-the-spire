@@ -1,4 +1,4 @@
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Contracts;
 
 // Closed union of every decision an agent can make. Each variant maps
 // one-to-one onto a wire method; `AgentDriver.ApplyAsync` is the

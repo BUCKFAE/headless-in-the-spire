@@ -1,6 +1,7 @@
+using Sts2Headless.Agents.Contracts;
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Authoring;
 
 // Convenience base for rule-based agents. Splits the single Decide()
 // call into one hook per Phase, with defaults that complete a run

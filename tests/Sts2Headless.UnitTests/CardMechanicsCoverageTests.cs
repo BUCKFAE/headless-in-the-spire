@@ -1,4 +1,4 @@
-using Sts2Headless.Agents;
+using Sts2Headless.Agents.Authoring;
 using Sts2Headless.Protocol.Methods;
 using Xunit;
 

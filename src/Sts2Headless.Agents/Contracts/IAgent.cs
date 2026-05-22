@@ -1,6 +1,6 @@
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Contracts;
 
 // The single method the agent driver speaks: snapshot → action.
 // Stateless from the protocol's perspective; carry state on `this` if

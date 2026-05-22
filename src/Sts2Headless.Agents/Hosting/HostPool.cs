@@ -1,6 +1,7 @@
 using System.Threading.Channels;
+using Sts2Headless.Agents.Contracts;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Hosting;
 
 // Bounded-concurrency supervisor over N persistent HostProcess workers.
 // Goal #3 (parallel execution: N independent processes, isolated state,

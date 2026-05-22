@@ -1,6 +1,6 @@
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Authoring;
 
 // Small pure helpers over CombatState that more than one agent will
 // reach for. Kept separate from CardMechanics — these don't touch the

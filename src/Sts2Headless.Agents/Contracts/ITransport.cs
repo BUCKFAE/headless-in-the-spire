@@ -1,4 +1,4 @@
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Contracts;
 
 // Single-method abstraction over the wire transport. Anything that can issue
 // a typed JSON-RPC request to a running headless host implements this — the

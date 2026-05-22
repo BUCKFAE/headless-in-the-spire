@@ -1,7 +1,8 @@
+using Sts2Headless.Agents.Contracts;
 using Sts2Headless.Coverage;
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Driving;
 
 // The loop that drives an IAgent against an ITransport. Owns:
 //

@@ -1,6 +1,8 @@
+using Sts2Headless.Agents.Authoring;
+using Sts2Headless.Agents.Contracts;
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Agents.Examples;
 
 // Heuristic Ironclad agent tuned for seed 42 (Act 1). Originally drafted
 // to beat VANTOM (Act 1 boss, floor 17); the rename to
