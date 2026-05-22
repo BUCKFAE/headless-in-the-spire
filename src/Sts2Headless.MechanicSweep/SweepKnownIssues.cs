@@ -45,29 +45,23 @@ public static class SweepKnownIssues
     public static readonly IReadOnlyList<Issue> Cards = [];
 
     // Relics whose AfterObtained() can't be exercised cleanly in
-    // single-player headless. Trimmed 2026-05-22: GLASS_EYE,
-    // LOST_COFFER, ORRERY, DUSTY_TOME used to be here. The first
-    // three NRE'd on CardReward.OnSelect because
-    // `runState.CurrentMapPointHistoryEntry` was null (give_relic
-    // ran before any map point was entered, leaving MapPointHistory
-    // empty); Sts2Bindings.GiveRelic now seeds a stub entry. Dusty
-    // Tome NRE'd because its per-run AncientCard field wasn't set;
-    // GiveRelic now calls SetupForPlayer(Player) on relics that
-    // declare it.
-    public static readonly IReadOnlyList<Issue> Relics =
-    [
-        // MASSIVE_SCROLL is the "Multiplayer Cards" relic — its
-        // AfterObtained filters the character's CardPool by
-        // `MultiplayerConstraint == MultiplayerOnly`. Headless runs
-        // in single-player (`Players.Count == 1`), so the player's
-        // CardMultiplayerConstraint returns SingleplayerOnly and the
-        // filtered set is empty. CardFactory.CreateForReward then
-        // throws "couldn't generate valid rarity!". Unblocking this
-        // would require multiplayer-mode support in headless (no
-        // wire surface yet) — out of scope for the per-id sweep.
-        new("MASSIVE_SCROLL",
-            "InvalidOperationException 'couldn't generate valid rarity' — relic filters CardPool to MultiplayerOnly cards, which never exist in single-player headless. By-design game-mode mismatch, not a fixture issue."),
-    ];
+    // single-player headless. Currently empty:
+    //
+    // Trimmed 2026-05-22:
+    //   * GLASS_EYE / LOST_COFFER / ORRERY — NRE'd on
+    //     `runState.CurrentMapPointHistoryEntry` being null
+    //     (give_relic ran before any map point was entered).
+    //     Sts2Bindings.GiveRelic now seeds a stub entry.
+    //   * DUSTY_TOME — needed SetupForPlayer(Player) to sample its
+    //     per-run AncientCard. GiveRelic now calls SetupForPlayer
+    //     on any relic that declares it.
+    //   * MASSIVE_SCROLL — required MultiplayerOnly cards in the
+    //     pool. Two Harmony patches together (IRunState
+    //     .CardMultiplayerConstraint → None and CardFactory
+    //     .FilterForPlayerCount → pass-through) leave the
+    //     multiplayer-only subset reachable for the relic's
+    //     downstream filter.
+    public static readonly IReadOnlyList<Issue> Relics = [];
 
     // The empty kinds are listed explicitly so a future sweep that
     // discovers a known-unsafe pattern has somewhere to put the row

@@ -104,6 +104,25 @@ public static partial class HangPatches
             // stated intent ("Safely") — surfaced by MechanicSweep on
             // 2026-05-22.
             PatchAddChildSafelyNullParent(harmony, sts2),
+            // IRunState.CardMultiplayerConstraint defaults to
+            // SingleplayerOnly when Players.Count <= 1, which removes
+            // every MultiplayerOnly card from GetUnlockedCards's pool.
+            // MASSIVE_SCROLL's AfterObtained then `where
+            // c.MultiplayerConstraint == MultiplayerOnly` filter ends
+            // up with an empty pool and the engine throws "couldn't
+            // generate a valid rarity!". Override the property to
+            // None so the filter is a no-op — headless never wants
+            // the mode-specific exclusion anyway (no real multiplayer
+            // session), and the engine treats None as "no filter".
+            //
+            // CardFactory.FilterForPlayerCount is a SECOND gatekeeper
+            // that re-applies the same filter inside CreateForReward
+            // (it doesn't consult CardMultiplayerConstraint — it
+            // checks runState.Players.Count directly). Without the
+            // second patch, the constraint-getter override has no
+            // effect on MASSIVE_SCROLL's reward generation.
+            PatchCardMultiplayerConstraintNone(harmony, sts2),
+            PatchCardFactoryFilterForPlayerCount(harmony, sts2),
         ];
     }
 

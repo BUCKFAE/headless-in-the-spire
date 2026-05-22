@@ -104,6 +104,92 @@ public static partial class HangPatches
         return true;
     }
 
+    // Postfix that overrides IRunState.CardMultiplayerConstraint's
+    // result to `None`. The original logic returns SingleplayerOnly
+    // when Players.Count <= 1, which is fine for the single-player
+    // mode the engine actually targets — but it kicks the
+    // `MASSIVE_SCROLL` relic into an empty card pool because the
+    // relic explicitly wants MultiplayerOnly cards (which the
+    // SingleplayerOnly constraint strips). Returning None means
+    // "no filter": both modes' cards stay in the pool, the relic's
+    // own `c.MultiplayerConstraint == MultiplayerOnly` filter then
+    // finds its 21 candidates and the reward path resolves.
+    //
+    // Side effect on other call sites: any other engine code that
+    // reads CardMultiplayerConstraint to *exclude* the opposite
+    // mode now sees None and includes both. Acceptable for headless
+    // — we don't ship multiplayer-only cards into a single-player
+    // run via any other surface (no shop with random colorless,
+    // no event that grants a multiplayer card, etc.), so the only
+    // path that's observably different is the deliberate
+    // MASSIVE_SCROLL one.
+    private static void CardMultiplayerConstraintNonePostfix(ref object __result)
+    {
+        // Enum value 0 == None for CardMultiplayerConstraint. Boxing
+        // the int converts to the enum type the property returns.
+        __result = Enum.ToObject(__result.GetType(), 0);
+    }
+
+    private static PatchOutcome PatchCardMultiplayerConstraintNone(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Runs.IRunState.get_CardMultiplayerConstraint";
+        var iface = sts2.GetType("MegaCrit.Sts2.Core.Runs.IRunState");
+        if (iface is null)
+            return new PatchOutcome(label, Patched: false, Detail: "IRunState not found");
+        var getter = iface.GetMethod("get_CardMultiplayerConstraint", BindingFlags.Public | BindingFlags.Instance);
+        if (getter is null)
+            return new PatchOutcome(label, Patched: false, Detail: "get_CardMultiplayerConstraint not found");
+        var postfix = typeof(HangPatches).GetMethod(
+            nameof(CardMultiplayerConstraintNonePostfix),
+            BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("CardMultiplayerConstraintNonePostfix not found");
+        harmony.Patch(getter, postfix: new HarmonyMethod(postfix));
+        return new PatchOutcome(label, Patched: true, Detail: "→ None (skip the single/multiplayer card filter)");
+    }
+
+    // Postfix that turns CardFactory.FilterForPlayerCount into a
+    // pass-through. The original strips MultiplayerOnly cards in
+    // single-player and SingleplayerOnly cards in multi-player. In
+    // headless we don't care about the mode-specific exclusion (no
+    // shop / no random colorless / no event-card spawn that abuses
+    // the off-mode set) — only MASSIVE_SCROLL's AfterObtained
+    // explicitly wants the MultiplayerOnly subset, and the engine's
+    // own filter inside CreateForReward strips it before the
+    // relic's downstream filter can run. Pass-through is the
+    // smallest blast radius: every other reward generation sees the
+    // unfiltered pool and applies whatever rarity / character-pool
+    // filters the engine already provides.
+    private static void FilterForPlayerCountPassThroughPostfix(object __1, ref object __result)
+    {
+        // Original signature: FilterForPlayerCount(IRunState runState,
+        // IEnumerable<CardModel> options) → IEnumerable<CardModel>.
+        // __0 = runState (ignored), __1 = options, __result = filtered
+        // output. We discard the filtered result and pass the input
+        // options through unchanged — the engine downstream operates
+        // on whatever sequence we return.
+        __result = __1;
+    }
+
+    private static PatchOutcome PatchCardFactoryFilterForPlayerCount(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Factories.CardFactory.FilterForPlayerCount";
+        var factoryType = sts2.GetType("MegaCrit.Sts2.Core.Factories.CardFactory");
+        if (factoryType is null)
+            return new PatchOutcome(label, Patched: false, Detail: "CardFactory type not found");
+        // Static, non-public — the engine has it as `private static`.
+        var method = factoryType.GetMethod(
+            "FilterForPlayerCount",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        if (method is null)
+            return new PatchOutcome(label, Patched: false, Detail: "FilterForPlayerCount(static private) not found");
+        var postfix = typeof(HangPatches).GetMethod(
+            nameof(FilterForPlayerCountPassThroughPostfix),
+            BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("FilterForPlayerCountPassThroughPostfix not found");
+        harmony.Patch(method, postfix: new HarmonyMethod(postfix));
+        return new PatchOutcome(label, Patched: true, Detail: "pass-through (skip single/multiplayer card exclusion)");
+    }
+
     // Patch GodotTreeExtensions.AddChildSafely to handle a null parent
     // gracefully. Same posture as the existing patches: discover by
     // reflection (AD-4), prefix that returns false to suppress the
