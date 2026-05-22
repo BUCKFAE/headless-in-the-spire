@@ -33,6 +33,7 @@ public static class SweepRegistry
     public static readonly IReadOnlyList<Implemented> ImplementedSweeps =
     [
         new("Card",   typeof(CardSweep)),
+        new("Event",  typeof(EventSweep)),
         new("Potion", typeof(PotionSweep)),
         new("Relic",  typeof(RelicSweep)),
     ];
@@ -42,7 +43,6 @@ public static class SweepRegistry
         new("Affliction",  "needs debug/apply_affliction cheat (or attach via a card)"),
         new("Enchantment", "needs debug/apply_enchantment cheat (or attach via a card)"),
         new("Encounter",   "per-encounter smoke — the old EveryEncounterSmokeTests shape, ported into this matrix"),
-        new("Event",       "needs debug/start_event cheat"),
         new("Modifier",    "needs run modifier plumb-through (BLOCKED.md)"),
         new("Monster",     "often covered via Encounter sweep; may not need a standalone sweep"),
         new("Orb",         "blocked on Defect character implementation (BLOCKED.md)"),

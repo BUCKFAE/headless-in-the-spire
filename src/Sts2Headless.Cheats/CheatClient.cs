@@ -31,6 +31,14 @@ public static class CheatClient
         this ITransport transport, string potionId) =>
         transport.SendAsync<DebugGivePotionResult>("debug/give_potion", new DebugGivePotionParams(potionId));
 
+    // debug/start_event — force-start an event via EventRoom(model) +
+    // RunManager.EnterRoom (bypasses map progression). Returns the
+    // post-EnterRoom room type and the count of options visible on the
+    // current event page.
+    public static Task<DebugStartEventResult> StartEventAsync(
+        this ITransport transport, string eventId) =>
+        transport.SendAsync<DebugStartEventResult>("debug/start_event", new DebugStartEventParams(eventId));
+
     // debug/replace_deck — wholesale-replace the player's deck. `cards` is
     // a list of (cardId, upgradeLevel) tuples; upgradeLevel defaults to 0
     // (base card). Pass tuples for convenience; the wire shape uses

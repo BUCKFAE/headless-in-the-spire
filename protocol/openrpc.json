@@ -325,6 +325,27 @@
       "x-debugOnly": true
     },
     {
+      "name": "debug/start_event",
+      "summary": "Test affordance — force-start a specific event via EventRoom(model) + RunManager.EnterRoom. Bypasses map progression. Returns the post-EnterRoom room type and current options count. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugStartEventParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugStartEventResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
       "name": "debug/set_hp",
       "summary": "Test affordance — set the player's CurrentHp (and optionally MaxHp) by writing the engine's backing fields. Bypasses damage events, on-hit relics, and game-over detection; the resulting state is not authoritative. Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -807,6 +828,40 @@
           "encounterId",
           "inProgress",
           "enemyCount"
+        ]
+      },
+      "DebugStartEventParams": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "DebugStartEventResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "currentRoomType": {
+            "type": "string"
+          },
+          "optionsCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "eventId",
+          "currentRoomType",
+          "optionsCount"
         ]
       },
       "Enemy": {

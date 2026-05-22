@@ -42,6 +42,108 @@ public sealed partial class Sts2Bindings
         _syncCtx?.Pump();
     }
 
+    // Test affordance: force-start a specific event against the active
+    // run. Mirrors StartCombat's shape but for EventRoom, which takes a
+    // single EventModel ctor argument (verified via the potion-probe-
+    // shaped inspection on the pinned game version):
+    //   1. ModelDb.GetById<EventModel>(new ModelId("EVENT", id))
+    //   2. eventModel.ToMutable()                      (the engine guards
+    //      EventRoom ctor against canonical models for shared events)
+    //   3. new EventRoom(mutableEvent)
+    //   4. RunManager.Instance.EnterRoom(room) — await
+    //   5. _syncCtx.Pump() + DrainActionExecutor    (same handshake the
+    //      relic / kill-all-enemies / start-combat helpers use)
+    //
+    // Bypasses the map-progression path so callers can stage any event
+    // from any room state. The engine doesn't validate Act / Character
+    // compatibility, so off-act events work but may surface in an
+    // unusual run state (e.g. an Act-3 event opened on Act-1 floor 1
+    // still runs through its CurrentOptions).
+    //
+    // Returns (currentRoomType-as-string, optionsCount) so the wire
+    // result tells the caller what landed without a follow-up state read.
+    public (string CurrentRoomType, int OptionsCount) StartEvent(RunHandle handle, string eventId)
+    {
+        if (_modelIdCtor is null)
+            throw new InvalidOperationException("debug/start_event: ModelId(string,string) ctor not bound");
+        if (_runManagerEnterRoom is null)
+            throw new InvalidOperationException("debug/start_event: RunManager.EnterRoom not bound");
+
+        var eventModelType = Sts2.GetType("MegaCrit.Sts2.Core.Models.EventModel")
+            ?? throw new InvalidOperationException("debug/start_event: EventModel type not found");
+        var eventRoomType = Sts2.GetType("MegaCrit.Sts2.Core.Rooms.EventRoom")
+            ?? throw new InvalidOperationException("debug/start_event: EventRoom type not found");
+        var modelDbType = Sts2.GetType("MegaCrit.Sts2.Core.Models.ModelDb")
+            ?? throw new InvalidOperationException("debug/start_event: ModelDb type not found");
+
+        var getByIdGeneric = modelDbType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == "GetById" && m.IsGenericMethodDefinition && m.GetParameters().Length == 1)
+            ?? throw new InvalidOperationException("debug/start_event: ModelDb.GetById<T>(ModelId) not found");
+        var getByIdEvent = getByIdGeneric.MakeGenericMethod(eventModelType);
+
+        var modelId = _modelIdCtor.Invoke(new object?[] { "EVENT", eventId });
+        object? canonical;
+        try
+        {
+            canonical = getByIdEvent.Invoke(null, new[] { modelId });
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"debug/start_event: unknown event id \"{eventId}\" — {tie.InnerException.Message}");
+        }
+        if (canonical is null)
+            throw new InvalidOperationException($"debug/start_event: unknown event id \"{eventId}\"");
+
+        // EventRoom takes the CANONICAL EventModel, not the mutable one —
+        // opposite of CombatRoom's posture, verified empirically: passing
+        // a mutable surfaces "Mutable model used in incorrect place." The
+        // EventRoom ctor internally manages the canonical → LocalMutableEvent
+        // bridge (visible on its CanonicalEvent + LocalMutableEvent
+        // properties).
+        var eventRoomCtor = eventRoomType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+            .FirstOrDefault(c =>
+            {
+                var ps = c.GetParameters();
+                return ps.Length == 1 && ps[0].ParameterType.IsAssignableFrom(eventModelType);
+            })
+            ?? throw new InvalidOperationException("debug/start_event: EventRoom(EventModel) ctor not found");
+
+        object eventRoom;
+        try
+        {
+            eventRoom = eventRoomCtor.Invoke(new[] { canonical })
+                ?? throw new InvalidOperationException($"debug/start_event: EventRoom ctor returned null for \"{eventId}\"");
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"debug/start_event: EventRoom construction failed for \"{eventId}\" — {tie.InnerException.Message}");
+        }
+
+        try
+        {
+            var enterResult = _runManagerEnterRoom.Invoke(handle.RunManager, new[] { (object)eventRoom });
+            if (enterResult is Task t) t.GetAwaiter().GetResult();
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"debug/start_event: RunManager.EnterRoom failed for \"{eventId}\" — {tie.InnerException.Message}");
+        }
+        _syncCtx?.Pump();
+        DrainActionExecutor(handle);
+
+        // Read-back: what room did we end up in, and how many options
+        // are visible? The current-room name comes from RunState; the
+        // options count goes through ReadAvailableEventOptions which
+        // is the same path the snapshot uses.
+        var currentRoom = _runStateCurrentRoom.GetValue(handle.RunState);
+        var roomName = currentRoom?.GetType().Name ?? "<null>";
+        var options = ReadAvailableEventOptions(handle.RunManager);
+        return (roomName, options.Count);
+    }
+
     // Test affordance: grant `potionId` to the player via the engine path
     // (PotionCmd.TryToProcure(PotionModel, Player, slot=-1)). Same shape as
     // GiveRelic but for potions. The engine picks the first empty slot

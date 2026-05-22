@@ -159,6 +159,35 @@ public sealed record DebugStartCombatResult(
     [property: JsonPropertyName("inProgress")] bool InProgress,
     [property: JsonPropertyName("enemyCount")] int EnemyCount);
 
+// ── debug/start_event ────────────────────────────────────────────────────
+
+// Force-start a specific event against the active run, bypassing map
+// progression. Mirrors debug/start_combat: resolves the EventModel via
+// ModelDb.GetById<EventModel>(new ModelId("EVENT", id)), constructs a
+// per-run mutable copy if the model exposes ToMutable, builds
+// EventRoom(eventModel), and drives RunManager.EnterRoom. Listeners
+// gated on "player entered the room via the map" will not fire.
+//
+// `eventId` is the wire string id (matches EventId enum's wire form,
+// e.g. "MIND_BLOOM"). Unknown ids return InvalidParams. The wire
+// result reports the post-EnterRoom room type and the count of options
+// currently available — callers (sweeps, tests) can branch on those
+// without paying a second run/state round-trip.
+public sealed record DebugStartEventParams(
+    [property: JsonPropertyName("eventId")] string EventId);
+
+public sealed record DebugStartEventResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("eventId")] string EventId,
+    // Room type after EnterRoom landed. Usually EventRoom; if the event
+    // resolved immediately (single-option "you walk past it" shapes), it
+    // may already be MapRoom by the time we read state.
+    [property: JsonPropertyName("currentRoomType")] string CurrentRoomType,
+    // Number of options on the current event page (one per
+    // AvailableEventOptions entry). 0 means the event is finished or
+    // has nothing pickable; the caller can decide whether to proceed.
+    [property: JsonPropertyName("optionsCount")] int OptionsCount);
+
 // ── debug/kill_all_enemies ───────────────────────────────────────────────
 
 // Drops every alive enemy in the current combat to 0 HP by writing the

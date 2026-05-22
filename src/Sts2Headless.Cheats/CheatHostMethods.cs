@@ -24,6 +24,7 @@ public static class CheatHostMethods
         {
             ["debug/give_relic"] = WireHandlers.Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, getRun, p)),
             ["debug/give_potion"] = WireHandlers.Typed<DebugGivePotionParams, DebugGivePotionResult>(p => DebugGivePotion(bindings, getRun, p)),
+            ["debug/start_event"] = WireHandlers.Typed<DebugStartEventParams, DebugStartEventResult>(p => DebugStartEvent(bindings, getRun, p)),
             ["debug/set_hp"] = WireHandlers.Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, getRun, p)),
             ["debug/replace_deck"] = WireHandlers.Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
             ["debug/read_deck"] = WireHandlers.Typed<DebugReadDeckParams, DebugReadDeckResult>(_ => DebugReadDeck(bindings, getRun)),
@@ -185,6 +186,32 @@ public static class CheatHostMethods
             MaxHp: s.MaxHp,
             Gold: s.Gold,
             DeckSize: s.DeckSize);
+    }
+
+    private static DebugStartEventResult DebugStartEvent(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugStartEventParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/start_event requires params {eventId}");
+        if (string.IsNullOrWhiteSpace(args.EventId))
+            throw new WireException(WireErrorCode.InvalidParams,
+                "debug/start_event eventId must be non-empty");
+
+        try
+        {
+            var (roomType, optionsCount) = bindings.StartEvent(run, args.EventId);
+            return new DebugStartEventResult(
+                Ok: true,
+                EventId: args.EventId,
+                CurrentRoomType: roomType,
+                OptionsCount: optionsCount);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("unknown event id", StringComparison.Ordinal))
+        {
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
     }
 
     private static DebugGivePotionResult DebugGivePotion(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugGivePotionParams? @params)

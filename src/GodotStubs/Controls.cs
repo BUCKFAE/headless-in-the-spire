@@ -32,6 +32,13 @@ public class Control : CanvasItem
     //   ExecuteEnemyTurn throws MissingMethodException before any monster
     //   intent resolves. Returning default is harmless — no consumer reads it.
     public Vector2 GlobalPosition { get; set; }
+
+    // from: EventSweep — PUNCH_OFF event crashed on debug/start_event with
+    //   "Method not found: 'Godot.Vector2 Godot.Control.get_Scale()'.".
+    //   Same shape as Node2D.Scale; real Godot's Control exposes Scale for
+    //   UI transform animation. (1f, 1f) is the identity default — no
+    //   visual scaling.
+    public Vector2 Scale { get; set; } = new Vector2(1f, 1f);
 }
 
 public class Range : Control

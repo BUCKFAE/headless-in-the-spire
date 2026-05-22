@@ -235,6 +235,14 @@ sweep-potions:
     @echo ""
     @echo "report: documentation/coverage/sweep-potions.md"
 
+# Run the full per-EventId smoke sweep (~66 ids, start_event + iterate
+# options (pick 0 each page) until the event resolves). Catches event-
+# option crashes (historical card-select-screen NRE family). Crashed → fail.
+sweep-events:
+    @RUN_EVENT_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~EventSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-events.md"
+
 # Run a fast subset of every mechanic sweep — N deterministic-random ids
 # per kind. Good for "did I break the smoke surface" checks before
 # launching a full multi-hour pass.

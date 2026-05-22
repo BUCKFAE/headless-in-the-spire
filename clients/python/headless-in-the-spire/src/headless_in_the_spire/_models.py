@@ -157,6 +157,23 @@ class DebugStartCombatResult(BaseModel):
     enemy_count: Annotated[int, Field(alias="enemyCount")]
 
 
+class DebugStartEventParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    event_id: Annotated[str, Field(alias="eventId")]
+
+
+class DebugStartEventResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    event_id: Annotated[str, Field(alias="eventId")]
+    current_room_type: Annotated[str, Field(alias="currentRoomType")]
+    options_count: Annotated[int, Field(alias="optionsCount")]
+
+
 class EventOption(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,

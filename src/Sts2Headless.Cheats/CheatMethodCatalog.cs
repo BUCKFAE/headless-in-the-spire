@@ -28,6 +28,12 @@ public static class CheatMethodCatalog
             Summary: "Test affordance — grant a potion via PotionCmd.TryToProcure (engine path). Lands in the first empty PotionSlots entry; returns the chosen slot index. Requires --enable-debug.",
             IsDebugOnly: true),
 
+        new("debug/start_event",
+            ParamsType: typeof(DebugStartEventParams),
+            ResultType: typeof(DebugStartEventResult),
+            Summary: "Test affordance — force-start a specific event via EventRoom(model) + RunManager.EnterRoom. Bypasses map progression. Returns the post-EnterRoom room type and current options count. Requires --enable-debug.",
+            IsDebugOnly: true),
+
         new("debug/set_hp",
             ParamsType: typeof(DebugSetHpParams),
             ResultType: typeof(DebugSetHpResult),

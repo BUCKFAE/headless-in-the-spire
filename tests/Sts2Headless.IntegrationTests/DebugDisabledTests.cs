@@ -88,6 +88,18 @@ public class DebugDisabledTests
     }
 
     [Fact]
+    public async Task DebugStartEvent_WithoutEnableDebugFlag_ReturnsDebugDisabledError()
+    {
+        await using var host = NoDebugHost.Start();
+
+        var err = await host.ExpectErrorAsync(
+            "debug/start_event", new DebugStartEventParams(EventId: "MIND_BLOOM"));
+
+        Assert.Equal(WireErrorCode.DebugMethodDisabled, err.Code);
+        Assert.Contains("debug/start_event", err.Message);
+    }
+
+    [Fact]
     public async Task NonDebugMethod_StillWorks_WithoutEnableDebugFlag()
     {
         await using var host = NoDebugHost.Start();
