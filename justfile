@@ -227,6 +227,14 @@ sweep-relics:
     @echo ""
     @echo "report: documentation/coverage/sweep-relics.md"
 
+# Run the full per-PotionId smoke sweep (~64 ids, give_potion +
+# start_combat(SLIMES_NORMAL) + use_potion + kill_all_enemies, draining
+# TriggeredSincePrev to distinguish Triggered vs Played). Crashed → fail.
+sweep-potions:
+    @RUN_POTION_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~PotionSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-potions.md"
+
 # Run a fast subset of every mechanic sweep — N deterministic-random ids
 # per kind. Good for "did I break the smoke surface" checks before
 # launching a full multi-hour pass.

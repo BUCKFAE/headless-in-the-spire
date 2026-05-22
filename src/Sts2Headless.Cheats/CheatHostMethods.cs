@@ -23,6 +23,7 @@ public static class CheatHostMethods
         new Dictionary<string, Func<JsonNode?, JsonNode?>>
         {
             ["debug/give_relic"] = WireHandlers.Typed<DebugGiveRelicParams, DebugGiveRelicResult>(p => DebugGiveRelic(bindings, getRun, p)),
+            ["debug/give_potion"] = WireHandlers.Typed<DebugGivePotionParams, DebugGivePotionResult>(p => DebugGivePotion(bindings, getRun, p)),
             ["debug/set_hp"] = WireHandlers.Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, getRun, p)),
             ["debug/replace_deck"] = WireHandlers.Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
             ["debug/read_deck"] = WireHandlers.Typed<DebugReadDeckParams, DebugReadDeckResult>(_ => DebugReadDeck(bindings, getRun)),
@@ -184,6 +185,35 @@ public static class CheatHostMethods
             MaxHp: s.MaxHp,
             Gold: s.Gold,
             DeckSize: s.DeckSize);
+    }
+
+    private static DebugGivePotionResult DebugGivePotion(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugGivePotionParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/give_potion requires params {potionId}");
+        if (string.IsNullOrWhiteSpace(args.PotionId))
+            throw new WireException(WireErrorCode.InvalidParams,
+                "debug/give_potion potionId must be non-empty");
+
+        try
+        {
+            var (slotIndex, count) = bindings.GivePotion(run, args.PotionId);
+            return new DebugGivePotionResult(
+                Ok: true,
+                PotionId: args.PotionId,
+                SlotIndex: slotIndex,
+                PotionCount: count);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("unknown potion id", StringComparison.Ordinal))
+        {
+            // Surface unknown ids as InvalidParams (-32602) so generated
+            // clients get the right code, same pattern as start_combat /
+            // replace_deck.
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
     }
 
 }

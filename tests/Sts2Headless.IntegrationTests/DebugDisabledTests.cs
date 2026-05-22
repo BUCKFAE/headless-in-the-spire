@@ -76,6 +76,18 @@ public class DebugDisabledTests
     }
 
     [Fact]
+    public async Task DebugGivePotion_WithoutEnableDebugFlag_ReturnsDebugDisabledError()
+    {
+        await using var host = NoDebugHost.Start();
+
+        var err = await host.ExpectErrorAsync(
+            "debug/give_potion", new DebugGivePotionParams(PotionId: "BLOCK_POTION"));
+
+        Assert.Equal(WireErrorCode.DebugMethodDisabled, err.Code);
+        Assert.Contains("debug/give_potion", err.Message);
+    }
+
+    [Fact]
     public async Task NonDebugMethod_StillWorks_WithoutEnableDebugFlag()
     {
         await using var host = NoDebugHost.Start();

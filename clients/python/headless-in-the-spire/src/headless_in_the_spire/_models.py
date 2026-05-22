@@ -40,6 +40,23 @@ class Character(Enum):
     necrobinder = "necrobinder"
 
 
+class DebugGivePotionParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    potion_id: Annotated[str, Field(alias="potionId")]
+
+
+class DebugGivePotionResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    potion_id: Annotated[str, Field(alias="potionId")]
+    slot_index: Annotated[int, Field(alias="slotIndex")]
+    potion_count: Annotated[int, Field(alias="potionCount")]
+
+
 class DebugGiveRelicParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,

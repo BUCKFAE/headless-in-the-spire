@@ -30,6 +30,30 @@ public sealed record DebugGiveRelicResult(
     [property: JsonPropertyName("gold")] int Gold,
     [property: JsonPropertyName("deckSize")] int DeckSize);
 
+// ── debug/give_potion ────────────────────────────────────────────────────
+
+// Grants a potion to the active player via the engine path
+// (PotionCmd.TryToProcure(PotionModel, Player, slot=-1)). Same posture as
+// debug/give_relic: routes through the real obtain pipeline so on-pickup
+// hooks (BeforePotionProcured / AfterPotionProcured) fire, but bypasses
+// the merchant gold cost. The slot landing follows the engine's
+// own slot-pick rule (first empty); slotIndex in the result names the
+// slot the potion ended up in.
+public sealed record DebugGivePotionParams(
+    [property: JsonPropertyName("potionId")] string PotionId);
+
+public sealed record DebugGivePotionResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("potionId")] string PotionId,
+    // Index of the PotionSlots entry the granted potion landed in (the
+    // engine's TryToProcure picks the first empty slot when slot=-1).
+    // -1 if procurement succeeded but the slot couldn't be located
+    // post-hoc (shouldn't happen in practice but the wire is honest).
+    [property: JsonPropertyName("slotIndex")] int SlotIndex,
+    // Total count of non-null entries in PotionSlots after the procure
+    // — lets callers verify "the bag grew by 1" without re-reading state.
+    [property: JsonPropertyName("potionCount")] int PotionCount);
+
 // ── debug/set_hp ─────────────────────────────────────────────────────────
 
 // Writes the player's current HP (and optionally Max HP) directly into the

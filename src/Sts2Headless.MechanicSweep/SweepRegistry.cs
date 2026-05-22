@@ -32,8 +32,9 @@ public static class SweepRegistry
 
     public static readonly IReadOnlyList<Implemented> ImplementedSweeps =
     [
-        new("Card",  typeof(CardSweep)),
-        new("Relic", typeof(RelicSweep)),
+        new("Card",   typeof(CardSweep)),
+        new("Potion", typeof(PotionSweep)),
+        new("Relic",  typeof(RelicSweep)),
     ];
 
     public static readonly IReadOnlyList<Planned> PlannedSweeps =
@@ -45,7 +46,6 @@ public static class SweepRegistry
         new("Modifier",    "needs run modifier plumb-through (BLOCKED.md)"),
         new("Monster",     "often covered via Encounter sweep; may not need a standalone sweep"),
         new("Orb",         "blocked on Defect character implementation (BLOCKED.md)"),
-        new("Potion",      "needs debug/give_potion cheat"),
         new("Power",       "needs debug/apply_power cheat"),
     ];
 }

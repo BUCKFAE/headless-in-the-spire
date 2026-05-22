@@ -304,6 +304,27 @@
       "x-debugOnly": true
     },
     {
+      "name": "debug/give_potion",
+      "summary": "Test affordance — grant a potion via PotionCmd.TryToProcure (engine path). Lands in the first empty PotionSlots entry; returns the chosen slot index. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugGivePotionParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugGivePotionResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
       "name": "debug/set_hp",
       "summary": "Test affordance — set the player's CurrentHp (and optionally MaxHp) by writing the engine's backing fields. Bypasses damage events, on-hit relics, and game-over detection; the resulting state is not authoritative. Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -552,6 +573,40 @@
           "hand",
           "enemies",
           "playerPowers"
+        ]
+      },
+      "DebugGivePotionParams": {
+        "type": "object",
+        "properties": {
+          "potionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "potionId"
+        ]
+      },
+      "DebugGivePotionResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "potionId": {
+            "type": "string"
+          },
+          "slotIndex": {
+            "type": "integer"
+          },
+          "potionCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "potionId",
+          "slotIndex",
+          "potionCount"
         ]
       },
       "DebugGiveRelicParams": {

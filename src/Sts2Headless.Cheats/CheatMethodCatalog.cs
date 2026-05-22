@@ -22,6 +22,12 @@ public static class CheatMethodCatalog
             Summary: "Test affordance — grant a relic via RelicCmd.Obtain (engine path). Requires --enable-debug.",
             IsDebugOnly: true),
 
+        new("debug/give_potion",
+            ParamsType: typeof(DebugGivePotionParams),
+            ResultType: typeof(DebugGivePotionResult),
+            Summary: "Test affordance — grant a potion via PotionCmd.TryToProcure (engine path). Lands in the first empty PotionSlots entry; returns the chosen slot index. Requires --enable-debug.",
+            IsDebugOnly: true),
+
         new("debug/set_hp",
             ParamsType: typeof(DebugSetHpParams),
             ResultType: typeof(DebugSetHpResult),

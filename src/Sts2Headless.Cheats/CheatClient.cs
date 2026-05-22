@@ -25,6 +25,12 @@ public static class CheatClient
         this ITransport transport, string relicId) =>
         transport.SendAsync<DebugGiveRelicResult>("debug/give_relic", new DebugGiveRelicParams(relicId));
 
+    // debug/give_potion — grant a potion by id via PotionCmd.TryToProcure
+    // (engine path). Lands in the first empty PotionSlots entry.
+    public static Task<DebugGivePotionResult> GivePotionAsync(
+        this ITransport transport, string potionId) =>
+        transport.SendAsync<DebugGivePotionResult>("debug/give_potion", new DebugGivePotionParams(potionId));
+
     // debug/replace_deck — wholesale-replace the player's deck. `cards` is
     // a list of (cardId, upgradeLevel) tuples; upgradeLevel defaults to 0
     // (base card). Pass tuples for convenience; the wire shape uses

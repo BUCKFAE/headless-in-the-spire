@@ -42,6 +42,141 @@ public sealed partial class Sts2Bindings
         _syncCtx?.Pump();
     }
 
+    // Test affordance: grant `potionId` to the player via the engine path
+    // (PotionCmd.TryToProcure(PotionModel, Player, slot=-1)). Same shape as
+    // GiveRelic but for potions. The engine picks the first empty slot
+    // when the int argument is -1; the post-call PotionSlots walk locates
+    // the landed slot so the wire can name it.
+    //
+    // Throws InvalidOperationException("unknown potion id ...") on a bad
+    // id; the wire handler translates that to WireErrorCode.InvalidParams.
+    // Returns (slotIndex, totalCount) for the caller to surface.
+    public (int SlotIndex, int Count) GivePotion(RunHandle handle, string potionId)
+    {
+        if (_modelIdCtor is null)
+            throw new InvalidOperationException("debug/give_potion: ModelId(string,string) ctor not bound — bootstrap likely failed");
+
+        var potionModelType = Sts2.GetType("MegaCrit.Sts2.Core.Models.PotionModel")
+            ?? throw new InvalidOperationException("debug/give_potion: PotionModel type not found");
+        var potionCmdType = Sts2.GetType("MegaCrit.Sts2.Core.Commands.PotionCmd")
+            ?? throw new InvalidOperationException("debug/give_potion: PotionCmd type not found");
+        var modelDbType = Sts2.GetType("MegaCrit.Sts2.Core.Models.ModelDb")
+            ?? throw new InvalidOperationException("debug/give_potion: ModelDb type not found");
+
+        // ModelDb.GetById<PotionModel>(ModelId) — same shape as the relic /
+        // encounter / card paths above.
+        var getByIdGeneric = modelDbType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == "GetById" && m.IsGenericMethodDefinition && m.GetParameters().Length == 1)
+            ?? throw new InvalidOperationException("debug/give_potion: ModelDb.GetById<T>(ModelId) not found");
+        var getByIdPotion = getByIdGeneric.MakeGenericMethod(potionModelType);
+
+        // Pick the 3-arg overload (PotionModel, Player, Int32). The 1-arg
+        // overload (Player) picks a random potion — wrong shape for "give
+        // me this specific id".
+        var tryToProcure = potionCmdType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == "TryToProcure"
+                && m.GetParameters().Length == 3
+                && m.GetParameters()[0].ParameterType.IsAssignableFrom(potionModelType)
+                && m.GetParameters()[2].ParameterType == typeof(int))
+            ?? throw new InvalidOperationException("debug/give_potion: PotionCmd.TryToProcure(PotionModel, Player, Int32) not found");
+
+        var modelId = _modelIdCtor.Invoke(new object?[] { "POTION", potionId });
+        object? canonical;
+        try
+        {
+            canonical = getByIdPotion.Invoke(null, new[] { modelId });
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"debug/give_potion: unknown potion id \"{potionId}\" — {tie.InnerException.Message}");
+        }
+        if (canonical is null)
+            throw new InvalidOperationException($"debug/give_potion: unknown potion id \"{potionId}\"");
+
+        // PotionModel.ToMutable() bridges canonical → per-run-mutable. Same
+        // CanonicalModelException posture as relics / encounters; if the
+        // method isn't there we fall through with the canonical (engine may
+        // accept it — defensive default).
+        var toMutable = potionModelType.GetMethod("ToMutable", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
+        var potionModel = toMutable is not null
+            ? (toMutable.Invoke(canonical, null) ?? canonical)
+            : canonical;
+
+        // Invoke TryToProcure(potionModel, player, -1) and await. Slot=-1
+        // is the engine's "first empty" sentinel; the result's `success`
+        // field tells us whether a slot was found.
+        object? procureResult;
+        try
+        {
+            var task = tryToProcure.Invoke(null, new object?[] { potionModel, handle.Player, -1 });
+            if (task is Task t)
+            {
+                t.GetAwaiter().GetResult();
+                // Read Task<T>.Result reflectively — Task is non-generic in
+                // our cast above. The wrapped value is PotionProcureResult.
+                var resultProp = t.GetType().GetProperty("Result", BindingFlags.Public | BindingFlags.Instance);
+                procureResult = resultProp?.GetValue(t);
+            }
+            else
+            {
+                procureResult = task;
+            }
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"debug/give_potion: PotionCmd.TryToProcure failed for \"{potionId}\" — {tie.InnerException.Message}");
+        }
+        _syncCtx?.Pump();
+
+        // Read success/failureReason fields so the wire surfaces honest
+        // outcomes for "tried to procure a Necrobinder-only potion as
+        // Ironclad" etc. PotionProcureResult is a class with public fields
+        // (per the probe dump).
+        if (procureResult is not null)
+        {
+            var successField = procureResult.GetType().GetField("success", BindingFlags.Public | BindingFlags.Instance);
+            var success = successField?.GetValue(procureResult) as bool? ?? true;
+            if (!success)
+            {
+                var reasonField = procureResult.GetType().GetField("failureReason", BindingFlags.Public | BindingFlags.Instance);
+                var reason = reasonField?.GetValue(procureResult)?.ToString() ?? "<unknown>";
+                throw new InvalidOperationException(
+                    $"debug/give_potion: PotionCmd.TryToProcure returned success=false for \"{potionId}\" (reason: {reason})");
+            }
+        }
+
+        // Locate the landed slot by walking PotionSlots and matching Id.Entry.
+        // Empty slots are null; the granted potion lives at the first slot
+        // whose model's Id.Entry equals potionId.
+        var slotIndex = -1;
+        var count = 0;
+        if (_playerPotionSlots is not null && _playerPotionSlots.GetValue(handle.Player) is System.Collections.IEnumerable slots)
+        {
+            var i = 0;
+            foreach (var slot in slots)
+            {
+                if (slot is not null)
+                {
+                    count++;
+                    if (slotIndex < 0)
+                    {
+                        var idProp = slot.GetType().GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+                        var modelIdObj = idProp?.GetValue(slot);
+                        var entryProp = modelIdObj?.GetType().GetProperty("Entry", BindingFlags.Public | BindingFlags.Instance);
+                        if (entryProp?.GetValue(modelIdObj) is string entry && string.Equals(entry, potionId, StringComparison.Ordinal))
+                        {
+                            slotIndex = i;
+                        }
+                    }
+                }
+                i++;
+            }
+        }
+        return (slotIndex, count);
+    }
+
     // Set the player's CurrentHp (and optionally MaxHp) by writing the
     // engine's backing fields directly. Bypasses the damage-event pipeline
     // and any on-hit relic listeners; the wire-level Methods doc records
