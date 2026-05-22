@@ -1,6 +1,6 @@
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Coverage;
 
 // Collects per-run content coverage by observing run/state snapshots and the
 // agent's actions. Designed to be wired by AgentDriver alongside StallDetector
@@ -154,36 +154,37 @@ public sealed class CoverageRecorder
     // snapshot the agent saw. We index into the matching list to read the
     // exact id rather than guess from a post-action hand-size delta —
     // mid-turn draws can confound delta inference.
-    public void OnAction(RunStateResult prevState, AgentAction action)
+    //
+    // These take raw indices rather than an AgentAction so this project stays
+    // Protocol-only — the caller (AgentDriver) owns the AgentAction type and
+    // destructures it. Actions with no content to attribute (map / rest /
+    // reward / merchant-leave) simply aren't recorded: the resulting state
+    // snapshot already pulls the relevant content into the Seen axes (e.g. a
+    // selected reward shows up as an owned relic next snapshot).
+    public void RecordPlayedCard(RunStateResult prevState, int cardIndex)
     {
-        switch (action)
+        if (prevState.CombatState is CombatState cs
+            && cardIndex >= 0 && cardIndex < cs.Hand.Count)
         {
-            case PlayCard pc:
-                if (prevState.CombatState is CombatState cs
-                    && pc.CardIndex >= 0 && pc.CardIndex < cs.Hand.Count)
-                {
-                    _cardsPlayed.Add(cs.Hand[pc.CardIndex].Id.ToString());
-                }
-                break;
-            case UsePotion up:
-                if (up.PotionIndex >= 0 && up.PotionIndex < prevState.OwnedPotions.Count)
-                {
-                    var id = prevState.OwnedPotions[up.PotionIndex].Id;
-                    if (!string.IsNullOrEmpty(id)) _potionsUsed.Add(id);
-                }
-                break;
-            case SelectEventOption eo:
-                if (eo.OptionIndex >= 0 && eo.OptionIndex < prevState.AvailableEventOptions.Count)
-                {
-                    var key = prevState.AvailableEventOptions[eo.OptionIndex].TextKey;
-                    if (!string.IsNullOrEmpty(key)) _eventOptionsTaken.Add(key);
-                }
-                break;
-            // No coverage capture for map/rest/reward/merchant-leave/etc. —
-            // the resulting state snapshot already pulls the relevant content
-            // into the Seen axes (e.g. selected reward shows up as a relic
-            // owned next snapshot; rest-site heal doesn't carry content state
-            // to attribute).
+            _cardsPlayed.Add(cs.Hand[cardIndex].Id.ToString());
+        }
+    }
+
+    public void RecordUsedPotion(RunStateResult prevState, int potionIndex)
+    {
+        if (potionIndex >= 0 && potionIndex < prevState.OwnedPotions.Count)
+        {
+            var id = prevState.OwnedPotions[potionIndex].Id;
+            if (!string.IsNullOrEmpty(id)) _potionsUsed.Add(id);
+        }
+    }
+
+    public void RecordTakenEventOption(RunStateResult prevState, int optionIndex)
+    {
+        if (optionIndex >= 0 && optionIndex < prevState.AvailableEventOptions.Count)
+        {
+            var key = prevState.AvailableEventOptions[optionIndex].TextKey;
+            if (!string.IsNullOrEmpty(key)) _eventOptionsTaken.Add(key);
         }
     }
 

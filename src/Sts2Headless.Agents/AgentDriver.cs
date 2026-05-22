@@ -1,3 +1,4 @@
+using Sts2Headless.Coverage;
 using Sts2Headless.Protocol.Methods;
 
 namespace Sts2Headless.Agents;
@@ -82,11 +83,21 @@ public static class AgentDriver
             if (action is StopRun stop)
                 return new RunOutcome(state, step, TerminationReason.AgentStop, AgentStopReason: stop.Reason);
 
-            // OnAction reads from the pre-action snapshot — that's where
+            // Coverage reads from the pre-action snapshot — that's where
             // Hand[ix] still has the card the agent is about to play. After
             // ApplyAsync, the hand has already shrunk and the index would
-            // point at the wrong card (or off the end). Order matters.
-            coverageRecorder?.OnAction(state, action);
+            // point at the wrong card (or off the end). Order matters. The
+            // recorder takes raw indices (it can't see AgentAction without a
+            // dependency cycle), so we destructure the variant here.
+            if (coverageRecorder is not null)
+            {
+                switch (action)
+                {
+                    case PlayCard pc: coverageRecorder.RecordPlayedCard(state, pc.CardIndex); break;
+                    case UsePotion up: coverageRecorder.RecordUsedPotion(state, up.PotionIndex); break;
+                    case SelectEventOption eo: coverageRecorder.RecordTakenEventOption(state, eo.OptionIndex); break;
+                }
+            }
             state = await ApplyAsync(host, action);
             stall.Observe(state);
             budget.Observe(state);

@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Sts2Headless.Protocol.Methods;
 
-namespace Sts2Headless.Agents;
+namespace Sts2Headless.Coverage;
 
 // Aggregates CoverageReport snapshots across many runs and renders gap
 // reports against the *IdNames.AllWireNames universe.

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Run-coverage tracking: CoverageRecorder collects which game content (cards, monsters, relics, events, hook triggers) a run exercised; CoverageAggregator merges per-run recordings into corpus statistics. Pure data over the wire DTOs — depends on Protocol only, so any agent or test can record coverage without pulling in Runtime.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>
