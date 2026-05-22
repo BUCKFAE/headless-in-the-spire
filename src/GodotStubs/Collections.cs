@@ -34,4 +34,11 @@ public class Array<T> : System.Collections.Generic.IEnumerable<T>
     public T this[int i] => _inner[i];
     public System.Collections.Generic.IEnumerator<T> GetEnumerator() => _inner.GetEnumerator();
     System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _inner.GetEnumerator();
+
+    // from: CardSweep — SWEEPING_BEAM crashed on missing
+    //   Godot.Collections.Array`1.Add(!0). The card's VFX path builds a
+    //   strongly-typed Array<Node> of beam segments and appends them.
+    //   Stub appends to the inner list so any consumer that re-enumerates
+    //   sees the items; no headless path reads them back today.
+    public void Add(T item) => _inner.Add(item);
 }

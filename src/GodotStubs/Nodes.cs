@@ -130,6 +130,14 @@ public class CanvasItem : Node
     //   (surfaced on seed 42 Act 2 floor 12 with the deck-replace cheat).
     //   No-op in headless: there's no visual to modulate.
     public void SetSelfModulate(Color _) { }
+
+    // from: CardSweep — 9 cards (AFTERLIFE, BODYGUARD, CLEANSE, DIRGE,
+    //   LEGION_OF_BONE, NECRO_MASTERY, PULL_AGGRO, REANIMATE, SPUR) all
+    //   crashed on a missing `set_Modulate(Godot.Color)`. CanvasItem.Modulate
+    //   is a Color property in real Godot; the engine sets it to tint a
+    //   sprite. Auto-property with white-default; nothing reads it back
+    //   in headless paths.
+    public Color Modulate { get; set; } = new Color(1f, 1f, 1f, 1f);
 }
 
 // ── Node2D and descendants ──────────────────────────────────────────────

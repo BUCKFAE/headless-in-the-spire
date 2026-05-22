@@ -123,6 +123,13 @@ public class CallbackTweener : Tweener
     public new class MethodName : Tweener.MethodName { }
     public new class PropertyName : Tweener.PropertyName { }
     public new class SignalName : Tweener.SignalName { }
+
+    // from: RelicSweep — ELECTRIC_SHRYMP, PAELS_GROWTH, PUNCH_DAGGER all
+    //   crashed on give_relic with "Method not found: SetDelay(Double)".
+    //   Real Godot's CallbackTweener.SetDelay returns the tweener for
+    //   fluent chaining. Returning `this` keeps any
+    //   tween.TweenCallback(...).SetDelay(0.2) chain alive in headless.
+    public CallbackTweener SetDelay(double _) => this;
 }
 
 // from: combat animation paths reach Engine.GetSingleton / TimeScale / FPS.
