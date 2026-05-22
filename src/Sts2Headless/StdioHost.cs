@@ -60,8 +60,15 @@ public static class StdioHost
                 catch (Exception ex)
                 {
                     var unwrapped = Diagnostics.Unwrap(ex);
+                    // DescribeWithStack appends pipe-separated game-side
+                    // (MegaCrit.*) frames so the throw site is visible in
+                    // the wire error. Was Describe — name-only — until
+                    // the MechanicSweep crash reports had no actionable
+                    // info for NRE / OOR / ArgNull crashes. The extra
+                    // frames are filtered to game-side only, so the
+                    // payload stays bounded (typically 100–400 bytes).
                     response = new Response(request.Id, null,
-                        new Error(WireErrorCode.InternalError, "internal error: " + Diagnostics.Describe(unwrapped), null));
+                        new Error(WireErrorCode.InternalError, "internal error: " + Diagnostics.DescribeWithStack(unwrapped), null));
                 }
             }
             EnvelopeIo.WriteResponse(stdout, response);

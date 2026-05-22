@@ -54,8 +54,15 @@ internal static class SweepInternals
                 && !msg.Contains("CanPlay returned false", System.StringComparison.Ordinal));
     }
 
+    // 480 chars is comfortably enough for the JSON-RPC error prefix +
+    // unwrapped exception name + message + 2-4 game-side stack frames
+    // surfaced by Diagnostics.DescribeWithStack. The host's internal-
+    // error format pipes frames after the exception header, so the
+    // deepest (closest-to-throw) frames land in the first ~200 chars
+    // and survive even tight truncation; this gives us room for a
+    // second-frame call site too.
     public static string Truncate(string s) =>
-        s.Length > 240 ? string.Concat(s.AsSpan(0, 240), "...") : s;
+        s.Length > 480 ? string.Concat(s.AsSpan(0, 480), "...") : s;
 
     // SCREAMING_SNAKE_CASE → PascalCase. The wire form is
     // SCREAMING_SNAKE; the C# enum form is PascalCase via
