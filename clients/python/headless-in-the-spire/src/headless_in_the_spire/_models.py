@@ -221,16 +221,6 @@ class DebugStartEventParams(BaseModel):
     event_id: Annotated[str, Field(alias="eventId")]
 
 
-class DebugStartEventResult(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    ok: bool
-    event_id: Annotated[str, Field(alias="eventId")]
-    current_room_type: Annotated[str, Field(alias="currentRoomType")]
-    options_count: Annotated[int, Field(alias="optionsCount")]
-
-
 class EventOption(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -568,6 +558,16 @@ class Card(BaseModel):
     can_play: Annotated[bool, Field(alias="canPlay")]
     target_type: Annotated[TargetType, Field(alias="targetType")]
     upgraded: bool
+
+
+class DebugStartEventResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    event_id: Annotated[str, Field(alias="eventId")]
+    current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
+    options_count: Annotated[int, Field(alias="optionsCount")]
 
 
 class HistoryChoiceEntry(BaseModel):

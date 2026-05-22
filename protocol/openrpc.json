@@ -1043,7 +1043,7 @@
             "type": "string"
           },
           "currentRoomType": {
-            "type": "string"
+            "$ref": "#/components/schemas/RoomType"
           },
           "optionsCount": {
             "type": "integer"

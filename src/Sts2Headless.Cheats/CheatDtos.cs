@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Sts2Headless.Protocol.Methods;
 
 namespace Sts2Headless.Cheats;
 
@@ -258,7 +259,7 @@ public sealed record DebugStartEventResult(
     // Room type after EnterRoom landed. Usually EventRoom; if the event
     // resolved immediately (single-option "you walk past it" shapes), it
     // may already be MapRoom by the time we read state.
-    [property: JsonPropertyName("currentRoomType")] string CurrentRoomType,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
     // Number of options on the current event page (one per
     // AvailableEventOptions entry). 0 means the event is finished or
     // has nothing pickable; the caller can decide whether to proceed.

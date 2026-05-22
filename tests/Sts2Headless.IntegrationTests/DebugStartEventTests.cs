@@ -44,12 +44,12 @@ public class DebugStartEventTests : IClassFixture<HostSubprocess>
         // resolve immediately back to MapRoom — we don't fail those, but
         // the typical case is EventRoom.
         Assert.True(
-            resp.CurrentRoomType is "EventRoom" or "MapRoom",
+            resp.CurrentRoomType is RoomType.EventRoom or RoomType.MapRoom,
             $"unexpected CurrentRoomType '{resp.CurrentRoomType}' after start_event");
 
         // Sanity: snapshot agrees with the wire result.
         var state = await _host.SendAsync<RunStateResult>("run/state");
-        if (resp.CurrentRoomType == "EventRoom")
+        if (resp.CurrentRoomType == RoomType.EventRoom)
         {
             Assert.Equal(resp.OptionsCount, state.AvailableEventOptions.Count);
         }

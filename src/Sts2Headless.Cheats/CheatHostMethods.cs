@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using Sts2Headless.Protocol;
+using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime.Bindings;
 
 namespace Sts2Headless.Cheats;
@@ -300,11 +301,18 @@ public static class CheatHostMethods
 
         try
         {
-            var (roomType, optionsCount) = bindings.StartEvent(run, args.EventId);
+            var (roomTypeName, optionsCount) = bindings.StartEvent(run, args.EventId);
+            // Same string→RoomType mapping as Sts2Bindings.Read's snapshot path:
+            // engine returns its C# class name (PascalCase, e.g. "EventRoom"); the
+            // wire enum's variant names match by design, with Unknown for anything
+            // the curated enum doesn't list yet.
+            var currentRoomType = Enum.TryParse<RoomType>(roomTypeName, ignoreCase: false, out var parsed)
+                ? parsed
+                : RoomType.Unknown;
             return new DebugStartEventResult(
                 Ok: true,
                 EventId: args.EventId,
-                CurrentRoomType: roomType,
+                CurrentRoomType: currentRoomType,
                 OptionsCount: optionsCount);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("unknown event id", StringComparison.Ordinal))
