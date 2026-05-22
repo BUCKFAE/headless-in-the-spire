@@ -56,6 +56,7 @@ public class BootstrapSequenceTests
             ("InitProfileId(0)", true),
             ("ModelDb.Inject loop over AbstractModelSubtypes.All", true),
             ("InitProgressData()", true),
+            ("InitPrefsDataForTest()", true),
             ("ModelIdSerializationCache.Init()", true),
             ("ModelHookPatcher.Apply (all kinds)", true),
             ("Player.CreateForNewRun<Ironclad>(UnlockState.all, 1uL)", true),

@@ -91,6 +91,42 @@ public static partial class HangPatches
             playerArgIndex: 1,
             callerFilterArgIndex: 3);
 
+    // Prefix that short-circuits AddChildSafely when `parent` is null.
+    // The engine's body unconditionally does `parent.AddChild(child, …)`
+    // after its `child != null` guard, so a null parent NREs. The fix
+    // mirrors the existing child-null guard — both args optional, both
+    // can no-op when missing. Returning false suppresses the original
+    // body so the no-op is clean (no half-executed RemoveChildSafely
+    // sibling path either).
+    private static bool AddChildSafelyParentGuardPrefix(object? __0)
+    {
+        if (__0 is null) return false;
+        return true;
+    }
+
+    // Patch GodotTreeExtensions.AddChildSafely to handle a null parent
+    // gracefully. Same posture as the existing patches: discover by
+    // reflection (AD-4), prefix that returns false to suppress the
+    // original when the new precondition fails.
+    private static PatchOutcome PatchAddChildSafelyNullParent(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Helpers.GodotTreeExtensions.AddChildSafely";
+        var extType = sts2.GetType("MegaCrit.Sts2.Core.Helpers.GodotTreeExtensions");
+        if (extType is null)
+            return new PatchOutcome(label, Patched: false, Detail: "GodotTreeExtensions type not found");
+        var method = extType.GetMethod(
+            "AddChildSafely",
+            BindingFlags.Public | BindingFlags.Static);
+        if (method is null)
+            return new PatchOutcome(label, Patched: false, Detail: "AddChildSafely(static) not found");
+        var prefix = typeof(HangPatches).GetMethod(
+            nameof(AddChildSafelyParentGuardPrefix),
+            BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("AddChildSafelyParentGuardPrefix not found");
+        harmony.Patch(method, prefix: new HarmonyMethod(prefix));
+        return new PatchOutcome(label, Patched: true, Detail: "null-parent → no-op");
+    }
+
     private static PatchOutcome PatchFromHandFactory(
         Harmony harmony,
         Assembly sts2,

@@ -23,6 +23,20 @@ public sealed partial class Sts2Bindings
         if (_relicCmdObtain is null || _modelDbGetByIdRelic is null || _modelIdCtor is null)
             throw new InvalidOperationException("RelicCmd.Obtain / ModelDb.GetById<RelicModel> / ModelId(string,string) not bound — debug/give_relic unavailable");
 
+        // Reward-creating relics (Glass Eye / Lost Coffer / Orrery /
+        // Massive Scroll / Dusty Tome) reach into
+        // CardReward.OnSelect, which records the player's pick into
+        // `runState.CurrentMapPointHistoryEntry.GetEntry(...).CardChoices`.
+        // If no rooms have been entered yet, MapPointHistory is empty
+        // and the access NREs. Production game flow always has at
+        // least one entry (Neow / first map node) by the time the
+        // player picks up a relic; in our cheat path we may
+        // give_relic right after run/new with no rooms yet. Seed a
+        // stub MapPointHistoryEntry once, lazily, so the reward path
+        // resolves cleanly. The entry uses MapPointType.Unknown +
+        // RoomType.MapRoom (the "no specific room yet" shape).
+        SeedMapPointHistoryIfEmpty(handle);
+
         var modelId = _modelIdCtor.Invoke(new object?[] { "RELIC", relicId });
         var canonical = _modelDbGetByIdRelic.Invoke(null, new[] { modelId })
             ?? throw new InvalidOperationException($"ModelDb.GetById<RelicModel>(\"{relicId}\") returned null — unknown relic id");
@@ -32,6 +46,18 @@ public sealed partial class Sts2Bindings
             ? (_relicModelToMutable.Invoke(canonical, null) ?? canonical)
             : canonical;
 
+        // Some relics (DustyTome, ArchaicTooth, …) rely on a
+        // `SetupForPlayer(Player)` method that picks a per-run value
+        // (e.g. DustyTome.AncientCard is sampled from the character's
+        // CardPool). In production this is called by the
+        // reward-generation path before the player obtains the relic;
+        // our cheat hops over that step, leaving the relic with
+        // null/default state and its AfterObtained()
+        // NRE'ing on the unset field. Invoke SetupForPlayer if the
+        // relic defines it — best-effort, exceptions swallowed so
+        // give_relic still surfaces engine errors from Obtain itself.
+        InvokeSetupForPlayerIfPresent(relicModel, handle.Player);
+
         var paramCount = _relicCmdObtain.GetParameters().Length;
         var args = new object?[paramCount];
         args[0] = relicModel;
@@ -40,6 +66,136 @@ public sealed partial class Sts2Bindings
         var obtainResult = _relicCmdObtain.Invoke(null, args);
         if (obtainResult is Task t) t.GetAwaiter().GetResult();
         _syncCtx?.Pump();
+    }
+
+    // Append a stub `MapPointHistoryEntry` to `runState.MapPointHistory`
+    // when the list is empty, so engine paths that read
+    // `runState.CurrentMapPointHistoryEntry` (most notably
+    // CardReward.OnSelect's history recording) see a non-null entry
+    // with a PlayerMapPointHistoryEntry for the local player. No-op
+    // when at least one entry already exists — never grows the count
+    // beyond 1 ahead of the engine's own map-point-enter calls.
+    //
+    // Why MapPointType.Unknown / RoomType.MapRoom: matches the "no
+    // specific room yet" shape so any code that branches on
+    // RoomType.IsCombatRoom() etc. doesn't take an unexpected path.
+    // Per-card post-create initialisation that the engine normally
+    // expects but our replace_deck cheat skips by going straight from
+    // canonical → mutable → AddInternal. Currently scoped to the
+    // TinkerTimeType + TinkerTimeRider pair (MadScience). The
+    // properties are looked up by name so the helper stays generic;
+    // any future card that needs similar setup can be picked up here
+    // by name without referencing the engine type at compile time.
+    private static void ApplyPostCreateDefaults(object card)
+    {
+        var t = card.GetType();
+        var tinkerType = t.GetProperty("TinkerTimeType", BindingFlags.Public | BindingFlags.Instance);
+        var tinkerRider = t.GetProperty("TinkerTimeRider", BindingFlags.Public | BindingFlags.Instance);
+        if (tinkerType is not null && tinkerType.CanWrite)
+        {
+            // Default the type to Attack (CardType.Attack = 1 — names
+            // are stable across engine versions; the int-form lookup
+            // is the resilient fallback if the enum is reshaped).
+            try
+            {
+                var cardTypeEnum = tinkerType.PropertyType;
+                if (cardTypeEnum.IsEnum)
+                {
+                    var attack = Enum.GetNames(cardTypeEnum).Contains("Attack")
+                        ? Enum.Parse(cardTypeEnum, "Attack")
+                        : Enum.ToObject(cardTypeEnum, 1);
+                    tinkerType.SetValue(card, attack);
+                }
+            }
+            catch { /* tolerate — sweep will surface the resulting Play error */ }
+        }
+        if (tinkerRider is not null && tinkerRider.CanWrite)
+        {
+            try
+            {
+                var riderEnum = tinkerRider.PropertyType;
+                if (riderEnum.IsEnum)
+                {
+                    var none = Enum.GetNames(riderEnum).Contains("None")
+                        ? Enum.Parse(riderEnum, "None")
+                        : Enum.ToObject(riderEnum, 0);
+                    tinkerRider.SetValue(card, none);
+                }
+            }
+            catch { /* tolerate */ }
+        }
+    }
+
+    // Best-effort call to <Relic>.SetupForPlayer(Player) when the
+    // relic type declares it. Both shapes exist on engine relics:
+    //   * void SetupForPlayer(Player)   — DustyTome
+    //   * bool SetupForPlayer(Player)   — ArchaicTooth (and friends)
+    // We match on parameter shape (one Player arg), not return type,
+    // so either signature works. Failures are swallowed: this is
+    // initialisation hygiene; the give_relic call below still
+    // surfaces its own engine error if Obtain rejects the relic.
+    private void InvokeSetupForPlayerIfPresent(object relicModel, object player)
+    {
+        var setup = relicModel.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .FirstOrDefault(m =>
+                m.Name == "SetupForPlayer"
+                && m.GetParameters().Length == 1
+                && m.GetParameters()[0].ParameterType.IsAssignableFrom(_playerType));
+        if (setup is null) return;
+        try { setup.Invoke(relicModel, new[] { player }); }
+        catch (TargetInvocationException) { /* tolerate; Obtain's error reflects whatever's wrong */ }
+    }
+
+    private void SeedMapPointHistoryIfEmpty(RunHandle handle)
+    {
+        var rsType = handle.RunState.GetType();
+        var historyProp = rsType.GetProperty("MapPointHistory", BindingFlags.Public | BindingFlags.Instance);
+        if (historyProp is null) return;
+        if (historyProp.GetValue(handle.RunState) is not System.Collections.IEnumerable history) return;
+        var hasAny = false;
+        foreach (var act in history)
+        {
+            if (act is System.Collections.IEnumerable rooms)
+            {
+                foreach (var _ in rooms) { hasAny = true; break; }
+                if (hasAny) break;
+            }
+        }
+        if (hasAny) return;
+
+        var append = rsType.GetMethod("AppendToMapPointHistory", BindingFlags.Public | BindingFlags.Instance);
+        if (append is null) return;
+        var paramTypes = append.GetParameters();
+        if (paramTypes.Length != 3) return;
+
+        // Resolve the enum types from the method's own parameter types
+        // rather than guessing namespaces (which moved between game
+        // versions: MapPointType lives under either Models.Maps,
+        // Models, or Core depending on the build).
+        var mapPointTypeEnum = paramTypes[0].ParameterType;
+        var roomTypeEnum = paramTypes[1].ParameterType;
+        if (!mapPointTypeEnum.IsEnum || !roomTypeEnum.IsEnum) return;
+
+        // MapPointType.Unknown / RoomType.MapRoom — the "no specific
+        // room yet" shape. Lookup by name is resilient to enum
+        // reordering; we fall back to the default (0) value if the
+        // named member is missing.
+        var mptUnknown = Enum.GetNames(mapPointTypeEnum).Contains("Unknown")
+            ? Enum.Parse(mapPointTypeEnum, "Unknown")
+            : Enum.ToObject(mapPointTypeEnum, 0);
+        var rtMapRoom = Enum.GetNames(roomTypeEnum).Contains("MapRoom")
+            ? Enum.Parse(roomTypeEnum, "MapRoom")
+            : Enum.ToObject(roomTypeEnum, 0);
+        try
+        {
+            append.Invoke(handle.RunState, new object?[] { mptUnknown, rtMapRoom, null });
+        }
+        catch (TargetInvocationException)
+        {
+            // Best-effort seed — if the engine refuses for some
+            // reason we want the underlying give_relic to surface
+            // its own error, not ours.
+        }
     }
 
     // Test affordance: attach an affliction to a card in the player's
@@ -1039,6 +1195,19 @@ public sealed partial class Sts2Bindings
                     finalizeUpgradeInternal.Invoke(card, null);
                 }
             }
+
+            // Some cards need post-create initialisation that the engine
+            // normally does at the *creation site* (event handlers,
+            // boss-encounter spawners, …) — not via Card.AfterCreated.
+            // The canonical example is MadScience: its OnPlay switches
+            // on TinkerTimeType (Attack/Skill/Power) and throws AOOR
+            // on the default branch. In production the TinkerTime
+            // event explicitly sets TinkerTimeType + TinkerTimeRider
+            // before adding the card to the deck. Our cheat replicates
+            // that: when the card type exposes the TinkerTimeType
+            // property (= a Mad-Science-shaped card), default it to
+            // Attack with no rider so the sweep can play it.
+            ApplyPostCreateDefaults(card);
 
             var addArgs = new object?[addInternalParamCount];
             for (var i = 0; i < addInternalParamCount; i++) addArgs[i] = Type.Missing;

@@ -19,6 +19,7 @@ public sealed record SweepReport(
 {
     public int Crashes     => Rows.Count(r => r.Outcome == SweepOutcome.Crashed);
     public int Timeouts    => Rows.Count(r => r.Outcome == SweepOutcome.Timeout);
+    public int KnownUnsafe => Rows.Count(r => r.Outcome == SweepOutcome.KnownUnsafe);
     public int Played      => Rows.Count(r => r.Outcome == SweepOutcome.Played);
     public int Triggered   => Rows.Count(r => r.Outcome == SweepOutcome.Triggered);
     public int Unreachable => Rows.Count(r => r.Outcome == SweepOutcome.Unreachable);
@@ -26,11 +27,14 @@ public sealed record SweepReport(
 
     // Sort order for the report — crashes first so a human scanning the
     // markdown sees them up top, then timeouts (other failures), then
-    // informational outcomes.
+    // KnownUnsafe (informational-but-still-broken — visible next to the
+    // failures so a reader can sanity-check the engine still surfaces
+    // the same stack), then the truly informational outcomes.
     private static readonly SweepOutcome[] s_renderOrder =
     [
         SweepOutcome.Crashed,
         SweepOutcome.Timeout,
+        SweepOutcome.KnownUnsafe,
         SweepOutcome.Unplayable,
         SweepOutcome.Unreachable,
         SweepOutcome.Played,
@@ -48,6 +52,7 @@ public sealed record SweepReport(
         sb.AppendLine();
         sb.AppendLine($"- Crashed:     **{Crashes}** ← failure signal");
         sb.AppendLine($"- Timeout:     **{Timeouts}** ← failure signal");
+        if (KnownUnsafe > 0) sb.AppendLine($"- KnownUnsafe: **{KnownUnsafe}** ← engine paths catalogued in SweepKnownIssues");
         if (Played > 0)    sb.AppendLine($"- Played:      **{Played}**");
         if (Triggered > 0) sb.AppendLine($"- Triggered:   **{Triggered}**");
         sb.AppendLine($"- Unreachable: **{Unreachable}**");

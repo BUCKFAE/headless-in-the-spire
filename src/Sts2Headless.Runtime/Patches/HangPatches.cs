@@ -92,6 +92,18 @@ public static partial class HangPatches
             PatchCrabRagePower(harmony, sts2),
             PatchCrusher(harmony, sts2),
             PatchRocket(harmony, sts2),
+            // Godot-tree null-safety: GodotTreeExtensions.AddChildSafely
+            // checks `child != null` but not `parent`. The attack-card
+            // family (FlashOfSteel / Neutralize / Slice / Suppress /
+            // Whirlwind) routes its VFX through
+            // `((Node)(object)NCombatRoom.Instance?.CombatVfxContainer)
+            //   .AddChildSafely(NThinSliceVfx.Create(...))`. In headless
+            // NCombatRoom.Instance is null (no Godot scene tree), so the
+            // null-conditional returns null and the inner `parent.AddChild`
+            // NREs. Adding a parent null-check matches the method's
+            // stated intent ("Safely") — surfaced by MechanicSweep on
+            // 2026-05-22.
+            PatchAddChildSafelyNullParent(harmony, sts2),
         ];
     }
 

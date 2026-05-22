@@ -33,6 +33,16 @@ public class GodotObject
     //   keeps the cached value path. Surfaced once Engine.GetMainLoop became
     //   non-null and unblocked the surrounding code.
     public static bool IsInstanceValid(GodotObject? _) => true;
+
+    // from: GodotTreeExtensions.AddChildSafely's off-main-thread branch:
+    //   `((GodotObject)parent).CallDeferred(MethodName.AddChild,
+    //     (Variant[])(object)new Variant[1] { Variant.op_Implicit(child) })`.
+    //   Required by Harmony's IL copier (HangPatches.Cards
+    //   .PatchAddChildSafelyNullParent) even though the live path takes
+    //   the main-thread branch above it. Real Godot dispatches the call
+    //   on the engine's deferred queue; headless owns no queue, so the
+    //   no-op matches the rest of the AddChild side-effect surface.
+    public Variant CallDeferred(StringName method, params Variant[] args) => default;
 }
 
 public class Node : GodotObject
@@ -108,6 +118,36 @@ public class Node : GodotObject
     // every node is its own root, no parent to fetch.
     public bool IsAncestorOf(Node _) => false;
     public Node? GetParent() => null;
+
+    // from: GodotTreeExtensions.AddChildSafely → parent.AddChild(child,
+    //   false, (InternalMode)0). Required by Harmony's IL copier when
+    //   patching AddChildSafely's null-parent path (HangPatches.Cards
+    //   .PatchAddChildSafelyNullParent) — Harmony walks the IL of the
+    //   method-to-patch and resolves every callee through reflection,
+    //   so the signature has to be present even when no live caller
+    //   hits it. Real Godot bumps the engine's scene-tree state; in
+    //   headless we own nothing to add to, so this is a no-op.
+    // The InternalMode enum lives nested inside Node in real Godot 4
+    // (Godot.Node.InternalMode); the sts2.dll IL bakes that nesting
+    // into the method-ref, so the stub must match the nesting exactly
+    // or Harmony's ResolveMethodHandle fails with MissingMethodException
+    // ("Method not found: 'Void Godot.Node.AddChild(Godot.Node, Boolean,
+    // InternalMode)'").
+    public enum InternalMode
+    {
+        Disabled = 0,
+        Front = 1,
+        Back = 2,
+    }
+
+    public void AddChild(Node node, bool forceReadableName = false, InternalMode @internal = InternalMode.Disabled) { }
+
+    // from: same chain — RemoveChildSafely's body. Pair with AddChild so
+    //   Harmony's copier resolves both when patching either method.
+    public void RemoveChild(Node node) { }
+
+    public int GetChildCount(bool _ = false) => 0;
+    public void MoveChild(Node _, int __) { }
 }
 
 public class CanvasItem : Node

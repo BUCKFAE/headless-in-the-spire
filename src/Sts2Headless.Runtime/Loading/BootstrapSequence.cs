@@ -34,6 +34,7 @@ public static class BootstrapSequence
             InitSaveProfileId(sts2),
             InjectModelSubtypes(sts2),
             InitSaveProgressData(sts2),
+            InitSavePrefsData(sts2),
             InitModelIdSerializationCache(sts2),
             ApplyHookPatches(sts2),
             CreateIroncladSmoke(sts2),
@@ -111,6 +112,17 @@ public static class BootstrapSequence
 
     private static StepOutcome InitSaveProgressData(Assembly sts2)
         => CallSaveManager(sts2, "InitProgressData()", "InitProgressData", Array.Empty<object?>());
+
+    // Initialise SaveManager.PrefsSave so card OnPlay handlers that read
+    // `SaveManager.Instance.PrefsSave.FastMode` (FlashOfSteel, Neutralize,
+    // Slice, Suppress, Whirlwind — and any future card that branches on
+    // FastMode) don't NRE on a null PrefsSave. The engine ships
+    // InitPrefsDataForTest() precisely for this case: it bypasses the
+    // disk-load path and assigns a fresh default-valued PrefsSave
+    // (FastMode = Normal). FastMode's value doesn't matter to headless
+    // — only that PrefsSave is non-null when the engine reads it.
+    private static StepOutcome InitSavePrefsData(Assembly sts2)
+        => CallSaveManager(sts2, "InitPrefsDataForTest()", "InitPrefsDataForTest", Array.Empty<object?>());
 
     private static StepOutcome CallSaveManager(Assembly sts2, string label, string method, object?[] args)
     {

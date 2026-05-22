@@ -100,6 +100,26 @@ internal static class SweepInternals
     public static string Truncate(string s) =>
         s.Length > 480 ? string.Concat(s.AsSpan(0, 480), "...") : s;
 
+    // Single classification gate for "what outcome should this wire
+    // exception become" — used by every sweep so the
+    // Crashed/Unplayable/KnownUnsafe split stays consistent. The kind
+    // string ("card", "relic", …) routes the known-unsafe lookup; pass
+    // the sweep's own kind even if its known-issues list is empty (the
+    // dictionary returns false uniformly).
+    //
+    // Returned detail folds in the reason when KnownUnsafe so the row
+    // is self-explanatory ("known-unsafe: <reason> | <wire-msg>") and
+    // a reader doesn't need to cross-reference SweepKnownIssues.
+    public static (SweepOutcome Outcome, string Detail) ClassifyWireError(
+        string kind, string id, System.Exception wx)
+    {
+        var wireMsg = $"{wx.GetType().Name}: {Truncate(wx.Message)}";
+        if (!IsInternalError(wx)) return (SweepOutcome.Unplayable, wireMsg);
+        if (SweepKnownIssues.TryGetReason(kind, id, out var reason))
+            return (SweepOutcome.KnownUnsafe, $"known-unsafe: {reason} | {wireMsg}");
+        return (SweepOutcome.Crashed, wireMsg);
+    }
+
     // SCREAMING_SNAKE_CASE → PascalCase. The wire form is
     // SCREAMING_SNAKE; the C# enum form is PascalCase via
     // ToPascalCase in GenerateContentIdsCommand. Reimplemented here

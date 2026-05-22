@@ -137,10 +137,10 @@ public sealed class RelicSweep
             catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
             {
                 sw.Stop();
-                var outcome = SweepInternals.IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
+                var c = SweepInternals.ClassifyWireError("relic", relicId, wx);
                 return new SweepRow(
-                    relicId, outcome, Steps: 0, sw.Elapsed,
-                    Detail: $"give_relic: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                    relicId, c.Outcome, Steps: 0, sw.Elapsed,
+                    Detail: $"give_relic: {c.Detail}");
             }
             DrainTriggers(await transport.SendAsync<RunStateResult>("run/state"), relicId, firedHooks);
 
@@ -190,9 +190,10 @@ public sealed class RelicSweep
                         if (SweepInternals.IsInternalError(wx))
                         {
                             sw.Stop();
+                            var c = SweepInternals.ClassifyWireError("relic", relicId, wx);
                             return new SweepRow(
-                                relicId, SweepOutcome.Crashed, Steps: steps, sw.Elapsed,
-                                Detail: $"play_card: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                                relicId, c.Outcome, Steps: steps, sw.Elapsed,
+                                Detail: $"play_card: {c.Detail}");
                         }
                         break; // benign refusal — bail this turn
                     }
@@ -214,9 +215,10 @@ public sealed class RelicSweep
                     if (SweepInternals.IsInternalError(wx))
                     {
                         sw.Stop();
+                        var c = SweepInternals.ClassifyWireError("relic", relicId, wx);
                         return new SweepRow(
-                            relicId, SweepOutcome.Crashed, Steps: steps, sw.Elapsed,
-                            Detail: $"end_turn: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                            relicId, c.Outcome, Steps: steps, sw.Elapsed,
+                            Detail: $"end_turn: {c.Detail}");
                     }
                     break;
                 }
@@ -225,7 +227,7 @@ public sealed class RelicSweep
             // 7. Force combat end so AfterCombatVictory / AfterCombatEnd
             // fire even if the player didn't actually kill the slimes.
             // Wrapped so a kill_all_enemies wire error doesn't drown
-            // the meaningful outcome; if the engine itself crashes here,
+            // the meaningful c.Outcome; if the engine itself crashes here,
             // the outer catch records it.
             try
             {
@@ -236,7 +238,7 @@ public sealed class RelicSweep
             {
                 // Benign wire error from kill_all_enemies (combat
                 // already ended naturally, no enemies to kill) —
-                // swallow and accept the outcome we have.
+                // swallow and accept the c.Outcome we have.
             }
 
             sw.Stop();

@@ -103,10 +103,10 @@ public sealed class PotionSweep
             catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
             {
                 sw.Stop();
-                var outcome = SweepInternals.IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
+                var c = SweepInternals.ClassifyWireError("potion", potionId, wx);
                 return new SweepRow(
-                    potionId, outcome, Steps: 0, sw.Elapsed,
-                    Detail: $"give_potion: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                    potionId, c.Outcome, Steps: 0, sw.Elapsed,
+                    Detail: $"give_potion: {c.Detail}");
             }
             DrainTriggers(await transport.SendAsync<RunStateResult>("run/state"), potionId, firedHooks);
 
@@ -152,9 +152,10 @@ public sealed class PotionSweep
                     if (SweepInternals.IsInternalError(wx))
                     {
                         sw.Stop();
+                        var c = SweepInternals.ClassifyWireError("potion", potionId, wx);
                         return new SweepRow(
-                            potionId, SweepOutcome.Crashed, Steps: steps, sw.Elapsed,
-                            Detail: $"use_potion: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                            potionId, c.Outcome, Steps: steps, sw.Elapsed,
+                            Detail: $"use_potion: {c.Detail}");
                     }
                     // benign refusal (wrong target type, can't use this
                     // potion in current state) — record as Played, the

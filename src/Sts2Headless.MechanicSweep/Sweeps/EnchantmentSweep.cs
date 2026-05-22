@@ -88,10 +88,10 @@ public sealed class EnchantmentSweep
             catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
             {
                 sw.Stop();
-                var outcome = SweepInternals.IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
+                var c = SweepInternals.ClassifyWireError("enchantment", enchantmentId, wx);
                 return new SweepRow(
-                    enchantmentId, outcome, Steps: 0, sw.Elapsed,
-                    Detail: $"enchant_card: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                    enchantmentId, c.Outcome, Steps: 0, sw.Elapsed,
+                    Detail: $"enchant_card: {c.Detail}");
             }
             DrainTriggers(await transport.SendAsync<RunStateResult>("run/state"), enchantmentId, firedHooks);
 
@@ -106,9 +106,10 @@ public sealed class EnchantmentSweep
                 if (SweepInternals.IsInternalError(wx))
                 {
                     sw.Stop();
+                    var c = SweepInternals.ClassifyWireError("enchantment", enchantmentId, wx);
                     return new SweepRow(
-                        enchantmentId, SweepOutcome.Crashed, Steps: steps, sw.Elapsed,
-                        Detail: $"end_turn: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                        enchantmentId, c.Outcome, Steps: steps, sw.Elapsed,
+                        Detail: $"end_turn: {c.Detail}");
                 }
             }
 

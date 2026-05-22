@@ -24,6 +24,14 @@ internal static class SweepGate
         return Environment.GetEnvironmentVariable(perKind) == "1";
     }
 
+    // MECHANIC_SWEEP_FOCUS_IDS=ID1,ID2,... → run only those wire ids (in
+    // listed order, intersected with the universe so a typo doesn't
+    // smuggle in an unknown id). Used when refining a fixture against
+    // the specific ids that crashed in a prior run: re-running the full
+    // sweep for a 6-id experiment wastes minutes per pass. Takes
+    // precedence over MECHANIC_SWEEP_SAMPLE; setting both is harmless
+    // (focus wins) but the focus form is the intentional surface.
+    //
     // MECHANIC_SWEEP_SAMPLE=N → N deterministic-random ids (seeded with a
     // fixed value so a sample is reproducible across runs). null means
     // "use the full universe."
@@ -33,6 +41,28 @@ internal static class SweepGate
     // runs and developer machines.
     public static IReadOnlyList<string>? TrySampleIds(IReadOnlyCollection<string> universe)
     {
+        var focus = Environment.GetEnvironmentVariable("MECHANIC_SWEEP_FOCUS_IDS");
+        if (!string.IsNullOrEmpty(focus))
+        {
+            var wanted = focus
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToHashSet(StringComparer.Ordinal);
+            var hit = universe.Where(wanted.Contains).ToList();
+            // Empty match means every focus id is unknown to this kind —
+            // either a typo or the wrong sweep. Sweep classes treat
+            // empty/null as "full universe" (Count: > 0 guard), which
+            // would silently run hours of work. Throw instead so the
+            // user sees the typo at startup.
+            if (hit.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    $"MECHANIC_SWEEP_FOCUS_IDS=\"{focus}\" matched no ids in this kind's universe "
+                    + $"(universe size {universe.Count}). Check the spelling, or check whether you're "
+                    + "targeting the right sweep (e.g. WHIRLWIND is a card id, not a relic id).");
+            }
+            return hit;
+        }
+
         var s = Environment.GetEnvironmentVariable("MECHANIC_SWEEP_SAMPLE");
         if (string.IsNullOrEmpty(s) || !int.TryParse(s, out var n) || n <= 0) return null;
         var rng = new Random(Seed: 42);

@@ -213,10 +213,10 @@ public sealed class EncounterSweep
             catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
             {
                 sw.Stop();
-                var outcome = SweepInternals.IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
+                var c = SweepInternals.ClassifyWireError("encounter", encounterId, wx);
                 return new SweepRow(
-                    encounterId, outcome, Steps: 0, sw.Elapsed,
-                    Detail: $"start_combat: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                    encounterId, c.Outcome, Steps: 0, sw.Elapsed,
+                    Detail: $"start_combat: {c.Detail}");
             }
             if (!combat.InProgress)
             {
@@ -265,9 +265,10 @@ public sealed class EncounterSweep
                         if (SweepInternals.IsInternalError(wx))
                         {
                             sw.Stop();
+                            var c = SweepInternals.ClassifyWireError("encounter", encounterId, wx);
                             return new SweepRow(
-                                encounterId, SweepOutcome.Crashed, Steps: steps, sw.Elapsed,
-                                Detail: $"play_card: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                                encounterId, c.Outcome, Steps: steps, sw.Elapsed,
+                                Detail: $"play_card: {c.Detail}");
                         }
                         break;
                     }
@@ -286,9 +287,10 @@ public sealed class EncounterSweep
                     if (SweepInternals.IsInternalError(wx))
                     {
                         sw.Stop();
+                        var c = SweepInternals.ClassifyWireError("encounter", encounterId, wx);
                         return new SweepRow(
-                            encounterId, SweepOutcome.Crashed, Steps: steps, sw.Elapsed,
-                            Detail: $"end_turn: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                            encounterId, c.Outcome, Steps: steps, sw.Elapsed,
+                            Detail: $"end_turn: {c.Detail}");
                     }
                     break;
                 }

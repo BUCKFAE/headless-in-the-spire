@@ -115,10 +115,10 @@ public sealed class EventSweep
             catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
             {
                 sw.Stop();
-                var outcome = SweepInternals.IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
+                var c = SweepInternals.ClassifyWireError("event", eventId, wx);
                 return new SweepRow(
-                    eventId, outcome, Steps: 0, sw.Elapsed,
-                    Detail: $"start_event: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                    eventId, c.Outcome, Steps: 0, sw.Elapsed,
+                    Detail: $"start_event: {c.Detail}");
             }
             DrainTriggers(await transport.SendAsync<RunStateResult>("run/state"), eventId, firedHooks);
 
@@ -145,9 +145,10 @@ public sealed class EventSweep
                     if (SweepInternals.IsInternalError(wx))
                     {
                         sw.Stop();
+                        var c = SweepInternals.ClassifyWireError("event", eventId, wx);
                         return new SweepRow(
-                            eventId, SweepOutcome.Crashed, Steps: steps, sw.Elapsed,
-                            Detail: $"select_event_option: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                            eventId, c.Outcome, Steps: steps, sw.Elapsed,
+                            Detail: $"select_event_option: {c.Detail}");
                     }
                     // benign refusal — engine already moved on
                     break;

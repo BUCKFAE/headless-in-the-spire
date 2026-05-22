@@ -48,4 +48,15 @@ public enum SweepOutcome
     // Treated as a failure: a healthy mechanic resolves in seconds, a
     // 20-second hang on one card almost always means an internal stall.
     Timeout,
+
+    // The mechanic crashed AND it's on the SweepKnownIssues allowlist —
+    // an engine path we've already classified as broken in headless
+    // (off-class card, UI-screen-dependent reward path, …). Not a
+    // failure signal: the sweep records it for visibility but the
+    // assertion stays green. When the engine ships a fix, the fixture
+    // succeeds and the row flips to Played; that's the cue to remove
+    // the id from SweepKnownIssues. The Detail field carries both the
+    // catalog reason and the residual exception so a reader can verify
+    // the underlying engine error is still the one we knew about.
+    KnownUnsafe,
 }

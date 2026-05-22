@@ -116,9 +116,10 @@ public sealed class PowerSweep
                 if (SweepInternals.IsInternalError(wx))
                 {
                     sw.Stop();
+                    var c = SweepInternals.ClassifyWireError("power", powerId, wx);
                     return new SweepRow(
-                        powerId, SweepOutcome.Crashed, Steps: 0, sw.Elapsed,
-                        Detail: $"apply_power(Player): {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                        powerId, c.Outcome, Steps: 0, sw.Elapsed,
+                        Detail: $"apply_power(Player): {c.Detail}");
                 }
                 // Player-side refused. Try Enemy:0.
                 try
@@ -132,9 +133,10 @@ public sealed class PowerSweep
                     if (SweepInternals.IsInternalError(wx2))
                     {
                         sw.Stop();
+                        var c = SweepInternals.ClassifyWireError("power", powerId, wx2);
                         return new SweepRow(
-                            powerId, SweepOutcome.Crashed, Steps: 0, sw.Elapsed,
-                            Detail: $"apply_power(Enemy:0): {wx2.GetType().Name}: {SweepInternals.Truncate(wx2.Message)}");
+                            powerId, c.Outcome, Steps: 0, sw.Elapsed,
+                            Detail: $"apply_power(Enemy:0): {c.Detail}");
                     }
                     // Both sides refused. Power may need a different
                     // creature kind (Osty-only, summoned-only, ...).
@@ -164,9 +166,10 @@ public sealed class PowerSweep
                     if (SweepInternals.IsInternalError(wx))
                     {
                         sw.Stop();
+                        var c = SweepInternals.ClassifyWireError("power", powerId, wx);
                         return new SweepRow(
-                            powerId, SweepOutcome.Crashed, Steps: steps, sw.Elapsed,
-                            Detail: $"end_turn (target={appliedTarget}): {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                            powerId, c.Outcome, Steps: steps, sw.Elapsed,
+                            Detail: $"end_turn (target={appliedTarget}): {c.Detail}");
                     }
                     break;
                 }
@@ -186,11 +189,11 @@ public sealed class PowerSweep
             }
 
             sw.Stop();
-            var outcome = firedHooks.Count > 0 ? SweepOutcome.Triggered : SweepOutcome.Played;
+            var outcome2 = firedHooks.Count > 0 ? SweepOutcome.Triggered : SweepOutcome.Played;
             var detail = $"target={appliedTarget}"
                 + (appliedAmount >= 0 ? $",amount={appliedAmount}" : "")
                 + (firedHooks.Count > 0 ? $",hooks: {string.Join(",", firedHooks.OrderBy(h => h, StringComparer.Ordinal))}" : "");
-            return new SweepRow(powerId, outcome, Steps: steps, sw.Elapsed, detail);
+            return new SweepRow(powerId, outcome2, Steps: steps, sw.Elapsed, detail);
         }
         catch (System.OperationCanceledException) when (cts.Token.IsCancellationRequested && !outerCt.IsCancellationRequested)
         {

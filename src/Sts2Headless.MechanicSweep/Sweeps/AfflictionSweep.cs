@@ -103,10 +103,10 @@ public sealed class AfflictionSweep
             catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
             {
                 sw.Stop();
-                var outcome = SweepInternals.IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
+                var c = SweepInternals.ClassifyWireError("affliction", afflictionId, wx);
                 return new SweepRow(
-                    afflictionId, outcome, Steps: 0, sw.Elapsed,
-                    Detail: $"afflict_card: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                    afflictionId, c.Outcome, Steps: 0, sw.Elapsed,
+                    Detail: $"afflict_card: {c.Detail}");
             }
             DrainTriggers(await transport.SendAsync<RunStateResult>("run/state"), afflictionId, firedHooks);
 
@@ -122,9 +122,10 @@ public sealed class AfflictionSweep
                 if (SweepInternals.IsInternalError(wx))
                 {
                     sw.Stop();
+                    var c = SweepInternals.ClassifyWireError("affliction", afflictionId, wx);
                     return new SweepRow(
-                        afflictionId, SweepOutcome.Crashed, Steps: steps, sw.Elapsed,
-                        Detail: $"end_turn: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                        afflictionId, c.Outcome, Steps: steps, sw.Elapsed,
+                        Detail: $"end_turn: {c.Detail}");
                 }
             }
 

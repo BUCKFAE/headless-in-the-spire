@@ -9,8 +9,14 @@ namespace Sts2Headless.MechanicSweep.Sweeps;
 //
 //   1. run/new(Ironclad, seed=42)                — fresh state
 //   2. debug/set_hp(999, 999)                    — survive incidental damage
-//   3. debug/replace_deck([(card, 0)])           — single-card deck so it
-//                                                  lands in the opening hand
+//   3. debug/replace_deck(test + 4 starter)      — single deck containing the
+//                                                  test card plus Strike×2,
+//                                                  Defend×2 filler so the
+//                                                  opening hand has neighbors
+//                                                  AND post-play piles are
+//                                                  non-empty for "Draw 1 /
+//                                                  Look at top X / random
+//                                                  from your deck" cards
 //   4. debug/start_combat("SLIMES_NORMAL")       — benign Act-1 fight
 //   5. Pump up to MaxTurnsToFindCard turns       — find the card in hand;
 //                                                  play it at target=0 if found
@@ -59,6 +65,24 @@ public sealed class CardSweep
     // baseline uses elsewhere.
     public const string BenignEncounter = "SLIMES_NORMAL";
 
+    // Filler attached to every per-card deck so the engine has something
+    // to pull from when the test card has side-effects like "Draw 1"
+    // (FLASH_OF_STEEL), "Look at the top X cards", or "Pick a card from
+    // your discard pile" — a single-card deck would empty the draw pile
+    // after the card lands in hand and any subsequent draw would face an
+    // empty pile + empty discard. The Ironclad starter pattern (Strike×2,
+    // Defend×2) is the most-played mix in the codebase and was already
+    // proven safe for sweep fixtures by RelicSweep.FixedDeck. Total deck
+    // size is 5 (4 starter + 1 test), comfortably within the engine's
+    // 5-card opening hand so the test card lands in hand on turn 1.
+    private static readonly (string CardId, int UpgradeLevel)[] FillerDeck =
+    [
+        ("STRIKE_IRONCLAD", 0),
+        ("STRIKE_IRONCLAD", 0),
+        ("DEFEND_IRONCLAD", 0),
+        ("DEFEND_IRONCLAD", 0),
+    ];
+
     public async System.Threading.Tasks.Task<SweepReport> RunAsync(
         ITransport transport,
         System.Collections.Generic.IReadOnlyList<string>? sampleIds = null,
@@ -104,9 +128,13 @@ public sealed class CardSweep
                 "run/new",
                 new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
 
-            // 2-4. Setup: HP cheat, single-card deck, force benign combat.
+            // 2-4. Setup: HP cheat, test card + starter filler, force
+            // benign combat. The test card goes first in the deck so the
+            // engine's opening-hand draw (top 5) includes it.
             await transport.SetHpAsync(999, 999);
-            await transport.ReplaceDeckAsync(new[] { (cardId, 0) });
+            var deck = new System.Collections.Generic.List<(string, int)>(FillerDeck.Length + 1) { (cardId, 0) };
+            deck.AddRange(FillerDeck);
+            await transport.ReplaceDeckAsync(deck);
             var combat = await transport.StartCombatAsync(BenignEncounter);
             if (!combat.InProgress)
             {
@@ -148,10 +176,8 @@ public sealed class CardSweep
                     catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
                     {
                         sw.Stop();
-                        var outcome = SweepInternals.IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
-                        return new SweepRow(
-                            cardId, outcome, Steps: turn, sw.Elapsed,
-                            Detail: $"{wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                        var c = SweepInternals.ClassifyWireError("card", cardId, wx);
+                        return new SweepRow(cardId, c.Outcome, Steps: turn, sw.Elapsed, Detail: c.Detail);
                     }
                 }
 
@@ -164,10 +190,10 @@ public sealed class CardSweep
                 catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
                 {
                     sw.Stop();
-                    var outcome = SweepInternals.IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
+                    var c = SweepInternals.ClassifyWireError("card", cardId, wx);
                     return new SweepRow(
-                        cardId, outcome, Steps: turn, sw.Elapsed,
-                        Detail: $"end_turn failed: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
+                        cardId, c.Outcome, Steps: turn, sw.Elapsed,
+                        Detail: $"end_turn failed: {c.Detail}");
                 }
             }
 

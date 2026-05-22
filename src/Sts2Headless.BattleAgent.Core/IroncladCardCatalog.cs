@@ -100,12 +100,13 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.FiendFire      => new(IsAttack: true, Damage: 7, Exhausts: true, Custom: FiendFireHandler),
         CardId.Feed           => new(IsAttack: true, Damage: 10, Exhausts: true, Custom: FeedHandler),
         CardId.Offering       => new(IsSkill: true, SelfDamage: 6, EnergyGain: 2, DrawCards: 3, Exhausts: true),
-        // Whirlwind NREs in the headless engine when played
-        // (CrashTracingTransport caught it on seeds 3/5/7/8 of the
-        // 10-seed sweep on 2026-05-18). The X-cost path routes through
-        // a sub-flow the host doesn't fully wire. Marked unsafe until
-        // the engine-side fix or the host gains the missing screen.
-        CardId.Whirlwind      => new(IsAttack: true, IsHeadlessUnsafe: true),
+        // Whirlwind used to NRE in headless when played (seeds 3/5/7/8 of the
+        // 10-seed sweep on 2026-05-18). Root cause was the engine's
+        // `SaveManager.Instance.PrefsSave.FastMode` read NREing because
+        // headless didn't initialise PrefsSave; the unsafe flag covered
+        // a broader symptom. BootstrapSequence.InitSavePrefsData now seeds
+        // a default PrefsSave at host start, and Whirlwind plays cleanly.
+        CardId.Whirlwind      => new(IsAttack: true),
         CardId.Barricade      => new(IsPower: true, BarricadeGain: 1),
         CardId.Corruption     => new(IsPower: true),  // exhaust-skill behaviour deferred
         CardId.DemonForm      => new(IsPower: true, DemonFormGain: 2),
@@ -158,7 +159,7 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.FiendFire      => new(IsAttack: true, Damage: 10, Exhausts: true, Custom: FiendFireHandler),
         CardId.Feed           => new(IsAttack: true, Damage: 12, Exhausts: true, Custom: FeedHandler),
         CardId.Offering       => new(IsSkill: true, SelfDamage: 6, EnergyGain: 2, DrawCards: 5, Exhausts: true),
-        CardId.Whirlwind      => new(IsAttack: true, IsHeadlessUnsafe: true),
+        CardId.Whirlwind      => new(IsAttack: true),
         CardId.DemonForm      => new(IsPower: true, DemonFormGain: 3),
 
         _ => null,
