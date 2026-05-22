@@ -40,6 +40,25 @@ class Character(Enum):
     necrobinder = "necrobinder"
 
 
+class DebugAfflictCardParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    affliction_id: Annotated[str, Field(alias="afflictionId")]
+    hand_index: Annotated[int | None, Field(alias="handIndex")] = 0
+    amount: int | None = 1
+
+
+class DebugAfflictCardResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    affliction_id: Annotated[str, Field(alias="afflictionId")]
+    hand_index: Annotated[int, Field(alias="handIndex")]
+    card_id: Annotated[str, Field(alias="cardId")]
+
+
 class DebugApplyPowerParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -57,6 +76,25 @@ class DebugApplyPowerResult(BaseModel):
     power_id: Annotated[str, Field(alias="powerId")]
     applied_amount: Annotated[int, Field(alias="appliedAmount")]
     target_description: Annotated[str, Field(alias="targetDescription")]
+
+
+class DebugEnchantCardParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    enchantment_id: Annotated[str, Field(alias="enchantmentId")]
+    hand_index: Annotated[int | None, Field(alias="handIndex")] = 0
+    amount: int | None = 1
+
+
+class DebugEnchantCardResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    enchantment_id: Annotated[str, Field(alias="enchantmentId")]
+    hand_index: Annotated[int, Field(alias="handIndex")]
+    card_id: Annotated[str, Field(alias="cardId")]
 
 
 class DebugGivePotionParams(BaseModel):

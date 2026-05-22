@@ -159,6 +159,48 @@ public sealed record DebugStartCombatResult(
     [property: JsonPropertyName("inProgress")] bool InProgress,
     [property: JsonPropertyName("enemyCount")] int EnemyCount);
 
+// ── debug/afflict_card ───────────────────────────────────────────────────
+
+// Apply an affliction to a card in the player's hand via the engine
+// path (CardCmd.Afflict(AfflictionModel, CardModel, Decimal)). Same
+// engine path cards / events use to apply afflictions naturally.
+//
+// Combat is required — afflictions attach to cards in hand, which only
+// exist mid-combat. Call debug/start_combat first.
+//
+// The target card is identified by handIndex (the position in
+// CombatState.Hand). amount defaults to 1 (matches the common per-
+// affliction stack count).
+public sealed record DebugAfflictCardParams(
+    [property: JsonPropertyName("afflictionId")] string AfflictionId,
+    [property: JsonPropertyName("handIndex")] int HandIndex = 0,
+    [property: JsonPropertyName("amount")] int Amount = 1);
+
+public sealed record DebugAfflictCardResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("afflictionId")] string AfflictionId,
+    [property: JsonPropertyName("handIndex")] int HandIndex,
+    // Wire id of the card that was afflicted (the one at HandIndex
+    // pre-apply). Lets callers verify the right card got hit without a
+    // second state read.
+    [property: JsonPropertyName("cardId")] string CardId);
+
+// ── debug/enchant_card ───────────────────────────────────────────────────
+
+// Apply an enchantment to a card in the player's hand via the engine
+// path (CardCmd.Enchant(EnchantmentModel, CardModel, Decimal)). Same
+// shape as debug/afflict_card.
+public sealed record DebugEnchantCardParams(
+    [property: JsonPropertyName("enchantmentId")] string EnchantmentId,
+    [property: JsonPropertyName("handIndex")] int HandIndex = 0,
+    [property: JsonPropertyName("amount")] int Amount = 1);
+
+public sealed record DebugEnchantCardResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("enchantmentId")] string EnchantmentId,
+    [property: JsonPropertyName("handIndex")] int HandIndex,
+    [property: JsonPropertyName("cardId")] string CardId);
+
 // ── debug/apply_power ────────────────────────────────────────────────────
 
 // Apply a power to a creature via the engine path

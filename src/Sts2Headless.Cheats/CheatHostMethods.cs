@@ -26,6 +26,8 @@ public static class CheatHostMethods
             ["debug/give_potion"] = WireHandlers.Typed<DebugGivePotionParams, DebugGivePotionResult>(p => DebugGivePotion(bindings, getRun, p)),
             ["debug/start_event"] = WireHandlers.Typed<DebugStartEventParams, DebugStartEventResult>(p => DebugStartEvent(bindings, getRun, p)),
             ["debug/apply_power"] = WireHandlers.Typed<DebugApplyPowerParams, DebugApplyPowerResult>(p => DebugApplyPower(bindings, getRun, p)),
+            ["debug/afflict_card"] = WireHandlers.Typed<DebugAfflictCardParams, DebugAfflictCardResult>(p => DebugAfflictCard(bindings, getRun, p)),
+            ["debug/enchant_card"] = WireHandlers.Typed<DebugEnchantCardParams, DebugEnchantCardResult>(p => DebugEnchantCard(bindings, getRun, p)),
             ["debug/set_hp"] = WireHandlers.Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, getRun, p)),
             ["debug/replace_deck"] = WireHandlers.Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
             ["debug/read_deck"] = WireHandlers.Typed<DebugReadDeckParams, DebugReadDeckResult>(_ => DebugReadDeck(bindings, getRun)),
@@ -187,6 +189,68 @@ public static class CheatHostMethods
             MaxHp: s.MaxHp,
             Gold: s.Gold,
             DeckSize: s.DeckSize);
+    }
+
+    private static DebugAfflictCardResult DebugAfflictCard(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugAfflictCardParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/afflict_card requires params {afflictionId, handIndex?, amount?}");
+        if (string.IsNullOrWhiteSpace(args.AfflictionId))
+            throw new WireException(WireErrorCode.InvalidParams,
+                "debug/afflict_card afflictionId must be non-empty");
+        if (args.HandIndex < 0)
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"debug/afflict_card handIndex must be >= 0 (got {args.HandIndex})");
+
+        try
+        {
+            var cardId = bindings.AfflictCard(run, args.AfflictionId, args.HandIndex, args.Amount);
+            return new DebugAfflictCardResult(
+                Ok: true,
+                AfflictionId: args.AfflictionId,
+                HandIndex: args.HandIndex,
+                CardId: cardId);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("unknown affliction id", StringComparison.Ordinal)
+                                                 || ex.Message.Contains("no active combat", StringComparison.Ordinal)
+                                                 || ex.Message.Contains("no card at hand index", StringComparison.Ordinal))
+        {
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
+    }
+
+    private static DebugEnchantCardResult DebugEnchantCard(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugEnchantCardParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/enchant_card requires params {enchantmentId, handIndex?, amount?}");
+        if (string.IsNullOrWhiteSpace(args.EnchantmentId))
+            throw new WireException(WireErrorCode.InvalidParams,
+                "debug/enchant_card enchantmentId must be non-empty");
+        if (args.HandIndex < 0)
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"debug/enchant_card handIndex must be >= 0 (got {args.HandIndex})");
+
+        try
+        {
+            var cardId = bindings.EnchantCard(run, args.EnchantmentId, args.HandIndex, args.Amount);
+            return new DebugEnchantCardResult(
+                Ok: true,
+                EnchantmentId: args.EnchantmentId,
+                HandIndex: args.HandIndex,
+                CardId: cardId);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("unknown enchantment id", StringComparison.Ordinal)
+                                                 || ex.Message.Contains("no active combat", StringComparison.Ordinal)
+                                                 || ex.Message.Contains("no card at hand index", StringComparison.Ordinal))
+        {
+            throw new WireException(WireErrorCode.InvalidParams, ex.Message);
+        }
     }
 
     private static DebugApplyPowerResult DebugApplyPower(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugApplyPowerParams? @params)

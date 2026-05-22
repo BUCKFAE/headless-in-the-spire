@@ -42,6 +42,151 @@ public sealed partial class Sts2Bindings
         _syncCtx?.Pump();
     }
 
+    // Test affordance: attach an affliction to a card in the player's
+    // hand via the engine path (CardCmd.Afflict(AfflictionModel,
+    // CardModel, Decimal)). Mirrors card / event side-effects that
+    // afflict cards naturally — e.g. Hexed appearing on a played card.
+    public string AfflictCard(RunHandle handle, string afflictionId, int handIndex, int amount) =>
+        AttachToCard(
+            handle: handle,
+            kindWire: "AFFLICTION",
+            modelTypeName: "MegaCrit.Sts2.Core.Models.AfflictionModel",
+            attachMethodName: "Afflict",
+            id: afflictionId,
+            handIndex: handIndex,
+            amount: amount,
+            errorContext: "debug/afflict_card",
+            kindShortName: "affliction");
+
+    // Test affordance: attach an enchantment to a card in the player's
+    // hand via CardCmd.Enchant(EnchantmentModel, CardModel, Decimal).
+    // Same shape as AfflictCard.
+    public string EnchantCard(RunHandle handle, string enchantmentId, int handIndex, int amount) =>
+        AttachToCard(
+            handle: handle,
+            kindWire: "ENCHANTMENT",
+            modelTypeName: "MegaCrit.Sts2.Core.Models.EnchantmentModel",
+            attachMethodName: "Enchant",
+            id: enchantmentId,
+            handIndex: handIndex,
+            amount: amount,
+            errorContext: "debug/enchant_card",
+            kindShortName: "enchantment");
+
+    // Shared internals for affliction / enchantment attachment. Both
+    // resolve a model by id via ModelDb.GetById<TModel>(ModelId), make
+    // it mutable (via MutableClone since these AbstractModel subtypes
+    // don't expose typed ToMutable like EncounterModel does), then call
+    // the matching CardCmd static method which takes
+    // (Model, CardModel, Decimal). Returns the wire id of the target
+    // card so the caller can name what got hit.
+    private string AttachToCard(
+        RunHandle handle,
+        string kindWire,
+        string modelTypeName,
+        string attachMethodName,
+        string id,
+        int handIndex,
+        int amount,
+        string errorContext,
+        string kindShortName)
+    {
+        if (_modelIdCtor is null)
+            throw new InvalidOperationException($"{errorContext}: ModelId(string,string) ctor not bound");
+
+        var modelType = Sts2.GetType(modelTypeName)
+            ?? throw new InvalidOperationException($"{errorContext}: {modelTypeName} type not found");
+        var cardCmdType = Sts2.GetType("MegaCrit.Sts2.Core.Commands.CardCmd")
+            ?? throw new InvalidOperationException($"{errorContext}: CardCmd type not found");
+        var modelDbType = Sts2.GetType("MegaCrit.Sts2.Core.Models.ModelDb")
+            ?? throw new InvalidOperationException($"{errorContext}: ModelDb type not found");
+        var cardModelType = Sts2.GetType("MegaCrit.Sts2.Core.Models.CardModel")
+            ?? throw new InvalidOperationException($"{errorContext}: CardModel type not found");
+
+        // Find the CardCmd.Afflict / Enchant non-generic overload:
+        // (TModel, CardModel, Decimal). The generic overloads need a
+        // compile-time type — we resolve to a runtime model from a
+        // string id, so non-generic is the right surface.
+        var attach = cardCmdType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == attachMethodName
+                && !m.IsGenericMethodDefinition
+                && m.GetParameters().Length == 3
+                && m.GetParameters()[0].ParameterType.IsAssignableFrom(modelType)
+                && m.GetParameters()[1].ParameterType.IsAssignableFrom(cardModelType))
+            ?? throw new InvalidOperationException(
+                $"{errorContext}: CardCmd.{attachMethodName}({modelTypeName.Split('.').Last()}, CardModel, Decimal) not found");
+
+        // Resolve the card under the player's HandIndex via the same
+        // reflection chain the wire's snapshot path uses:
+        //   Player.PlayerCombatState → Hand → Hand.Cards (IEnumerable).
+        // The engine's "CombatState" object on CombatManager is a
+        // different shape — that one doesn't expose Hand directly.
+        if (_playerCombatState is null || _pcsHand is null || _handCards is null)
+            throw new InvalidOperationException($"{errorContext}: no active combat (combat surface not bound)");
+        var pcs = _playerCombatState.GetValue(handle.Player)
+            ?? throw new InvalidOperationException($"{errorContext}: no active combat (Player.PlayerCombatState is null)");
+        var hand = _pcsHand.GetValue(pcs)
+            ?? throw new InvalidOperationException($"{errorContext}: no active combat (PlayerCombatState.Hand is null)");
+        if (_handCards.GetValue(hand) is not System.Collections.IEnumerable handEnum)
+            throw new InvalidOperationException($"{errorContext}: Hand.Cards is not enumerable");
+
+        object? targetCard = null;
+        var i = 0;
+        foreach (var card in handEnum)
+        {
+            if (card is null) continue;
+            if (i == handIndex) { targetCard = card; break; }
+            i++;
+        }
+        if (targetCard is null)
+            throw new InvalidOperationException($"{errorContext}: no card at hand index {handIndex}");
+
+        // Read the card's wire id for the wire result.
+        var cardIdProp = targetCard.GetType().GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
+        var cardModelId = cardIdProp?.GetValue(targetCard);
+        var cardEntryProp = cardModelId?.GetType().GetProperty("Entry", BindingFlags.Public | BindingFlags.Instance);
+        var cardWireId = cardEntryProp?.GetValue(cardModelId) as string ?? "<unknown>";
+
+        // Resolve the model by id.
+        var getByIdGeneric = modelDbType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == "GetById" && m.IsGenericMethodDefinition && m.GetParameters().Length == 1)
+            ?? throw new InvalidOperationException($"{errorContext}: ModelDb.GetById<T>(ModelId) not found");
+        var getByIdSpec = getByIdGeneric.MakeGenericMethod(modelType);
+        var modelIdObj = _modelIdCtor.Invoke(new object?[] { kindWire, id });
+        object? canonical;
+        try
+        {
+            canonical = getByIdSpec.Invoke(null, new[] { modelIdObj });
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"{errorContext}: unknown {kindShortName} id \"{id}\" — {tie.InnerException.Message}");
+        }
+        if (canonical is null)
+            throw new InvalidOperationException($"{errorContext}: unknown {kindShortName} id \"{id}\"");
+
+        // MutableClone the canonical (AfflictionModel / EnchantmentModel
+        // require mutable; same reason as PowerCmd.Apply does).
+        var mutableClone = canonical.GetType().GetMethod("MutableClone", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes)
+            ?? throw new InvalidOperationException($"{errorContext}: AbstractModel.MutableClone() not found on canonical {kindShortName}");
+        var model = mutableClone.Invoke(canonical, null)
+            ?? throw new InvalidOperationException($"{errorContext}: MutableClone returned null for \"{id}\"");
+
+        try
+        {
+            var result = attach.Invoke(null, new object?[] { model, targetCard, (decimal)amount });
+            if (result is Task t) t.GetAwaiter().GetResult();
+        }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            throw new InvalidOperationException(
+                $"{errorContext}: CardCmd.{attachMethodName} failed for \"{id}\" on card \"{cardWireId}\" — {tie.InnerException.Message}");
+        }
+        _syncCtx?.Pump();
+        return cardWireId;
+    }
+
     // Test affordance: apply a power to the player or to an enemy via
     // the engine path (PowerCmd.Apply(model, target, amount, source,
     // cardSource: null, useFinalAmount: false)). Mirrors how the engine

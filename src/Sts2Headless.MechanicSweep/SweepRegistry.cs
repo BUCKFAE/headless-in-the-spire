@@ -32,18 +32,18 @@ public static class SweepRegistry
 
     public static readonly IReadOnlyList<Implemented> ImplementedSweeps =
     [
-        new("Card",      typeof(CardSweep)),
-        new("Encounter", typeof(EncounterSweep)),
-        new("Event",     typeof(EventSweep)),
-        new("Potion",    typeof(PotionSweep)),
-        new("Power",     typeof(PowerSweep)),
-        new("Relic",     typeof(RelicSweep)),
+        new("Affliction",  typeof(AfflictionSweep)),
+        new("Card",        typeof(CardSweep)),
+        new("Enchantment", typeof(EnchantmentSweep)),
+        new("Encounter",   typeof(EncounterSweep)),
+        new("Event",       typeof(EventSweep)),
+        new("Potion",      typeof(PotionSweep)),
+        new("Power",       typeof(PowerSweep)),
+        new("Relic",       typeof(RelicSweep)),
     ];
 
     public static readonly IReadOnlyList<Planned> PlannedSweeps =
     [
-        new("Affliction",  "needs debug/apply_affliction cheat (or attach via a card)"),
-        new("Enchantment", "needs debug/apply_enchantment cheat (or attach via a card)"),
         new("Modifier",    "needs run modifier plumb-through (BLOCKED.md)"),
         new("Monster",     "covered implicitly by EncounterSweep (each encounter exercises its monsters' intents); standalone sweep optional"),
         new("Orb",         "blocked on Defect character implementation (BLOCKED.md)"),

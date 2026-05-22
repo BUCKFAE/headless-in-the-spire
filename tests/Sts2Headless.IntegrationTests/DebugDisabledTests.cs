@@ -112,6 +112,30 @@ public class DebugDisabledTests
     }
 
     [Fact]
+    public async Task DebugAfflictCard_WithoutEnableDebugFlag_ReturnsDebugDisabledError()
+    {
+        await using var host = NoDebugHost.Start();
+
+        var err = await host.ExpectErrorAsync(
+            "debug/afflict_card", new DebugAfflictCardParams(AfflictionId: "HEXED"));
+
+        Assert.Equal(WireErrorCode.DebugMethodDisabled, err.Code);
+        Assert.Contains("debug/afflict_card", err.Message);
+    }
+
+    [Fact]
+    public async Task DebugEnchantCard_WithoutEnableDebugFlag_ReturnsDebugDisabledError()
+    {
+        await using var host = NoDebugHost.Start();
+
+        var err = await host.ExpectErrorAsync(
+            "debug/enchant_card", new DebugEnchantCardParams(EnchantmentId: "ADROIT"));
+
+        Assert.Equal(WireErrorCode.DebugMethodDisabled, err.Code);
+        Assert.Contains("debug/enchant_card", err.Message);
+    }
+
+    [Fact]
     public async Task NonDebugMethod_StillWorks_WithoutEnableDebugFlag()
     {
         await using var host = NoDebugHost.Start();

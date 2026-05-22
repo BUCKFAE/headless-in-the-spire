@@ -367,6 +367,48 @@
       "x-debugOnly": true
     },
     {
+      "name": "debug/afflict_card",
+      "summary": "Test affordance — attach an affliction to a card in the player's hand via CardCmd.Afflict (engine path). Requires an active combat. handIndex 0 by default. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugAfflictCardParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugAfflictCardResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
+      "name": "debug/enchant_card",
+      "summary": "Test affordance — attach an enchantment to a card in the player's hand via CardCmd.Enchant (engine path). Requires an active combat. handIndex 0 by default. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugEnchantCardParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugEnchantCardResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
       "name": "debug/set_hp",
       "summary": "Test affordance — set the player's CurrentHp (and optionally MaxHp) by writing the engine's backing fields. Bypasses damage events, on-hit relics, and game-over detection; the resulting state is not authoritative. Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -617,6 +659,48 @@
           "playerPowers"
         ]
       },
+      "DebugAfflictCardParams": {
+        "type": "object",
+        "properties": {
+          "afflictionId": {
+            "type": "string"
+          },
+          "handIndex": {
+            "type": "integer",
+            "default": 0
+          },
+          "amount": {
+            "type": "integer",
+            "default": 1
+          }
+        },
+        "required": [
+          "afflictionId"
+        ]
+      },
+      "DebugAfflictCardResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "afflictionId": {
+            "type": "string"
+          },
+          "handIndex": {
+            "type": "integer"
+          },
+          "cardId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "afflictionId",
+          "handIndex",
+          "cardId"
+        ]
+      },
       "DebugApplyPowerParams": {
         "type": "object",
         "properties": {
@@ -660,6 +744,48 @@
           "powerId",
           "appliedAmount",
           "targetDescription"
+        ]
+      },
+      "DebugEnchantCardParams": {
+        "type": "object",
+        "properties": {
+          "enchantmentId": {
+            "type": "string"
+          },
+          "handIndex": {
+            "type": "integer",
+            "default": 0
+          },
+          "amount": {
+            "type": "integer",
+            "default": 1
+          }
+        },
+        "required": [
+          "enchantmentId"
+        ]
+      },
+      "DebugEnchantCardResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "enchantmentId": {
+            "type": "string"
+          },
+          "handIndex": {
+            "type": "integer"
+          },
+          "cardId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "enchantmentId",
+          "handIndex",
+          "cardId"
         ]
       },
       "DebugGivePotionParams": {

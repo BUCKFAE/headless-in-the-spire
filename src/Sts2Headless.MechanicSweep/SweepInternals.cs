@@ -33,11 +33,21 @@ internal static class SweepInternals
         var msg = ex.Message;
         // -32603 is JSON-RPC's "internal error" generic bucket. The
         // host wraps engine exceptions into this code, but ALSO emits
-        // it for some clean refusals (notably curses/statuses
-        // returning false from CanPlay). Carve out the known
-        // clean-refusal sub-cases so they're not flagged as crashes.
+        // it for clean game-rule refusals (curses/statuses returning
+        // false from CanPlay, enchantments / afflictions that the
+        // engine rejects on a given card target). Carve out these
+        // known clean-refusal shapes so the sweep classifies them as
+        // Unplayable, not Crashed.
         if (msg.Contains("CanPlay returned false", System.StringComparison.Ordinal))
             return false;
+        // CardCmd.Enchant / CardCmd.Afflict surface a clean "Cannot
+        // enchant CARD.X with ENCHANTMENT.Y." / "Cannot afflict
+        // CARD.X with AFFLICTION.Y." InvalidOperationException from the
+        // engine when the card type isn't a valid target for the
+        // modifier. Same shape as CanPlay-false: the engine deliberately
+        // said no.
+        if (msg.Contains("Cannot enchant ", System.StringComparison.Ordinal)) return false;
+        if (msg.Contains("Cannot afflict ", System.StringComparison.Ordinal)) return false;
 
         return msg.Contains("MissingMethodException", System.StringComparison.Ordinal)
             || msg.Contains("MissingFieldException", System.StringComparison.Ordinal)

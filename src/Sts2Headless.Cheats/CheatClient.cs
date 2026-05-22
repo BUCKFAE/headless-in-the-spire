@@ -48,6 +48,23 @@ public static class CheatClient
             "debug/apply_power",
             new DebugApplyPowerParams(powerId, amount, enemyIndex));
 
+    // debug/afflict_card — attach an affliction to a card in the player's
+    // hand via CardCmd.Afflict. Requires active combat. handIndex 0
+    // (first hand card) by default.
+    public static Task<DebugAfflictCardResult> AfflictCardAsync(
+        this ITransport transport, string afflictionId, int handIndex = 0, int amount = 1) =>
+        transport.SendAsync<DebugAfflictCardResult>(
+            "debug/afflict_card",
+            new DebugAfflictCardParams(afflictionId, handIndex, amount));
+
+    // debug/enchant_card — attach an enchantment to a card in the player's
+    // hand via CardCmd.Enchant. Same shape as AfflictCardAsync.
+    public static Task<DebugEnchantCardResult> EnchantCardAsync(
+        this ITransport transport, string enchantmentId, int handIndex = 0, int amount = 1) =>
+        transport.SendAsync<DebugEnchantCardResult>(
+            "debug/enchant_card",
+            new DebugEnchantCardParams(enchantmentId, handIndex, amount));
+
     // debug/replace_deck — wholesale-replace the player's deck. `cards` is
     // a list of (cardId, upgradeLevel) tuples; upgradeLevel defaults to 0
     // (base card). Pass tuples for convenience; the wire shape uses

@@ -40,6 +40,18 @@ public static class CheatMethodCatalog
             Summary: "Test affordance — apply a power to a creature via PowerCmd.Apply (engine path). Requires an active combat. Target: enemyIndex null → player; enemyIndex set → enemies[i]. Requires --enable-debug.",
             IsDebugOnly: true),
 
+        new("debug/afflict_card",
+            ParamsType: typeof(DebugAfflictCardParams),
+            ResultType: typeof(DebugAfflictCardResult),
+            Summary: "Test affordance — attach an affliction to a card in the player's hand via CardCmd.Afflict (engine path). Requires an active combat. handIndex 0 by default. Requires --enable-debug.",
+            IsDebugOnly: true),
+
+        new("debug/enchant_card",
+            ParamsType: typeof(DebugEnchantCardParams),
+            ResultType: typeof(DebugEnchantCardResult),
+            Summary: "Test affordance — attach an enchantment to a card in the player's hand via CardCmd.Enchant (engine path). Requires an active combat. handIndex 0 by default. Requires --enable-debug.",
+            IsDebugOnly: true),
+
         new("debug/set_hp",
             ParamsType: typeof(DebugSetHpParams),
             ResultType: typeof(DebugSetHpResult),

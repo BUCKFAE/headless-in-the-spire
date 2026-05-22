@@ -259,6 +259,20 @@ sweep-powers:
     @echo ""
     @echo "report: documentation/coverage/sweep-powers.md"
 
+# Run the full per-AfflictionId smoke sweep — afflict_card on the first
+# hand card + 1 end_turn + kill_all_enemies. Crashed → test fails.
+sweep-afflictions:
+    @RUN_AFFLICTION_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~AfflictionSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-afflictions.md"
+
+# Run the full per-EnchantmentId smoke sweep — same shape as
+# sweep-afflictions, via enchant_card.
+sweep-enchantments:
+    @RUN_ENCHANTMENT_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~EnchantmentSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-enchantments.md"
+
 # Run a fast subset of every mechanic sweep — N deterministic-random ids
 # per kind. Good for "did I break the smoke surface" checks before
 # launching a full multi-hour pass.
