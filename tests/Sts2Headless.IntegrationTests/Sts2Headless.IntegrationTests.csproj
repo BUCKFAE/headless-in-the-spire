@@ -28,6 +28,8 @@
          round-trip / hook-install tests. -->
     <ProjectReference Include="..\..\src\Sts2Headless.Replay\Sts2Headless.Replay.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+    <!-- Content-manifest tests reuse GenerateContentIdsCommand's ModelDb walk. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.Commands\Sts2Headless.Commands.csproj" />
     <!-- Cheat DTOs + typed ITransport extensions for tests that exercise
          the debug/* surface. Off the Agents project's reference graph so
          agents physically cannot reach cheats. -->
@@ -50,6 +52,8 @@
          bin/, so this reference both lands the exe nearby and keeps it
          rebuilt when its sources change. -->
     <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
+    <!-- Shared test helpers (TempDir). -->
+    <ProjectReference Include="..\Sts2Headless.TestSupport\Sts2Headless.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

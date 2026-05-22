@@ -1,6 +1,6 @@
 using Sts2Headless.Protocol.Methods;
-using Sts2Headless.Runtime;
 using Xunit;
+using Sts2Headless.Runtime.Bindings;
 
 namespace Sts2Headless.UnitTests;
 

@@ -1,0 +1,22 @@
+# GodotStubs deliberately ships under the Godot.* namespaces and builds as
+# AssemblyName=GodotSharp, so sts2.dll resolves its GodotSharp references to
+# these stubs by full type name + assembly identity (see README.md). That
+# makes two whole families of Rider/ReSharper inspection false positives here,
+# and only here:
+#
+#   1. The namespace never matches the GodotStubs folder/assembly — it has to
+#      be Godot.* for the runtime binding to work.
+#   2. Every stub type and member looks "unused" because the only caller is
+#      sts2.dll via IL/reflection, which the solution can't see. Each one is
+#      kept on purpose and carries a `// from:` comment recording its caller.
+#
+# Suppress both, scoped to this folder, so the same inspections keep guarding
+# the rest of the codebase. The compiler emits zero warnings here (verified by
+# `dotnet build`); these keys are purely for the IDE.
+
+[*.cs]
+resharper_check_namespace_highlighting = none
+resharper_unused_member_global_highlighting = none
+resharper_unused_type_global_highlighting = none
+resharper_class_never_instantiated_global_highlighting = none
+resharper_unused_auto_property_accessor_global_highlighting = none

@@ -1,5 +1,6 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Sts2Headless.Utils;
 
 namespace Sts2Headless.SchemaExport;
 
@@ -65,16 +66,5 @@ internal static class Program
         return DefaultOutput;
     }
 
-    private static string? ReadGameVersion(string cwd)
-    {
-        var path = Path.Combine(cwd, "GAME_VERSION");
-        if (!File.Exists(path)) return null;
-
-        foreach (var line in File.ReadAllLines(path))
-        {
-            var parts = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (parts.Length >= 2 && parts[0] == "VERSION") return string.Join(' ', parts.Skip(1));
-        }
-        return null;
-    }
+    private static string? ReadGameVersion(string cwd) => GameVersionPin.Read(cwd)?.Version;
 }

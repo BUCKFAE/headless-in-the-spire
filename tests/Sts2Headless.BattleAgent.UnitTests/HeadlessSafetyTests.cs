@@ -73,7 +73,7 @@ public sealed class HeadlessSafetyTests
             new CardRewardOption(Index: 0, Id: CardId.Whirlwind, Cost: -1),
         });
         var action = policy.Choose(state);
-        Assert.IsType<Sts2Headless.Agents.SkipReward>(action);
+        Assert.IsType<Sts2Headless.Agents.Contracts.SkipReward>(action);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class HeadlessSafetyTests
                 new CardRewardOption(Index: 0, Id: id, Cost: 1),
             });
             var action = policy.Choose(state);
-            Assert.IsType<Sts2Headless.Agents.SkipReward>(action);
+            Assert.IsType<Sts2Headless.Agents.Contracts.SkipReward>(action);
         }
     }
 

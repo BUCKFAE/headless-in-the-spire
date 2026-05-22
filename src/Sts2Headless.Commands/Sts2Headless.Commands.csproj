@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>The diagnostic / generator CLI surface: the dispatch table (CliCommands) plus every --probe-*, --inspect-sts2, --generate-content-ids, --list-members and --rebuild-replay-index command. Loaded by the Sts2Headless exe, which keeps only the entry point and the production stdio host. Commands are internal to this package; the exe drives them solely through the public CliCommands registry. GenerateContentIdsCommand is public because the content-manifest tests reuse its ModelDb walk.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <ProjectReference Include="..\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+    <ProjectReference Include="..\Sts2Headless.Replay\Sts2Headless.Replay.csproj" />
+    <!-- Shared sts2.dll path resolution (Paths.Sts2DllPath). -->
+    <ProjectReference Include="..\Sts2Headless.Utils\Sts2Headless.Utils.csproj" />
+  </ItemGroup>
+
+</Project>

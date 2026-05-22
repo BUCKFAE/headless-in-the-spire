@@ -15,6 +15,8 @@
          (Character, RoomType) from the Protocol layer, so the wire shape
          has a single source of truth across the runtime / host / tests. -->
     <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <!-- Shared repo/vendor path resolution (Paths) + the GAME_VERSION pin. -->
+    <ProjectReference Include="..\Sts2Headless.Utils\Sts2Headless.Utils.csproj" />
   </ItemGroup>
 
 </Project>

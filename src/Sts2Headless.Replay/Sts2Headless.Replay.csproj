@@ -19,6 +19,8 @@
     <!-- Protocol carries the typed enums (Character, RoomType, …) the
          manifest serialises into the header and per-combat index. -->
     <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <!-- GAME_VERSION pin parsing + file SHA-256 for the replay header. -->
+    <ProjectReference Include="..\Sts2Headless.Utils\Sts2Headless.Utils.csproj" />
   </ItemGroup>
 
 </Project>

@@ -136,6 +136,10 @@ src/
                                      BattleAgent.Core.
   Sts2Headless.SchemaExport/   exe — emits protocol/openrpc.json from Protocol
                                      records (AD-5). Run via `just export-schema`.
+  Sts2Headless.Utils/          lib — pure, dependency-free leaf: repo/vendor
+                                     Paths, the GAME_VERSION pin parser, file
+                                     hashing, setup-dir helpers. No project
+                                     refs, no sts2.dll — anything can depend on it.
   GodotStubs/                  lib — no-op GodotSharp.dll replacement (grown on demand)
 tests/
   Sts2Headless.UnitTests/      xUnit — host-only logic, no sts2.dll.
@@ -145,6 +149,8 @@ tests/
                                      documentation/testing.md.
   Sts2Headless.BattleAgent.UnitTests/  xUnit — combat planner / model /
                                      policy tests for BattleAgent.Core.
+  Sts2Headless.TestSupport/    lib (not a test project) — shared test helpers
+                                     (TempDir). No test SDK, no project refs.
 Sts2Headless.slnx              solution at repo root
 scripts/                       bootstrap shell scripts (bash)
 protocol/openrpc.json          generated wire-protocol schema (AD-5)

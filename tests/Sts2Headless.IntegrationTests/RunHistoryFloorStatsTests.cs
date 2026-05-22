@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Replay;
+using Sts2Headless.TestSupport;
 using Xunit;
 
 namespace Sts2Headless.IntegrationTests;
@@ -23,7 +24,7 @@ public class RunHistoryFloorStatsTests
     [Fact]
     public async Task RecordedRun_PopulatesHpAndGold_InMapPointHistory()
     {
-        using var tempReplays = new TempReplayRoot();
+        using var tempReplays = new TempDir("sts2-replays");
         await using var host = RecordingHost.Start(tempReplays.Path);
 
         await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
@@ -121,12 +122,5 @@ public class RunHistoryFloorStatsTests
             $"card_choices should list every offered card (typically 3); got {cardChoices.Count}");
         var pickedCount = cardChoices.Count(c => (bool)c!["was_picked"]!);
         Assert.Equal(1, pickedCount);
-    }
-
-    private sealed class TempReplayRoot : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "sts2-replays-" + Guid.NewGuid().ToString("N"));
-        public TempReplayRoot() => Directory.CreateDirectory(Path);
-        public void Dispose() { try { Directory.Delete(Path, recursive: true); } catch { /* best-effort */ } }
     }
 }

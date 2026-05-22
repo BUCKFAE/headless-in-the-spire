@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Sts2Headless.Agents;
+using Sts2Headless.Agents.Contracts;
 using Sts2Headless.Protocol.Methods;
 
 namespace Sts2Headless.End2EndTests;

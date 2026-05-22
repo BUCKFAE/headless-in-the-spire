@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Text;
-using Sts2Headless.Agents;
+using Sts2Headless.Agents.Driving;
 using Sts2Headless.BattleAgent;
 using Sts2Headless.BattleAgent.Core;
 using Sts2Headless.IntegrationTests;

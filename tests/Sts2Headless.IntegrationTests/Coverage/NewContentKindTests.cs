@@ -1,3 +1,4 @@
+using Sts2Headless.Commands;
 using Xunit;
 
 namespace Sts2Headless.IntegrationTests.Coverage;

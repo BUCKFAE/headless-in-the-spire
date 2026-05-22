@@ -1,5 +1,7 @@
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Replay;
+using Sts2Headless.TestSupport;
+using Sts2Headless.Utils;
 using Xunit;
 
 namespace Sts2Headless.IntegrationTests;
@@ -22,7 +24,7 @@ public class ReplayManifestEmissionTests
     [Fact]
     public async Task RunNew_With_Replay_Env_Var_Produces_Manifest_On_Next_RunNew()
     {
-        using var tempReplays = new TempReplayRoot();
+        using var tempReplays = new TempDir("sts2-replays");
         await using var host = RecordingHost.Start(tempReplays.Path);
 
         // First run/new — recorder constructed, hook bound, no manifest yet.
@@ -61,8 +63,8 @@ public class ReplayManifestEmissionTests
         // The header's sha256 should match GAME_VERSION's pinned value
         // (the recorder reads it from there). Cross-check against the
         // actual file bytes so a stale pin would surface.
-        var repoRoot = Runtime.Paths.LocateRepoRoot();
-        var actualSha = ReplayHeaderFactory.ComputeSha256(Path.Combine(repoRoot, "vendor", "sts2.dll"));
+        var repoRoot = Paths.LocateRepoRoot();
+        var actualSha = FileHash.Sha256(Paths.Sts2DllPath(Paths.VendorDir(repoRoot)));
         Assert.Equal(actualSha, manifest.Header.Sts2DllSha256);
     }
 
@@ -82,7 +84,7 @@ public class ReplayManifestEmissionTests
         // the assertion then fired on files this test never touched. The
         // diff makes the invariant precise: only paths created BETWEEN
         // the pre-host snapshot and the post-host snapshot count.
-        var repoRoot = Runtime.Paths.LocateRepoRoot();
+        var repoRoot = Paths.LocateRepoRoot();
         var defaultRoot = Path.Combine(repoRoot, ReplayLayout.DefaultRootRelative);
         var before = SnapshotReplayRoot(defaultRoot);
 
@@ -99,11 +101,4 @@ public class ReplayManifestEmissionTests
         Directory.Exists(root)
             ? new HashSet<string>(Directory.GetFiles(root, "*", SearchOption.AllDirectories), StringComparer.Ordinal)
             : new HashSet<string>(StringComparer.Ordinal);
-
-    private sealed class TempReplayRoot : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "sts2-replays-" + Guid.NewGuid().ToString("N"));
-        public TempReplayRoot() => Directory.CreateDirectory(Path);
-        public void Dispose() { try { Directory.Delete(Path, recursive: true); } catch { /* best-effort */ } }
-    }
 }

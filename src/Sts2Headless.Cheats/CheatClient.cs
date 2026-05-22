@@ -1,4 +1,4 @@
-using Sts2Headless.Agents;
+using Sts2Headless.Agents.Contracts;
 
 namespace Sts2Headless.Cheats;
 

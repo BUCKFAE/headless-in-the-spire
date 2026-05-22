@@ -1,13 +1,14 @@
+using Sts2Headless.Utils;
+
 namespace Sts2Headless.Runtime;
 
 // Locator for the fixture save tree under vendor/sample-saves/. Tests glob
 // `steam/*/profile1/` rather than hard-coding the placeholder directory
 // name — see vendor/sample-saves/README.md. Centralised here so a future
 // rename (e.g. multi-profile fixtures, secondary platform mirror) only
-// touches one file. Lives in Runtime next to Paths because Paths is the
-// repo-root locator this builds on, and Runtime is the lowest-common
+// touches one file. Lives in Runtime because that's the lowest-common
 // project for cross-test sharing without pulling in Replay's Harmony
-// dependency.
+// dependency; the repo-root locator it builds on is Utils.Paths.
 public static class SampleSaves
 {
     public const string RelativeRoot = "vendor/sample-saves/SlayTheSpire2";

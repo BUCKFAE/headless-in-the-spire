@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 using Sts2Headless.Protocol;
-using Sts2Headless.Runtime;
+using Sts2Headless.Runtime.Bindings;
 
 namespace Sts2Headless.Cheats;
 

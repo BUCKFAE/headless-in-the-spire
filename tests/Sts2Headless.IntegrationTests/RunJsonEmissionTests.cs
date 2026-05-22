@@ -4,6 +4,9 @@ using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Replay;
 using Sts2Headless.Runtime;
 using Xunit;
+using Sts2Headless.Runtime.Loading;
+using Sts2Headless.TestSupport;
+using Sts2Headless.Utils;
 
 namespace Sts2Headless.IntegrationTests;
 
@@ -46,7 +49,7 @@ public class RunJsonEmissionTests
         var sts2 = preamble.Sts2!;
         var runHistory = LoadRunHistoryFromDisk(sts2, samplePath);
 
-        using var tempReplays = new TempDir();
+        using var tempReplays = new TempDir("sts2-replay-test");
         var (gameVersion, sha) = ReplayHeaderFactory.ReadGameVersionPin(repoRoot);
         var header = ReplayHeaderFactory.Create(
             sts2: sts2,
@@ -125,12 +128,5 @@ public class RunJsonEmissionTests
         var deserializeForRunHistory = deserialize.MakeGenericMethod(runHistoryType);
         return deserializeForRunHistory.Invoke(null, [json, typeInfo])
             ?? throw new InvalidDataException(".run JSON deserialised to null");
-    }
-
-    private sealed class TempDir : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "sts2-replay-test-" + Guid.NewGuid().ToString("N"));
-        public TempDir() => Directory.CreateDirectory(Path);
-        public void Dispose() { try { Directory.Delete(Path, recursive: true); } catch { /* best-effort */ } }
     }
 }

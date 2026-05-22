@@ -25,6 +25,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+    <!-- CLI dispatch table — CliCommandsTests pins its behaviour. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.Commands\Sts2Headless.Commands.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Replay\Sts2Headless.Replay.csproj" />
     <ProjectReference Include="..\..\src\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
@@ -33,6 +35,8 @@
          transitively via Sts2Headless. -->
     <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
     <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />
+    <!-- Shared test helpers (TempDir, used by SetupDirTests). -->
+    <ProjectReference Include="..\Sts2Headless.TestSupport\Sts2Headless.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

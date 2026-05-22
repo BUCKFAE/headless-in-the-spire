@@ -1,7 +1,6 @@
 using System.Reflection;
-using System.Security.Cryptography;
 using Sts2Headless.Protocol.Methods;
-using Sts2Headless.Runtime;
+using Sts2Headless.Utils;
 
 namespace Sts2Headless.Replay;
 
@@ -49,35 +48,13 @@ public static class ReplayHeaderFactory
 
     // Reads GAME_VERSION (AD-3 pin) and returns the parsed (version, sha256)
     // tuple. Falls back to "UNKNOWN" / "" if the file is absent — the
-    // caller can decide whether that's acceptable for the use case.
+    // caller can decide whether that's acceptable for the use case. The
+    // actual parse lives in Utils.GameVersionPin (shared with host ping and
+    // schema export); this wrapper only adapts the missing-file fallback.
     public static (string Version, string Sha256) ReadGameVersionPin(string? repoRoot = null)
     {
-        var root = repoRoot ?? Paths.LocateRepoRoot();
-        var path = Path.Combine(root, "GAME_VERSION");
-        if (!File.Exists(path)) return ("UNKNOWN", "");
-
-        string version = "UNKNOWN", sha = "";
-        foreach (var raw in File.ReadAllLines(path))
-        {
-            var line = raw.Trim();
-            if (line.StartsWith("VERSION", StringComparison.Ordinal))
-                version = line["VERSION".Length..].Trim();
-            else if (line.StartsWith("SHA256", StringComparison.Ordinal))
-                sha = line["SHA256".Length..].Trim();
-        }
-        return (version, sha);
-    }
-
-    // Computes the SHA-256 of an arbitrary file (used by tests to
-    // cross-check the GAME_VERSION pin matches the actual vendor/sts2.dll
-    // bytes). Not load-bearing for header construction — the pin file is
-    // the source of truth — but useful for diagnostics.
-    public static string ComputeSha256(string path)
-    {
-        using var sha = SHA256.Create();
-        using var fs = File.OpenRead(path);
-        var hash = sha.ComputeHash(fs);
-        return Convert.ToHexString(hash).ToLowerInvariant();
+        var pin = GameVersionPin.Read(repoRoot ?? Paths.LocateRepoRoot());
+        return pin is null ? ("UNKNOWN", "") : (pin.Version, pin.Sha256);
     }
 
     private static uint ReadModelIdHash(Assembly sts2)

@@ -5,10 +5,13 @@
     <Project Path="src/Sts2Headless.BattleAgent/Sts2Headless.BattleAgent.csproj" />
     <Project Path="src/Sts2Headless.BattleAgent.Core/Sts2Headless.BattleAgent.Core.csproj" />
     <Project Path="src/Sts2Headless.Cheats/Sts2Headless.Cheats.csproj" />
+    <Project Path="src/Sts2Headless.Commands/Sts2Headless.Commands.csproj" />
+    <Project Path="src/Sts2Headless.Coverage/Sts2Headless.Coverage.csproj" />
     <Project Path="src/Sts2Headless.Protocol/Sts2Headless.Protocol.csproj" />
     <Project Path="src/Sts2Headless.Replay/Sts2Headless.Replay.csproj" />
     <Project Path="src/Sts2Headless.Runtime/Sts2Headless.Runtime.csproj" />
     <Project Path="src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj" />
+    <Project Path="src/Sts2Headless.Utils/Sts2Headless.Utils.csproj" />
     <Project Path="src/Sts2Headless/Sts2Headless.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -16,5 +19,6 @@
     <Project Path="tests/Sts2Headless.BattleAgent.UnitTests/Sts2Headless.BattleAgent.UnitTests.csproj" />
     <Project Path="tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj" />
     <Project Path="tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj" />
+    <Project Path="tests/Sts2Headless.TestSupport/Sts2Headless.TestSupport.csproj" />
   </Folder>
 </Solution>

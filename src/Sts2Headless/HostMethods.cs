@@ -3,7 +3,9 @@ using Sts2Headless.Cheats;
 using Sts2Headless.Protocol;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Replay;
-using Sts2Headless.Runtime;
+using Sts2Headless.Runtime.Bindings;
+using Sts2Headless.Runtime.Hooks;
+using Sts2Headless.Utils;
 
 namespace Sts2Headless;
 
@@ -500,17 +502,7 @@ public static class HostMethods
 
     private static (string? Version, string? Sha256) ReadGameVersion(string repoRoot)
     {
-        var path = Path.Combine(repoRoot, "GAME_VERSION");
-        if (!File.Exists(path)) return (null, null);
-
-        string? version = null, sha = null;
-        foreach (var line in File.ReadAllLines(path))
-        {
-            var parts = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (parts.Length < 2) continue;
-            if (parts[0] == "VERSION") version = string.Join(' ', parts.Skip(1));
-            else if (parts[0] == "SHA256") sha = parts[1];
-        }
-        return (version, sha);
+        var pin = GameVersionPin.Read(repoRoot);
+        return (pin?.Version, pin?.Sha256);
     }
 }

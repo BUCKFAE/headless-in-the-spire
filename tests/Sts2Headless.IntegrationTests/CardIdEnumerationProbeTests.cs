@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Reflection;
 using Sts2Headless.IntegrationTests.Coverage;
-using Sts2Headless.Runtime;
 using Xunit;
+using Sts2Headless.Runtime.Loading;
 
 namespace Sts2Headless.IntegrationTests;
 
