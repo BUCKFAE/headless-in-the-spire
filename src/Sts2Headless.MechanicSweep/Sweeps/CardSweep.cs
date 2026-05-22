@@ -147,13 +147,13 @@ public sealed class CardSweep
                         sw.Stop();
                         return new SweepRow(cardId, SweepOutcome.Played, Steps: turn, sw.Elapsed);
                     }
-                    catch (System.Exception wx) when (IsWireError(wx))
+                    catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
                     {
                         sw.Stop();
-                        var outcome = IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
+                        var outcome = SweepInternals.IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
                         return new SweepRow(
                             cardId, outcome, Steps: turn, sw.Elapsed,
-                            Detail: $"{wx.GetType().Name}: {Truncate(wx.Message)}");
+                            Detail: $"{wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
                     }
                 }
 
@@ -163,13 +163,13 @@ public sealed class CardSweep
                 {
                     _ = await transport.SendAsync<RunEndTurnResult>("run/end_turn");
                 }
-                catch (System.Exception wx) when (IsWireError(wx))
+                catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
                 {
                     sw.Stop();
-                    var outcome = IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
+                    var outcome = SweepInternals.IsInternalError(wx) ? SweepOutcome.Crashed : SweepOutcome.Unplayable;
                     return new SweepRow(
                         cardId, outcome, Steps: turn, sw.Elapsed,
-                        Detail: $"end_turn failed: {wx.GetType().Name}: {Truncate(wx.Message)}");
+                        Detail: $"end_turn failed: {wx.GetType().Name}: {SweepInternals.Truncate(wx.Message)}");
                 }
             }
 
@@ -190,86 +190,22 @@ public sealed class CardSweep
             sw.Stop();
             return new SweepRow(
                 cardId, SweepOutcome.Crashed, Steps: 0, sw.Elapsed,
-                Detail: $"{ex.GetType().Name}: {Truncate(ex.Message)}");
+                Detail: $"{ex.GetType().Name}: {SweepInternals.Truncate(ex.Message)}");
         }
     }
 
     // CardId enum values surface as PascalCase via .ToString(); the wire
-    // form is SCREAMING_SNAKE_CASE. Compare via the wire→pascal conversion
-    // — the inverse lives in CoverageRecorder elsewhere in the codebase
-    // but is private; reimplemented here to keep MechanicSweep dependency-
-    // free.
+    // form is SCREAMING_SNAKE_CASE. SweepInternals.ToPascalCase handles
+    // the conversion so the sweep's hand-walk compares against the right
+    // form.
     private static int FindCardInHand(CombatState cs, string wireCardId)
     {
-        var pascal = ToPascalCase(wireCardId);
+        var pascal = SweepInternals.ToPascalCase(wireCardId);
         for (int i = 0; i < cs.Hand.Count; i++)
         {
             if (string.Equals(cs.Hand[i].Id.ToString(), pascal, StringComparison.Ordinal))
                 return i;
         }
         return -1;
-    }
-
-    // HostSubprocess.SendAsync throws XunitException on wire-error envelopes
-    // (the host returned a structured error, e.g. "code=-32602 message=..").
-    // We treat that as a wire-level outcome (Unplayable OR Crashed,
-    // disambiguated by IsInternalError) rather than a host-process crash.
-    // Other exception types — TaskCanceledException, IOException, raw
-    // engine NREs that escape the host wrapper — surface as Crashed
-    // through the outer try/catch.
-    private static bool IsWireError(System.Exception ex) =>
-        ex.GetType().Name.Equals("XunitException", System.StringComparison.Ordinal)
-        || ex.Message.Contains("code=", System.StringComparison.Ordinal);
-
-    // Within wire errors, distinguish "the engine deliberately refused
-    // this play" (insufficient energy, wrong target type, X-cost with no
-    // resource, the card's own CanPlay validator returned false — all
-    // clean refusals) from "the engine wrapped an internal exception in
-    // an error envelope" (the host's catch-all for unhandled engine
-    // exceptions, surfaced via JSON-RPC -32603 with a Missing*Exception /
-    // NullReferenceException / etc. in the message). The first is
-    // honest "this mechanic isn't reachable in this fixture"; the
-    // second is the mechanic itself being broken — which is exactly
-    // what the sweep exists to surface as Crashed.
-    private static bool IsInternalError(System.Exception ex)
-    {
-        var msg = ex.Message;
-        // -32603 is JSON-RPC's "internal error" generic bucket. The host
-        // wraps engine exceptions into this code, but ALSO emits it for
-        // some clean refusals (notably curses/statuses returning false
-        // from CanPlay). Carve out the known clean-refusal sub-cases so
-        // they're not flagged as crashes.
-        if (msg.Contains("CanPlay returned false", System.StringComparison.Ordinal))
-            return false;
-
-        return msg.Contains("MissingMethodException", System.StringComparison.Ordinal)
-            || msg.Contains("MissingFieldException", System.StringComparison.Ordinal)
-            || msg.Contains("NullReferenceException", System.StringComparison.Ordinal)
-            || msg.Contains("ArgumentOutOfRangeException", System.StringComparison.Ordinal)
-            || msg.Contains("ArgumentNullException", System.StringComparison.Ordinal)
-            || msg.Contains("TargetInvocationException", System.StringComparison.Ordinal)
-            || msg.Contains("IndexOutOfRangeException", System.StringComparison.Ordinal)
-            || msg.Contains("StackOverflowException", System.StringComparison.Ordinal)
-            // Generic "internal error:" prefix from any other engine
-            // throw the host doesn't specifically recognize — covers
-            // future exception types we haven't listed by name.
-            || (msg.Contains("internal error:", System.StringComparison.Ordinal)
-                && !msg.Contains("CanPlay returned false", System.StringComparison.Ordinal));
-    }
-
-    private static string Truncate(string s) =>
-        s.Length > 240 ? string.Concat(s.AsSpan(0, 240), "...") : s;
-
-    private static string ToPascalCase(string snake)
-    {
-        var sb = new System.Text.StringBuilder(snake.Length);
-        var atWordStart = true;
-        foreach (var ch in snake)
-        {
-            if (ch == '_') { atWordStart = true; continue; }
-            sb.Append(atWordStart ? char.ToUpperInvariant(ch) : char.ToLowerInvariant(ch));
-            atWordStart = false;
-        }
-        return sb.ToString();
     }
 }

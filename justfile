@@ -219,6 +219,14 @@ sweep-cards:
     @echo ""
     @echo "report: documentation/coverage/sweep-cards.md"
 
+# Run the full per-RelicId smoke sweep (~294 ids, give_relic + fixed
+# 4-card deck + 2 turns + kill_all_enemies, draining TriggeredSincePrev
+# to distinguish Triggered vs Played). Crashed → test fails.
+sweep-relics:
+    @RUN_RELIC_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~RelicSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-relics.md"
+
 # Run a fast subset of every mechanic sweep — N deterministic-random ids
 # per kind. Good for "did I break the smoke surface" checks before
 # launching a full multi-hour pass.
