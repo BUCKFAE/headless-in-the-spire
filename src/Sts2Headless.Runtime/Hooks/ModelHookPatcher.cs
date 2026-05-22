@@ -161,6 +161,30 @@ public static class ModelHookPatcher
         return names;
     }
 
+    // Public read of the discovered hook surface, sorted, for snapshot
+    // testing (HookSurfaceSnapshotTest). Re-walks every call because the
+    // assembly the test passes may differ from any prior bootstrap.
+    public static IReadOnlyList<string> EnumerateHookNames(Assembly sts2)
+    {
+        var abstractModel = sts2.GetType("MegaCrit.Sts2.Core.Models.AbstractModel")
+            ?? throw new InvalidOperationException(
+                "MegaCrit.Sts2.Core.Models.AbstractModel not found in supplied assembly");
+        var names = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var m in abstractModel.GetMethods(
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+        {
+            if (m.IsSpecialName) continue;
+            if (!m.IsVirtual) continue;
+            if (m.Name.StartsWith("After", StringComparison.Ordinal)
+                || m.Name.StartsWith("On", StringComparison.Ordinal)
+                || m.Name.StartsWith("Before", StringComparison.Ordinal))
+            {
+                names.Add(m.Name);
+            }
+        }
+        return [.. names];
+    }
+
     // Type → canonical Id.Entry via ModelDb._contentById. Cached because
     // every kind's Apply call needs the same map; resolving once at first
     // use saves ~5-10ms per subsequent call.

@@ -168,6 +168,12 @@ generate-python:
 # Regenerate every wire-protocol artefact (per-kind content manifests + openrpc.json + Python DTOs). Run after touching Methods.cs or bumping the game pin.
 regen: generate-content-ids export-schema generate-python
 
+# Regenerate the AbstractModel hook-surface snapshot (tests/Sts2Headless.IntegrationTests/Coverage/known-abstract-model-hooks.txt). Run after a GAME_VERSION bump or when an intentional sts2 change adds/removes a listener method — review the diff before committing.
+regen-hook-snapshot:
+    @UPDATE_HOOK_SNAPSHOT=1 dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~HookSurfaceSnapshotTest"
+    @echo ""
+    @echo "snapshot: tests/Sts2Headless.IntegrationTests/Coverage/known-abstract-model-hooks.txt"
+
 # Remove all bin/ and obj/ build artifacts.
 clean:
     @dotnet clean Sts2Headless.slnx

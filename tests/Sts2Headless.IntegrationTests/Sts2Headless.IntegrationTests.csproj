@@ -45,6 +45,9 @@
     <!-- BattleAgent is used by the smoke test that drives a real combat
          with SimAgent against the host. -->
     <ProjectReference Include="..\..\src\Sts2Headless.BattleAgent\Sts2Headless.BattleAgent.csproj" />
+    <!-- MechanicSweep's SweepRegistry is what EveryKindHasASweepTest
+         compares against GenerateContentIdsCommand.Kinds. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.MechanicSweep\Sts2Headless.MechanicSweep.csproj" />
     <!-- GodotStubs builds as GodotSharp.dll and must be present next to the
          test binaries so sts2.dll's references resolve. -->
     <ProjectReference Include="..\..\src\GodotStubs\GodotStubs.csproj" />
