@@ -92,7 +92,13 @@ public class MonsterPatchAuditTests
         // are now empty (Crusher/Rocket shape), so the audit no longer
         // walks these methods. See PatchSleepingMonsterAfterAddedToRoom
         // in HangPatches.Monsters.cs.
-        "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
+        //
+        // Vantom.DismemberMove — graduated 2026-05-23 by transpiling out
+        // the four-instruction window for the unguarded
+        // `NGame.Instance.DoHitStop(2, 1)` call at IL 198-201
+        // (PatchVantomDismemberMoveDoHitStop in HangPatches.NGame.cs).
+        // The MonsterPatchEntry was removed; the move body now runs
+        // untouched and `DamageCmd.Attack` lands on the player normally.
     ];
 
     [Fact]

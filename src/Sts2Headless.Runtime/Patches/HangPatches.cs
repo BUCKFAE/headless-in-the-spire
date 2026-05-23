@@ -61,7 +61,20 @@ public static partial class HangPatches
             PatchFromHandForUpgrade(harmony, sts2),
             PatchFromHandForDiscard(harmony, sts2),
             PatchFromHand(harmony, sts2),
-            PatchVantomDismemberMove(harmony, sts2),
+            // Vantom.DismemberMove transpiler: removes the unguarded
+            // `NGame.Instance.DoHitStop(2, 1)` call (state-machine IL
+            // 198-201). Engine source has the standard `NGame.Instance?.X`
+            // null-gate at every other call site in this body, but the
+            // DoHitStop one is unprotected — a real game-code bug that
+            // doesn't surface in production because the Godot tree always
+            // sets NGame.Instance. The headless host can't (no tree), so
+            // `callvirt NGame.DoHitStop` NREs on the null receiver before
+            // any Harmony prefix could intervene. A whole-NGame stub is
+            // too invasive (NGame is the engine singleton root and every
+            // other property getter on it would NRE walking the
+            // uninitialized backing fields); the transpiler removes only
+            // the offending IL.
+            PatchVantomDismemberMoveDoHitStop(harmony, sts2),
             PatchEscapeArtistPowerAfterTurnEnd(harmony, sts2),
             PatchImbalancedPowerAfterDamageGiven(harmony, sts2),
             PatchSoulNexus(harmony, sts2),

@@ -37,23 +37,15 @@ public static partial class HangPatches
             .OrderBy(e => e.TypeFqn, StringComparer.Ordinal)
             .ToList();
 
-    // Vantom (Act 1 boss on seed 42) — DismemberMove was deemed
-    // TestMode-safe in the first cleanup wave (2026-05-23 IL probe:
-    // every UI singleton is null-gated; CreatureCmd.TriggerAnim has
-    // TestMode early-exit). HOWEVER, the smoke A0 test still hangs at
-    // round 3 of the Vantom boss fight after the player has taken
-    // ~40 HP of damage — the body partly executes, deals damage, then
-    // wedges. Likely the post-damage CardPileCmd.AddToCombatAndPreview<Wound>
-    // call or the WithHitFx VFX hook fails in BossRoom context but
-    // not in the encounter sweep's direct debug/start_combat path.
-    // Until the exact NRE site is identified, keep DismemberMove
-    // patched. See s_expectedDoormakerShape regression net.
-    private static readonly MonsterPatchEntry _vantomEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Vantom",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal) { "DismemberMove" },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove");
-    private static PatchOutcome PatchVantomDismemberMove(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _vantomEntry);
+    // Vantom (Act 1 boss on seed 42) — DismemberMove had one unguarded
+    // `NGame.Instance.DoHitStop(2, 1)` call at IL 198-201 of its async
+    // state machine that NRE'd on the null-receiver callvirt in
+    // headless. The original whole-body strip (PatchVantomDismemberMove)
+    // killed the move's gameplay (DamageCmd.Attack on the player, three
+    // Wound cards to the discard pile) along with the offending call;
+    // PatchVantomDismemberMoveDoHitStop in HangPatches.NGame.cs replaces
+    // it with a four-instruction Nop window via Harmony transpiler so
+    // the surrounding gameplay runs untouched.
 
     // ThievingHopper used to need every Move method patched as "skip
     // body" — same Doormaker-shape over-reach as Vantom and BowlbugRock.
