@@ -188,36 +188,75 @@ public static partial class HangPatches
 
     // TheInsatiable — TestMode-safe per IL probe.
 
-    // LagavulinMatriarch — moves are TestMode-safe per IL probe.
-    // AfterAddedToRoom stays patched because its body legitimately puts
-    // the monster into a sleeping state, which leaves the sweep fixture
-    // with InProgress=false (no active combatant to advance). Same
-    // shape as SlumberingBeetle below — the sweep can't drive a
-    // sleep-locked encounter; production agents would observe the
-    // intent and end-turn until WakeUpMove fires.
+    // LagavulinMatriarch / SlumberingBeetle — `AfterAddedToRoom` on both
+    // monsters legitimately puts the creature into a sleeping state by
+    // applying PlatingPower + a sleep power (AsleepPower /
+    // SlumberPower). The body then runs an unguarded UI fall-through:
+    //   `NCombatRoom.Instance.GetCreatureNode(this.Creature)`
+    // which `callvirt`s on a null `Instance` in headless and NREs the
+    // whole `AfterCreatureAdded` loop — `CombatManager.StartCombatInternal`
+    // then never reaches `set_IsInProgress(true)` and `start_combat`
+    // surfaces `InProgress=false`.
+    //
+    // Original cleanup wave just stripped the bodies wholesale, same as
+    // the Doormaker pre-fix shape: the powers vanished, the encounters
+    // were trivially "Playable" (no intent, no plating, no sleep) but
+    // the headless win-rate corpus was being calibrated against a
+    // toothless boss. The audit (s_expectedDoormakerShape) caught both.
+    //
+    // Doormaker-style leaf fix — replace the body with a synthetic
+    // prefix that:
+    //   1. Awaits the base-class hook (`<>n__0`)
+    //   2. Applies the canonical sleep-power set via
+    //      `PowerCmd.Apply(PowerModel, Creature, Decimal, Creature,
+    //      CardModel, Boolean)` — the engine path, fully equivalent to
+    //      the IL's `Apply<T>` calls (only the type-param plumbing
+    //      changes).
+    //   3. Returns `Task.CompletedTask`, skipping the post-power UI VFX
+    //      block that NREs in headless.
+    //
+    // The original IL still references gameplay calls, but the patch
+    // PRE-EMPTS them with equivalent calls of our own — the audit list
+    // drops both entries because the MethodNames sets are empty (same
+    // Crusher/Rocket shape: the entry exists for narrative + reflection
+    // surface, but no methods are passed to PatchMonsterMethods).
+    //
+    // After the fix, the encounter naturally drives in headless: the
+    // monster starts asleep, plays SnoreMove/SleepMove (both
+    // `Task.CompletedTask`) for the first turn, Strike removes Plating,
+    // AsleepPower/SlumberPower's AfterDamageReceived wakes the monster
+    // (engine path), and subsequent turns run normal Move bodies.
     private static readonly MonsterPatchEntry _lagavulinMatriarchEntry = new(
         TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "AfterAddedToRoom",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.AfterAddedToRoom");
+        // Empty MethodNames — the body-replacement happens in
+        // PatchLagavulinMatriarchAfterAddedToRoom below, NOT through
+        // PatchMonsterMethods. Matches the Crusher/Rocket entry shape.
+        MethodNames: new HashSet<string>(StringComparer.Ordinal),
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.AfterAddedToRoom (body-replacement: apply PlatingPower+AsleepPower, skip UI VFX)");
     private static PatchOutcome PatchLagavulinMatriarch(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _lagavulinMatriarchEntry);
+        => PatchSleepingMonsterAfterAddedToRoom(
+            harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch",
+            entry: _lagavulinMatriarchEntry,
+            platingAmount: () => 12,  // hardcoded in the IL (ldc.i4.s 12 / newobj Decimal)
+            sleepPowerId: "ASLEEP_POWER",
+            sleepAmount: 3);
 
-    // SlumberingBeetle.AfterAddedToRoom keeps an unconditional
-    // NCombatRoom.get_Instance + dereference — keep it patched until a
-    // proper null-gate or leaf helper lands. The two Move methods are
-    // TestMode-safe.
     private static readonly MonsterPatchEntry _slumberingBeetleEntry = new(
         TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "AfterAddedToRoom",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.AfterAddedToRoom");
+        MethodNames: new HashSet<string>(StringComparer.Ordinal),
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.AfterAddedToRoom (body-replacement: apply PlatingPower+SlumberPower, skip UI VFX, wire Died→AfterDeath)");
     private static PatchOutcome PatchSlumberingBeetle(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _slumberingBeetleEntry);
+        => PatchSleepingMonsterAfterAddedToRoom(
+            harmony, sts2,
+            typeFqn: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle",
+            entry: _slumberingBeetleEntry,
+            // Per IL probe: SlumberingBeetle's PlatingAmount is a property
+            // (AscensionHelper.GetValueIfAscension(8, 18, 15)) — call the
+            // monster's own getter so an ascension bump tracks.
+            platingAmount: null,  // → resolved via reflection from monster instance
+            sleepPowerId: "SLUMBER_POWER",
+            sleepAmount: 3);
 
     // KAISER_CRAB_BOSS spawns a Crusher + Rocket pair (revealed via
     // `--probe-encounter KAISER_CRAB_BOSS`). The encounter has no
@@ -534,5 +573,342 @@ public static partial class HangPatches
         if (ga.Length != gb.Length) return false;
         for (int i = 0; i < ga.Length; i++) if (ga[i] != gb[i]) return false;
         return true;
+    }
+
+    // ── Sleeping-monster body-replacement (LagavulinMatriarch /
+    //    SlumberingBeetle) ─────────────────────────────────────────────────
+    //
+    // Per-monster bundle that PatchSleepingMonsterAfterAddedToRoom
+    // captures into a Harmony prefix. The prefix:
+    //   1. Awaits the base-class hook (`<>n__0`), which mirrors what the
+    //      original IL does at offset 9–13.
+    //   2. Applies PlatingPower (amount per `PlatingAmountFromInstance`)
+    //      via PowerCmd.Apply(PowerModel, target, Decimal, source, null,
+    //      false) — the non-generic equivalent of the IL's
+    //      `Apply<PlatingPower>(...)`.
+    //   3. Applies the sleep power (`SleepPowerModel`, `SleepAmount`)
+    //      the same way.
+    //   4. Optionally subscribes the monster's `AfterDeath(Creature)`
+    //      handler to `Creature.Died` (matches SlumberingBeetle IL
+    //      offsets 159–164).
+    //   5. Sets `__result = Task.CompletedTask` from the prefix and
+    //      returns `false`, skipping the IL's UI VFX block
+    //      (NCombatRoom.Instance.GetCreatureNode → NRE in headless).
+    //
+    // PatchSleepingMonsterAfterAddedToRoom's `platingAmount` parameter
+    // being null means "read the monster's get_PlatingAmount property"
+    // (SlumberingBeetle, which scales by ascension). A non-null
+    // delegate returns the hardcoded value (LagavulinMatriarch's 12).
+    private sealed record SleepingMonsterBundle(
+        Func<object, int> PlatingAmountFromInstance,
+        Type PlatingPowerModel,
+        Type SleepPowerModel,
+        int SleepAmount,
+        MethodInfo BaseHook,
+        PropertyInfo CreatureProp,
+        MethodInfo PowerCmdApply,
+        EventInfo? DiedEvent,
+        MethodInfo? AfterDeathHandler,
+        Type? AfterDeathDelegateType);
+
+    // The bundles keyed by patched method. Harmony's prefix delegate is
+    // a static method that doesn't take per-call context beyond what
+    // Harmony injects (`__originalMethod`, `__instance`, `__result`),
+    // so we use the original MethodInfo as the keying dimension.
+    private static readonly Dictionary<MethodBase, SleepingMonsterBundle> _sleepingMonsterBundles = new();
+
+    private static PatchOutcome PatchSleepingMonsterAfterAddedToRoom(
+        Harmony harmony,
+        Assembly sts2,
+        string typeFqn,
+        MonsterPatchEntry entry,
+        Func<int>? platingAmount,
+        string sleepPowerId,
+        int sleepAmount)
+    {
+        var label = entry.Label;
+        var monsterType = sts2.GetType(typeFqn);
+        if (monsterType is null)
+            return new PatchOutcome(label, Patched: false, Detail: $"type {typeFqn} not found");
+
+        var afterAddedToRoom = monsterType.GetMethod(
+            "AfterAddedToRoom",
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly,
+            binder: null, types: Type.EmptyTypes, modifiers: null);
+        if (afterAddedToRoom is null)
+            return new PatchOutcome(label, Patched: false, Detail: $"AfterAddedToRoom() not declared on {typeFqn}");
+
+        // The base-class hook the original IL invokes at offset 9 via
+        // `<>n__0`. The compiler emits this as a NonPublic instance
+        // forwarder when an async override calls `base.AfterAddedToRoom()`.
+        var baseHook = monsterType.GetMethod(
+            "<>n__0",
+            BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly,
+            binder: null, types: Type.EmptyTypes, modifiers: null);
+        if (baseHook is null)
+            return new PatchOutcome(label, Patched: false, Detail: $"compiler-emitted base-hook <>n__0() not found on {typeFqn}");
+        if (!typeof(Task).IsAssignableFrom(baseHook.ReturnType))
+            return new PatchOutcome(label, Patched: false, Detail: $"{typeFqn}.<>n__0 returns {baseHook.ReturnType.Name}, not Task");
+
+        var monsterModelType = sts2.GetType("MegaCrit.Sts2.Core.Models.MonsterModel");
+        if (monsterModelType is null)
+            return new PatchOutcome(label, Patched: false, Detail: "MonsterModel type not found");
+        var creatureProp = monsterModelType.GetProperty("Creature", BindingFlags.Public | BindingFlags.Instance);
+        if (creatureProp is null)
+            return new PatchOutcome(label, Patched: false, Detail: "MonsterModel.Creature not found");
+
+        var powerModelType = sts2.GetType("MegaCrit.Sts2.Core.Models.PowerModel");
+        if (powerModelType is null)
+            return new PatchOutcome(label, Patched: false, Detail: "PowerModel type not found");
+
+        // PowerCmd.Apply(PowerModel, Creature, Decimal, Creature, CardModel, Boolean) — the
+        // non-generic 6-arg form. The closed generic Apply<T> the IL uses
+        // is semantically identical; the non-generic spelling is just
+        // easier to bind reflectively at patch time.
+        var powerCmdType = sts2.GetType("MegaCrit.Sts2.Core.Commands.PowerCmd");
+        if (powerCmdType is null)
+            return new PatchOutcome(label, Patched: false, Detail: "PowerCmd type not found");
+        var applyMethod = powerCmdType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == "Apply"
+                && !m.IsGenericMethodDefinition
+                && m.GetParameters().Length == 6
+                && m.GetParameters()[0].ParameterType.IsAssignableFrom(powerModelType));
+        if (applyMethod is null)
+            return new PatchOutcome(label, Patched: false, Detail: "PowerCmd.Apply(PowerModel, Creature, Decimal, Creature, CardModel, Boolean) not found");
+
+        var platingPowerModel = sts2.GetType("MegaCrit.Sts2.Core.Models.Powers.PlatingPower");
+        if (platingPowerModel is null)
+            return new PatchOutcome(label, Patched: false, Detail: "PlatingPower type not found");
+        var sleepPowerModel = sts2.GetType($"MegaCrit.Sts2.Core.Models.Powers.{(sleepPowerId == "ASLEEP_POWER" ? "AsleepPower" : "SlumberPower")}");
+        if (sleepPowerModel is null)
+            return new PatchOutcome(label, Patched: false, Detail: $"sleep-power CLR type for id={sleepPowerId} not found");
+
+        // Plating-amount resolver: hardcoded constant for LagavulinMatriarch
+        // (12 per IL), getter lookup for SlumberingBeetle (PlatingAmount).
+        // The IL probe shows `call SlumberingBeetle.get_PlatingAmount`
+        // (a property accessor); we resolve it as a method instead of a
+        // property to skirt accessibility/visibility quirks (the
+        // declared-only NonPublic search catches both shapes).
+        Func<object, int> platingFromInstance;
+        if (platingAmount is not null)
+        {
+            var fixedAmt = platingAmount();
+            platingFromInstance = _ => fixedAmt;
+        }
+        else
+        {
+            var getter = monsterType.GetMethod(
+                "get_PlatingAmount",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly,
+                binder: null, types: Type.EmptyTypes, modifiers: null);
+            if (getter is null)
+                return new PatchOutcome(label, Patched: false, Detail: $"{typeFqn}.get_PlatingAmount accessor not found");
+            platingFromInstance = instance =>
+            {
+                var v = getter.Invoke(instance, null);
+                return v is null ? 0 : Convert.ToInt32(v);
+            };
+        }
+
+        // SlumberingBeetle's IL ends with a Died += AfterDeath subscription.
+        // The handler is the monster's own AfterDeath(Creature) method (a
+        // public instance method, not an async hook). Optional — only
+        // wire it if the monster declares it as a 1-arg Creature handler.
+        // LagavulinMatriarch's AfterDeath has a different signature
+        // (PlayerChoiceContext, Creature, Boolean, Single), so it does
+        // NOT subscribe here.
+        EventInfo? diedEvent = null;
+        MethodInfo? afterDeathHandler = null;
+        Type? afterDeathDelegateType = null;
+        var creatureClrType = sts2.GetType("MegaCrit.Sts2.Core.Entities.Creatures.Creature");
+        if (creatureClrType is not null)
+        {
+            diedEvent = creatureClrType.GetEvent("Died", BindingFlags.Public | BindingFlags.Instance);
+            var candidateHandler = monsterType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .FirstOrDefault(m => m.Name == "AfterDeath"
+                    && m.GetParameters().Length == 1
+                    && m.GetParameters()[0].ParameterType == creatureClrType
+                    && m.ReturnType == typeof(void));
+            if (diedEvent is not null && candidateHandler is not null)
+            {
+                afterDeathHandler = candidateHandler;
+                afterDeathDelegateType = diedEvent.EventHandlerType
+                    ?? typeof(Action<>).MakeGenericType(creatureClrType);
+            }
+        }
+
+        var bundle = new SleepingMonsterBundle(
+            PlatingAmountFromInstance: platingFromInstance,
+            PlatingPowerModel: platingPowerModel,
+            SleepPowerModel: sleepPowerModel,
+            SleepAmount: sleepAmount,
+            BaseHook: baseHook,
+            CreatureProp: creatureProp,
+            PowerCmdApply: applyMethod,
+            DiedEvent: diedEvent,
+            AfterDeathHandler: afterDeathHandler,
+            AfterDeathDelegateType: afterDeathDelegateType);
+        _sleepingMonsterBundles[afterAddedToRoom] = bundle;
+
+        var prefix = typeof(HangPatches).GetMethod(
+            nameof(SleepingMonsterAfterAddedToRoomPrefix),
+            BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("SleepingMonsterAfterAddedToRoomPrefix not found");
+        harmony.Patch(afterAddedToRoom, prefix: new HarmonyMethod(prefix));
+
+        var detail = $"powers: PlatingPower({(platingAmount is null ? "PlatingAmount" : platingAmount().ToString())}), {sleepPowerId}({sleepAmount})"
+            + (afterDeathHandler is not null ? "; +Died→AfterDeath" : "");
+        return new PatchOutcome(label, Patched: true, Detail: detail);
+    }
+
+    // Harmony prefix shared by both monsters. `__instance` is the
+    // monster model (LagavulinMatriarch / SlumberingBeetle), `__result`
+    // is the return-slot Harmony writes the replacement Task into.
+    // Returns `false` to suppress the original body — the powers are
+    // applied via PowerCmd.Apply, the UI VFX block is skipped, and the
+    // Died subscription (if applicable) is wired manually.
+    private static bool SleepingMonsterAfterAddedToRoomPrefix(
+        ref Task __result,
+        object __instance,
+        MethodBase __originalMethod)
+    {
+        if (!_sleepingMonsterBundles.TryGetValue(__originalMethod, out var bundle))
+        {
+            // Bundle missing — defensive: fall through to original body
+            // (which will NRE in headless, surfacing the patch wiring
+            // failure as a sweep-time error instead of silently
+            // applying nothing).
+            return true;
+        }
+        __result = RunSleepingMonsterPrefixAsync(__instance, bundle);
+        return false;
+    }
+
+    private static async Task RunSleepingMonsterPrefixAsync(object instance, SleepingMonsterBundle bundle)
+    {
+        // 1. Await the base-class hook the original IL invokes via <>n__0.
+        if (bundle.BaseHook.Invoke(instance, null) is Task baseTask) await baseTask.ConfigureAwait(false);
+
+        var creature = bundle.CreatureProp.GetValue(instance);
+        if (creature is null) return;
+
+        // 2. Apply PlatingPower with the resolved amount.
+        await ApplyPowerByClrTypeAsync(bundle.PowerCmdApply, bundle.PlatingPowerModel, creature, bundle.PlatingAmountFromInstance(instance)).ConfigureAwait(false);
+
+        // 3. Apply the sleep power (AsleepPower / SlumberPower).
+        await ApplyPowerByClrTypeAsync(bundle.PowerCmdApply, bundle.SleepPowerModel, creature, bundle.SleepAmount).ConfigureAwait(false);
+
+        // 4. SlumberingBeetle subscribes its AfterDeath(Creature) handler
+        // to Creature.Died at the tail of AfterAddedToRoom. Mirror that.
+        if (bundle.DiedEvent is not null
+            && bundle.AfterDeathHandler is not null
+            && bundle.AfterDeathDelegateType is not null)
+        {
+            var add = bundle.DiedEvent.GetAddMethod(nonPublic: true);
+            if (add is not null)
+            {
+                var del = Delegate.CreateDelegate(bundle.AfterDeathDelegateType, instance, bundle.AfterDeathHandler);
+                add.Invoke(creature, new object?[] { del });
+            }
+        }
+    }
+
+    private static async Task ApplyPowerByClrTypeAsync(
+        MethodInfo powerCmdApply,
+        Type powerClrType,
+        object targetCreature,
+        int amount)
+    {
+        var canonical = ResolveCanonicalPowerByClrType(powerClrType)
+            ?? throw new InvalidOperationException($"SleepingMonsterPrefix: no canonical instance for {powerClrType.FullName}");
+        var mutableClone = powerClrType.GetMethod("MutableClone", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes)
+            ?? throw new InvalidOperationException($"SleepingMonsterPrefix: AbstractModel.MutableClone() not found on {powerClrType.FullName}");
+        var mutable = mutableClone.Invoke(canonical, null)
+            ?? throw new InvalidOperationException($"SleepingMonsterPrefix: MutableClone returned null for {powerClrType.FullName}");
+
+        // Apply(model, target, amount, source=target, cardSource=null, useFinalAmount=false).
+        // Source = target mirrors the engine's "self-applied" shape; the
+        // sleep-power triggers fire on damage from external sources, not
+        // self, so picking source=target avoids confusing the
+        // AfterDamageReceived predicate.
+        var task = powerCmdApply.Invoke(null, new object?[]
+        {
+            mutable,
+            targetCreature,
+            (decimal)amount,
+            targetCreature,
+            /* cardSource: */ null,
+            /* useFinalAmount: */ false,
+        });
+        if (task is Task t) await t.ConfigureAwait(false);
+    }
+
+    // Look up the canonical PowerModel singleton for `powerClrType` from
+    // the engine's ModelDb. The IL form `Apply<PlatingPower>(...)` carries
+    // the CLR type as its type parameter; the engine looks up the
+    // matching PowerModel and clones it inside Apply<T>. We do the
+    // same lookup explicitly so the non-generic Apply gets a canonical
+    // input it can clone via MutableClone (PowerCmd.Apply runs
+    // AssertMutable on the model).
+    //
+    // ModelDb exposes `Get<T:AbstractModel>() -> T` which returns the
+    // canonical singleton for the CLR type — exactly the mapping
+    // generic Apply<T> uses internally. Cached per CLR type so the
+    // reflection cost is paid once at first sleep-power application.
+    private static readonly Dictionary<Type, object?> _canonicalPowerCache = new();
+
+    private static object? ResolveCanonicalPowerByClrType(Type powerClrType)
+    {
+        if (_canonicalPowerCache.TryGetValue(powerClrType, out var cached)) return cached;
+
+        var assembly = powerClrType.Assembly;
+        var modelDbType = assembly.GetType("MegaCrit.Sts2.Core.Models.ModelDb");
+        if (modelDbType is null) { _canonicalPowerCache[powerClrType] = null; return null; }
+
+        // ModelDb.DebugPower(Type) -> PowerModel — the explicit
+        // type-keyed accessor for PowerModels. Mirrors the engine's
+        // own internal "look up the canonical by CLR type" shape.
+        var debugPower = modelDbType.GetMethod("DebugPower", BindingFlags.Public | BindingFlags.Static, new[] { typeof(Type) });
+        if (debugPower is not null)
+        {
+            try
+            {
+                var canonical = debugPower.Invoke(null, new object[] { powerClrType });
+                _canonicalPowerCache[powerClrType] = canonical;
+                if (canonical is not null) return canonical;
+            }
+            catch (TargetInvocationException) { /* fall through */ }
+        }
+
+        // ModelDb.Get<T>() — typed, returns the canonical for T directly.
+        var getGeneric = modelDbType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(m => m.Name == "Get" && m.IsGenericMethodDefinition && m.GetParameters().Length == 0);
+        if (getGeneric is not null)
+        {
+            try
+            {
+                var closed = getGeneric.MakeGenericMethod(powerClrType);
+                var canonical = closed.Invoke(null, null);
+                _canonicalPowerCache[powerClrType] = canonical;
+                if (canonical is not null) return canonical;
+            }
+            catch (TargetInvocationException) { /* fall through */ }
+        }
+
+        // Fallback: ModelDb.Get(Type) — non-generic equivalent.
+        var getByType = modelDbType.GetMethod("Get", BindingFlags.Public | BindingFlags.Static, new[] { typeof(Type) });
+        if (getByType is not null)
+        {
+            try
+            {
+                var canonical = getByType.Invoke(null, new object[] { powerClrType });
+                _canonicalPowerCache[powerClrType] = canonical;
+                return canonical;
+            }
+            catch (TargetInvocationException) { /* fall through */ }
+        }
+
+        _canonicalPowerCache[powerClrType] = null;
+        return null;
     }
 }

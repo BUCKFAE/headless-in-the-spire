@@ -84,8 +84,14 @@ public class MonsterPatchAuditTests
         //   5. Remove the corresponding line from this list.
         //
         // Sorted alphabetically for diff readability.
-        "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
+        // LagavulinMatriarch / SlumberingBeetle AfterAddedToRoom — graduated
+        // 2026-05-23 by switching from "skip the body" to body-replacement:
+        // a Harmony prefix runs PlatingPower + the sleep power
+        // (AsleepPower / SlumberPower) via PowerCmd.Apply and skips the
+        // post-power UI VFX block. The MonsterPatchEntry MethodNames sets
+        // are now empty (Crusher/Rocket shape), so the audit no longer
+        // walks these methods. See PatchSleepingMonsterAfterAddedToRoom
+        // in HangPatches.Monsters.cs.
         "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
     ];
 
