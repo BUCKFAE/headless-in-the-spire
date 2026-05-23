@@ -78,17 +78,12 @@ public static partial class HangPatches
     private static PatchOutcome PatchThievingHopperMoves(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2, _thievingHopperEntry);
 
-    // BowlbugRock (Act 2 enemy on seed 42 floor 12) has two move methods
-    // — HeadbuttMove and DizzyMove. Same shape as Vantom.DismemberMove
-    // and ThievingHopper.*Move: Task-returning bodies that NRE in
-    // headless, exception swallowed by TaskHelper.LogTaskExceptions,
-    // combat half-transitioned. Replace both with Task.CompletedTask.
-    private static readonly MonsterPatchEntry _bowlbugRockEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal) { "HeadbuttMove", "DizzyMove" },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock.*Move");
-    private static PatchOutcome PatchBowlbugRockMoves(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _bowlbugRockEntry);
+    // BowlbugRock used to need HeadbuttMove + DizzyMove patched as
+    // "skip body" — same misdiagnosis as Vantom. IL probe confirms
+    // every UI helper is either null-gated on NCombatRoom.Instance or
+    // routes through CreatureCmd.TriggerAnim (TestMode early-exit).
+    // No leaf-helper patch needed; the bodies run cleanly with the
+    // TestMode flag set in BootstrapSequence.
 
     // SoulNexus (Act 3 enemy on seed 42) carries three Task-returning
     // move methods (SoulBurnMove, MaelstromMove, DrainLifeMove) and a

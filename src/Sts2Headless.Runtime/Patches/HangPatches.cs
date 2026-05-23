@@ -63,7 +63,6 @@ public static partial class HangPatches
             PatchFromHand(harmony, sts2),
             PatchEscapeArtistPowerAfterTurnEnd(harmony, sts2),
             PatchThievingHopperMoves(harmony, sts2),
-            PatchBowlbugRockMoves(harmony, sts2),
             PatchImbalancedPowerAfterDamageGiven(harmony, sts2),
             PatchSoulNexus(harmony, sts2),
             PatchTestSubject(harmony, sts2),

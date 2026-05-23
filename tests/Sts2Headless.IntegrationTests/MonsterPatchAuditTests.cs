@@ -75,7 +75,6 @@ public class MonsterPatchAuditTests
         //   5. Remove the corresponding line from this list.
         //
         // Sorted alphabetically for diff readability.
-        "MegaCrit.Sts2.Core.Models.Monsters.BowlbugRock.HeadbuttMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.BeastCryMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.CrushMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.PlowMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
