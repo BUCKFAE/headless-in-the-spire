@@ -175,19 +175,16 @@ public static partial class HangPatches
     // TerrorEel — TestMode-safe per IL probe. VigorPower.AfterAttack
     // stays patched separately.
 
-    // TUNNELER_WEAK → Tunneler. BelowMove has an unconditional
-    // Godot.Node2D.set_Position branch (positions the tunneler under
-    // the player). The other two moves (BiteMove, BurrowMove) are
-    // TestMode-safe — patch only BelowMove until a leaf-helper lands.
-    private static readonly MonsterPatchEntry _tunnelerEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "BelowMove",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.BelowMove");
-    private static PatchOutcome PatchTunneler(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _tunnelerEntry);
+    // TUNNELER_WEAK → Tunneler. IL probe (2026-05-23) confirms BelowMove
+    // gates the UI block correctly: at IL_0020 `call TestMode.get_IsOff;
+    // brfalse IL_016F` jumps OVER the entire NCombatRoom + Node2D.set_Position
+    // + SfxCmd + TriggerAnim + Cmd.Wait animation block and lands squarely
+    // on `get_BelowDamage; DamageCmd.Attack; AttackCommand.FromMonster;
+    // WithHitFx; Execute` — i.e. the gameplay-damage chain still runs in
+    // headless. The prior "unconditional set_Position" diagnosis read the
+    // call sites but missed the branch target. BiteMove and BurrowMove
+    // had no UI block to gate in the first place. All three moves run
+    // safely with no patch.
 
     // TheInsatiable — TestMode-safe per IL probe.
 

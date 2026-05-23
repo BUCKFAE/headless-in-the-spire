@@ -69,12 +69,11 @@ public static partial class HangPatches
             // the Move bodies safe to run for most monsters previously stripped
             // (BowlbugRock, CeremonialBeast, CorpseSlug, DecimillipedeSegment,
             // GremlinMerc, LagavulinMatriarch, TerrorEel, TestSubject,
-            // TheInsatiable, ThievingHopper, Vantom). The remaining patches
-            // below cover the ones with unconditional UI calls that bypass
-            // TestMode gating.
+            // TheInsatiable, ThievingHopper, Tunneler, Vantom). The remaining
+            // patches below cover the ones with unconditional UI calls that
+            // bypass TestMode gating.
             PatchDoormaker(harmony, sts2),
             PatchFatGremlin(harmony, sts2),
-            PatchTunneler(harmony, sts2),
             PatchLagavulinMatriarch(harmony, sts2),
             PatchSlumberingBeetle(harmony, sts2),
             PatchRavenousPower(harmony, sts2),

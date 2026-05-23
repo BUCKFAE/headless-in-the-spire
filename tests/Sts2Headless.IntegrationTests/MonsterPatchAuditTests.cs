@@ -97,7 +97,6 @@ public class MonsterPatchAuditTests
         "MegaCrit.Sts2.Core.Models.Monsters.Rocket.PrecisionBeamMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.Rocket.TargetingReticleMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.BelowMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
     ];
 
