@@ -61,6 +61,7 @@ public static partial class HangPatches
             PatchFromHandForUpgrade(harmony, sts2),
             PatchFromHandForDiscard(harmony, sts2),
             PatchFromHand(harmony, sts2),
+            PatchVantomDismemberMove(harmony, sts2),
             PatchEscapeArtistPowerAfterTurnEnd(harmony, sts2),
             PatchImbalancedPowerAfterDamageGiven(harmony, sts2),
             PatchSoulNexus(harmony, sts2),

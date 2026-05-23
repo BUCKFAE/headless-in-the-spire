@@ -37,21 +37,23 @@ public static partial class HangPatches
             .OrderBy(e => e.TypeFqn, StringComparer.Ordinal)
             .ToList();
 
-    // Vantom (Act 1 elite-ish encounter) used to need DismemberMove
-    // patched as "skip body" — the body NRE'd internally. That diagnosis
-    // turned out to be the same Doormaker-shape over-reach: every UI
-    // helper called by DismemberMove is gated either by a null-check on
-    // a `NXxxx.Instance` singleton (NCombatRoom, NGame, NRunMusicController)
-    // — all of which return null in headless — or by an inner TestMode
-    // early-exit (CreatureCmd.TriggerAnim leaves at IL 17-19 when
-    // TestMode.IsOn is true, which BootstrapSequence.SetTestMode sets).
-    // No leaf-helper patch needed; the body runs cleanly once
-    // `TestMode.IsOn=true` is in place.
-    //
-    // Removing the patch restores the gameplay: Vantom now actually
-    // executes DismemberDamage via DamageCmd.Attack and adds Wound to
-    // the deck via CardPileCmd.AddToCombatAndPreview<Wound>, exactly as
-    // the engine intended.
+    // Vantom (Act 1 boss on seed 42) — DismemberMove was deemed
+    // TestMode-safe in the first cleanup wave (2026-05-23 IL probe:
+    // every UI singleton is null-gated; CreatureCmd.TriggerAnim has
+    // TestMode early-exit). HOWEVER, the smoke A0 test still hangs at
+    // round 3 of the Vantom boss fight after the player has taken
+    // ~40 HP of damage — the body partly executes, deals damage, then
+    // wedges. Likely the post-damage CardPileCmd.AddToCombatAndPreview<Wound>
+    // call or the WithHitFx VFX hook fails in BossRoom context but
+    // not in the encounter sweep's direct debug/start_combat path.
+    // Until the exact NRE site is identified, keep DismemberMove
+    // patched. See s_expectedDoormakerShape regression net.
+    private static readonly MonsterPatchEntry _vantomEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Vantom",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal) { "DismemberMove" },
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove");
+    private static PatchOutcome PatchVantomDismemberMove(Harmony harmony, Assembly sts2)
+        => PatchMonsterMethods(harmony, sts2, _vantomEntry);
 
     // ThievingHopper used to need every Move method patched as "skip
     // body" — same Doormaker-shape over-reach as Vantom and BowlbugRock.
