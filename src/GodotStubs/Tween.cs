@@ -15,7 +15,7 @@ namespace Godot;
 // IsCompleted, GetResult, and OnCompleted from INotifyCompletion. Marking
 // the interface as INotifyCompletion lets sts2's code compile against the
 // expected shape — even though nothing actually awaits these in headless.
-public interface IAwaiter<out T> : System.Runtime.CompilerServices.INotifyCompletion
+public partial interface IAwaiter<out T> : System.Runtime.CompilerServices.INotifyCompletion
 {
     bool IsCompleted { get; }
     T GetResult();
@@ -23,7 +23,7 @@ public interface IAwaiter<out T> : System.Runtime.CompilerServices.INotifyComple
 
 // Returned by GodotObject.ToSignal(...); sts2 references it as a type but
 // never reaches a real call site in our headless path.
-public class SignalAwaiter : GodotObject
+public partial class SignalAwaiter : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
@@ -44,7 +44,7 @@ public class SignalAwaiter : GodotObject
 // each returns a chainable handle or completes immediately. The nested
 // enums and tweener classes are reference-only — sts2 reads them off
 // method return types but never inspects values in headless paths.
-public class Tween : GodotObject
+public partial class Tween : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
@@ -79,14 +79,14 @@ public class Tween : GodotObject
     public void Play() { }
 }
 
-public class Tweener : GodotObject
+public partial class Tweener : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
     public new class SignalName : GodotObject.SignalName { }
 }
 
-public class PropertyTweener : Tweener
+public partial class PropertyTweener : Tweener
 {
     public new class MethodName : Tweener.MethodName { }
     public new class PropertyName : Tweener.PropertyName { }
@@ -106,19 +106,19 @@ public class PropertyTweener : Tweener
     public PropertyTweener SetDelay(double _) => this;
     public PropertyTweener SetCustomInterpolator(Callable _) => this;
 }
-public class MethodTweener : Tweener
+public partial class MethodTweener : Tweener
 {
     public new class MethodName : Tweener.MethodName { }
     public new class PropertyName : Tweener.PropertyName { }
     public new class SignalName : Tweener.SignalName { }
 }
-public class IntervalTweener : Tweener
+public partial class IntervalTweener : Tweener
 {
     public new class MethodName : Tweener.MethodName { }
     public new class PropertyName : Tweener.PropertyName { }
     public new class SignalName : Tweener.SignalName { }
 }
-public class CallbackTweener : Tweener
+public partial class CallbackTweener : Tweener
 {
     public new class MethodName : Tweener.MethodName { }
     public new class PropertyName : Tweener.PropertyName { }
@@ -135,7 +135,7 @@ public class CallbackTweener : Tweener
 // from: combat animation paths reach Engine.GetSingleton / TimeScale / FPS.
 //   AfterCombatRoomLoaded queues animation work through here; the headless
 //   stubs return innocuous defaults so the call chain doesn't throw.
-public static class Engine
+public static partial class Engine
 {
     public static double TimeScale { get; set; } = 1.0;
     public static int MaxFps { get; set; } = 60;
@@ -152,7 +152,7 @@ public static class Engine
     public static string GetArchitectureName() => "x86_64";
 }
 
-public class MainLoop : GodotObject
+public partial class MainLoop : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
@@ -165,7 +165,7 @@ public class MainLoop : GodotObject
 // Real Godot.NodePath is a sealed class, not a struct — the implicit
 // string→NodePath conversion sts2 emits is a `call class NodePath
 // op_Implicit(string)`, which fails to bind against a struct stub.
-public sealed class NodePath
+public sealed partial class NodePath
 {
     public NodePath(string _) { }
     public static implicit operator NodePath(string s) => new(s);

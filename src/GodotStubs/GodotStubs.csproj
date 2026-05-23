@@ -11,6 +11,13 @@
     <AssemblyVersion>4.5.1.0</AssemblyVersion>
     <FileVersion>4.5.1.0</FileVersion>
     <Description>No-op replacements for the GodotSharp types that sts2.dll references. Loaded in place of the real GodotSharp.dll to keep the game's engine layer inert.</Description>
+    <!-- Generated partials happily redeclare base-class virtuals without `new`
+         (CS0108) — sts2's SG-emitted overrides shadow ancestors deliberately,
+         and chasing `new`-keyword placement through the generator is more
+         noise than signal.  Same for CS0660/CS0661: ==/!= without
+         Equals/GetHashCode is fine in stubs that are never reasoned about
+         structurally.  -->
+    <NoWarn>$(NoWarn);CS0108;CS0660;CS0661</NoWarn>
   </PropertyGroup>
 
 </Project>

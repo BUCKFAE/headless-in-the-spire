@@ -4,7 +4,7 @@
 
 namespace Godot;
 
-public readonly struct Vector2
+public readonly partial struct Vector2
 {
     // from: MegaCrit.Sts2.Core.Nodes.NGame..cctor (and likely siblings)
     //   MissingMethodException during EnterAct: "Method not found:
@@ -43,7 +43,7 @@ public readonly struct Vector2
     public override bool Equals(object? obj) => false;
     public override int GetHashCode() => 0;
 }
-public readonly struct Vector2I
+public readonly partial struct Vector2I
 {
     // from: GodotStubsCoverageTests audit — sts2 holds a MemberRef against
     //   `Vector2I.get_One()` (same shape as Vector2.get_Zero). Static
@@ -53,7 +53,7 @@ public readonly struct Vector2I
     //   (no consumer reads x/y back in headless mode).
     public static Vector2I One => default;
 }
-public readonly struct Vector3
+public readonly partial struct Vector3
 {
     // from: monster move VFX constructs world-space targets via
     //   `new Vector3(x, y, z)`. Body is a no-op; no consumer reads back.
@@ -66,12 +66,12 @@ public readonly struct Vector3
     public static Vector3 Up => default;
     public static Vector3 Zero => default;
 }
-public readonly struct Rect2
+public readonly partial struct Rect2
 {
     public Vector2 Size => default;
     public Vector2 Position => default;
 }
-public readonly struct Color
+public readonly partial struct Color
 {
     // from: 19 ModelDb subtypes (Defect, BouncingFlask, DeprecatedCharacter, …)
     //   MissingMethodException during Inject: "Method not found:
@@ -132,7 +132,7 @@ public readonly struct Color
 // at runtime — the stub method must exist or the call site throws
 // MissingMethodException. None of the conversions are reflected on the wire
 // (headless never reads from a Variant), so the body returns default.
-public readonly struct Variant
+public readonly partial struct Variant
 {
     public static Variant From<T>(T _) => default;
     public static implicit operator Variant(bool _) => default;
@@ -155,7 +155,7 @@ public readonly struct Variant
     public static implicit operator Variant(Callable _) => default;
     public static implicit operator Variant(Signal _) => default;
 }
-public readonly struct Callable
+public readonly partial struct Callable
 {
     // from: CombatManager.AfterCombatRoomLoaded — `Callable.From(() => …)`
     //   wraps continuations for the engine's animation scheduler. The
@@ -180,7 +180,7 @@ public readonly struct Callable
 //   shows the 6 surfaces: ctor, op_Equality (×2), op_Inequality, op_Implicit
 //   (×2). Stored but never compared meaningfully; equality on the stub
 //   collapses to string equality on the inner Name.
-public sealed class StringName
+public sealed partial class StringName
 {
     public string Name { get; }
 

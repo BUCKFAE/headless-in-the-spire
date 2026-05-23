@@ -35,9 +35,18 @@ for testing, AI experimentation, and replay recording.
   string and SHA-256 of the pinned `sts2.dll`; see AD-3 for the bump workflow.
 - **Do not auto-bump the game version.** Hash mismatches are an error, not a
   cue to update the pin. The bump is a deliberate, human-reviewed workflow.
-- **GodotStubs grows on demand.** Do not speculatively mirror the GodotSharp
-  surface. Add a stub when sts2.dll's reference forces it, with a
-  `// from: <type>.<member>` comment recording the caller.
+- **GodotStubs is generated from sts2.dll.** `just regen-godot-stubs` walks
+  sts2.dll's MemberReference table and emits the full stub surface into
+  `src/GodotStubs/Generated/*.g.cs` (gitignored — included in `just setup`).
+  Every existing stub type is `partial` so generated members merge in
+  cleanly. Hand-written stubs in the non-`Generated/` files exist only for
+  members that need real bodies (e.g. `Color.Black`, `Tween` lifecycle,
+  `SceneTree`/`Engine.GetMainLoop`, `Node.GetTree()`) — annotate those with
+  a `// from: <type>.<member>` provenance comment. The
+  `GodotStubsCoverageTests.All_Godot_References_From_Sts2_Resolve_On_GodotStubs`
+  test is mandatory; a red test means re-run the recipe after a sts2.dll
+  change. AD-4 still holds — the generator reads sts2.dll metadata via
+  `System.Reflection.Metadata` and never loads the assembly.
 - **Debug methods are opt-in via `--enable-debug` (AD-7).** Any wire
   method under the `debug/` namespace (`debug/give_relic`, `debug/set_hp`,
   …) is **disabled by default**. The host only serves it when started

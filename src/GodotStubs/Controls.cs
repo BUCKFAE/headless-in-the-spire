@@ -4,7 +4,7 @@
 
 namespace Godot;
 
-public class Control : CanvasItem
+public partial class Control : CanvasItem
 {
     public new class MethodName : CanvasItem.MethodName
     {
@@ -41,7 +41,7 @@ public class Control : CanvasItem
     public Vector2 Scale { get; set; } = new Vector2(1f, 1f);
 }
 
-public class Range : Control
+public partial class Range : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
@@ -51,14 +51,14 @@ public class Range : Control
     }
 }
 
-public class Label : Control
+public partial class Label : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
     public new class SignalName : Control.SignalName { }
 }
 
-public class LineEdit : Control
+public partial class LineEdit : Control
 {
     public new class MethodName : Control.MethodName
     {
@@ -72,7 +72,7 @@ public class LineEdit : Control
     }
 }
 
-public class TextEdit : Control
+public partial class TextEdit : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
@@ -82,77 +82,77 @@ public class TextEdit : Control
     }
 }
 
-public class Panel : Control
+public partial class Panel : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
     public new class SignalName : Control.SignalName { }
 }
 
-public class ColorRect : Control
+public partial class ColorRect : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
     public new class SignalName : Control.SignalName { }
 }
 
-public class TextureRect : Control
+public partial class TextureRect : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
     public new class SignalName : Control.SignalName { }
 }
 
-public class RichTextLabel : Control
+public partial class RichTextLabel : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
     public new class SignalName : Control.SignalName { }
 }
 
-public class Container : Control
+public partial class Container : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
     public new class SignalName : Control.SignalName { }
 }
 
-public class AspectRatioContainer : Container
+public partial class AspectRatioContainer : Container
 {
     public new class MethodName : Container.MethodName { }
     public new class PropertyName : Container.PropertyName { }
     public new class SignalName : Container.SignalName { }
 }
 
-public class MarginContainer : Container
+public partial class MarginContainer : Container
 {
     public new class MethodName : Container.MethodName { }
     public new class PropertyName : Container.PropertyName { }
     public new class SignalName : Container.SignalName { }
 }
 
-public class FlowContainer : Container
+public partial class FlowContainer : Container
 {
     public new class MethodName : Container.MethodName { }
     public new class PropertyName : Container.PropertyName { }
     public new class SignalName : Container.SignalName { }
 }
 
-public class BoxContainer : Container
+public partial class BoxContainer : Container
 {
     public new class MethodName : Container.MethodName { }
     public new class PropertyName : Container.PropertyName { }
     public new class SignalName : Container.SignalName { }
 }
 
-public class VBoxContainer : BoxContainer
+public partial class VBoxContainer : BoxContainer
 {
     public new class MethodName : BoxContainer.MethodName { }
     public new class PropertyName : BoxContainer.PropertyName { }
     public new class SignalName : BoxContainer.SignalName { }
 }
 
-public class HBoxContainer : BoxContainer
+public partial class HBoxContainer : BoxContainer
 {
     public new class MethodName : BoxContainer.MethodName { }
     public new class PropertyName : BoxContainer.PropertyName { }

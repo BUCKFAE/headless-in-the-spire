@@ -60,6 +60,19 @@ public static class CliCommands
         // references. Used to grow GodotStubs accurately without speculation.
         new(["--list-members"], "Dump every member of a type sts2.dll references (needs a FQN, e.g. Godot.OS).",
             ListMembers),
+        // `--generate-godot-stubs`: walk sts2.dll's MemberReference table,
+        // diff against the current GodotStubs build output, and emit C#
+        // `partial` fillers into src/GodotStubs/Generated/ for every missing
+        // Godot member.  Closes the latent MissingMethodException surface
+        // without speculatively mirroring all of GodotSharp.
+        new(["--generate-godot-stubs"],
+            "Generate filler partials for every Godot member sts2.dll references but GodotStubs lacks.",
+            ctx =>
+            {
+                var stubPath = Path.Combine(ctx.RepoRoot, "src", "GodotStubs", "bin", "Debug", "net10.0", "GodotSharp.dll");
+                GenerateGodotStubsCommand.SetCachedStubAssemblyPath(stubPath);
+                return GenerateGodotStubsCommand.Run(ctx.VendorDir, ctx.RepoRoot, ctx.Args);
+            }),
     ];
 
     // First command whose verbs appear anywhere in `args`, or null if none —

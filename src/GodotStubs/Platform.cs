@@ -10,7 +10,7 @@ namespace Godot;
 //   (empty string/array, false, 0, Error.Ok, empty Dictionary). If any
 //   headless code path needs richer behaviour, override that specific
 //   member; do not add members that --list-members didn't surface.
-public static class OS
+public static partial class OS
 {
     // ── bool returns: default false ──
     public static bool HasFeature(string _) => false;
@@ -54,7 +54,7 @@ public static class OS
 // Real Godot.Dictionary is a Variant-keyed dict exposed to GDScript; for
 // our purposes an empty class is enough — the result is never read in
 // headless paths we've reached so far.
-public class Dictionary { }
+public partial class Dictionary { }
 
 // from: every Godot.GD reference in sts2.dll (8 members), enumerated via
 //   `just list-members Godot.GD`. Load<T> returns default (null for ref
@@ -62,7 +62,7 @@ public class Dictionary { }
 //   PushWarning go to stderr with a [godot] prefix — real Godot surfaces
 //   these in its log/editor, and silently dropping them masks engine-side
 //   complaints that we'd otherwise have to reverse-engineer from symptoms.
-public static class GD
+public static partial class GD
 {
     public static T Load<T>(string _) => default!;
     public static double RandRange(double _, double __) => 0;

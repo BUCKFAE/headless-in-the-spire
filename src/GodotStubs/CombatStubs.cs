@@ -15,28 +15,28 @@
 namespace Godot;
 
 // ── Control-tree containers (siblings of HBox/VBoxContainer) ─────────────
-public class GridContainer : Container
+public partial class GridContainer : Container
 {
     public new class MethodName : Container.MethodName { }
     public new class PropertyName : Container.PropertyName { }
     public new class SignalName : Container.SignalName { }
 }
 
-public class VFlowContainer : FlowContainer
+public partial class VFlowContainer : FlowContainer
 {
     public new class MethodName : FlowContainer.MethodName { }
     public new class PropertyName : FlowContainer.PropertyName { }
     public new class SignalName : FlowContainer.SignalName { }
 }
 
-public class NinePatchRect : Control
+public partial class NinePatchRect : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
     public new class SignalName : Control.SignalName { }
 }
 
-public class BaseButton : Control
+public partial class BaseButton : Control
 {
     public new class MethodName : Control.MethodName { }
     public new class PropertyName : Control.PropertyName { }
@@ -46,14 +46,14 @@ public class BaseButton : Control
     }
 }
 
-public class Button : BaseButton
+public partial class Button : BaseButton
 {
     public new class MethodName : BaseButton.MethodName { }
     public new class PropertyName : BaseButton.PropertyName { }
     public new class SignalName : BaseButton.SignalName { }
 }
 
-public class FileDialog : Window
+public partial class FileDialog : Window
 {
     public new class MethodName : Window.MethodName { }
     public new class PropertyName : Window.PropertyName { }
@@ -63,7 +63,7 @@ public class FileDialog : Window
     }
 }
 
-public class SubViewportContainer : Container
+public partial class SubViewportContainer : Container
 {
     public new class MethodName : Container.MethodName { }
     public new class PropertyName : Container.PropertyName { }
@@ -71,7 +71,7 @@ public class SubViewportContainer : Container
 }
 
 // ── Node-tree (non-Control) ──────────────────────────────────────────────
-public class Viewport : Node
+public partial class Viewport : Node
 {
     public new class MethodName : Node.MethodName { }
     public new class PropertyName : Node.PropertyName { }
@@ -84,14 +84,14 @@ public class Viewport : Node
     public Rect2 GetVisibleRect() => default;
 }
 
-public class SubViewport : Viewport
+public partial class SubViewport : Viewport
 {
     public new class MethodName : Viewport.MethodName { }
     public new class PropertyName : Viewport.PropertyName { }
     public new class SignalName : Viewport.SignalName { }
 }
 
-public class Timer : Node
+public partial class Timer : Node
 {
     public new class MethodName : Node.MethodName { }
     public new class PropertyName : Node.PropertyName { }
@@ -101,7 +101,7 @@ public class Timer : Node
     }
 }
 
-public class SceneTreeTimer : GodotObject
+public partial class SceneTreeTimer : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
@@ -111,7 +111,7 @@ public class SceneTreeTimer : GodotObject
     }
 }
 
-public class SceneTree : MainLoop
+public partial class SceneTree : MainLoop
 {
     public new class MethodName : MainLoop.MethodName { }
     public new class PropertyName : MainLoop.PropertyName { }
@@ -128,7 +128,7 @@ public class SceneTree : MainLoop
     public SceneTreeTimer CreateTimer(double _) => new();
 }
 
-public class AnimationMixer : Node
+public partial class AnimationMixer : Node
 {
     public new class MethodName : Node.MethodName { }
     public new class PropertyName : Node.PropertyName { }
@@ -138,14 +138,14 @@ public class AnimationMixer : Node
     }
 }
 
-public class AnimationPlayer : AnimationMixer
+public partial class AnimationPlayer : AnimationMixer
 {
     public new class MethodName : AnimationMixer.MethodName { }
     public new class PropertyName : AnimationMixer.PropertyName { }
     public new class SignalName : AnimationMixer.SignalName { }
 }
 
-public class AudioStreamPlayer : Node
+public partial class AudioStreamPlayer : Node
 {
     public new class MethodName : Node.MethodName { }
     public new class PropertyName : Node.PropertyName { }
@@ -155,28 +155,28 @@ public class AudioStreamPlayer : Node
     }
 }
 
-public class WorldEnvironment : Node
+public partial class WorldEnvironment : Node
 {
     public new class MethodName : Node.MethodName { }
     public new class PropertyName : Node.PropertyName { }
     public new class SignalName : Node.SignalName { }
 }
 
-public class CanvasGroup : Node2D
+public partial class CanvasGroup : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
     public new class SignalName : Node2D.SignalName { }
 }
 
-public class Marker2D : Node2D
+public partial class Marker2D : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
     public new class SignalName : Node2D.SignalName { }
 }
 
-public class Path2D : Node2D
+public partial class Path2D : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
@@ -184,28 +184,28 @@ public class Path2D : Node2D
 }
 
 // ── Resource-tree ────────────────────────────────────────────────────────
-public class Material : Resource
+public partial class Material : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
     public new class SignalName : Resource.SignalName { }
 }
 
-public class CanvasItemMaterial : Material
+public partial class CanvasItemMaterial : Material
 {
     public new class MethodName : Material.MethodName { }
     public new class PropertyName : Material.PropertyName { }
     public new class SignalName : Material.SignalName { }
 }
 
-public class ShaderMaterial : Material
+public partial class ShaderMaterial : Material
 {
     public new class MethodName : Material.MethodName { }
     public new class PropertyName : Material.PropertyName { }
     public new class SignalName : Material.SignalName { }
 }
 
-public class ParticleProcessMaterial : Material
+public partial class ParticleProcessMaterial : Material
 {
     public new class MethodName : Material.MethodName { }
     public new class PropertyName : Material.PropertyName { }
@@ -218,126 +218,126 @@ public class ParticleProcessMaterial : Material
     public Vector3 EmissionBoxExtents { get; set; }
 }
 
-public class StyleBox : Resource
+public partial class StyleBox : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
     public new class SignalName : Resource.SignalName { }
 }
 
-public class StyleBoxEmpty : StyleBox
+public partial class StyleBoxEmpty : StyleBox
 {
     public new class MethodName : StyleBox.MethodName { }
     public new class PropertyName : StyleBox.PropertyName { }
     public new class SignalName : StyleBox.SignalName { }
 }
 
-public class Font : Resource
+public partial class Font : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
     public new class SignalName : Resource.SignalName { }
 }
 
-public class TextParagraph : RefCounted
+public partial class TextParagraph : RefCounted
 {
     public new class MethodName : RefCounted.MethodName { }
     public new class PropertyName : RefCounted.PropertyName { }
     public new class SignalName : RefCounted.SignalName { }
 }
 
-public class RefCounted : GodotObject
+public partial class RefCounted : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
     public new class SignalName : GodotObject.SignalName { }
 }
 
-public class CompressedTexture2D : Texture2D
+public partial class CompressedTexture2D : Texture2D
 {
     public new class MethodName : Texture2D.MethodName { }
     public new class PropertyName : Texture2D.PropertyName { }
     public new class SignalName : Texture2D.SignalName { }
 }
 
-public class AtlasTexture : Texture2D
+public partial class AtlasTexture : Texture2D
 {
     public new class MethodName : Texture2D.MethodName { }
     public new class PropertyName : Texture2D.PropertyName { }
     public new class SignalName : Texture2D.SignalName { }
 }
 
-public class ImageTexture : Texture2D
+public partial class ImageTexture : Texture2D
 {
     public new class MethodName : Texture2D.MethodName { }
     public new class PropertyName : Texture2D.PropertyName { }
     public new class SignalName : Texture2D.SignalName { }
 }
 
-public class ViewportTexture : Texture2D
+public partial class ViewportTexture : Texture2D
 {
     public new class MethodName : Texture2D.MethodName { }
     public new class PropertyName : Texture2D.PropertyName { }
     public new class SignalName : Texture2D.SignalName { }
 }
 
-public class Curve : Resource
+public partial class Curve : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
     public new class SignalName : Resource.SignalName { }
 }
 
-public class Curve2D : Resource
+public partial class Curve2D : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
     public new class SignalName : Resource.SignalName { }
 }
 
-public class Gradient : Resource
+public partial class Gradient : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
     public new class SignalName : Resource.SignalName { }
 }
 
-public class GradientTexture2D : Texture2D
+public partial class GradientTexture2D : Texture2D
 {
     public new class MethodName : Texture2D.MethodName { }
     public new class PropertyName : Texture2D.PropertyName { }
     public new class SignalName : Texture2D.SignalName { }
 }
 
-public class Noise : Resource
+public partial class Noise : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
     public new class SignalName : Resource.SignalName { }
 }
 
-public class FastNoiseLite : Noise
+public partial class FastNoiseLite : Noise
 {
     public new class MethodName : Noise.MethodName { }
     public new class PropertyName : Noise.PropertyName { }
     public new class SignalName : Noise.SignalName { }
 }
 
-public class NoiseTexture2D : Texture2D
+public partial class NoiseTexture2D : Texture2D
 {
     public new class MethodName : Texture2D.MethodName { }
     public new class PropertyName : Texture2D.PropertyName { }
     public new class SignalName : Texture2D.SignalName { }
 }
 
-public class AudioStream : Resource
+public partial class AudioStream : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
     public new class SignalName : Resource.SignalName { }
 }
 
-public class CharFXTransform : RefCounted
+public partial class CharFXTransform : RefCounted
 {
     public new class MethodName : RefCounted.MethodName { }
     public new class PropertyName : RefCounted.PropertyName { }
@@ -345,63 +345,63 @@ public class CharFXTransform : RefCounted
 }
 
 // ── InputEvent hierarchy ─────────────────────────────────────────────────
-public class InputEvent : Resource
+public partial class InputEvent : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
     public new class SignalName : Resource.SignalName { }
 }
 
-public class InputEventAction : InputEvent
+public partial class InputEventAction : InputEvent
 {
     public new class MethodName : InputEvent.MethodName { }
     public new class PropertyName : InputEvent.PropertyName { }
     public new class SignalName : InputEvent.SignalName { }
 }
 
-public class InputEventWithModifiers : InputEvent
+public partial class InputEventWithModifiers : InputEvent
 {
     public new class MethodName : InputEvent.MethodName { }
     public new class PropertyName : InputEvent.PropertyName { }
     public new class SignalName : InputEvent.SignalName { }
 }
 
-public class InputEventKey : InputEventWithModifiers
+public partial class InputEventKey : InputEventWithModifiers
 {
     public new class MethodName : InputEventWithModifiers.MethodName { }
     public new class PropertyName : InputEventWithModifiers.PropertyName { }
     public new class SignalName : InputEventWithModifiers.SignalName { }
 }
 
-public class InputEventMouse : InputEventWithModifiers
+public partial class InputEventMouse : InputEventWithModifiers
 {
     public new class MethodName : InputEventWithModifiers.MethodName { }
     public new class PropertyName : InputEventWithModifiers.PropertyName { }
     public new class SignalName : InputEventWithModifiers.SignalName { }
 }
 
-public class InputEventMouseButton : InputEventMouse
+public partial class InputEventMouseButton : InputEventMouse
 {
     public new class MethodName : InputEventMouse.MethodName { }
     public new class PropertyName : InputEventMouse.PropertyName { }
     public new class SignalName : InputEventMouse.SignalName { }
 }
 
-public class InputEventMouseMotion : InputEventMouse
+public partial class InputEventMouseMotion : InputEventMouse
 {
     public new class MethodName : InputEventMouse.MethodName { }
     public new class PropertyName : InputEventMouse.PropertyName { }
     public new class SignalName : InputEventMouse.SignalName { }
 }
 
-public class InputEventJoypadMotion : InputEvent
+public partial class InputEventJoypadMotion : InputEvent
 {
     public new class MethodName : InputEvent.MethodName { }
     public new class PropertyName : InputEvent.PropertyName { }
     public new class SignalName : InputEvent.SignalName { }
 }
 
-public class InputEventPanGesture : InputEventWithModifiers
+public partial class InputEventPanGesture : InputEventWithModifiers
 {
     public new class MethodName : InputEventWithModifiers.MethodName { }
     public new class PropertyName : InputEventWithModifiers.PropertyName { }
@@ -409,14 +409,14 @@ public class InputEventPanGesture : InputEventWithModifiers
 }
 
 // ── Network ──────────────────────────────────────────────────────────────
-public class PacketPeer : RefCounted
+public partial class PacketPeer : RefCounted
 {
     public new class MethodName : RefCounted.MethodName { }
     public new class PropertyName : RefCounted.PropertyName { }
     public new class SignalName : RefCounted.SignalName { }
 }
 
-public class ENetPacketPeer : PacketPeer
+public partial class ENetPacketPeer : PacketPeer
 {
     public new class MethodName : PacketPeer.MethodName { }
     public new class PropertyName : PacketPeer.PropertyName { }
@@ -424,10 +424,10 @@ public class ENetPacketPeer : PacketPeer
 }
 
 // ── Static singletons / servers (no instances created in headless) ──────
-public static class Input { }
-public static class AudioServer { public class AudioServerInstance { } }
-public class AudioServerInstance { }
-public static class ClassDB { }
+public static partial class Input { }
+public static partial class AudioServer { public class AudioServerInstance { } }
+public partial class AudioServerInstance { }
+public static partial class ClassDB { }
 // from: enemy moves (e.g. SHRINKER_BEETLE.SHRINKER_MOVE) read named color
 //   constants when staging VFX tints. MissingMethodException surfaces inside
 //   the move's async chain and gets swallowed by TaskHelper.LogTaskExceptions,
@@ -438,7 +438,7 @@ public static class ClassDB { }
 //   pins the surface so a game-version bump that adds a new named color
 //   surfaces as a red unit test, not as a runtime MissingMethodException.
 //   Body always returns `default` — color data is never read in headless paths.
-public static class Colors
+public static partial class Colors
 {
     public static Color Green => default;
     // from: a card-play VFX path on the Pommel/Hellraiser combo route
@@ -471,9 +471,9 @@ public static class Colors
     public static Color Purple => default;
     public static Color Transparent => default;
 }
-public static class DisplayServer { }
-public static class Geometry2D { }
-public static class Performance { }
+public static partial class DisplayServer { }
+public static partial class Geometry2D { }
+public static partial class Performance { }
 // from: MegaCrit.Sts2.Core.Debug.ReleaseInfoManager.LoadConfig
 //   MissingMethodException: "Method not found: 'System.String
 //   Godot.ProjectSettings.GlobalizePath(System.String)'."
@@ -483,12 +483,12 @@ public static class Performance { }
 //   function is enough — the caller iterates a candidate list and gives
 //   up. ReleaseInfo stays null, which ReplayHeaderFactory degrades to
 //   "UNKNOWN" git commit.
-public static class ProjectSettings
+public static partial class ProjectSettings
 {
     public static string GlobalizePath(string path) => path;
 }
-public static class RenderingDevice { }
-public static class RenderingServer { }
+public static partial class RenderingDevice { }
+public static partial class RenderingServer { }
 // from: monster moves with sprite/scene fetches call
 //   ResourceLoader.Load<T>(path, typeHint, cacheMode). MissingMethodException
 //   surfaces synchronously here (not swallowed via TaskHelper), so a stall
@@ -496,7 +496,7 @@ public static class RenderingServer { }
 //   resource type; returning default(T) yields null for class T's and
 //   default-struct for value T's. The CacheMode enum mirrors real Godot's
 //   so call sites that name an enum value still compile.
-public static class ResourceLoader
+public static partial class ResourceLoader
 {
     public enum CacheMode { Ignore = 0, Reuse = 1, Replace = 2, IgnoreDeep = 3, ReplaceDeep = 4 }
     public static T? Load<T>(string _, string __ = "", CacheMode ___ = CacheMode.Reuse) where T : class => null;
@@ -507,17 +507,17 @@ public static class ResourceLoader
     //   which is informational only in headless paths.
     public static bool Exists(string _, string __ = "") => false;
 }
-public static class StringExtensions { }
-public static class TextServer { }
-public static class TextServerManager { public class TextServerManagerInstance { } }
-public class TextServerManagerInstance { }
-public static class Time
+public static partial class StringExtensions { }
+public static partial class TextServer { }
+public static partial class TextServerManager { public class TextServerManagerInstance { } }
+public partial class TextServerManagerInstance { }
+public static partial class Time
 {
     private static readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
     public static ulong GetTicksMsec() => (ulong)_sw.ElapsedMilliseconds;
     public static ulong GetTicksUsec() => (ulong)(_sw.ElapsedTicks * 1_000_000L / System.Diagnostics.Stopwatch.Frequency);
 }
-public static class TranslationServer { }
+public static partial class TranslationServer { }
 
 // ── Enums (header-only; values backfilled when sts2 reads them back) ────
 public enum HorizontalAlignment { Left = 0, Center = 1, Right = 2, Fill = 3 }
@@ -531,43 +531,43 @@ public enum PropertyHint { None = 0, Range = 1, Enum = 2, ExpEasing = 4, Length 
 public enum PropertyUsageFlags : long { None = 0, Storage = 2, Editor = 4, Internal = 8, Checkable = 16, Checked = 32, Group = 64, Category = 128, Subgroup = 256, ClassIsBitfield = 512, NoInstanceState = 1024, RestartIfChanged = 2048, ScriptVariable = 4096, StoreIfNull = 8192, UpdateAllIfModified = 16384, ScriptDefault = 32768, ClassIsEnum = 65536, NilIsVariant = 131072, ArrayMaxSize = 262144, ReadOnly = 524288, Secret = 1048576, AlwaysDuplicate = 2097152, NeverDuplicate = 4194304, HighEndGfx = 8388608, NodePathFromSceneRoot = 16777216, ResourceNotPersistent = 33554432, KeyingIncrements = 67108864, DeferredSetResource = 134217728, EditorInstantiateObject = 268435456, EditorBasicSetting = 536870912, ReadOnlyInEditor = 1073741824, ArrayOfResources = 2147483648L, Default = Storage | Editor }
 
 // ── Value-shaped Godot types used as struct fields by sts2 ──────────────
-public readonly struct Quaternion
+public readonly partial struct Quaternion
 {
     public Quaternion(float _, float __, float ___, float ____) { }
 }
 
-public readonly struct Transform2D
+public readonly partial struct Transform2D
 {
     public Transform2D(float _, Vector2 __) { }
 }
 
-public readonly struct Rid { }
-public readonly struct Signal { public Signal(GodotObject _, StringName __) { } }
+public readonly partial struct Rid { }
+public readonly partial struct Signal { public Signal(GodotObject _, StringName __) { } }
 
 // ── Attributes (presence-only; never inspected reflectively in headless) ─
 [System.AttributeUsage(System.AttributeTargets.Assembly)]
-public sealed class AssemblyHasScriptsAttribute : System.Attribute { }
+public sealed partial class AssemblyHasScriptsAttribute : System.Attribute { }
 
 [System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field)]
-public sealed class ExportAttribute : System.Attribute
+public sealed partial class ExportAttribute : System.Attribute
 {
     public ExportAttribute(PropertyHint _ = PropertyHint.None, string __ = "") { }
 }
 
 [System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field, AllowMultiple = true)]
-public sealed class ExportGroupAttribute : System.Attribute { public ExportGroupAttribute(string _, string __ = "") { } }
+public sealed partial class ExportGroupAttribute : System.Attribute { public ExportGroupAttribute(string _, string __ = "") { } }
 
 [System.AttributeUsage(System.AttributeTargets.Method)]
-public sealed class ExportToolButtonAttribute : System.Attribute { public ExportToolButtonAttribute(string _, string __ = "") { } }
+public sealed partial class ExportToolButtonAttribute : System.Attribute { public ExportToolButtonAttribute(string _, string __ = "") { } }
 
 [System.AttributeUsage(System.AttributeTargets.Class)]
-public sealed class GlobalClassAttribute : System.Attribute { }
+public sealed partial class GlobalClassAttribute : System.Attribute { }
 
 [System.AttributeUsage(System.AttributeTargets.Class)]
-public sealed class ScriptPathAttribute : System.Attribute { public ScriptPathAttribute(string _) { } }
+public sealed partial class ScriptPathAttribute : System.Attribute { public ScriptPathAttribute(string _) { } }
 
 [System.AttributeUsage(System.AttributeTargets.Event | System.AttributeTargets.Method, AllowMultiple = true)]
-public sealed class SignalAttribute : System.Attribute { }
+public sealed partial class SignalAttribute : System.Attribute { }
 
 [System.AttributeUsage(System.AttributeTargets.Class)]
-public sealed class ToolAttribute : System.Attribute { }
+public sealed partial class ToolAttribute : System.Attribute { }

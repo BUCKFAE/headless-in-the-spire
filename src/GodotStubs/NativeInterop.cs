@@ -10,4 +10,11 @@ namespace Godot.NativeInterop;
 //   — `just list-members Godot.StringName` shows the overload. The struct
 //   exists solely so the StringName ==/!= overloads have a parameter type
 //   to bind. No fields, no comparisons — sts2 never reads contents.
-public struct godot_string_name { }
+public partial struct godot_string_name { }
+
+// from: sts2's SG-emitted InvokeGodotClassMethod overrides, every node-like
+//   class has `(ref godot_string_name, NativeVariantPtrArgs, ref godot_variant)`.
+//   No MemberRef against godot_variant itself, so the generator's auto-
+//   discovery surfaces it only as a parameter type — we declare it here so
+//   the ref-parameter resolves at type-load time.
+public partial struct godot_variant { }

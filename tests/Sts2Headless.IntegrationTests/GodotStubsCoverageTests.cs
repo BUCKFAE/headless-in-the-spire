@@ -19,12 +19,16 @@ namespace Sts2Headless.IntegrationTests;
 //     against the build output the test runner copies into bin/.
 //
 // Two facts:
-//   * The narrow one (default) pins Color + Colors, the hot value-type
-//     surface that drove the bugs above. It must stay green.
-//   * The broad one (Category=Diagnostic) reports the full Godot.* gap
-//     surface — informational. Used to seed targeted stub fills when a
-//     run surfaces a new MissingMethodException class, without committing
-//     to "speculative mirroring" of all 700+ unused members.
+//   * Narrow Color/Colors test is a fast canary on hand-written stubs in
+//     Values.cs / CombatStubs.cs — these still drive specific bugs (the
+//     Color.Black initialiser, etc.) and want a focused signal independent
+//     of the broader generated surface.
+//   * Broad test is mandatory: every Godot.* MemberRef in sts2.dll must
+//     have a matching stub. Was Diagnostic-only when GodotStubs grew on
+//     demand; now mandatory because `just regen-godot-stubs` generates the
+//     full surface from sts2's MemberReference table into
+//     src/GodotStubs/Generated/*.g.cs. A red broad test means the generated
+//     output is out of date — re-run the recipe.
 public class GodotStubsCoverageTests
 {
     [Fact]
@@ -39,17 +43,13 @@ public class GodotStubsCoverageTests
     }
 
     [Fact]
-    [Trait("Category", "Diagnostic")]
     public void All_Godot_References_From_Sts2_Resolve_On_GodotStubs()
     {
         var missing = ComputeMissing(IsGodotType);
-        // Diagnostic-only — asserts the full surface so devs running
-        // `--filter Category=Diagnostic` get a concrete gap list to seed
-        // targeted stub work. Not part of `just test-integration`.
         Assert.True(
             missing.Count == 0,
             $"GodotStubs is missing {missing.Count} member(s) referenced by sts2.dll. "
-            + "Diagnostic only — fill on demand as runtime paths surface them.\n"
+            + "Run `just regen-godot-stubs` to refresh the generated stubs from sts2's MemberReference table.\n"
             + string.Join('\n', missing.Select(m => "  - " + m)));
     }
 
@@ -200,7 +200,11 @@ public class GodotStubsCoverageTests
     {
         var recorder = new TypeRefRecorder();
         md.GetTypeSpecification(handle).DecodeSignature(recorder, genericContext: (object?)null);
-        return recorder.First;
+        // If the open type was a TypeDef (sts2-local, e.g. compiler-synth
+        // `<>z__ReadOnlyArray`1<Godot.Control>`), the recorder's First
+        // captured the first type-arg by accident — the MemberRef actually
+        // targets the sts2-internal type, not Godot.Control.  Drop these.
+        return recorder.OpenTypeWasDefinition ? null : recorder.First;
     }
 
     private static string LocateRepoRoot()
@@ -223,7 +227,22 @@ public class GodotStubsCoverageTests
     {
         public string GetPrimitiveType(PrimitiveTypeCode typeCode) => typeCode.ToString();
         public string GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle h, byte rawKind)
-            => reader.GetString(reader.GetTypeDefinition(h).Name);
+        {
+            // Same-assembly nested types are TypeDef-encoded in parameter
+            // signatures; recursing through GetDeclaringType keeps the key
+            // shape symmetric with GetTypeFromReference's `Parent+Name`
+            // form below — without the recurse, every nested-enum sig
+            // (CanvasItem+ClipChildrenMode etc.) would key as just
+            // "ClipChildrenMode" on the GodotSharp side and never match.
+            var td = reader.GetTypeDefinition(h);
+            var name = reader.GetString(td.Name);
+            if (td.IsNested)
+            {
+                var declaring = GetTypeFromDefinition(reader, td.GetDeclaringType(), rawKind);
+                return $"{declaring}+{name}";
+            }
+            return name;
+        }
         public string GetTypeFromReference(MetadataReader reader, TypeReferenceHandle h, byte rawKind)
         {
             var tr = reader.GetTypeReference(h);
@@ -256,14 +275,26 @@ public class GodotStubsCoverageTests
     private sealed class TypeRefRecorder : ISignatureTypeProvider<int, object?>
     {
         public TypeReferenceHandle? First { get; private set; }
+        // True iff a TypeDef was the *first* thing visited — i.e. the
+        // generic instantiation's open type is sts2-local rather than a
+        // Godot.* TypeRef.  Lets the caller drop bogus parent attributions.
+        public bool OpenTypeWasDefinition { get; private set; }
+        private bool _firstVisited;
+
         public int GetTypeFromReference(MetadataReader r, TypeReferenceHandle h, byte k)
         {
             First ??= h;
+            _firstVisited = true;
+            return 0;
+        }
+        public int GetTypeFromDefinition(MetadataReader r, TypeDefinitionHandle h, byte k)
+        {
+            if (!_firstVisited) OpenTypeWasDefinition = true;
+            _firstVisited = true;
             return 0;
         }
         public int GetGenericInstantiation(int t, ImmutableArray<int> args) => 0;
         public int GetPrimitiveType(PrimitiveTypeCode c) => 0;
-        public int GetTypeFromDefinition(MetadataReader r, TypeDefinitionHandle h, byte k) => 0;
         public int GetSZArrayType(int e) => 0;
         public int GetArrayType(int e, ArrayShape s) => 0;
         public int GetPointerType(int e) => 0;

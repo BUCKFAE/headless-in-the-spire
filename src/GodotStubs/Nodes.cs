@@ -15,7 +15,7 @@
 
 namespace Godot;
 
-public class GodotObject
+public partial class GodotObject
 {
     public class MethodName { }
     public class PropertyName { }
@@ -45,7 +45,7 @@ public class GodotObject
     public Variant CallDeferred(StringName method, params Variant[] args) => default;
 }
 
-public class Node : GodotObject
+public partial class Node : GodotObject
 {
     public new class MethodName : GodotObject.MethodName
     {
@@ -150,7 +150,7 @@ public class Node : GodotObject
     public void MoveChild(Node _, int __) { }
 }
 
-public class CanvasItem : Node
+public partial class CanvasItem : Node
 {
     public new class MethodName : Node.MethodName { }
     public new class PropertyName : Node.PropertyName { }
@@ -182,7 +182,7 @@ public class CanvasItem : Node
 
 // ── Node2D and descendants ──────────────────────────────────────────────
 
-public class Node2D : CanvasItem
+public partial class Node2D : CanvasItem
 {
     public new class MethodName : CanvasItem.MethodName { }
     public new class PropertyName : CanvasItem.PropertyName { }
@@ -210,7 +210,7 @@ public class Node2D : CanvasItem
     public Vector2 Scale { get; set; }
 }
 
-public class Sprite2D : Node2D
+public partial class Sprite2D : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
@@ -221,7 +221,7 @@ public class Sprite2D : Node2D
     public Texture2D? Texture { get; set; }
 }
 
-public class GpuParticles2D : Node2D
+public partial class GpuParticles2D : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
@@ -241,7 +241,7 @@ public class GpuParticles2D : Node2D
     public int Amount { get; set; }
 }
 
-public class CpuParticles2D : Node2D
+public partial class CpuParticles2D : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
@@ -251,21 +251,21 @@ public class CpuParticles2D : Node2D
     }
 }
 
-public class Line2D : Node2D
+public partial class Line2D : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
     public new class SignalName : Node2D.SignalName { }
 }
 
-public class PathFollow2D : Node2D
+public partial class PathFollow2D : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
     public new class SignalName : Node2D.SignalName { }
 }
 
-public class BackBufferCopy : Node2D
+public partial class BackBufferCopy : Node2D
 {
     public new class MethodName : Node2D.MethodName { }
     public new class PropertyName : Node2D.PropertyName { }
@@ -276,7 +276,7 @@ public class BackBufferCopy : Node2D
 //   TypeLoadException during EnterAct: "Could not load type 'Godot.Window'".
 //   Static field on the node class is typed as Window; never accessed via
 //   real Godot APIs at runtime in headless. Empty placeholder is enough.
-public class Window : Node
+public partial class Window : Node
 {
     public new class MethodName : Node.MethodName { }
     public new class PropertyName : Node.PropertyName { }

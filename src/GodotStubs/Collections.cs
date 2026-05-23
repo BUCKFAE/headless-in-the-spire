@@ -11,7 +11,7 @@
 
 namespace Godot.Collections;
 
-public class Dictionary<TKey, TValue> where TKey : notnull
+public partial class Dictionary<TKey, TValue> where TKey : notnull
 {
     private readonly System.Collections.Generic.Dictionary<TKey, TValue> _inner = new();
 
@@ -26,12 +26,16 @@ public class Dictionary<TKey, TValue> where TKey : notnull
 // damage-number VFX or similar. Headless has no scene tree; we return an
 // empty enumerable wrapper. Implementing IEnumerable<T> lets foreach-style
 // callers iterate over zero items without NREs.
-public class Array<T> : System.Collections.Generic.IEnumerable<T>
+public partial class Array<T> : System.Collections.Generic.IEnumerable<T>
 {
     private readonly System.Collections.Generic.List<T> _inner = new();
     public Array() { }
     public int Count => _inner.Count;
-    public T this[int i] => _inner[i];
+    // Indexer with get+set so the generated `set_Item(Int32,!0)` requirement
+    // (captured by GodotStubsCoverageTests as a MemberRef from sts2.dll's
+    // SG-emitted code) lands on this declaration rather than colliding with
+    // a generator-emitted partial-side accessor.
+    public T this[int i] { get => _inner[i]; set => _inner[i] = value; }
     public System.Collections.Generic.IEnumerator<T> GetEnumerator() => _inner.GetEnumerator();
     System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _inner.GetEnumerator();
 

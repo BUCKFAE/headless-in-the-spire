@@ -7,7 +7,7 @@
 
 namespace Godot;
 
-public static class Mathf
+public static partial class Mathf
 {
     // from: ModelIdSerializationCache.Init — MissingMethodException
     //   "Method not found: 'Int32 Godot.Mathf.CeilToInt(Double)'."

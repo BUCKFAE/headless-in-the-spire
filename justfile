@@ -18,7 +18,7 @@ default:
 
 # ── Local setup ───────────────────────────────────────────────────────────
 
-# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv, install replay-viewer pnpm deps, install git hooks, generate every *Id.g.cs content manifest from the local DLL.
+# First-run setup: validate STS2 install, copy game DLLs, create uv workspace .venv, install replay-viewer pnpm deps, install git hooks, generate every *Id.g.cs content manifest + Godot stub surface from the local DLL.
 setup:
     just validate-sts2-installation
     just pull-game-libs
@@ -26,6 +26,7 @@ setup:
     just sync-viewer
     just install-hooks
     just generate-content-ids
+    just regen-godot-stubs
     just build
 
 # Install repo git hooks (pre-commit drift guard for openrpc.json + _models.py).
@@ -120,6 +121,11 @@ probe-callers patterns: build
 # List every member of <fqn> that sts2.dll references (e.g. `just list-members Godot.OS`).
 list-members fqn: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --list-members {{fqn}}
+
+# Regenerate src/GodotStubs/Generated/*.g.cs from sts2.dll's MemberReference table — closes the latent MissingMethodException surface without speculative mirroring. Rebuilds GodotStubs after generation so `--no-build` test runs see the fresh surface.
+regen-godot-stubs: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --generate-godot-stubs
+    @dotnet build src/GodotStubs/GodotStubs.csproj --nologo --verbosity quiet
 
 # Run the host in NDJSON stdio mode (AD-2). One JSON request per line on stdin, one response per line on stdout.
 stdio: build

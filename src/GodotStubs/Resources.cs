@@ -4,7 +4,7 @@
 
 namespace Godot;
 
-public class Resource : GodotObject
+public partial class Resource : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
@@ -16,7 +16,7 @@ public class Resource : GodotObject
 //   type 'Godot.PackedScene'." Real type is sealed and instantiates Godot
 //   scene trees; here we only need a placeholder type to satisfy field
 //   types and method signatures. No instances are ever exercised.
-public class PackedScene : Resource
+public partial class PackedScene : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
@@ -35,14 +35,14 @@ public class PackedScene : Resource
     public T Instantiate<T>(GenEditState _ = GenEditState.Disabled) where T : Node, new() => new T();
 }
 
-public class ResourceFormatLoader : GodotObject
+public partial class ResourceFormatLoader : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
     public new class SignalName : GodotObject.SignalName { }
 }
 
-public class ENetConnection : GodotObject
+public partial class ENetConnection : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
@@ -56,7 +56,7 @@ public class ENetConnection : GodotObject
 //   sizes 0, reads return empty buffers/strings, writes no-op return true.
 //   Open returns a fresh instance (rather than null) so write paths don't
 //   NPE; the resulting "file" is discarded since nothing reads back.
-public class FileAccess : GodotObject
+public partial class FileAccess : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
@@ -90,7 +90,7 @@ public class FileAccess : GodotObject
 //   succeeded), and Open returns a fresh instance so callers don't NPE
 //   on the result. If any path actually reads contents back, override
 //   that specific member.
-public class DirAccess : GodotObject
+public partial class DirAccess : GodotObject
 {
     public new class MethodName : GodotObject.MethodName { }
     public new class PropertyName : GodotObject.PropertyName { }
@@ -114,7 +114,7 @@ public class DirAccess : GodotObject
     public static string[] GetFilesAt(string _) => Array.Empty<string>();
 }
 
-public class RichTextEffect : Resource
+public partial class RichTextEffect : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
@@ -126,7 +126,7 @@ public class RichTextEffect : Resource
 //   which constructs HoverTips that hold a Texture2D field. We only need
 //   the three members `just list-members Godot.Texture2D` surfaces; no
 //   real image data is read.
-public class Texture2D : Resource
+public partial class Texture2D : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
@@ -141,7 +141,7 @@ public class Texture2D : Resource
 //   Image exists only as the return type of Texture2D.GetImage(); no
 //   pixels are inspected and no members are referenced beyond the
 //   constructor.
-public class Image : Resource
+public partial class Image : Resource
 {
     public new class MethodName : Resource.MethodName { }
     public new class PropertyName : Resource.PropertyName { }
