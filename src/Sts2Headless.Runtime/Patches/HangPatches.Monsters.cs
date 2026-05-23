@@ -37,35 +37,21 @@ public static partial class HangPatches
             .OrderBy(e => e.TypeFqn, StringComparer.Ordinal)
             .ToList();
 
-    // Vantom (Act 1 elite-ish encounter) executes DismemberMove during its
-    // enemy turn. The body NREs internally — not on a missing Godot stub
-    // (no MissingMethodException surfaces; just a bare NRE), so reflective
-    // probe-combat-stall enumeration can't name the gap. Confirmed via
-    // `just probe-combat-stall 22` after the card-select recovery slice:
+    // Vantom (Act 1 elite-ish encounter) used to need DismemberMove
+    // patched as "skip body" — the body NRE'd internally. That diagnosis
+    // turned out to be the same Doormaker-shape over-reach: every UI
+    // helper called by DismemberMove is gated either by a null-check on
+    // a `NXxxx.Instance` singleton (NCombatRoom, NGame, NRunMusicController)
+    // — all of which return null in headless — or by an inner TestMode
+    // early-exit (CreatureCmd.TriggerAnim leaves at IL 17-19 when
+    // TestMode.IsOn is true, which BootstrapSequence.SetTestMode sets).
+    // No leaf-helper patch needed; the body runs cleanly once
+    // `TestMode.IsOn=true` is in place.
     //
-    //   System.NullReferenceException
-    //     at Vantom.DismemberMove(IReadOnlyList`1 targets)
-    //     at MonsterMoveStateMachine.MoveState.PerformMove(IEnumerable`1)
-    //     at MonsterModel.PerformMove()
-    //     at Creature.TakeTurn()
-    //
-    // Swallowed by TaskHelper.LogTaskExceptions inside ExecuteEnemyTurn →
-    // CombatManager left half-transitioned (IsEnemyTurnStarted=True,
-    // EndingPlayerTurnPhaseTwo=True, IsPlayPhase=False, hand empty,
-    // energy 0/3) — the classic combat-stall shape.
-    //
-    // Patch shape: void-returning prefix that skips the body. Vantom
-    // simply doesn't perform DismemberMove in headless; the enemy turn
-    // completes, the combat continues. Acceptable for agent survival.
-    // Other Vantom moves are left intact so the encounter still threatens
-    // the player; pure no-op of the whole monster would make Act 1 boring
-    // rather than survivable.
-    private static readonly MonsterPatchEntry _vantomEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Vantom",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal) { "DismemberMove" },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove");
-    private static PatchOutcome PatchVantomDismemberMove(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _vantomEntry);
+    // Removing the patch restores the gameplay: Vantom now actually
+    // executes DismemberDamage via DamageCmd.Attack and adds Wound to
+    // the deck via CardPileCmd.AddToCombatAndPreview<Wound>, exactly as
+    // the engine intended.
 
     // ThievingHopper (Act 2 enemy on seed 42 floor 3) carries five move
     // methods on the monster type — ThieveryMove, NabMove, HatTrickMove,

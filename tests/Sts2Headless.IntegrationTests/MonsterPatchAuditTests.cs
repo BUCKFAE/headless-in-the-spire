@@ -135,7 +135,6 @@ public class MonsterPatchAuditTests
         "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.BelowMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.BiteMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.BurrowMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
     ];
 
     [Fact]
