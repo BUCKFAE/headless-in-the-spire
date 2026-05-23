@@ -81,6 +81,16 @@ public static partial class HangPatches
             PatchHungerPower(harmony, sts2),
             PatchVigorPower(harmony, sts2),
             PatchCrabRagePower(harmony, sts2),
+            // KAISER_CRAB_BOSS background fix (see the big comment block
+            // in HangPatches.Monsters.cs above the Crusher/Rocket
+            // entries). Order matters: PatchKaiserCrabBossBackground
+            // allocates the shared stub instance, which
+            // PatchKaiserCrabBackgroundGetters then returns from each
+            // monster's get_Background. PatchCrusher / PatchRocket keep
+            // empty entries — registered for narrative/audit surface,
+            // no methods patched.
+            PatchKaiserCrabBossBackground(harmony, sts2),
+            PatchKaiserCrabBackgroundGetters(harmony, sts2),
             PatchCrusher(harmony, sts2),
             PatchRocket(harmony, sts2),
             // Godot-tree null-safety: GodotTreeExtensions.AddChildSafely

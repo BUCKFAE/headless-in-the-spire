@@ -84,18 +84,7 @@ public class MonsterPatchAuditTests
         //   5. Remove the corresponding line from this list.
         //
         // Sorted alphabetically for diff readability.
-        "MegaCrit.Sts2.Core.Models.Monsters.Crusher.AdaptMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.Crusher.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.Crusher.BugStingMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.Crusher.EnlargingStrikeMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.Crusher.GuardedStrikeMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.Crusher.ThrashMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.Rocket.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.Rocket.ChargeUpMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.Rocket.LaserMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.Rocket.PrecisionBeamMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.Rocket.TargetingReticleMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.Vantom.DismemberMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
     ];

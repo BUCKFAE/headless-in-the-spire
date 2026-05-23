@@ -219,55 +219,186 @@ public static partial class HangPatches
     private static PatchOutcome PatchSlumberingBeetle(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2, _slumberingBeetleEntry);
 
-    // KAISER_CRAB_BOSS spawns two `Crusher` monsters (revealed via
-    // `--probe-encounter KAISER_CRAB_BOSS`). The encounter is one of the
-    // few that has no `KaiserCrab` monster type — the boss is rendered
-    // by NKaiserCrabBossBackground and powered by Crusher creatures.
+    // KAISER_CRAB_BOSS spawns a Crusher + Rocket pair (revealed via
+    // `--probe-encounter KAISER_CRAB_BOSS`). The encounter has no
+    // `KaiserCrab` monster type — the boss is rendered by
+    // NKaiserCrabBossBackground and powered by the Crusher+Rocket
+    // creatures that share the boss-background node.
     //
-    // The play_card NRE captured in the probe is:
+    // The original play_card NRE captured in the probe was:
     //   System.NullReferenceException
     //     at Crusher.get_Background()
     //     at Crusher.AfterCurrentHpChanged_Patch1(Crusher, Creature, Decimal)
-    //     at Hook.AfterCurrentHpChanged(IRunState, CombatState, Creature, Decimal)
+    //     at Hook.AfterCurrentHpChanged(...)
     //     at CreatureCmd.Damage(...)
     //     at AttackCommand.Execute(...)
     //     at PommelStrike.OnPlay(...)
     //
-    // i.e. Pommel Strike → damage → Hook.AfterCurrentHpChanged →
-    // Crusher.AfterCurrentHpChanged_Patch1 walks the boss-background-
-    // dependent get_Background, which is null in headless.
+    // `get_Background()`'s body does
+    //   _background ??= NCombatRoom.Instance.Background
+    //                       .GetNode<NKaiserCrabBossBackground>("%KaiserCrab")
+    // In headless `NCombatRoom.Instance` is null so the lazy initializer
+    // NREs the moment any move/lifecycle hook reads `this.Background`.
     //
-    // Patch shape: zero out every Task-returning method on Crusher
-    // (5 moves + 3 lifecycle hooks). The boss still threatens via wire-
-    // surfaced intent damage and the 999 HP cheat keeps the agent alive
-    // long enough to win.
-    private static readonly MonsterPatchEntry _crusherEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Crusher",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "AdaptMove", "BugStingMove", "EnlargingStrikeMove",
-            "GuardedStrikeMove", "ThrashMove",
-            "AfterAddedToRoom", "AfterCurrentHpChanged", "BeforeDeath",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.Crusher.{*Move, AfterAddedToRoom, AfterCurrentHpChanged, BeforeDeath}");
+    // The first fix wave stripped every Task-returning method on
+    // Crusher / Rocket as "skip body, return CompletedTask". That
+    // silenced the NRE but silently removed every DamageCmd.Attack and
+    // PowerCmd.Apply call inside those bodies (Crusher's BugStingMove
+    // damage + Weak/Frail application, Rocket's LaserMove damage, both
+    // monsters' AfterAddedToRoom BackAttack*/Surrounded power setup, ...).
+    // Surfaced by MonsterPatchAuditTests after the 2026-05-21 Doormaker
+    // graduation pattern was generalised — same Doormaker shape, same
+    // misdiagnosis.
+    //
+    // Doormaker-style leaf fix:
+    //   1. Stub `Crusher.get_Background` and `Rocket.get_Background`
+    //      to return a shared uninitialized `NKaiserCrabBossBackground`
+    //      instance (see PatchKaiserCrabBackgroundGetters). The
+    //      instance bypasses Godot construction via
+    //      `RuntimeHelpers.GetUninitializedObject`; no field on it is
+    //      ever read because every method gets patched (next step).
+    //   2. No-op every Task / void method on NKaiserCrabBossBackground
+    //      so calls against the stub are safe
+    //      (PatchKaiserCrabBossBackground). Task methods return
+    //      Task.CompletedTask; void methods just skip.
+    //
+    // Move bodies then run cleanly: `await this.Background.PlayX()`
+    // resolves to `await Task.CompletedTask` and falls through to the
+    // DamageCmd / PowerCmd calls that were getting stripped.
+    //
+    // `AfterAddedToRoom` on both monsters has no Background or UI calls
+    // at all (Crusher: PowerCmd.Apply<BackAttackLeftPower>; Rocket:
+    // PowerCmd.Apply<SurroundedPower> + Apply<BackAttackRightPower>) —
+    // it was patched defensively in the original wave and never needed
+    // to be.
+    //
+    // Entries deliberately left empty so the reflection-based registry
+    // (EnumerateMonsterPatchEntries) still sees "Crusher / Rocket were
+    // considered" without patching any of their methods; the entries
+    // double as narrative docs for the next bug hunter who lands here.
+
     private static PatchOutcome PatchCrusher(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2, _crusherEntry);
+    private static readonly MonsterPatchEntry _crusherEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Crusher",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal),
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.Crusher.{} (Background-stubbed)");
 
-    // KAISER_CRAB_BOSS spawns a Crusher and a Rocket together (see the
-    // sweep fingerprint: `enemies=[CRUSHER:..., ROCKET:...]`). Rocket
-    // carries BACK_ATTACK_RIGHT_POWER + CRAB_RAGE_POWER and has the same
-    // background-NRE shape as Crusher. Patch every Task-returning method.
-    private static readonly MonsterPatchEntry _rocketEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Rocket",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "ChargeUpMove", "LaserMove", "PrecisionBeamMove",
-            "RechargeMove", "TargetingReticleMove",
-            "AfterAddedToRoom", "AfterCurrentHpChanged", "BeforeDeath",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.Rocket.{*Move, AfterAddedToRoom, AfterCurrentHpChanged, BeforeDeath}");
     private static PatchOutcome PatchRocket(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2, _rocketEntry);
+    private static readonly MonsterPatchEntry _rocketEntry = new(
+        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Rocket",
+        MethodNames: new HashSet<string>(StringComparer.Ordinal),
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.Rocket.{} (Background-stubbed)");
+
+    // The shared stub instance returned by both `Crusher.get_Background`
+    // and `Rocket.get_Background` after patching. Allocated lazily via
+    // `RuntimeHelpers.GetUninitializedObject` so we never run the
+    // NKaiserCrabBossBackground Godot constructor (which would walk
+    // engine UI state that's absent in headless). Safe because every
+    // method on the type is Harmony-patched to no-op by
+    // `PatchKaiserCrabBossBackground` — none of the uninitialized
+    // fields are ever read.
+    private static object? _kaiserCrabBackgroundStub;
+
+    private static PatchOutcome PatchKaiserCrabBossBackground(Harmony harmony, Assembly sts2)
+    {
+        const string typeFqn = "MegaCrit.Sts2.Core.Nodes.Vfx.Backgrounds.NKaiserCrabBossBackground";
+        const string label = $"{typeFqn}.{{PlayAttackAnim, PlayHurtAnim, PlayArmDeathAnim, PlayBodyDeathAnim, PlayRightRecharge, PlayRightSideChargeUpAnim, PlayRightSideHeavy, AddEmptyReactionAnimation, ...}}";
+        var bgType = sts2.GetType(typeFqn);
+        if (bgType is null)
+            return new PatchOutcome(label, Patched: false, Detail: $"type {typeFqn} not found");
+
+        // Pre-allocate the stub instance now. Once method prefixes are
+        // installed below, callvirts against this instance are safe;
+        // Crusher and Rocket share the same boss-background node in
+        // real combat so a single instance is correct.
+        _kaiserCrabBackgroundStub = System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(bgType);
+
+        // Patch every Task / void declared method on the boss-background
+        // type. Skip special-name (property/event accessors — none with
+        // bodies that NRE), generic open definitions (none present per
+        // probe), and the Godot-bridge overrides whose signatures can't
+        // be loaded reflectively (they throw TypeLoadException for
+        // Godot.NativeInterop.* args; never called from Crusher/Rocket
+        // move bodies).
+        var taskPrefix = typeof(HangPatches).GetMethod(nameof(ReturnDefaultTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var voidPrefix = typeof(HangPatches).GetMethod(nameof(SkipVoidPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        var sigs = new List<string>();
+        foreach (var m in bgType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+        {
+            if (m.IsSpecialName) continue;
+            if (m.IsGenericMethodDefinition || m.ContainsGenericParameters) continue;
+
+            // Skip any method whose signature can't be loaded: the
+            // Godot-bridge overrides (GetGodotMethodList,
+            // InvokeGodotClassMethod, …) reference
+            // Godot.Bridge.MethodInfo / Godot.NativeInterop.* types
+            // that aren't present in our GodotStubs replacement, so
+            // both `m.ReturnType` and `m.GetParameters()` throw
+            // TypeLoadException on first access. None of these are
+            // called from Crusher/Rocket move bodies — safe to skip.
+            Type returnType;
+            ParameterInfo[] pars;
+            try
+            {
+                returnType = m.ReturnType;
+                pars = m.GetParameters();
+            }
+            catch (TypeLoadException) { continue; }
+
+            MethodInfo prefix;
+            if (typeof(System.Threading.Tasks.Task).IsAssignableFrom(returnType)) prefix = taskPrefix;
+            else if (returnType == typeof(void)) prefix = voidPrefix;
+            else continue; // value-type / reference returns: none called by Crusher/Rocket bodies (per probe).
+
+            harmony.Patch(m, prefix: new HarmonyMethod(prefix));
+            sigs.Add($"{m.Name}({string.Join(",", pars.Select(p => p.ParameterType.Name))}) → {returnType.Name}");
+        }
+        if (sigs.Count == 0)
+            return new PatchOutcome(label, Patched: false, Detail: $"no Task/void methods on {typeFqn}");
+        return new PatchOutcome(label, Patched: true, Detail: string.Join(", ", sigs));
+    }
+
+    private static PatchOutcome PatchKaiserCrabBackgroundGetters(Harmony harmony, Assembly sts2)
+    {
+        const string label = "MegaCrit.Sts2.Core.Models.Monsters.{Crusher,Rocket}.get_Background";
+        if (_kaiserCrabBackgroundStub is null)
+            return new PatchOutcome(label, Patched: false, Detail: "kaiser-crab background stub not yet allocated — PatchKaiserCrabBossBackground must run first");
+
+        var crusherType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.Crusher");
+        var rocketType = sts2.GetType("MegaCrit.Sts2.Core.Models.Monsters.Rocket");
+        if (crusherType is null || rocketType is null)
+            return new PatchOutcome(label, Patched: false, Detail: "Crusher or Rocket type not found");
+
+        // `Background` is a property; `get_Background` is the
+        // compiler-emitted accessor. Patch the accessor so the body
+        // never runs (it would NRE on
+        // NCombatRoom.Instance → null .Background.GetNode(...)).
+        var prefix = typeof(HangPatches).GetMethod(nameof(ReturnKaiserCrabBackgroundStubPrefix), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var hosts = new List<string>(2);
+        foreach (var t in new[] { crusherType, rocketType })
+        {
+            var getter = t.GetMethod("get_Background", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            if (getter is null)
+                return new PatchOutcome(label, Patched: false, Detail: $"get_Background not found on {t.FullName}");
+            harmony.Patch(getter, prefix: new HarmonyMethod(prefix));
+            hosts.Add(t.FullName ?? t.Name);
+        }
+        return new PatchOutcome(label, Patched: true, Detail: $"return shared NKaiserCrabBossBackground stub on {string.Join(", ", hosts)}");
+    }
+
+    // Prefix shared by both Crusher.get_Background and
+    // Rocket.get_Background. Returning false suppresses the original
+    // body so it never reaches the `NCombatRoom.Instance.Background
+    // .GetNode<...>("%KaiserCrab")` NRE; `__result` is set to the
+    // shared stub allocated in `PatchKaiserCrabBossBackground`.
+    private static bool ReturnKaiserCrabBackgroundStubPrefix(ref object? __result)
+    {
+        __result = _kaiserCrabBackgroundStub;
+        return false;
+    }
 
     // Shared helper for the monster *Move / lifecycle-hook patches above
     // (Vantom, ThievingHopper, BowlbugRock, SoulNexus, TestSubject,
