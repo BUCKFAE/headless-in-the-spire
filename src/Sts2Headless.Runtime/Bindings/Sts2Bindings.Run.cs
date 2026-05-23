@@ -1,25 +1,34 @@
 using System.Reflection;
+using Sts2Headless.Protocol.Methods;
 
 namespace Sts2Headless.Runtime.Bindings;
 
-// Run-start operations. StartIroncladRun is the sts2-cli StartRun chain
-// condensed: clean up any previous run, create the player, create the run
-// state, set up the RunManager, align LocalContext.NetId, generate rooms,
-// launch, finalize starting relics, EnterAct(0). Backed by the `_player*` /
+// Run-start operations. StartRun is the sts2-cli StartRun chain
+// condensed: clean up any previous run, create the player (per character
+// via the dictionary in _createCharacterRun), create the run state, set
+// up the RunManager, align LocalContext.NetId, generate rooms, launch,
+// finalize starting relics, EnterAct(0). Backed by the `_player*` /
 // `_runManager*` / `_runState*` fields declared in Sts2Bindings.cs.
 public sealed partial class Sts2Bindings
 {
     // Full sts2-cli StartRun chain, condensed. Returns a triple the wire
-    // layer can pass back in for subsequent calls. `withNeow` opts into the
-    // Neow blessing event: lands CurrentRoom at EventRoom (the Neow node)
-    // instead of MapRoom. Callers can then drive run/select_event_option
-    // to dismiss the event; LocPatches + the Texture2D / StringName stubs
-    // are what let the event populate options in the first place.
-    public RunHandle StartIroncladRun(ulong seed, bool withNeow = false, int ascensionLevel = 0)
+    // layer can pass back in for subsequent calls. `character` selects
+    // which Player.CreateForNewRun<T> closed generic to invoke — the
+    // dictionary was built at Bind() so every Character enum value has a
+    // registered factory or bootstrap would have failed. `withNeow` opts
+    // into the Neow blessing event: lands CurrentRoom at EventRoom (the
+    // Neow node) instead of MapRoom. Callers can then drive
+    // run/select_event_option to dismiss the event; LocPatches + the
+    // Texture2D / StringName stubs are what let the event populate
+    // options in the first place.
+    public RunHandle StartRun(Character character, ulong seed, bool withNeow = false, int ascensionLevel = 0)
     {
         if (ascensionLevel < 0)
             throw new ArgumentOutOfRangeException(nameof(ascensionLevel),
                 $"ascensionLevel must be non-negative, got {ascensionLevel}");
+        if (!_createCharacterRun.TryGetValue(character, out var characterFactory))
+            throw new InvalidOperationException(
+                $"no binding for character {character} — Bind() should have rejected this at startup");
         // A new run cannot inherit pending rewards from a previous one — the
         // reward-set objects belong to the prior RunManager state and become
         // invalid after the second run/new wipes that state.
@@ -45,8 +54,8 @@ public sealed partial class Sts2Bindings
         // run end-to-end without our manual fallbacks intervening.
         // (probe-natural-chain proved this; see natural-chain-gaps.md.)
         const ulong playerNetId = 1uL;
-        var player = _createIroncladRun.Invoke(null, new object?[] { _unlockStateAll, playerNetId })
-            ?? throw new InvalidOperationException("Player.CreateForNewRun returned null");
+        var player = characterFactory.Invoke(null, new object?[] { _unlockStateAll, playerNetId })
+            ?? throw new InvalidOperationException($"Player.CreateForNewRun<{character.Sts2TypeName()}> returned null");
 
         // CreateForTest takes IReadOnlyList<Player> — pass a strongly-typed
         // Player[] so the framework's parameter-binding sees a compatible

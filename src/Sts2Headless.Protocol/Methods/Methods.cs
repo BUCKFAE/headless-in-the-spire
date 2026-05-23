@@ -19,17 +19,24 @@ namespace Sts2Headless.Protocol.Methods;
 
 // Playable characters. Wire shape is lowercase ("ironclad", "silent", ...)
 // to match sts2-cli convention; on the .NET side the standard PascalCase
-// enum names are used. Future-binding values (Silent, Defect, …) are listed
-// even though the host only accepts Ironclad — they form the wire schema
-// callers can target, and the host's "not yet supported" error message
-// reports the requested value.
+// enum names are used.
+//
+// STS2 ships with five characters: the three returning ones (Ironclad,
+// Silent, Defect) and the two new ones (Regent, Necrobinder). Watcher is
+// an STS1-only character and is deliberately NOT in this enum — the
+// sts2.dll has no corresponding type, and the bindings layer will not
+// resolve. See documentation/sts2-game-facts.md.
+//
+// Every value here must be wired in CharacterExtensions.Sts2TypeName (the
+// switch expression is no-default, so adding a value breaks compile until
+// the binding is named) AND must resolve to a real type in sts2.dll at
+// bootstrap time (Sts2Bindings.Bind throws if a character is missing).
 [JsonConverter(typeof(JsonStringEnumConverter<Character>))]
 public enum Character
 {
     [JsonStringEnumMemberName("ironclad")] Ironclad,
     [JsonStringEnumMemberName("silent")] Silent,
     [JsonStringEnumMemberName("defect")] Defect,
-    [JsonStringEnumMemberName("watcher")] Watcher,
     [JsonStringEnumMemberName("regent")] Regent,
     [JsonStringEnumMemberName("necrobinder")] Necrobinder,
 }
@@ -390,7 +397,7 @@ public sealed record RunNewParams(
     // Higher levels enable harder content (ASCENDERS_BANE curse,
     // tougher monsters, …). The engine's RunState.CreateForTest takes
     // ascensionLevel directly; we plumb the wire value through
-    // Sts2Bindings.StartIroncladRun → CreateForTest.
+    // Sts2Bindings.StartRun → CreateForTest.
     [property: JsonPropertyName("ascension")] int? Ascension = null,
     // Run modifiers (DRAFT, SEALED_DECK, HOARDER, …). Currently used
     // only as replay-header metadata — the engine plumb-through that

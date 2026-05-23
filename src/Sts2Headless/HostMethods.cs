@@ -99,10 +99,6 @@ public static class HostMethods
         var ascension = @params?.Ascension ?? 0;
         var modifiers = @params?.Modifiers ?? Array.Empty<ModifierId>();
 
-        if (character != Character.Ironclad)
-        {
-            throw new ArgumentException($"character '{character}' not yet supported (only Ironclad)");
-        }
         if (ascension < 0)
         {
             throw new ArgumentException($"ascension must be non-negative, got {ascension}");
@@ -116,18 +112,20 @@ public static class HostMethods
             }
         }
 
-        // Finalise any prior recorder BEFORE bindings.StartIroncladRun runs
+        // Finalise any prior recorder BEFORE bindings.StartRun runs
         // RunManager.CleanUp on the old run — the prefix on CleanUp will also
         // do this, but doing it explicitly here makes the host's lifetime
         // visible without relying on the Harmony hook firing. Idempotent.
         session.Recorder?.FinalizeRun();
         if (session.Recorder is not null) ReplayHook.Unbind(session.Recorder);
 
-        // Pass C: full StartRun chain (was just Player.CreateForNewRun in
-        // Pass A). Default lands at MapRoom; withNeow=true lands at the
-        // Neow EventRoom. Callers can drive run/select_event_option to
-        // dismiss the event once it's surfaced through AvailableEventOptions.
-        var run = bindings.StartIroncladRun(seed, withNeow, ascension);
+        // Full StartRun chain. Default lands at MapRoom; withNeow=true lands
+        // at the Neow EventRoom. Callers can drive run/select_event_option
+        // to dismiss the event once it's surfaced through
+        // AvailableEventOptions. The bindings layer enforces that every
+        // Character enum value has a registered factory (Bind() throws
+        // otherwise) — no per-character branch needed here.
+        var run = bindings.StartRun(character, seed, withNeow, ascension);
 
         // AD-8: recording is on by default. STS2_REPLAY_OUT unset → land
         // in <repoRoot>/vendor/replays. An explicit path overrides;

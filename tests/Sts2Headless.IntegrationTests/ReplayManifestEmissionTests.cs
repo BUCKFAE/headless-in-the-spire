@@ -31,10 +31,9 @@ public class ReplayManifestEmissionTests
         var first = await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
         Assert.Equal(Character.Ironclad, first.Character);
 
-        // Second run/new — bindings.StartIroncladRun calls
-        // RunManager.CleanUp on the in-progress run; our prefix fires;
-        // OnRunCleanUp writes manifest.json into the first run's
-        // directory.
+        // Second run/new — bindings.StartRun calls RunManager.CleanUp
+        // on the in-progress run; our prefix fires; OnRunCleanUp writes
+        // manifest.json into the first run's directory.
         var second = await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 7uL));
         Assert.Equal(Character.Ironclad, second.Character);
 

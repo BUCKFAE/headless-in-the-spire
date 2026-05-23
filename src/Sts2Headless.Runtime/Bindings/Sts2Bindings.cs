@@ -1,4 +1,5 @@
 using System.Reflection;
+using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime.CardSelection;
 using Sts2Headless.Runtime.Loading;
 
@@ -24,7 +25,13 @@ public sealed partial class Sts2Bindings
 
     // ── Player creation ──────────────────────────────────────────────────
     private readonly Type _playerType;
-    private readonly MethodInfo _createIroncladRun;
+    // Closed generic `Player.CreateForNewRun<TCharacter>(UnlockState, ulong)`
+    // per Character enum value. Built in Bind() by iterating
+    // Enum.GetValues<Character>() and resolving each character's class on
+    // sts2.dll — a missing character type fails fast at bootstrap. The
+    // dictionary is keyed by Character (not by string) so the host's
+    // run/new dispatch never carries a stringly-typed character name.
+    private readonly IReadOnlyDictionary<Character, MethodInfo> _createCharacterRun;
     private readonly object _unlockStateAll;
 
     // ── StartRun chain (sts2-cli RunSimulator.StartRun) ─────────────────
@@ -308,7 +315,7 @@ public sealed partial class Sts2Bindings
         _syncCtx = syncCtx;
         CardSelector = cardSelector;
         _playerType = s.PlayerType;
-        _createIroncladRun = s.CreateIroncladRun;
+        _createCharacterRun = s.CreateCharacterRun;
         _unlockStateAll = s.UnlockStateAll;
         _runStateCreateForTest = s.RunStateCreateForTest;
         _runManagerInstance = s.RunManagerInstance;
@@ -467,7 +474,7 @@ public sealed partial class Sts2Bindings
         _relicModelToMutable = r.RelicModelToMutable;
     }
 
-    // StartIroncladRun moved to Sts2Bindings.Run.cs (+ WriteLocalContextNetId).
+    // StartRun moved to Sts2Bindings.Run.cs (+ WriteLocalContextNetId).
     // UsePotion moved to Sts2Bindings.Potion.cs.
 
     // Read the .Entry string off an Id-shaped object (sts2 wraps stable ids in
@@ -573,15 +580,25 @@ public sealed partial class Sts2Bindings
     // WriteLocalContextNetId moved to Sts2Bindings.Run.cs.
 
     // Diagnostic shortcut: create a Player without booting a full run. Used
-    // by --probe-run-state. Wire callers should use StartIroncladRun instead.
-    public object CreateIroncladRun(ulong seed) =>
-        _createIroncladRun.Invoke(null, new object?[] { _unlockStateAll, seed })
-            ?? throw new InvalidOperationException("Player.CreateForNewRun returned null");
+    // by --probe-run-state. Wire callers should use StartRun instead.
+    public object CreateCharacter(Character character, ulong seed)
+    {
+        if (!_createCharacterRun.TryGetValue(character, out var factory))
+            throw new InvalidOperationException($"no binding for character {character} — Bind() should have rejected this at startup");
+        return factory.Invoke(null, new object?[] { _unlockStateAll, seed })
+            ?? throw new InvalidOperationException($"Player.CreateForNewRun<{character.Sts2TypeName()}> returned null");
+    }
+
+    // Returns the Character keys that the bindings layer successfully resolved
+    // against sts2.dll. Equivalent to Enum.GetValues<Character>() by
+    // construction (Bind throws if any are missing), but exposed for tests
+    // that want to assert the registration completeness without relying on
+    // the enum directly.
+    public IReadOnlyCollection<Character> SupportedCharacters => (IReadOnlyCollection<Character>)_createCharacterRun.Keys;
 
     public static Sts2Bindings Bind(Assembly sts2, InlineSynchronizationContext? syncCtx = null, HeadlessCardSelector? cardSelector = null)
     {
         var playerType = Require(sts2, "MegaCrit.Sts2.Core.Entities.Players.Player");
-        var ironcladType = Require(sts2, "MegaCrit.Sts2.Core.Models.Characters.Ironclad");
         var unlockStateType = Require(sts2, "MegaCrit.Sts2.Core.Unlocks.UnlockState");
 
         var createDef = playerType.GetMethods(BindingFlags.Public | BindingFlags.Static)
@@ -590,7 +607,18 @@ public sealed partial class Sts2Bindings
                               && m.GetGenericArguments().Length == 1
                               && m.GetParameters().Length == 2)
             ?? throw new InvalidOperationException("Player.CreateForNewRun<T>(?, ?) not found");
-        var createIroncladRun = createDef.MakeGenericMethod(ironcladType);
+
+        // Resolve one closed generic per Character enum value. Throws on
+        // first missing character — this is the runtime arm of the
+        // "fails if a new character is added" contract (CS8509 on
+        // CharacterExtensions.Sts2TypeName is the compile-time arm).
+        var createCharacterRun = new Dictionary<Character, MethodInfo>();
+        foreach (var character in Enum.GetValues<Character>())
+        {
+            var typeName = character.Sts2TypeName();
+            var characterType = Require(sts2, $"MegaCrit.Sts2.Core.Models.Characters.{typeName}");
+            createCharacterRun[character] = createDef.MakeGenericMethod(characterType);
+        }
 
         var unlockAll = ReadStaticAll(unlockStateType);
 
@@ -926,7 +954,7 @@ public sealed partial class Sts2Bindings
         }
 
         return new Sts2Bindings(sts2, new BindingState(
-            playerType, createIroncladRun, unlockAll,
+            playerType, createCharacterRun, unlockAll,
             new InvocationPlan(createForTest), runManagerInstance, netServiceType,
             localContextNetIdMember,
             setUpTest, isInProgress, cleanUp, extraFields, startedWithNeow,
@@ -1416,7 +1444,7 @@ public sealed partial class Sts2Bindings
     // Capture-all bag for Bind's discovery output. Lets the ctor stay flat
     // and the field list grow without N more constructor params each pass.
     private sealed record BindingState(
-        Type PlayerType, MethodInfo CreateIroncladRun, object UnlockStateAll,
+        Type PlayerType, IReadOnlyDictionary<Character, MethodInfo> CreateCharacterRun, object UnlockStateAll,
         InvocationPlan RunStateCreateForTest, PropertyInfo RunManagerInstance, Type NetServiceType,
         MemberInfo LocalContextNetIdMember,
         InvocationPlan RunManagerSetUpTest, PropertyInfo RunManagerIsInProgress, MethodInfo RunManagerCleanUp,

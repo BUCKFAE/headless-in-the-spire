@@ -43,10 +43,10 @@ internal static class ProbeCombatStallCommand
         }
 
         RunHandle handle;
-        try { handle = bindings.StartIroncladRun(seed); }
+        try { handle = bindings.StartRun(Character.Ironclad, seed); }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"  StartIroncladRun threw: {Diagnostics.Describe(Diagnostics.Unwrap(ex))}");
+            Console.Error.WriteLine($"  StartRun threw: {Diagnostics.Describe(Diagnostics.Unwrap(ex))}");
             return 1;
         }
 

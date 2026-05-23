@@ -2,6 +2,15 @@
 
   <PropertyGroup>
     <Description>Wire protocol types: JSON-RPC-style envelope, methods, notifications. See AD-2.</Description>
+    <!--
+      CS8509: switch expression does not handle all possible inputs.
+      Promoted to an error so the Character-exhaustiveness check in
+      CharacterExtensions.Sts2TypeName fails the build the moment a
+      new enum value is added without a corresponding case. The
+      runtime CharacterEnumCoverageTests in Sts2Headless.UnitTests is
+      the safety net behind it.
+    -->
+    <WarningsAsErrors>$(WarningsAsErrors);CS8509</WarningsAsErrors>
   </PropertyGroup>
 
   <!--

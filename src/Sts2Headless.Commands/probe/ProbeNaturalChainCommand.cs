@@ -54,10 +54,10 @@ internal static class ProbeNaturalChainCommand
         Console.WriteLine($"  starting run (seed={seed}, NetId=1)...");
 
         RunHandle handle;
-        try { handle = bindings.StartIroncladRun(seed); }
+        try { handle = bindings.StartRun(Character.Ironclad, seed); }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"  StartIroncladRun threw: {Diagnostics.Describe(Diagnostics.Unwrap(ex))}");
+            Console.Error.WriteLine($"  StartRun threw: {Diagnostics.Describe(Diagnostics.Unwrap(ex))}");
             return 1;
         }
 
@@ -66,7 +66,7 @@ internal static class ProbeNaturalChainCommand
         var snap = bindings.ReadSnapshot(handle);
         if (snap.CurrentRoomType != RoomType.MapRoom)
         {
-            Console.Error.WriteLine($"  expected MapRoom after StartIroncladRun, got {snap.CurrentRoomType}");
+            Console.Error.WriteLine($"  expected MapRoom after StartRun, got {snap.CurrentRoomType}");
             return 1;
         }
         var monster = snap.AvailableMapNodes.FirstOrDefault(n => n.Type == MapNodeType.Monster && n.Row > 0);

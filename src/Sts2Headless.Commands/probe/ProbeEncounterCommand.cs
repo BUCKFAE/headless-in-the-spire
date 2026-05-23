@@ -1,4 +1,5 @@
 using System.Reflection;
+using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
 using Sts2Headless.Runtime.Loading;
 using Sts2Headless.Runtime.Bindings;
@@ -78,7 +79,7 @@ internal static class ProbeEncounterCommand
             return 1;
         }
 
-        var handle = bindings.StartIroncladRun(seed: 42, withNeow: false);
+        var handle = bindings.StartRun(Character.Ironclad, seed: 42, withNeow: false);
         Console.WriteLine($"probe-encounter: started Ironclad run, encounter={encounterId}");
 
         // Replace deck with the sweep's Hellraiser + Pommel×2 set and pump HP,

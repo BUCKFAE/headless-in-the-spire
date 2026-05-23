@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime;
 using Sts2Headless.Runtime.Loading;
 using Sts2Headless.Runtime.Bindings;
@@ -52,7 +53,7 @@ internal static class ProbeRunStateCommand
         steps.Add(Step("CreatePlayer<Ironclad>(seed=1)", () =>
         {
             var bindings = Sts2Bindings.Bind(sts2);
-            player = bindings.CreateIroncladRun(1uL);
+            player = bindings.CreateCharacter(Character.Ironclad, 1uL);
             return $"player = {player.GetType().FullName} (hp = {HpSnapshot(player)})";
         }));
         if (player is null) return ReportAndExit(steps);

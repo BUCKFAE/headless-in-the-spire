@@ -31,7 +31,7 @@ public class RelicsSnapshotTests : IClassFixture<HostSubprocess>
     {
         // Ironclad's starter relic is Burning Blood — granted during
         // RunManager.FinalizeStartingRelics, which runs as part of
-        // StartIroncladRun before run/new returns. The first snapshot must
+        // StartRun before run/new returns. The first snapshot must
         // already carry it; otherwise a client driving the wire would never
         // see relics granted via this path.
         var start = await _host.SendAsync<RunNewResult>(

@@ -8,9 +8,10 @@ namespace Sts2Headless.IntegrationTests;
 // StartedWithNeow=false; run/state surfaces the post-boot snapshot.
 //
 // Shares one HostSubprocess across the class via IClassFixture: every test
-// starts with run/new (or only inspects the run/new error path), and
-// Sts2Bindings.StartIroncladRun resets the prior RunManager on each call
-// — so previous-test session state does not leak forward.
+// starts with run/new, and Sts2Bindings.StartRun resets the prior
+// RunManager on each call — so previous-test session state does not leak
+// forward. Per-character coverage lives in MultiCharacterStartRunTests;
+// this class pins the Ironclad lifecycle specifically.
 public class RunLifecycleTests : IClassFixture<HostSubprocess>
 {
     private readonly HostSubprocess _host;
@@ -48,19 +49,6 @@ public class RunLifecycleTests : IClassFixture<HostSubprocess>
         Assert.True(state.Hp > 0, $"HP should survive the Neow entry, was {state.Hp}");
         Assert.Equal(state.MaxHp, state.Hp);
         Assert.False(state.IsGameOver);
-    }
-
-    [Fact]
-    public async Task RunNew_UnsupportedCharacter_ReturnsInternalError()
-    {
-        // The Silent rejection happens before Sts2Bindings.StartIroncladRun,
-        // so this test neither requires nor mutates an active run — safe
-        // to run in any order against the shared host.
-        var error = await _host.ExpectErrorAsync(
-            "run/new", new RunNewParams(Character: Character.Silent));
-
-        Assert.Equal(-32603, error.Code);
-        Assert.Contains("Silent", error.Message);
     }
 
     [Fact]

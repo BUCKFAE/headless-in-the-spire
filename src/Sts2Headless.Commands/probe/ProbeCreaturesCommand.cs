@@ -1,4 +1,5 @@
 using System.Reflection;
+using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Runtime.Loading;
 using Sts2Headless.Runtime.Bindings;
 
@@ -49,7 +50,7 @@ internal static class ProbeCreaturesCommand
         var turns = turnsIdx >= 0 && turnsIdx + 1 < args.Length
             && int.TryParse(args[turnsIdx + 1], out var t) ? t : 0;
 
-        var handle = bindings.StartIroncladRun(seed: 42, withNeow: false);
+        var handle = bindings.StartRun(Character.Ironclad, seed: 42, withNeow: false);
         bindings.SetPlayerHp(handle, 999, 999);
         var (inProgress, enemyCount) = bindings.StartCombat(handle, encounterId);
         Console.WriteLine($"start_combat: encounter={encounterId} inProgress={inProgress} wireEnemyCount={enemyCount}");

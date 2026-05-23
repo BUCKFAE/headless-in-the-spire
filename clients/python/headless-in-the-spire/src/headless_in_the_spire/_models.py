@@ -35,7 +35,6 @@ class Character(Enum):
     ironclad = "ironclad"
     silent = "silent"
     defect = "defect"
-    watcher = "watcher"
     regent = "regent"
     necrobinder = "necrobinder"
 
