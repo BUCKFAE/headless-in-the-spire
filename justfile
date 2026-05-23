@@ -122,6 +122,10 @@ probe-callers patterns: build
 list-members fqn: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --list-members {{fqn}}
 
+# Map every content-catalog entry (cards, monsters, events, …) to the Godot.* members its declared methods reach. Writes documentation/coverage/godot-stub-provenance.md — documentation, not a coverage gate.
+provenance-godot-stubs: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --provenance-godot-stubs
+
 # Regenerate src/GodotStubs/Generated/*.g.cs from sts2.dll's MemberReference table — closes the latent MissingMethodException surface without speculative mirroring. Rebuilds GodotStubs after generation so `--no-build` test runs see the fresh surface.
 regen-godot-stubs: build
     @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --generate-godot-stubs

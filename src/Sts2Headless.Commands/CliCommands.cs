@@ -73,6 +73,9 @@ public static class CliCommands
                 GenerateGodotStubsCommand.SetCachedStubAssemblyPath(stubPath);
                 return GenerateGodotStubsCommand.Run(ctx.VendorDir, ctx.RepoRoot, ctx.Args);
             }),
+        new(["--provenance-godot-stubs"],
+            "Map every content-catalog entry to the Godot members its declared methods reach.",
+            ctx => ProvenanceGodotStubsCommand.Run(ctx.VendorDir, ctx.RepoRoot)),
     ];
 
     // First command whose verbs appear anywhere in `args`, or null if none —
