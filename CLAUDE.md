@@ -235,6 +235,7 @@ clients/python/
   output. Multi-line comments are clipped.
 - Don't reference `external-tools/` in code — it's a research clone of
   `wuhao21/sts2-cli` for reading only, gitignored, and may be absent.
+- You can commit changes yourself, *never* ask me about pushing.
 
 ### Python rules
 
