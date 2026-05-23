@@ -112,9 +112,17 @@
     },
     {
       "name": "run/leave_treasure_room",
-      "summary": "Open the chest in the current treasure room and exit to MapRoom. No params — chests have a single relic offering and the host auto-picks it via the engine's TreasureRoomRelicSynchronizer (greedy default; a future slice can split this into previewable pick/skip).",
+      "summary": "Exit the current treasure room and transition back to MapRoom. The chest's offering is exposed in availableTreasureRelics on every snapshot while CurrentRoomType=TreasureRoom (populated by driving TreasureRoom.DoNormalRewards on first read). Params are optional: skip=false (the default, or omitted body) grants the offered relic via RelicCmd.Obtain; skip=true walks past the chest without granting. Either path closes the synchronizer session, runs DoExtraRewardsIfNeeded, and flips the room.",
       "paramStructure": "by-name",
-      "params": [],
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunLeaveTreasureRoomParams"
+          }
+        }
+      ],
       "result": {
         "name": "result",
         "schema": {
@@ -1801,6 +1809,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -1848,6 +1862,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -1903,6 +1918,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -1949,6 +1970,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -2004,6 +2026,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -2050,6 +2078,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -2276,6 +2305,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -2322,9 +2357,19 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
+      },
+      "RunLeaveTreasureRoomParams": {
+        "type": "object",
+        "properties": {
+          "skip": {
+            "type": "boolean",
+            "default": false
+          }
+        }
       },
       "RunLeaveTreasureRoomResult": {
         "type": "object",
@@ -2377,6 +2422,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -2423,6 +2474,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -2515,6 +2567,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -2564,6 +2622,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions",
           "modifiers"
@@ -2660,6 +2719,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -2707,6 +2772,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -2762,6 +2828,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -2808,6 +2880,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -2877,6 +2950,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -2924,6 +3003,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -3000,6 +3080,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -3048,6 +3134,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -3130,6 +3217,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -3177,6 +3270,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -3259,6 +3353,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -3306,6 +3406,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -3375,6 +3476,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -3422,6 +3529,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -3499,6 +3607,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -3558,6 +3672,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions",
           "triggeredSincePrev",
@@ -3642,6 +3757,12 @@
               "$ref": "#/components/schemas/MerchantItem"
             }
           },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
           "combatState": {
             "anyOf": [
               {
@@ -3689,6 +3810,7 @@
           "availableEventOptions",
           "availableRestSiteOptions",
           "availableMerchantItems",
+          "availableTreasureRelics",
           "relics",
           "ownedPotions"
         ]
@@ -3703,6 +3825,17 @@
           "AnyAlly",
           "AllAllies",
           "Caster"
+        ]
+      },
+      "TreasureRelic": {
+        "type": "object",
+        "properties": {
+          "relicId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "relicId"
         ]
       },
       "TriggerEvent": {

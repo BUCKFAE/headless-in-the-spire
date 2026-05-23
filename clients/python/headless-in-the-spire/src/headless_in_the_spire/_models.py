@@ -452,6 +452,13 @@ class RunHistoryRoomType(Enum):
     treasure = "treasure"
 
 
+class RunLeaveTreasureRoomParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    skip: bool | None = False
+
+
 class RunNewParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -531,6 +538,13 @@ class TargetType(Enum):
     any_ally = "AnyAlly"
     all_allies = "AllAllies"
     caster = "Caster"
+
+
+class TreasureRelic(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    relic_id: Annotated[str, Field(alias="relicId")]
 
 
 class TriggerKind(Enum):
@@ -755,6 +769,9 @@ class RunBuyMerchantItemResult(BaseModel):
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
     ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -782,6 +799,9 @@ class RunEndTurnResult(BaseModel):
     ]
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -811,6 +831,9 @@ class RunEnterNextActResult(BaseModel):
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
     ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -838,6 +861,9 @@ class RunLeaveMerchantRoomResult(BaseModel):
     ]
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -867,6 +893,9 @@ class RunLeaveTreasureRoomResult(BaseModel):
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
     ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -891,6 +920,9 @@ class RunNewResult(BaseModel):
     ]
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -923,6 +955,9 @@ class RunPlayCardResult(BaseModel):
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
     ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -950,6 +985,9 @@ class RunProceedEventResult(BaseModel):
     ]
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -979,6 +1017,9 @@ class RunSelectEventOptionResult(BaseModel):
     ]
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -1010,6 +1051,9 @@ class RunSelectMapNodeResult(BaseModel):
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
     ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -1038,6 +1082,9 @@ class RunSelectRestSiteOptionResult(BaseModel):
     ]
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -1069,6 +1116,9 @@ class RunSelectRewardResult(BaseModel):
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
     ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -1097,6 +1147,9 @@ class RunSkipRewardResult(BaseModel):
     ]
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
@@ -1131,6 +1184,9 @@ class RunStateResult(BaseModel):
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
     ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
+    ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
     relics: list[Relic]
@@ -1164,6 +1220,9 @@ class RunUsePotionResult(BaseModel):
     ]
     available_merchant_items: Annotated[
         list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
     ]
     combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
     rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None

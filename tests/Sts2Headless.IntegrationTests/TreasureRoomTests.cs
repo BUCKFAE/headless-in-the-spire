@@ -73,47 +73,124 @@ public class TreasureRoomTests : IClassFixture<HostSubprocess>
     }
 
     [Fact]
-    public async Task WalkToTreasureRoom_LandsOnTreasureRoom_WithEmptyOptions()
+    public async Task WalkToTreasureRoom_LandsOnTreasureRoom_WithOfferingAndEmptyOptions()
     {
         var state = await WalkToTreasureRoom();
 
-        // Treasure rooms have no choices — the wire's options slots stay
-        // empty. Pin this so a future engine change that starts surfacing
-        // chest-tier picks (rare/common/uncommon, mirror chest, …) trips
-        // the test rather than silently widening the shape.
+        // Treasure rooms have no map/event/rest/merchant choices — only
+        // the chest offering. The choices slots stay empty; the offering
+        // populates via availableTreasureRelics. Pin both so a future
+        // engine change that starts surfacing chest-tier picks (rare /
+        // common / uncommon picks, mirror chest, …) trips the test
+        // rather than silently widening the shape.
         Assert.Equal(RoomType.TreasureRoom, state.CurrentRoomType);
         Assert.Empty(state.AvailableMapNodes);
         Assert.Empty(state.AvailableEventOptions);
         Assert.Empty(state.AvailableRestSiteOptions);
+        Assert.Empty(state.AvailableMerchantItems);
         Assert.Null(state.CombatState);
+
+        // The chest offering is populated by the snapshot itself —
+        // callers don't need to invoke any preview method. Today's chests
+        // offer exactly one relic; assert at-least-one so a future
+        // SilverCrucible-style "empty chest" modifier doesn't immediately
+        // red the test, but pin non-zero for the seed-42 baseline.
+        Assert.NotEmpty(state.AvailableTreasureRelics);
+        foreach (var offered in state.AvailableTreasureRelics)
+        {
+            Assert.False(string.IsNullOrEmpty(offered.RelicId),
+                "availableTreasureRelics must surface a non-empty relicId");
+        }
     }
 
     [Fact]
-    public async Task LeaveTreasureRoom_GrantsRelicAndExitsToMap()
+    public async Task LeaveTreasureRoom_GrantsOfferedRelicAndExitsToMap()
     {
         var entry = await WalkToTreasureRoom();
-        var relicsBefore = entry.Relics.Count;
+        var relicsBefore = entry.Relics.Select(r => r.Id).ToHashSet();
+        var offeredIds = entry.AvailableTreasureRelics.Select(r => r.RelicId).ToArray();
+        Assert.NotEmpty(offeredIds);
 
+        // Default param shape: explicit {skip=false} mirrors the previous
+        // no-params auto-pick behaviour. The wire still tolerates a null
+        // body — see the back-compat test below.
         var resp = await _host.SendAsync<RunLeaveTreasureRoomResult>(
-            "run/leave_treasure_room");
+            "run/leave_treasure_room", new RunLeaveTreasureRoomParams(Skip: false));
 
         Assert.True(resp.Ok);
-        // Room must transition back to MapRoom — the engine does not flip
-        // on its own; our ForceToMap mirror is what drives it. Accept
-        // either the immediate response or a follow-up snapshot reporting
-        // MapRoom, since the precise transition tick isn't a wire contract
-        // worth pinning here.
         var finalRoom = resp.CurrentRoomType == RoomType.MapRoom
             ? resp.CurrentRoomType
             : (await _host.SendAsync<RunStateResult>("run/state")).CurrentRoomType;
         Assert.Equal(RoomType.MapRoom, finalRoom);
 
-        // At least one relic was granted — don't pin the exact id since
-        // chest rolls are seed/RNG-driven and content patches may renumber
-        // the rolling table.
+        // The offered relic id must now be in Player.Relics. This pins
+        // the snapshot's preview to the actual grant — a future bug where
+        // we previewed one relic but granted a different one (e.g. fresh
+        // DoNormalRewards roll on leave) would surface here.
+        var post = await _host.SendAsync<RunStateResult>("run/state");
+        var newRelics = post.Relics.Select(r => r.Id).Where(id => !relicsBefore.Contains(id)).ToArray();
+        Assert.NotEmpty(newRelics);
+        foreach (var offeredId in offeredIds)
+        {
+            Assert.Contains(offeredId, post.Relics.Select(r => r.Id));
+        }
+
+        // availableTreasureRelics is gated to TreasureRoom — must be
+        // empty after exit so callers don't read a stale offering.
+        Assert.Empty(post.AvailableTreasureRelics);
+    }
+
+    [Fact]
+    public async Task LeaveTreasureRoom_Skip_DoesNotGrantRelicAndExitsToMap()
+    {
+        var entry = await WalkToTreasureRoom();
+        var relicsBefore = entry.Relics.Select(r => r.Id).ToHashSet();
+        var offeredIds = entry.AvailableTreasureRelics.Select(r => r.RelicId).ToArray();
+        Assert.NotEmpty(offeredIds);
+
+        var resp = await _host.SendAsync<RunLeaveTreasureRoomResult>(
+            "run/leave_treasure_room", new RunLeaveTreasureRoomParams(Skip: true));
+
+        Assert.True(resp.Ok);
+        // Same MapRoom transition as the take path — skipping still
+        // closes the synchronizer session, runs DoExtraRewardsIfNeeded,
+        // and forces back to the map.
+        var finalRoom = resp.CurrentRoomType == RoomType.MapRoom
+            ? resp.CurrentRoomType
+            : (await _host.SendAsync<RunStateResult>("run/state")).CurrentRoomType;
+        Assert.Equal(RoomType.MapRoom, finalRoom);
+
+        // Player.Relics must NOT contain any of the offered ids that
+        // weren't already in the bag — that's the contract of skip=true.
+        var post = await _host.SendAsync<RunStateResult>("run/state");
+        var postIds = post.Relics.Select(r => r.Id).ToHashSet();
+        foreach (var offeredId in offeredIds)
+        {
+            if (relicsBefore.Contains(offeredId)) continue;  // already had it
+            Assert.DoesNotContain(offeredId, postIds);
+        }
+
+        Assert.Empty(post.AvailableTreasureRelics);
+    }
+
+    [Fact]
+    public async Task LeaveTreasureRoom_NullParams_BehavesAsTake()
+    {
+        // Back-compat shape: clients on the older no-params wire still
+        // get the auto-pick behaviour. The handler defaults skip=false
+        // when the body is null. Mirrors WireHandlers.Typed null-tolerant
+        // params deserialisation.
+        var entry = await WalkToTreasureRoom();
+        var relicsBefore = entry.Relics.Count;
+        var offeredIds = entry.AvailableTreasureRelics.Select(r => r.RelicId).ToArray();
+        Assert.NotEmpty(offeredIds);
+
+        var resp = await _host.SendAsync<RunLeaveTreasureRoomResult>(
+            "run/leave_treasure_room");
+
+        Assert.True(resp.Ok);
         var post = await _host.SendAsync<RunStateResult>("run/state");
         Assert.True(post.Relics.Count > relicsBefore,
-            $"expected the chest to grant at least one relic. Before={relicsBefore} after={post.Relics.Count}. " +
-            $"Relics: [{string.Join(", ", post.Relics.Select(r => r.Id))}].");
+            "null params must default to take=true (relic granted)");
     }
 }

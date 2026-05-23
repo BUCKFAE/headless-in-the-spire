@@ -29,7 +29,7 @@ public static class HostMethods
             ["run/select_map_node"] = Typed<RunSelectMapNodeParams, RunSelectMapNodeResult>(p => RunSelectMapNode(bindings, session, p)),
             ["run/select_event_option"] = Typed<RunSelectEventOptionParams, RunSelectEventOptionResult>(p => RunSelectEventOption(bindings, session, p)),
             ["run/select_rest_site_option"] = Typed<RunSelectRestSiteOptionParams, RunSelectRestSiteOptionResult>(p => RunSelectRestSiteOption(bindings, session, p)),
-            ["run/leave_treasure_room"] = TypedNoParams(() => RunLeaveTreasureRoom(bindings, session)),
+            ["run/leave_treasure_room"] = Typed<RunLeaveTreasureRoomParams, RunLeaveTreasureRoomResult>(p => RunLeaveTreasureRoom(bindings, session, p)),
             ["run/buy_merchant_item"] = Typed<RunBuyMerchantItemParams, RunBuyMerchantItemResult>(p => RunBuyMerchantItem(bindings, session, p)),
             ["run/leave_merchant_room"] = TypedNoParams(() => RunLeaveMerchantRoom(bindings, session)),
             ["run/end_turn"] = TypedNoParams(() => RunEndTurn(bindings, session)),
@@ -189,6 +189,7 @@ public static class HostMethods
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
             AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics,
@@ -226,6 +227,7 @@ public static class HostMethods
             AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions,
             AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState,
             RewardsState: s.RewardsState,
             Relics: s.Relics,
@@ -295,12 +297,15 @@ public static class HostMethods
         return bindings.ReadSnapshot(run).ToRunSelectRestSiteOptionResult(args.OptionIndex);
     }
 
-    private static RunLeaveTreasureRoomResult RunLeaveTreasureRoom(Sts2Bindings bindings, Session session)
+    private static RunLeaveTreasureRoomResult RunLeaveTreasureRoom(Sts2Bindings bindings, Session session, RunLeaveTreasureRoomParams? @params)
     {
         var run = session.Run
             ?? throw new InvalidOperationException("no active run — call run/new first");
 
-        bindings.LeaveTreasureRoom(run);
+        // Default {} params (skip=false) when the caller sends no body.
+        // Keeps the call backward-compatible with the older no-params shape.
+        var skip = @params?.Skip ?? false;
+        bindings.LeaveTreasureRoom(run, skip);
 
         return bindings.ReadSnapshot(run).ToRunLeaveTreasureRoomResult();
     }

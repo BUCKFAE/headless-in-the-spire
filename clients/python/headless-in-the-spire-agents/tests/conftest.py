@@ -147,6 +147,7 @@ def build_snapshot(
         available_map_nodes=map_nodes if map_nodes is not None else [],
         available_event_options=event_options if event_options is not None else [],
         available_merchant_items=[],
+        available_treasure_relics=[],
         available_rest_site_options=rest_site_options if rest_site_options is not None else [],
         combat_state=combat if combat is not None else empty_combat(),
         rewards_state=rewards if rewards is not None else empty_rewards(),

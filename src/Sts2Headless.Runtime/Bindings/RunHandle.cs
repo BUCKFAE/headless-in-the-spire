@@ -25,6 +25,11 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 // AvailableMerchantItems mirrors that pattern for MerchantRoom — empty
 // unless the player is standing on a merchant, otherwise carries the
 // inventory roll-up (cards / relics / potions / card-removal).
+// AvailableTreasureRelics mirrors that pattern for TreasureRoom — empty
+// unless the player is standing on a chest, otherwise carries the chest's
+// offering (typically one relic). Eagerly populated by driving
+// TreasureRoom.DoNormalRewards on first read, so callers can decide
+// whether to take or skip before invoking run/leave_treasure_room.
 // CombatState is the combat read-out; null unless CurrentRoomType == CombatRoom.
 // RewardsState carries the post-combat reward decisions when the engine has
 // any unclaimed; null whenever the wire has nothing pending for the caller.
@@ -61,6 +66,7 @@ public sealed record RunSnapshot(
     IReadOnlyList<EventOption> AvailableEventOptions,
     IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     CombatState? CombatState,
     RewardsState? RewardsState,
     IReadOnlyList<Relic> Relics,

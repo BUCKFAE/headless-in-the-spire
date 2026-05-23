@@ -106,6 +106,7 @@ public class PotionDrinkingAgentTests
         AvailableEventOptions: Array.Empty<EventOption>(),
         AvailableRestSiteOptions: Array.Empty<RestSiteOption>(),
         AvailableMerchantItems: Array.Empty<MerchantItem>(),
+        AvailableTreasureRelics: Array.Empty<TreasureRelic>(),
         CombatState: new Sts2Headless.Protocol.Methods.CombatState(
             Round: round,
             Energy: 3, MaxEnergy: 3,

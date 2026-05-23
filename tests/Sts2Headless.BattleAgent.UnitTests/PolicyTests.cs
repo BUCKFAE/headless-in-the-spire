@@ -33,6 +33,7 @@ public sealed class PolicyTests
             AvailableEventOptions: eventOptions ?? Array.Empty<EventOption>(),
             AvailableRestSiteOptions: restOptions ?? Array.Empty<RestSiteOption>(),
             AvailableMerchantItems: Array.Empty<MerchantItem>(),
+            AvailableTreasureRelics: Array.Empty<TreasureRelic>(),
             CombatState: null,
             RewardsState: rewards,
             Relics: Array.Empty<Relic>(),

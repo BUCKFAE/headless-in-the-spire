@@ -217,6 +217,7 @@ public class CombatBudgetGuardTests
         AvailableEventOptions: Array.Empty<EventOption>(),
         AvailableRestSiteOptions: Array.Empty<RestSiteOption>(),
         AvailableMerchantItems: Array.Empty<MerchantItem>(),
+        AvailableTreasureRelics: Array.Empty<TreasureRelic>(),
         CombatState: combat,
         RewardsState: null,
         Relics: Array.Empty<Relic>(),

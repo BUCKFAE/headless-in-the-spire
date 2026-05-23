@@ -19,6 +19,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -28,6 +29,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -37,6 +39,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -46,6 +49,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -55,6 +59,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -64,6 +69,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -73,6 +79,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -82,6 +89,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -91,6 +99,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -100,6 +109,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -109,6 +119,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -118,6 +129,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
@@ -127,6 +139,7 @@ internal static class SnapshotResults
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
             AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
             AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 }

@@ -93,6 +93,16 @@ public sealed partial class Sts2Bindings
             ? ReadAvailableMerchantItems(handle.RunState)
             : Array.Empty<MerchantItem>();
 
+        // Treasure room offering. GetTreasureOffering eagerly drives
+        // TreasureRoom.DoNormalRewards on first call per-room, so callers
+        // see the chest's relic before deciding whether to take or skip
+        // via run/leave_treasure_room. Idempotent: subsequent snapshots
+        // within the same room read the cached synchronizer state without
+        // re-invoking DoNormalRewards.
+        var availableTreasureRelics = roomType == RoomType.TreasureRoom
+            ? GetTreasureOffering(handle)
+            : Array.Empty<TreasureRelic>();
+
         // Same gating discipline for combat: only read when sts2 has a live
         // combat (room == CombatRoom). Outside, CombatManager.Instance may be
         // null or carry stale state and PlayerCombatState is undefined.
@@ -117,7 +127,7 @@ public sealed partial class Sts2Bindings
         // callers index against a dense list.
         var ownedPotions = ReadOwnedPotions(handle);
 
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, currentActIndex, isGameOver, isVictory, isDead, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, combatState, rewardsState, relics, ownedPotions);
+        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, currentActIndex, isGameOver, isVictory, isDead, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, availableTreasureRelics, combatState, rewardsState, relics, ownedPotions);
     }
 
     // Project the stashed list of pending rewards into the wire DTO. Returns

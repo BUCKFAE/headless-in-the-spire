@@ -1,3 +1,5 @@
+using Sts2Headless.Protocol.Methods;
+
 namespace Sts2Headless.Runtime.Bindings;
 
 // Treasure-room operations. TreasureRoom.DoNormalRewards → relic-pick →
@@ -5,20 +7,104 @@ namespace Sts2Headless.Runtime.Bindings;
 // Soft-bound to the same `_treasure*` fields declared in Sts2Bindings.cs.
 public sealed partial class Sts2Bindings
 {
+    // The TreasureRoom instance we have already driven DoNormalRewards on.
+    // The synchronizer's CurrentRelics doesn't distinguish "not yet
+    // populated" from "populated but empty" (empty chests are a legitimate
+    // hypothetical with SilverCrucible-style modifiers), so we track
+    // population per-room ourselves. ReferenceEquals against the live
+    // CurrentRoom — a new treasure room is a fresh instance, so the cache
+    // self-invalidates on room change.
+    private object? _populatedTreasureRoom;
+
+    // Read the chest's offering, populating it on first call. Returns an
+    // empty list when the player isn't in a treasure room, or when the
+    // chest legitimately has no offering. Wire-shaped: each entry is
+    // suitable for direct inclusion in a RunSnapshot.
+    //
+    // Why populate from the snapshot path: in vanilla flow the offering
+    // only exists after DoNormalRewards runs, and DoNormalRewards lives
+    // inside the engine's grant chain. To preview a chest without
+    // committing to a pick, we drive DoNormalRewards eagerly here. The
+    // synchronizer's TCS-based picking flow is left untouched — the actual
+    // grant (or skip) happens in LeaveTreasureRoom, which closes the
+    // session via CompleteWithNoRelics regardless of which path the
+    // caller chooses.
+    public IReadOnlyList<TreasureRelic> GetTreasureOffering(RunHandle handle)
+    {
+        if (_treasureRoomType is null
+            || _treasureRoomDoNormalRewards is null
+            || _runManagerTreasureRoomRelicSync is null
+            || _treasureSyncCurrentRelics is null)
+        {
+            return Array.Empty<TreasureRelic>();
+        }
+
+        var room = _runStateCurrentRoom.GetValue(handle.RunState);
+        if (room is null || !_treasureRoomType.IsInstanceOfType(room))
+        {
+            // Reset the cache so a future treasure room re-populates.
+            _populatedTreasureRoom = null;
+            return Array.Empty<TreasureRelic>();
+        }
+
+        if (!ReferenceEquals(_populatedTreasureRoom, room))
+        {
+            // Drain any prior synchronizer session before populating fresh —
+            // mirrors sts2-cli's BUG-013 fix in LeaveTreasureRoom.
+            DrainActionExecutor(handle);
+            _syncCtx?.Pump();
+
+            try
+            {
+                var doNormalResult = _treasureRoomDoNormalRewards.Invoke(room, null);
+                if (doNormalResult is Task t) t.GetAwaiter().GetResult();
+                _syncCtx?.Pump();
+                DrainActionExecutor(handle);
+            }
+            catch
+            {
+                // Soft-fail: leave the cache miss so the next snapshot retries.
+                // The caller sees an empty offering and can still call
+                // run/leave_treasure_room (which has its own grant path).
+                return Array.Empty<TreasureRelic>();
+            }
+
+            _populatedTreasureRoom = room;
+        }
+
+        var sync = _runManagerTreasureRoomRelicSync.GetValue(handle.RunManager);
+        if (sync is null) return Array.Empty<TreasureRelic>();
+
+        var result = new List<TreasureRelic>();
+        if (_treasureSyncCurrentRelics.GetValue(sync) is System.Collections.IEnumerable cr)
+        {
+            foreach (var r in cr)
+            {
+                if (r is null) continue;
+                var id = _relicModelId is not null ? ReadEntryId(_relicModelId, r) : null;
+                if (id is not null) result.Add(new TreasureRelic(id));
+            }
+        }
+        return result;
+    }
+
     // Open the chest in the current treasure room and exit to MapRoom.
     // The engine flow we drive (discovered by reflection probe):
     //   1. TreasureRoom.DoNormalRewards() (Task<int>) populates
     //      RunManager.TreasureRoomRelicSynchronizer.CurrentRelics with the
-    //      chest's offering — typically one chest-tier relic.
+    //      chest's offering — typically one chest-tier relic. Skipped if
+    //      GetTreasureOffering has already populated for this room.
     //   2. We can't drive the synchronizer's TCS-based picking flow in
     //      headless — the engine awaits an animation-completion signal
-    //      raised by the UI screen normally. Instead we read the first
-    //      relic from CurrentRelics and grant it via RelicCmd.Obtain (the
-    //      same engine path RelicReward.OnSelectWrapper uses, so
-    //      Player.Relics + on-obtain listener hooks stay aligned), then
-    //      call SyncCompleteWithNoRelics to release the synchronizer
-    //      session. Skipping the release would trip the next treasure
-    //      room's "session already occurring" guard (sts2-cli's BUG-013).
+    //      raised by the UI screen normally. Instead, when `skip` is
+    //      false (the default), we read the first relic from CurrentRelics
+    //      and grant it via RelicCmd.Obtain (the same engine path
+    //      RelicReward.OnSelectWrapper uses, so Player.Relics + on-obtain
+    //      listener hooks stay aligned). When `skip` is true, we leave
+    //      the offering ungranted. Either way we call
+    //      SyncCompleteWithNoRelics to release the synchronizer session.
+    //      Skipping the release would trip the next treasure room's
+    //      "session already occurring" guard (sts2-cli's BUG-013).
     //   3. TreasureRoom.DoExtraRewardsIfNeeded() covers act-3 / ascension
     //      extras (typically a no-op for Act 1).
     //   4. EnterRoom(MapRoom) flips the room — the engine does not flip
@@ -27,11 +113,7 @@ public sealed partial class Sts2Bindings
     // Empty chests (CurrentRelics.Count == 0) close out via
     // CompleteWithNoRelics so the synchronizer state doesn't linger and
     // a future treasure room can BeginRelicPicking cleanly.
-    //
-    // No params on the wire because there's no real player decision — a
-    // future slice can split this into a previewable pick/skip if a
-    // SilverCrucible-style "first chest is empty" relic ever ships.
-    public void LeaveTreasureRoom(RunHandle handle)
+    public void LeaveTreasureRoom(RunHandle handle, bool skip = false)
     {
         if (_treasureRoomType is null)
         {
@@ -63,21 +145,27 @@ public sealed partial class Sts2Bindings
         DrainActionExecutor(handle);
         _syncCtx?.Pump();
 
-        // 1. Set up the chest offering. The returned Task<int> resolves to
-        //    the count of relics offered; we don't need the value — the
-        //    authoritative source is the synchronizer's CurrentRelics.
-        var doNormalResult = _treasureRoomDoNormalRewards.Invoke(room, null);
-        if (doNormalResult is Task t1) t1.GetAwaiter().GetResult();
-        _syncCtx?.Pump();
-        DrainActionExecutor(handle);
+        // 1. Set up the chest offering, unless GetTreasureOffering has
+        //    already populated it for this room (which it does as part of
+        //    the snapshot preview path). DoNormalRewards is not idempotent
+        //    — re-invoking it on an already-populated synchronizer trips
+        //    the engine's "session already occurring" guard.
+        if (!ReferenceEquals(_populatedTreasureRoom, room))
+        {
+            var doNormalResult = _treasureRoomDoNormalRewards.Invoke(room, null);
+            if (doNormalResult is Task t1) t1.GetAwaiter().GetResult();
+            _syncCtx?.Pump();
+            DrainActionExecutor(handle);
+            _populatedTreasureRoom = room;
+        }
 
-        // 2. Greedy pick: claim the first relic the chest offered. There's
-        //    no real player decision here — chests offer a single relic and
-        //    the only alternative is to walk past, which a greedy run won't
-        //    do. A future slice can split this into a previewable pick if
-        //    a SilverCrucible-style "first chest is empty" relic ever ships.
-        //    If the chest had no relics (empty offering), close out via
-        //    CompleteWithNoRelics so the synchronizer state doesn't linger.
+        // 2. Grant the offered relic unless the caller is skipping. When
+        //    skip=true we leave the offering ungranted but still close the
+        //    synchronizer session via CompleteWithNoRelics so the next
+        //    treasure room boots cleanly. When skip=false we read the
+        //    first relic from CurrentRelics and grant it via RelicCmd.Obtain
+        //    (the same engine path RelicReward.OnSelectWrapper uses, so
+        //    Player.Relics + listener hooks stay aligned).
         var sync = _runManagerTreasureRoomRelicSync.GetValue(handle.RunManager)
             ?? throw new InvalidOperationException(
                 "RunManager.TreasureRoomRelicSynchronizer was null after DoNormalRewards");
@@ -88,7 +176,7 @@ public sealed partial class Sts2Bindings
             foreach (var _ in currentRelics) { hasRelics = true; break; }
         }
 
-        if (hasRelics)
+        if (hasRelics && !skip)
         {
             // Pick the first relic from the offering. We can't reliably
             // drive the synchronizer's TCS-based picking flow in headless
@@ -178,5 +266,11 @@ public sealed partial class Sts2Bindings
             catch { /* caller will see TreasureRoom remains and can decide */ }
         }
         DrainActionExecutor(handle);
+
+        // Clear the populated-cache after the room exits — the next
+        // treasure room will be a fresh instance, so ReferenceEquals will
+        // miss naturally, but resetting here also covers the case where
+        // a future caller re-enters a treasure (e.g. via debug warp).
+        _populatedTreasureRoom = null;
     }
 }

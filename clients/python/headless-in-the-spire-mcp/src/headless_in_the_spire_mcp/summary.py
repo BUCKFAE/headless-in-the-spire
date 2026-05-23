@@ -126,7 +126,15 @@ def _write_phase_options(out: StringIO, state: RunStateResult) -> None:
             out.write(f"  {_merchant_item_line(item)}\n")
         return
     if state.current_room_type is RoomType.treasure_room:
-        out.write("\nTreasure room: call `run_leave_treasure_room` to open the chest.\n")
+        if state.available_treasure_relics:
+            offering = ", ".join(r.relic_id for r in state.available_treasure_relics)
+            out.write(
+                f"\nTreasure room — chest offering: {offering}.\n"
+                f"  Call `run_leave_treasure_room` (skip=false, the default) to take it, "
+                f"or skip=true to walk past.\n"
+            )
+        else:
+            out.write("\nTreasure room: call `run_leave_treasure_room` to open the chest.\n")
         return
     if state.current_room_type is RoomType.merchant_room:
         out.write("\nMerchant room: nothing to buy; call `run_leave_merchant_room`.\n")

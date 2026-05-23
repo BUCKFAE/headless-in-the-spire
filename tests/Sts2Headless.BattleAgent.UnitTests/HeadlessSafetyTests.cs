@@ -123,6 +123,7 @@ public sealed class HeadlessSafetyTests
             AvailableEventOptions: Array.Empty<EventOption>(),
             AvailableRestSiteOptions: Array.Empty<RestSiteOption>(),
             AvailableMerchantItems: Array.Empty<MerchantItem>(),
+            AvailableTreasureRelics: Array.Empty<TreasureRelic>(),
             CombatState: null,
             RewardsState: new RewardsState(new[]
             {

@@ -22,6 +22,7 @@ from headless_in_the_spire._models import (
     RestSiteOption,
     RewardsState,
     RoomType,
+    TreasureRelic,
 )
 
 
@@ -49,6 +50,7 @@ class GameSnapshot(Protocol):
     available_event_options: list[EventOption]
     available_rest_site_options: list[RestSiteOption]
     available_merchant_items: list[MerchantItem]
+    available_treasure_relics: list[TreasureRelic]
     combat_state: CombatState | None
     rewards_state: RewardsState | None
 

@@ -43,6 +43,7 @@ def _base_state(**overrides: object) -> RunStateResult:
         "availableEventOptions": [],
         "availableRestSiteOptions": [],
         "availableMerchantItems": [],
+        "availableTreasureRelics": [],
         "combatState": None,
         "rewardsState": None,
         "relics": [],

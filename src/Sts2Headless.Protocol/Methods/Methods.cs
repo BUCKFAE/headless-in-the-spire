@@ -226,6 +226,16 @@ public sealed record MerchantItem(
 public sealed record Relic(
     [property: JsonPropertyName("id")] string Id);
 
+// One relic the current treasure-room chest is offering. RelicId is the
+// engine's canonical wire form (e.g. "GORGET"); empty list when the
+// player isn't in a treasure room or the chest has no offering. The
+// snapshot eagerly populates the offering on first read by driving
+// TreasureRoom.DoNormalRewards reflectively, so callers see the actual
+// relic before deciding whether to take or skip via
+// run/leave_treasure_room.
+public sealed record TreasureRelic(
+    [property: JsonPropertyName("relicId")] string RelicId);
+
 // One potion in a player's belt slot. Index is the slot position (pass
 // back via run/use_potion.potionIndex); empty slots are omitted entirely
 // rather than surfaced as nulls. Id is the engine's canonical wire id
@@ -413,6 +423,7 @@ public sealed record RunNewResult(
     // is non-null).
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     // Pending post-combat rewards. Non-null when the engine has rewards the
     // caller hasn't yet selected/skipped — drives the run/select_reward and
@@ -495,6 +506,7 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -529,6 +541,7 @@ public sealed record RunSelectMapNodeResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -558,6 +571,7 @@ public sealed record RunSelectEventOptionResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -605,6 +619,7 @@ public sealed record RunSelectRestSiteOptionResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -612,20 +627,22 @@ public sealed record RunSelectRestSiteOptionResult(
 
 // ── run/leave_treasure_room ──────────────────────────────────────────────
 
-// A treasure room is auto-resolve from the player's perspective — there's
-// no option to pick beyond "open the chest" — but the engine does not
-// transition the room on its own. Calling this method drives the chain:
-// TreasureRoom.DoNormalRewards populates the chest offering,
-// TreasureRoomRelicSynchronizer.BeginRelicPicking + PickRelicLocally(0)
-// claim the relic through the engine's grant pipeline (Player.Relics +
-// listener hooks stay aligned), DoExtraRewardsIfNeeded covers act-3 /
-// ascension extras, and EnterRoom(MapRoom) flips the room. The returned
-// snapshot reflects the post-leave state.
+// Drives the treasure-room exit chain. The offering is populated lazily
+// on the first snapshot in which currentRoomType=TreasureRoom (so the
+// caller sees availableTreasureRelics before they decide); this method
+// either grants the offered relic via RelicCmd.Obtain (skip=false, the
+// default) or closes the synchronizer session untouched (skip=true).
+// Either way the chain finishes with DoExtraRewardsIfNeeded (act-3 /
+// ascension extras) and EnterRoom(MapRoom). The returned snapshot
+// reflects the post-leave state.
 //
-// No params — chests have a single relic offering and the host always
-// claims it (greedy default). A future slice can split this into a
-// previewable pick/skip once a SilverCrucible-style "first chest is
-// empty" relic actually ships.
+// `skip` is optional and defaults to false (claim the relic). Pass
+// skip=true to walk past the chest — useful for relic-conflict avoidance,
+// SilverCrucible-style "first chest is empty" modifiers, or any agent
+// that prefers a known-bad offering over an empty Player.Relics slot.
+public sealed record RunLeaveTreasureRoomParams(
+    [property: JsonPropertyName("skip")] bool Skip = false);
+
 public sealed record RunLeaveTreasureRoomResult(
     [property: JsonPropertyName("ok")] bool Ok,
     [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
@@ -639,6 +656,7 @@ public sealed record RunLeaveTreasureRoomResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -662,6 +680,7 @@ public sealed record RunEndTurnResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -703,6 +722,7 @@ public sealed record RunPlayCardResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -735,6 +755,7 @@ public sealed record RunSelectRewardResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -764,6 +785,7 @@ public sealed record RunSkipRewardResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -796,6 +818,7 @@ public sealed record RunBuyMerchantItemResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -825,6 +848,7 @@ public sealed record RunLeaveMerchantRoomResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -857,6 +881,7 @@ public sealed record RunUsePotionResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -887,6 +912,7 @@ public sealed record RunEnterNextActResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -919,6 +945,7 @@ public sealed record RunProceedEventResult(
     [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
     [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
     [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
     [property: JsonPropertyName("combatState")] CombatState? CombatState,
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
