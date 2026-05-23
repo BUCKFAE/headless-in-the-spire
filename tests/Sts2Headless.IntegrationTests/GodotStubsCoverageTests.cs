@@ -53,6 +53,71 @@ public class GodotStubsCoverageTests
             + string.Join('\n', missing.Select(m => "  - " + m)));
     }
 
+    // Complement to the MemberRef check above: TypeRefs sts2 holds without
+    // any MemberRef (e.g. `typeof(Godot.Foo)`, `(Godot.Foo)x` casts, base-class
+    // refs from sts2 subclasses) still need a TypeDef in the stub or the
+    // JIT throws TypeLoadException at first reach. MemberRef coverage doesn't
+    // catch them because the parent-peel-back never visits a TypeRef that
+    // has zero members referenced.
+    [Fact]
+    public void All_Godot_TypeRefs_From_Sts2_Resolve_On_GodotStubs()
+    {
+        var (sts2Path, stubPath) = LocatePaths();
+        var required = CollectGodotTypeRefs(sts2Path);
+        Assert.True(required.Count > 0,
+            "no Godot.* TypeReferences in sts2.dll — IsGodotType filter is broken, not the stub.");
+
+        var available = CollectStubTypeDefs(stubPath);
+        var missing = required
+            .Where(r => !available.Contains(r))
+            .OrderBy(s => s, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(
+            missing.Count == 0,
+            $"GodotStubs is missing {missing.Count} Godot.* type(s) referenced by sts2.dll — "
+            + "would surface as TypeLoadException on first reach. Run `just regen-godot-stubs`.\n"
+            + string.Join('\n', missing.Select(t => "  - " + t)));
+    }
+
+    private static (string Sts2Path, string StubPath) LocatePaths()
+    {
+        var repoRoot = LocateRepoRoot();
+        var sts2Path = Path.Combine(repoRoot, "vendor", "sts2.dll");
+        Assert.True(File.Exists(sts2Path),
+            $"vendor/sts2.dll not present at {sts2Path} — run `just setup` first.");
+        var stubPath = Path.Combine(AppContext.BaseDirectory, "GodotSharp.dll");
+        Assert.True(File.Exists(stubPath),
+            $"GodotSharp.dll not in test bin at {stubPath} — GodotStubs build output missing.");
+        return (sts2Path, stubPath);
+    }
+
+    private static HashSet<string> CollectGodotTypeRefs(string sts2Path)
+    {
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        using var pe = new PEReader(File.OpenRead(sts2Path));
+        var md = pe.GetMetadataReader();
+        foreach (var handle in md.TypeReferences)
+        {
+            var fqn = QualifiedTypeName(md, handle);
+            if (IsGodotType(fqn)) result.Add(fqn);
+        }
+        return result;
+    }
+
+    private static HashSet<string> CollectStubTypeDefs(string stubPath)
+    {
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        using var pe = new PEReader(File.OpenRead(stubPath));
+        var md = pe.GetMetadataReader();
+        foreach (var handle in md.TypeDefinitions)
+        {
+            var fqn = QualifiedTypeName(md, handle);
+            if (!string.IsNullOrEmpty(fqn) && fqn != "<Module>") result.Add(fqn);
+        }
+        return result;
+    }
+
     private static List<string> ComputeMissing(Func<string, bool> typeFilter)
     {
         var repoRoot = LocateRepoRoot();

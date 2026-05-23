@@ -1,32 +1,35 @@
 #!/usr/bin/env bash
-# Drift guard for the wire-protocol artefacts. If a Protocol/SchemaExport
-# source, openrpc.json, or _models.py is staged, regenerate both artefacts
-# and refuse the commit when the staged tree no longer matches. Mirrors the
-# CI "Schema drift check" + "Python models drift check" steps so drift is
-# caught locally instead of in a PR.
+# Drift guard. Two independent checks, each gated on whether the relevant
+# files are staged:
+#   1. Wire-protocol artefacts (Protocol / SchemaExport sources → openrpc.json
+#      → _models.py). Mirrors the CI "Schema drift check" + "Python models
+#      drift check" steps so drift is caught locally instead of in a PR.
+#   2. GodotStubs coverage — every Godot MemberRef/TypeRef in sts2.dll has a
+#      matching stub. Mirrors GodotStubsCoverageTests.
 
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
+staged="$(git diff --cached --name-only)"
+
+# --- Wire-protocol drift guard ---------------------------------------------
+
 openrpc='protocol/openrpc.json'
 models='clients/python/headless-in-the-spire/src/headless_in_the_spire/_models.py'
 
-relevant='^(src/Sts2Headless\.Protocol/|src/Sts2Headless\.SchemaExport/|protocol/openrpc\.json$|clients/python/headless-in-the-spire/src/headless_in_the_spire/_models\.py$)'
+protocol_relevant='^(src/Sts2Headless\.Protocol/|src/Sts2Headless\.SchemaExport/|protocol/openrpc\.json$|clients/python/headless-in-the-spire/src/headless_in_the_spire/_models\.py$)'
 
-if ! git diff --cached --name-only | grep -qE "$relevant"; then
-    exit 0
-fi
+if echo "$staged" | grep -qE "$protocol_relevant"; then
+    echo "pre-commit: regenerating wire-protocol artefacts (just regen)…"
+    if ! just regen >/dev/null; then
+        echo "pre-commit: just regen failed — see output above." >&2
+        exit 1
+    fi
 
-echo "pre-commit: regenerating wire-protocol artefacts (just regen)…"
-if ! just regen >/dev/null; then
-    echo "pre-commit: just regen failed — see output above." >&2
-    exit 1
-fi
-
-if ! git diff --quiet -- "$openrpc" "$models"; then
-    cat >&2 <<EOF
+    if ! git diff --quiet -- "$openrpc" "$models"; then
+        cat >&2 <<EOF
 
 pre-commit: wire-protocol artefacts drifted from the staged tree.
             Regenerated versions are now in your working tree.
@@ -37,5 +40,42 @@ pre-commit: wire-protocol artefacts drifted from the staged tree.
 
 To bypass (e.g. mid-rebase): git commit --no-verify
 EOF
-    exit 1
+        exit 1
+    fi
+fi
+
+# --- GodotStubs coverage guard ---------------------------------------------
+
+stubs_relevant='^(src/GodotStubs/|src/Sts2Headless\.Commands/GenerateGodotStubsCommand\.cs$|tests/Sts2Headless\.IntegrationTests/GodotStubsCoverageTests\.cs$|GAME_VERSION$)'
+
+if echo "$staged" | grep -qE "$stubs_relevant"; then
+    # Skip if vendor/sts2.dll isn't present — the developer can't have a
+    # meaningful stub check without it (and they probably already saw a
+    # GAME_VERSION hash mismatch by now anyway).
+    if [[ ! -f vendor/sts2.dll ]]; then
+        echo "pre-commit: vendor/sts2.dll missing — skipping GodotStubs check (run \`just setup\` to enable)." >&2
+    else
+        echo "pre-commit: refreshing GodotStubs from sts2.dll (just regen-godot-stubs)…"
+        if ! just regen-godot-stubs >/dev/null; then
+            echo "pre-commit: just regen-godot-stubs failed — see output above." >&2
+            exit 1
+        fi
+
+        echo "pre-commit: verifying stub coverage (GodotStubsCoverageTests)…"
+        if ! dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj \
+                --no-build --filter "FullyQualifiedName~GodotStubsCoverageTests" \
+                --logger "console;verbosity=quiet" >/dev/null 2>&1; then
+            cat >&2 <<EOF
+
+pre-commit: GodotStubs coverage check failed.
+            Run for details:
+
+              dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj \\
+                --no-build --filter "FullyQualifiedName~GodotStubsCoverageTests"
+
+To bypass (e.g. mid-rebase): git commit --no-verify
+EOF
+            exit 1
+        fi
+    fi
 fi
