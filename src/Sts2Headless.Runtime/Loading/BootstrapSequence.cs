@@ -18,6 +18,17 @@ namespace Sts2Headless.Runtime.Loading;
 //     loop or Player creation actually needs it; until then it's premature.
 public static class BootstrapSequence
 {
+    // Opt-in flag for hook instrumentation. Walking every concrete
+    // AbstractModel subtype and Harmony-postfixing its After*/Before*
+    // overrides costs ~440ms per cold start (≈17% of subprocess startup).
+    // Only MechanicSweep tests read RunStateResult.TriggeredSincePrev to
+    // classify rows as Played vs Triggered; smoke A0, integration tests
+    // and end-to-end agent runs never look at that field, so they pay
+    // the cost for nothing. Set STS2_INSTRUMENT_HOOKS=1 to opt in — the
+    // MechanicSweepTests assembly initializer flips this automatically,
+    // so `just sweep-*` keeps the instrumentation it depends on.
+    public const string InstrumentHooksEnvVar = "STS2_INSTRUMENT_HOOKS";
+
     public sealed record StepOutcome(string Label, bool Ok, string? Detail);
 
     public static IReadOnlyList<StepOutcome> Apply(Assembly sts2)
@@ -46,8 +57,13 @@ public static class BootstrapSequence
     // HookPatchKinds.All. Must run after InjectModelSubtypes (the patch
     // installer resolves canonical ids from ModelDb._contentById) and
     // before CreateIroncladSmoke (so a smoke run sees the same
-    // instrumentation as real runs). Always-on — the only cost is
-    // bootstrap-time patching.
+    // instrumentation as real runs).
+    //
+    // OPT-IN since 2026-05: skipped unless STS2_INSTRUMENT_HOOKS=1. The
+    // patcher costs ~440ms per cold start; only MechanicSweep tests read
+    // TriggeredSincePrev. Skipped steps still report Ok=true so the
+    // bootstrap snapshot stays green either way — the Detail field
+    // distinguishes the two paths.
     //
     // The kind list is single-sourced in HookPatchKinds.cs and kept in
     // lockstep with GenerateContentIdsCommand.Kinds by
@@ -57,6 +73,10 @@ public static class BootstrapSequence
     private static StepOutcome ApplyHookPatches(Assembly sts2)
     {
         const string label = "ModelHookPatcher.Apply (all kinds)";
+        if (Environment.GetEnvironmentVariable(InstrumentHooksEnvVar) != "1")
+        {
+            return new(label, true, $"skipped (set {InstrumentHooksEnvVar}=1 to enable)");
+        }
         try
         {
             var outcomes = HookPatchKinds.ApplyAll(sts2);

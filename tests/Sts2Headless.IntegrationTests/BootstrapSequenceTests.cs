@@ -40,7 +40,21 @@ public class BootstrapSequenceTests
         Assert.All(preamble.Patches, p =>
             Assert.True(p.Patched, $"patch missing: {p.Target} ({p.Detail})"));
 
-        var steps = BootstrapSequence.Apply(preamble.Sts2!);
+        // Force the instrumentation step into its WITH-patches branch for this
+        // assertion: the un-instrumented branch is exercised by the sibling
+        // test below. Either branch must keep the step-count snapshot stable;
+        // only the Detail of ApplyHookPatches changes between them.
+        var prior = Environment.GetEnvironmentVariable(BootstrapSequence.InstrumentHooksEnvVar);
+        Environment.SetEnvironmentVariable(BootstrapSequence.InstrumentHooksEnvVar, "1");
+        IReadOnlyList<BootstrapSequence.StepOutcome> steps;
+        try
+        {
+            steps = BootstrapSequence.Apply(preamble.Sts2!);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(BootstrapSequence.InstrumentHooksEnvVar, prior);
+        }
 
         // Snapshot of the known state as of 2026-05-16. Fully green: ModelDb
         // injection runs before InitProgressData so ProgressSaveManager's
@@ -72,5 +86,52 @@ public class BootstrapSequenceTests
                 actual.Ok == ok,
                 $"step {i} '{label}' expected Ok={ok} but got Ok={actual.Ok} (detail: {actual.Detail ?? "<none>"})");
         }
+
+        // Locks down the WITH-instrumentation Detail format so a regression
+        // that silently skips the patcher (and breaks MechanicSweep's
+        // TriggeredSincePrev classification) surfaces here. The detail
+        // begins with the first kind's report — Affliction (alphabetical
+        // in HookPatchKinds.All).
+        var hookStep = steps[7];
+        Assert.False(
+            hookStep.Detail?.StartsWith("skipped", StringComparison.Ordinal) ?? true,
+            $"ModelHookPatcher should have run with the env var set, but Detail=\"{hookStep.Detail}\"");
+    }
+
+    [Fact]
+    public void Bootstrap_SkipsHookPatcher_WhenEnvVarUnset()
+    {
+        var repoRoot = Paths.LocateRepoRoot();
+        var vendorDir = Path.Combine(repoRoot, "vendor");
+        Assert.True(Directory.Exists(vendorDir), $"vendor/ missing at {vendorDir} — run `just setup`.");
+
+        VendorAssemblyResolver.Install(vendorDir);
+        var preamble = RuntimeBootstrap.Run(vendorDir);
+        Assert.NotNull(preamble.Sts2);
+
+        // Hook instrumentation is opt-in since 2026-05 — walking every
+        // concrete AbstractModel subtype to install Harmony postfixes costs
+        // ~440ms per cold start. Most tests don't read TriggeredSincePrev,
+        // so they should skip the work. Pin that with the env var
+        // explicitly cleared (the MechanicSweepTests assembly initializer
+        // sets it; this test would otherwise inherit "1" when both
+        // assemblies share a runner process).
+        var prior = Environment.GetEnvironmentVariable(BootstrapSequence.InstrumentHooksEnvVar);
+        Environment.SetEnvironmentVariable(BootstrapSequence.InstrumentHooksEnvVar, null);
+        IReadOnlyList<BootstrapSequence.StepOutcome> steps;
+        try
+        {
+            steps = BootstrapSequence.Apply(preamble.Sts2!);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(BootstrapSequence.InstrumentHooksEnvVar, prior);
+        }
+
+        var hookStep = steps.First(s => s.Label == "ModelHookPatcher.Apply (all kinds)");
+        Assert.True(hookStep.Ok, "skipping the patcher is a healthy outcome, not a failure");
+        Assert.NotNull(hookStep.Detail);
+        Assert.StartsWith("skipped", hookStep.Detail);
+        Assert.Contains(BootstrapSequence.InstrumentHooksEnvVar, hookStep.Detail);
     }
 }
