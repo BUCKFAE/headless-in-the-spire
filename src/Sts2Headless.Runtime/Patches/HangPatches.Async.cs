@@ -69,6 +69,26 @@ public static partial class HangPatches
         const string name = "WaitUntilQueueIsEmptyOrWaitingOnNonPlayerDrivenAction";
         const string label = $"*.{name}";
 
+        // Fast path: the method has lived on CombatManager since the project
+        // was first scaffolded against sts2 v0.103.x. Probing that FQN first
+        // saves ~60ms per process start because the slow path below has to
+        // call sts2.GetTypes() (which materialises every top-level type in
+        // the assembly) and then per-type GetMethod() — a tax that's
+        // unnecessary when the known location is still correct.
+        //
+        // If a future GAME_VERSION bump moves the method, the fast path
+        // misses cleanly and we fall through to the original reflective
+        // scan, so the patch never silently goes missing. The slow path
+        // also covers the (unlikely) case of multiple declaring types.
+        var fastType = sts2.GetType("MegaCrit.Sts2.Core.Combat.CombatManager");
+        var fastMethod = fastType?.GetMethod(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+        if (fastMethod is not null && typeof(System.Threading.Tasks.Task).IsAssignableFrom(fastMethod.ReturnType))
+        {
+            var prefixFast = typeof(HangPatches).GetMethod(nameof(ReturnCompletedTaskPrefix), BindingFlags.Static | BindingFlags.NonPublic);
+            harmony.Patch(fastMethod, prefix: new HarmonyMethod(prefixFast));
+            return new PatchOutcome(label, Patched: true, Detail: fastMethod.DeclaringType?.FullName ?? "<unknown>");
+        }
+
         // sts2-cli's Cecil patch iterates top-level types only — the method lives on
         // a top-level type. We do the same scan reflectively. If multiple matches
         // appear (unlikely), patch them all and report.
