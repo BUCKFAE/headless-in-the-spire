@@ -11,14 +11,19 @@
 
 namespace Godot.Collections;
 
-public partial class Dictionary<TKey, TValue> where TKey : notnull
+// `where TKey : notnull` was an artefact of backing this with a real
+// System.Collections.Generic.Dictionary in an earlier iteration. The
+// constraint then leaked into every generated method that takes a
+// Variant.As/CreateFrom<TKey, TValue> overload, since sts2's signatures
+// don't carry it — yielding CS8714 across Generated/. Drop both: the
+// stub stores nothing (headless never reads back) so the BCL backing
+// was already dead weight.
+public partial class Dictionary<TKey, TValue>
 {
-    private readonly System.Collections.Generic.Dictionary<TKey, TValue> _inner = new();
-
     public Dictionary() { }
-    public bool ContainsKey(TKey key) => _inner.ContainsKey(key);
-    public bool TryGetValue(TKey key, out TValue value) => _inner.TryGetValue(key, out value!);
-    public TValue this[TKey key] { set => _inner[key] = value; }
+    public bool ContainsKey(TKey key) => false;
+    public bool TryGetValue(TKey key, out TValue value) { value = default!; return false; }
+    public TValue this[TKey key] { set { } }
 }
 
 // from: Node.GetChildren(bool) → Godot.Collections.Array<Node>. SPINY_TOAD's
