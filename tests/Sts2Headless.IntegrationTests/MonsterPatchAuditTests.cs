@@ -54,86 +54,50 @@ public class MonsterPatchAuditTests
     // DoormakerPhaseTransitionTests.cs for the template).
     private static readonly string[] s_expectedDoormakerShape =
     [
-        // Baseline captured 2026-05-21 (61 entries). Every patched
-        // monster method here strips at least one gameplay mutator —
-        // the boss/enemy never deals the damage / applies the power /
-        // removes the sleep state the engine intended. Doormaker was
-        // graduated out the same day by patching its leaf UI helpers
-        // (Cmd.CustomScaledWait + Doormaker.UpdateVisual) and dropping
-        // every *Move method from the patch set. Each entry below is a
-        // candidate for the same treatment.
+        // Doormaker-shape audit. Each entry below is a patched monster
+        // method whose IL still contains a gameplay-mutating call —
+        // patching the method strips that mutation. Doormaker (the
+        // namesake) was graduated 2026-05-21 by patching its leaf UI
+        // helpers (Cmd.CustomScaledWait + Doormaker.UpdateVisual) and
+        // dropping every *Move method from the patch set.
+        //
+        // Cleanup wave 2026-05-23: with TestMode.IsOn=true set by
+        // BootstrapSequence.SetTestMode, the per-monster move bodies
+        // are safe to run unchanged for 11 monsters (Vantom,
+        // BowlbugRock, CeremonialBeast, CorpseSlug, DecimillipedeSegment,
+        // GremlinMerc, LagavulinMatriarch, TerrorEel, TestSubject,
+        // TheInsatiable, ThievingHopper). The patches were removed
+        // outright — their entries no longer appear here because the
+        // auditor only walks PATCHED methods.
         //
         // Fix recipe (per monster):
-        //   1. `just probe-method-body <Monster> <Move>` to see what UI
-        //      helpers the body actually invokes.
+        //   1. `dotnet run --project src/Sts2Headless/ -- --probe-method-body
+        //      <Type.FullName> <MethodName>` to see what UI helpers the
+        //      body actually invokes.
         //   2. Add the leaf helpers to HangPatches.Async.cs /
         //      .Monsters.cs as needed (often Cmd.* already covers them;
         //      sometimes a Godot stub is missing).
-        //   3. Drop the method from the monster's _xEntry MethodNames set.
+        //   3. Drop the method from the monster's _xEntry MethodNames set
+        //      (or drop the entire entry if no methods remain).
         //   4. Add a focused regression test along the lines of
         //      DoormakerPhaseTransitionTests.cs.
         //   5. Remove the corresponding line from this list.
         //
         // Sorted alphabetically for diff readability.
-        "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.BeastCryMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.CrushMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.PlowMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.StampMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.StompMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug.GlompMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug.GoopMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug.WhipSlapMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.Crusher.AdaptMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.Crusher.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.Crusher.BugStingMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.Crusher.EnlargingStrikeMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.Crusher.GuardedStrikeMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.Crusher.ThrashMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment.BulkMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment.ConstrictMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment.WritheMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc.DoubleSmashMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc.GimmeMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc.HeheMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.DisembowelMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.Slash2Move: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.SlashMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.SoulSiphonMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.Rocket.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.Rocket.ChargeUpMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.Rocket.LaserMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.Rocket.PrecisionBeamMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.Rocket.TargetingReticleMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
         "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.RolloutMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.WakeUpMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Remove",
-        "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus.DrainLifeMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus.MaelstromMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus.SoulBurnMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel.CrashMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel.TerrorMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel.ThrashMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.AfterAddedToRoom: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.BigPounceMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.BiteMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.BurningGrowlMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.MultiClawMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.Phase3LacerateMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.RespawnMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply,MegaCrit.Sts2.Core.Commands.PowerCmd.Remove",
-        "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.Revive: MegaCrit.Sts2.Core.Commands.CreatureCmd.Heal",
-        "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.SkullBashMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable.BiteMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable.LiquifyMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable.SalivateMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable.ThrashMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper.FlutterMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
-        "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper.HatTrickMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper.NabMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper.ThieveryMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack,MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
         "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.BelowMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.BiteMove: MegaCrit.Sts2.Core.Commands.DamageCmd.Attack",
-        "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.BurrowMove: MegaCrit.Sts2.Core.Commands.PowerCmd.Apply",
     ];
 
     [Fact]

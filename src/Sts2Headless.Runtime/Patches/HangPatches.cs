@@ -62,25 +62,18 @@ public static partial class HangPatches
             PatchFromHandForDiscard(harmony, sts2),
             PatchFromHand(harmony, sts2),
             PatchEscapeArtistPowerAfterTurnEnd(harmony, sts2),
-            PatchThievingHopperMoves(harmony, sts2),
             PatchImbalancedPowerAfterDamageGiven(harmony, sts2),
             PatchSoulNexus(harmony, sts2),
-            PatchTestSubject(harmony, sts2),
-            PatchCeremonialBeast(harmony, sts2),
-            // Encounter-sweep wave (see documentation/coverage/every-encounter-ironclad.md):
-            // every-encounter-ironclad smoke test surfaced 10 stalls / crashes
-            // against Ironclad with [HELLRAISER, POMMEL_STRIKE×2] + 999/999 HP.
-            // The seven monster hangs follow the same SoulNexus/CeremonialBeast
-            // shape: Task-returning move/power bodies NRE on UI-only state and
-            // the exception is swallowed by TaskHelper.LogTaskExceptions.
-            PatchCorpseSlug(harmony, sts2),
-            PatchDecimillipede(harmony, sts2),
+            // Doormaker-shape cleanup (2026-05-23): TestMode.IsOn=true makes
+            // the Move bodies safe to run for most monsters previously stripped
+            // (BowlbugRock, CeremonialBeast, CorpseSlug, DecimillipedeSegment,
+            // GremlinMerc, LagavulinMatriarch, TerrorEel, TestSubject,
+            // TheInsatiable, ThievingHopper, Vantom). The remaining patches
+            // below cover the ones with unconditional UI calls that bypass
+            // TestMode gating.
             PatchDoormaker(harmony, sts2),
             PatchFatGremlin(harmony, sts2),
-            PatchGremlinMerc(harmony, sts2),
-            PatchTerrorEel(harmony, sts2),
             PatchTunneler(harmony, sts2),
-            PatchTheInsatiable(harmony, sts2),
             PatchLagavulinMatriarch(harmony, sts2),
             PatchSlumberingBeetle(harmony, sts2),
             PatchRavenousPower(harmony, sts2),

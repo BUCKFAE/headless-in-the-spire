@@ -53,30 +53,12 @@ public static partial class HangPatches
     // the deck via CardPileCmd.AddToCombatAndPreview<Wound>, exactly as
     // the engine intended.
 
-    // ThievingHopper (Act 2 enemy on seed 42 floor 3) carries five move
-    // methods on the monster type — ThieveryMove, NabMove, HatTrickMove,
-    // FlutterMove, EscapeMove. After patching EscapeArtistPower.AfterTurnEnd
-    // the agent's end-turn still produced an infinite end-turn loop, so the
-    // hang is in the move-execution body (same shape as Vantom.DismemberMove
-    // in Act 1) rather than the post-turn power hook. Discovered via
-    // DiagnoseAct2WalkTests on seed 42, Act 2 floor 3.
-    //
-    // Patch shape: replace every Task-returning Move body with
-    // Task.CompletedTask. The hopper still threatens the agent via wire-
-    // surfaced intent damage (the engine reports its NextMove correctly),
-    // but the actual move execution is a no-op — the enemy turn unblocks
-    // and the engine flips back to play phase. With the 999/999 HP cheat
-    // the agent doesn't actually take damage anyway, so the loss of move
-    // effects is acceptable for the goal-state multi-act drive.
-    private static readonly MonsterPatchEntry _thievingHopperEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "ThieveryMove", "NabMove", "HatTrickMove", "FlutterMove", "EscapeMove",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.ThievingHopper.*Move");
-    private static PatchOutcome PatchThievingHopperMoves(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _thievingHopperEntry);
+    // ThievingHopper used to need every Move method patched as "skip
+    // body" — same Doormaker-shape over-reach as Vantom and BowlbugRock.
+    // IL probe confirms every UI helper is null-gated on
+    // NCombatRoom.Instance / NCreature lookups, and CreatureCmd.TriggerAnim
+    // has TestMode early-exit. EscapeArtistPower.AfterTurnEnd stays
+    // patched separately (PatchEscapeArtistPowerAfterTurnEnd).
 
     // BowlbugRock used to need HeadbuttMove + DizzyMove patched as
     // "skip body" — same misdiagnosis as Vantom. IL probe confirms
@@ -85,92 +67,40 @@ public static partial class HangPatches
     // No leaf-helper patch needed; the bodies run cleanly with the
     // TestMode flag set in BootstrapSequence.
 
-    // SoulNexus (Act 3 enemy on seed 42) carries three Task-returning
-    // move methods (SoulBurnMove, MaelstromMove, DrainLifeMove) and a
-    // void AfterDeath(Creature) hook. The first observed failure on
-    // this monster was a host-side NRE on run/play_card when SOUL_NEXUS
-    // was at 6/234 HP — the killing-blow card triggered the
-    // AfterDeath hook, which NRE'd. The Move bodies follow the same
-    // shape as every other monster move we've patched.
+    // SoulNexus (Act 3 enemy on seed 42) — moves are TestMode-safe but
+    // the killing-blow lifecycle hooks (AfterDeath, BeforeRemovedFromRoom)
+    // unconditionally call NCombatRoom.get_Instance and dereference the
+    // result without null-checking. Keep those two stripped; drop the
+    // three Move methods so the boss actually attacks during combat.
     //
-    // Patch shape:
-    //   * Three Move methods → Task.CompletedTask via ReturnDefaultTaskPrefix.
-    //   * AfterDeath (void) → SkipVoidPrefix (same as Vantom.DismemberMove's
-    //     void overload).
-    // BeforeRemovedFromRoom is the actual offender on the killing-blow path
-    // observed in BeatGameOnSeed42Tests Act 3 floor 7 — the sts2 call chain
-    // is StrikeIronclad.OnPlay → AttackCommand → CreatureCmd.Kill →
-    // CombatManager.RemoveCreature → this method, which NREs walking
-    // UI-only state. Patched alongside the Move methods + AfterDeath for
-    // defense in depth.
+    // Original BeatGameOnSeed42Tests failure (Act 3 floor 7): StrikeIronclad
+    // .OnPlay → AttackCommand → CreatureCmd.Kill → CombatManager.RemoveCreature
+    // → SoulNexus.BeforeRemovedFromRoom NRE. AfterDeath has the same shape.
+    // Both still patched as a safety net until null-gating is added there.
     private static readonly MonsterPatchEntry _soulNexusEntry = new(
         TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus",
         MethodNames: new HashSet<string>(StringComparer.Ordinal)
         {
-            "SoulBurnMove", "MaelstromMove", "DrainLifeMove",
             "AfterDeath", "BeforeRemovedFromRoom",
         },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus.{*Move, lifecycle}");
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.SoulNexus.{AfterDeath, BeforeRemovedFromRoom}");
     private static PatchOutcome PatchSoulNexus(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2, _soulNexusEntry);
 
-    // TestSubject is the Act 2 boss. Its enemy-phase moves walk UI-only
-    // state (animation queues, VFX setup) and NRE in headless — the
-    // exceptions are swallowed by TaskHelper.LogTaskExceptions and the
-    // engine never advances past round 1's enemy phase, leaving the
-    // StallDetector to fire. Same pattern as the SoulNexus / Vantom /
-    // ThievingHopper / BowlbugRock patches above.
-    //
-    // The full set of declared methods observed in BeatGameOnSeed42Tests
-    // when the Pommel/Hellraiser combo reaches Act 2 floor 15:
-    //   * BiteMove, SkullBashMove, MultiClawMove, Phase3LacerateMove,
-    //     BigPounceMove, BurningGrowlMove — the boss's attacks.
-    //   * Revive, RespawnMove — phase-transition / second-life moves.
-    //   * TriggerDeadState, AfterAddedToRoom — lifecycle hooks invoked
-    //     from CombatManager when the boss enters / dies. Patching these
-    //     defensively (same as SoulNexus.BeforeRemovedFromRoom) covers
-    //     the killing-blow path.
-    private static readonly MonsterPatchEntry _testSubjectEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TestSubject",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "BiteMove", "SkullBashMove", "MultiClawMove", "Phase3LacerateMove",
-            "BigPounceMove", "BurningGrowlMove", "RespawnMove",
-            "Revive", "TriggerDeadState", "AfterAddedToRoom",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.TestSubject.{*Move, AfterAddedToRoom, Revive, TriggerDeadState}");
-    private static PatchOutcome PatchTestSubject(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _testSubjectEntry);
+    // TestSubject (Act 2 boss). IL probe confirms every move + lifecycle
+    // method has TestMode-safe UI (null-gated NCombatRoom/NRunMusicController
+    // singletons + CreatureCmd.TriggerAnim early-exit). The original
+    // "StallDetector fires" was caused by the missing TestMode flag and is
+    // now handled by BootstrapSequence.SetTestMode. Restoring the move
+    // bodies means the boss actually performs SetMaxAndCurrentHp(OriginalHp)
+    // and PowerCmd.Apply during AfterAddedToRoom — same significance as
+    // the Doormaker fix for the Act 3 boss.
 
-    // CeremonialBeast is the Act 1 boss reachable on seed 1. Same shape as
-    // TestSubject / SoulNexus: Task-returning move bodies walk UI-only state
-    // (animation triggers _stunTrigger / _unstunTrigger / _stunSfx, VFX setup)
-    // and NRE in headless. The exception is swallowed by
-    // TaskHelper.LogTaskExceptions; CombatManager is left half-transitioned
-    // (IsPlayPhase=False, hand empty, round counter frozen), and the
-    // StallDetector fires after 8 identical snapshots.
-    //
-    // The wedging move on the observed repro is the stun-self path:
-    // CEREMONIAL_BEAST telegraphs intent=Stun, then enters SetStunned →
-    // StunnedMove, which references UI animation infrastructure that
-    // doesn't exist headless. Other moves (Plow / Crush / Stamp / Stomp /
-    // BeastCry) are patched defensively — they have the same UI-dependent
-    // shape and would trip on the round they happen to execute.
-    //
-    // Lifecycle hooks (AfterDeath, BeforeRemovedFromRoom, AfterAddedToRoom)
-    // are patched defensively per the SoulNexus precedent — the killing-
-    // blow path needs them to no-op rather than NRE.
-    private static readonly MonsterPatchEntry _ceremonialBeastEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "PlowMove", "CrushMove", "StampMove", "StompMove", "BeastCryMove",
-            "SetStunned", "StunnedMove",
-            "AfterAddedToRoom", "AfterDeath", "BeforeRemovedFromRoom",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.CeremonialBeast.{*Move, SetStunned, lifecycle}");
-    private static PatchOutcome PatchCeremonialBeast(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _ceremonialBeastEntry);
+    // CeremonialBeast (Act 1 boss on seed 1). IL probe confirms all
+    // moves + lifecycle methods are TestMode-safe (null-gated UI helpers
+    // + CreatureCmd.TriggerAnim early-exit). Restoring the body means
+    // the boss actually attacks, applies stun, and runs phase-setup
+    // PowerCmd.Apply in AfterAddedToRoom.
 
     // ── Encounter-sweep wave ────────────────────────────────────────────
     //
@@ -181,35 +111,13 @@ public static partial class HangPatches
     // wrapper exists for the narrative comment, not for behaviour; the
     // shared PatchMonsterMethods helper does the work.
 
-    // CORPSE_SLUGS_NORMAL → CorpseSlug (with RAVENOUS_POWER). The slug
-    // moves NRE on the engine's slime-VFX setup; Ravenous is the on-kill
-    // listener that handles "spawn a Slimed when corpse dies" — its
-    // AfterDeath hook is the killing-blow path failure mode.
-    private static readonly MonsterPatchEntry _corpseSlugEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "GlompMove", "GoopMove", "WhipSlapMove",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.CorpseSlug.*Move");
-    private static PatchOutcome PatchCorpseSlug(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _corpseSlugEntry);
+    // CorpseSlug — moves are TestMode-safe per IL probe; the originally-
+    // diagnosed "slime-VFX setup NRE" was the missing TestMode flag.
+    // RavenousPower stays patched separately for the on-kill listener.
 
-    // DECIMILLIPEDE_ELITE → DecimillipedeSegment (parent of *Front/Middle/
-    // Back). Each segment owns REATTACH_POWER:25. The segment-move bodies
-    // and AfterAddedToRoom/AfterDeath walk segment-link state via UI nodes
-    // that don't exist headless.
-    private static readonly MonsterPatchEntry _decimillipedeEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "BulkMove", "ConstrictMove", "ReattachMove", "WritheMove",
-            "DeadMove", "AnimSegmentsAttack",
-            "AfterDeath",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.DecimillipedeSegment.{*Move, AfterDeath}");
-    private static PatchOutcome PatchDecimillipede(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _decimillipedeEntry);
+    // DecimillipedeSegment — TestMode-safe. AnimSegmentsAttack has a
+    // TestMode.IsOn early-exit; AfterDeath gates Godot calls similarly.
+    // ReattachPower stays patched separately.
 
     // DOORMAKER_BOSS → Doormaker. Originally this patch no-op'd every
     // move method + SwapPhasePower, which silently stripped the boss
@@ -246,9 +154,11 @@ public static partial class HangPatches
     private static PatchOutcome PatchDoormaker(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2, _doormakerEntry);
 
-    // GREMLIN_MERC_NORMAL → GremlinMerc spawns a FatGremlin via its moves;
-    // both need patching for the encounter to finish out. HEIST_POWER is a
-    // synchronous power (no Task-returning hooks per `probe-types`) so no
+    // GREMLIN_MERC_NORMAL → GremlinMerc spawns a FatGremlin. GremlinMerc
+    // moves are TestMode-safe per IL probe (TalkCmd already patched
+    // globally; CreatureCmd.TriggerAnim safe). FatGremlin moves remain
+    // patched defensively — not probed in the current pass; revisit if
+    // an audit cycle confirms safety. HEIST_POWER is synchronous so no
     // power patch is needed.
     private static readonly MonsterPatchEntry _fatGremlinEntry = new(
         TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.FatGremlin",
@@ -260,87 +170,53 @@ public static partial class HangPatches
     private static PatchOutcome PatchFatGremlin(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2, _fatGremlinEntry);
 
-    private static readonly MonsterPatchEntry _gremlinMercEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "DoubleSmashMove", "GimmeMove", "HeheMove",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.GremlinMerc.*Move");
-    private static PatchOutcome PatchGremlinMerc(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _gremlinMercEntry);
+    // TerrorEel — TestMode-safe per IL probe. VigorPower.AfterAttack
+    // stays patched separately.
 
-    // TERROR_EEL_ELITE → TerrorEel (with VIGOR_POWER). VigorPower.AfterAttack
-    // is patched separately. StunMove is the move the engine sequences into
-    // after a stun-shaped action; without it patched the agent still stalls
-    // on the round the eel's state machine picks Stun.
-    private static readonly MonsterPatchEntry _terrorEelEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "CrashMove", "TerrorMove", "ThrashMove", "StunMove",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.TerrorEel.*Move");
-    private static PatchOutcome PatchTerrorEel(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _terrorEelEntry);
-
-    // TUNNELER_WEAK → Tunneler. No named power in the stall fingerprint;
-    // the hang is purely move-side.
+    // TUNNELER_WEAK → Tunneler. BelowMove has an unconditional
+    // Godot.Node2D.set_Position branch (positions the tunneler under
+    // the player). The other two moves (BiteMove, BurrowMove) are
+    // TestMode-safe — patch only BelowMove until a leaf-helper lands.
     private static readonly MonsterPatchEntry _tunnelerEntry = new(
         TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler",
         MethodNames: new HashSet<string>(StringComparer.Ordinal)
         {
-            "BelowMove", "BiteMove", "BurrowMove",
+            "BelowMove",
         },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.*Move");
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.Tunneler.BelowMove");
     private static PatchOutcome PatchTunneler(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2, _tunnelerEntry);
 
-    // THE_INSATIABLE_BOSS → TheInsatiable. STRENGTH_POWER in the fingerprint
-    // is vanilla and already works; the hang is the move bodies.
-    private static readonly MonsterPatchEntry _theInsatiableEntry = new(
-        TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable",
-        MethodNames: new HashSet<string>(StringComparer.Ordinal)
-        {
-            "BiteMove", "LiquifyMove", "SalivateMove", "ThrashMove",
-        },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.TheInsatiable.*Move");
-    private static PatchOutcome PatchTheInsatiable(Harmony harmony, Assembly sts2)
-        => PatchMonsterMethods(harmony, sts2, _theInsatiableEntry);
+    // TheInsatiable — TestMode-safe per IL probe.
 
-    // LAGAVULIN_MATRIARCH_BOSS and SLUMBERING_BEETLE_NORMAL share the
-    // sleeping-monster shape: the encounter starts with the monster
-    // asleep, and AfterAddedToRoom builds the sleep state. In headless
-    // that hook NREs on UI bits, leaving the engine with IsInProgress=false
-    // after debug/start_combat (the symptom in the sweep report). Patching
-    // AfterAddedToRoom + the WakeUpMove path is what gets the combat to
-    // actually enter and progress.
-    //
-    // The agent doesn't experience the asleep→awake transition (the
-    // monster is functionally awake from turn 1 with intent reported via
-    // the wire), but the encounter still completes and the engine no
-    // longer wedges. Acceptable cost for the sweep's coverage signal.
+    // LagavulinMatriarch — moves are TestMode-safe per IL probe.
+    // AfterAddedToRoom stays patched because its body legitimately puts
+    // the monster into a sleeping state, which leaves the sweep fixture
+    // with InProgress=false (no active combatant to advance). Same
+    // shape as SlumberingBeetle below — the sweep can't drive a
+    // sleep-locked encounter; production agents would observe the
+    // intent and end-turn until WakeUpMove fires.
     private static readonly MonsterPatchEntry _lagavulinMatriarchEntry = new(
         TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch",
         MethodNames: new HashSet<string>(StringComparer.Ordinal)
         {
-            "DisembowelMove", "Slash2Move", "SlashMove", "SoulSiphonMove",
-            "WakeUpMove", "SleepMove", "AfterAddedToRoom",
-            // First-blood path: Hellraiser → AttackCommand → CreatureCmd.Damage →
-            // Hook.AfterDamageReceived. Same shape as the Crusher fix.
-            "AfterDamageReceived", "AfterDeath",
+            "AfterAddedToRoom",
         },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.{*Move, lifecycle, AfterDamageReceived}");
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.LagavulinMatriarch.AfterAddedToRoom");
     private static PatchOutcome PatchLagavulinMatriarch(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2, _lagavulinMatriarchEntry);
 
+    // SlumberingBeetle.AfterAddedToRoom keeps an unconditional
+    // NCombatRoom.get_Instance + dereference — keep it patched until a
+    // proper null-gate or leaf helper lands. The two Move methods are
+    // TestMode-safe.
     private static readonly MonsterPatchEntry _slumberingBeetleEntry = new(
         TypeFqn: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle",
         MethodNames: new HashSet<string>(StringComparer.Ordinal)
         {
-            "RolloutMove", "WakeUpMove", "AfterAddedToRoom",
+            "AfterAddedToRoom",
         },
-        Label: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.{*Move, AfterAddedToRoom}");
+        Label: "MegaCrit.Sts2.Core.Models.Monsters.SlumberingBeetle.AfterAddedToRoom");
     private static PatchOutcome PatchSlumberingBeetle(Harmony harmony, Assembly sts2)
         => PatchMonsterMethods(harmony, sts2, _slumberingBeetleEntry);
 
