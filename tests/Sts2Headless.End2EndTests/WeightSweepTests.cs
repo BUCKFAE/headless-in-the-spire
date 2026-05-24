@@ -364,6 +364,76 @@ public class WeightSweepTests
             PlayerDexterity = 5.0,
         });
 
+    // V7 — Hail-Mary variants and combinations.
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V7_FlatEnemyHpPlus() => Measure(
+        "v7-flat-enemy-hp-plus",
+        HeuristicWeights.Default with { EnemyHp = -2.5, IncomingDamage = -2.0, PlayerBlock = 0.2 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V7_NegPlayerBlock() => Measure(
+        "v7-neg-player-block",
+        HeuristicWeights.Default with { PlayerBlock = -0.2, IncomingDamage = -2.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V7_DurationMultBoost() => Measure(
+        "v7-duration-mult-boost",
+        HeuristicWeights.Default with {
+            DemonForm = 90.0,
+            FeelNoPain = 16.0,
+            DarkEmbrace = 18.0,
+            Combust = 20.0,
+            Metallicize = 18.0,
+            Juggernaut = 14.0,
+        });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V7_AggrPower() => Measure(
+        "v7-aggr-power",
+        HeuristicWeights.Default with {
+            DemonForm = 100.0,
+            PlayerStrength = 14.0,
+            PlayerHp = 5.0,
+            IncomingDamage = -2.0,
+            PlayerBlock = 0.3,
+        });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V7_BigStrengthPenalty() => Measure(
+        "v7-big-str-penalty",
+        HeuristicWeights.Default with {
+            EnemyStrength = -8.0,
+            EnemyVulnerable = 5.0,
+        });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V7_BigCardsDrawn() => Measure(
+        "v7-big-cards-drawn",
+        HeuristicWeights.Default with { CardsDrawn = 3.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V7_LowEverything() => Measure(
+        "v7-low-everything",
+        HeuristicWeights.Default with {
+            PlayerHp = 2.0,
+            EnemyHp = -1.5,
+            PlayerBlock = 0.1,
+            IncomingDamage = -1.0,
+        });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V7_DefendIsBad() => Measure(
+        "v7-defend-is-bad",
+        HeuristicWeights.Default with { PlayerBlock = -1.0, IncomingDamage = -1.5 });
+
     private async Task MeasureWithPlanner(string name, HeuristicWeights weights, PlannerBudget budget)
         => await DoMeasure(name, () => new IroncladAgent(
             evaluator: new HeuristicEvaluator(weights),
