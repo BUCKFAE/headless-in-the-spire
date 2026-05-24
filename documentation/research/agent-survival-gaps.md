@@ -7,10 +7,10 @@ in-process `--probe-combat-stall` walk over seeds 1..25 (Ironclad, heal-
 between-rooms via `debug/set_hp`).
 
 The reason this matters: **every end-to-end test depends on the agent
-making forward progress.** Today only `ReachAct1BossTests` and the future
-`MerchantRoomTests` are blocked, but every multi-room arc the project
-adds will hit the same gaps. They're documented here as a punch list so
-the next agent-survival slice has a starting point.
+making forward progress.** `ReachAct1BossTests` and `MerchantRoomTests`
+both ship today; the gaps below are documented as a punch list so the
+next agent-survival slice has a starting point when new multi-room arcs
+land.
 
 ## summary
 
@@ -30,10 +30,18 @@ slice:
 - **0/25 seeds stall on late-Act-1 monsters.** Seed 18 (`KIN_FOLLOWER`
   at floor 17) was a missing `Node2D.Scale` getter — added to
   `GodotStubs/Nodes.cs`. Seeds 22 and 23 (`VANTOM.DismemberMove`,
-  also floor 17) were an internal NRE inside the move's body with
-  no MissingMethodException to name the gap; patched with a
-  `HangPatches.PatchVantomDismemberMove` no-op so Vantom skips that
-  one move and the enemy turn completes.
+  also floor 17) were a `NullReferenceException` on the unguarded
+  `NGame.Instance.DoHitStop(2, 1)` call inside the move's MoveNext
+  state machine. Fix is an IL transpiler
+  (`HangPatches.PatchVantomDismemberMoveDoHitStop` in
+  `src/Sts2Headless.Runtime/Patches/HangPatches.NGame.cs`) that
+  rewrites the four-instruction window
+  `call NGame.get_Instance; ldc.i4 ldc.i4; callvirt NGame.DoHitStop`
+  to four `Nop`s. Receiver-null callvirt fails before any Harmony
+  prefix could run, so the leaf-helper recipe doesn't help here — the
+  surrounding `AttackCommand.Execute` and `AddToCombatAndPreview<Wound>`
+  await chain runs untouched. Coverage in
+  `tests/Sts2Headless.IntegrationTests/VantomDismemberHangTests.cs`.
 
 Affected events that exercise the recovery path (each one has the same
 shape: chosen option's handler awaits a `CardSelectCmd.From*` factory,
@@ -81,26 +89,26 @@ The fix bundles three classes of change:
    - `Godot.Node2D.Scale` (KIN_FOLLOWER/KIN_PRIEST at floor 17,
      surfaced after the card-select slice unblocked deeper Act 1)
 
-2. **`HangPatches.PatchTalkCmdPlay`** (`src/Sts2Headless.Runtime/Patches/HangPatches.cs`).
+2. **`HangPatches.PatchTalkCmdPlay`** (`src/Sts2Headless.Runtime/Patches/HangPatches.Cards.cs`).
    `BygoneEffigy.WakeMove` and similar intro moves call
    `TalkCmd.Play(LocString, Creature, VfxColor, VfxDuration)`, which
    returns `NSpeechBubbleVfx` and walks UI-only state to construct it.
    In headless those nodes are absent, so the body NREs. Harmony prefix
    skips the body and returns null; the NRE never fires, the enemy turn
-   completes cleanly. The same shape applies to
-   `HangPatches.PatchVantomDismemberMove`, added in the late-Act-1
-   stall slice — `Vantom.DismemberMove` is a void method whose body
-   NREs with no surfacing `MissingMethodException`, so the prefix
-   simply skips the body. Vantom's other moves stay intact so the
-   encounter still threatens the player.
+   completes cleanly. Vantom.DismemberMove is a different story — its
+   NRE fires on a receiver-null `callvirt` before any prefix could run,
+   so it's patched via the IL transpiler described in the summary
+   above (not a body-skip prefix). Vantom's other moves stay intact so
+   the encounter still threatens the player.
 
-3. **`ProbeCombatStallCommand`** (`src/Sts2Headless/`). The diagnostic
-   probe that walks a seed in-process, drives the agent's logic via the
-   bindings, and on the first stalled combat dumps engine state plus a
-   short list of "WaitX"/"YieldX" methods in sts2.dll. Run via
-   `just probe-combat-stall <seed> [floor]`. This is the tool to reach
-   for whenever a new combat-stall regression surfaces — `Method not
-   found:` in the stderr names the next stub gap.
+3. **`ProbeCombatStallCommand`** (`src/Sts2Headless.Commands/probe/`).
+   The diagnostic probe that walks a seed in-process, drives the
+   agent's logic via the bindings, and on the first stalled combat
+   dumps engine state plus a short list of "WaitX"/"YieldX" methods in
+   sts2.dll. Run via `just probe-combat-stall <seed> [floor]`. This is
+   the tool to reach for whenever a new combat-stall regression
+   surfaces — `Method not found:` in the stderr names the next stub
+   gap.
 
 ## what the card-select-screen NRE actually was (recovered, not fixed)
 
@@ -122,14 +130,19 @@ log preceding the NRE is the smoking gun.
 
 The fix bundles three pieces of slightly different shapes:
 
-1. **`HangPatches.PatchCardSelectCmdFactories`** — every
-   `MegaCrit.Sts2.Core.Commands.CardSelectCmd.From*` factory is
-   `static async Task<CardSelectCmd>` whose pre-first-await body calls
-   the screen-`Create` that NREs. A Harmony prefix returns
-   `Task.FromResult<CardSelectCmd>(default)` and skips the original.
-   Without this patch the NRE bubbles synchronously past the async
-   state machine and aborts the host; with it, the caller's await
-   yields null and the dereference NRE lands at the event-model layer.
+1. **`HeadlessCardSelector` + `HeadlessCardSelectorBridge`**
+   (`src/Sts2Headless.Runtime/CardSelection/`). The engine's own
+   `CardSelectCmd.UseSelector(ICardSelector)` hook lets us install a
+   headless `ICardSelector` implementation (via `DispatchProxy`, AD-4
+   safe) that returns a pre-queued pick instead of opening a screen.
+   Hand-side factories (`CardSelectCmd.FromHandForUpgrade`,
+   `FromHandForDiscard`, `FromHand`) each get a per-factory Harmony
+   prefix in `HangPatches.Cards.cs` that resolves the pick through the
+   same queue. This replaced the original blanket `From*`-factory
+   prefix (commit `7622137`): with the bridge the engine's async
+   state machine completes normally, so card-pick cards work
+   end-to-end (Armaments, BurningPact, Headbutt, …) instead of just
+   surviving.
 
 2. **`GreedyAgent.StepEventAsync`** now picks the *last* unlocked
    option. By sts2 convention the "leave / decline / safe" choice
@@ -140,28 +153,19 @@ The fix bundles three pieces of slightly different shapes:
    `WELLSPRING.BATHE`, `WOOD_CARVINGS.TORUS`) — but it's a cheap
    heuristic that costs nothing on the failure path.
 
-3. **`Sts2Bindings.SelectEventOption` recovery** — the real fix.
-   `_eventOptionChosen.Invoke(...)` is wrapped in try-catch; on
-   exception we still call `AutoAdvanceFinishedEvent`, whose
-   `EnterRoom(MapRoom)` fallback flips the room type even if
-   `IsFinished` is still false. The bindings then verify the room
-   actually left `EventRoom`; if not, the original exception is
-   re-thrown wrapped in an `InvalidOperationException`. Net effect:
-   any event whose handler crashes mid-`Chosen` becomes a no-effect
-   "land back on the map" instead of a host-killing exception.
-
-The gameplay effects of broken events are entirely skipped — neither
-HP cost nor reward applies. That's the right tradeoff for an
-agent-survival fix; the engine remains in a self-consistent state and
-the agent can keep walking the run.
-
-**Future slice — proper card-select screen stand-in.** If/when an
-end-to-end test wants the event's gameplay effect to land (e.g. "after
-picking SAPPHIRE_SEED.EAT, the deck contains the chosen upgrade"), the
-right answer is option 3 from the earlier sketch: stub
-`NSimpleCardSelectScreen.Create` / `NDeckUpgradeSelectScreen.ShowScreen`
-to return a screen whose "selected" field is pre-populated with a
-default pick. Until such a test exists, the recovery path is enough.
+3. **`Sts2Bindings.SelectEventOption` recovery** — belt-and-braces
+   safety net for the residual NREs that still fire from event paths
+   the bridge doesn't cover. `_eventOptionChosen.Invoke(...)` is
+   wrapped in try-catch; on exception we still call
+   `AutoAdvanceFinishedEvent`, whose `EnterRoom(MapRoom)` fallback
+   flips the room type even if `IsFinished` is still false. The
+   bindings then verify the room actually left `EventRoom`; if not,
+   the original exception is re-thrown wrapped in an
+   `InvalidOperationException`. Net effect: any event whose handler
+   crashes mid-`Chosen` becomes a no-effect "land back on the map"
+   instead of a host-killing exception. Gameplay effects (HP cost,
+   reward) are skipped on the recovery path, but the engine stays
+   self-consistent and the agent keeps walking the run.
 
 ### B. `EventRoom` with no surfaced options (1 seed in prior scan)
 
