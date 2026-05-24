@@ -61,6 +61,13 @@ public static class BossDraftBias
         },
         ["VANTOM_BOSS"] = new()
         {
+            // Positive — Whirlwind is *the* single Slippery counter
+            // in the kit. Per-boss winrate before the bias: 2/15.
+            // The bias only fires when Whirlwind is offered alongside
+            // another same-tier card; the tier list already values
+            // it at A, so we're not redirecting away from S-tier picks.
+            [CardId.Whirlwind]   = new(+12, "the cleanest Slippery counter"),
+            // Traps — burn Slippery stacks on big single hits.
             [CardId.Hemokinesis] = new(-12, "15 dmg burns 1 Slippery stack — value collapse"),
             [CardId.Inferno]     = new(-12, "single-target boss; AoE wasted, HP cost real"),
             [CardId.Spite]       = new(-12, "single hits per cast on Slippery"),
