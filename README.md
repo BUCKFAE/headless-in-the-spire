@@ -10,6 +10,24 @@ A custom headless runner for **Slay the Spire 2**. It loads the real game logic
 out-of-game and drives it programmatically for deterministic testing, automation,
 AI experimentation, and replay tooling.
 
+## Features
+
+- **Real game, no reimplementation.** The host loads the shipped `sts2.dll` and drives it as a library. STS2's own C# is the source of behavioral truth.
+- **Runs headless, parallelisable.** A .NET subprocess — no Godot window, no input injection, no display server. Scenarios are reproducible on CI and trivially parallel.
+- **Schema-first wire protocol.** NDJSON / JSON-RPC over stdio, with an
+  OpenRPC schema exported directly from the C# method records. Ships a
+  typed pydantic v2 Python client and an MCP server, so any MCP-aware
+  assistant (Claude Desktop, Claude Code, …) can drive a full run
+  end-to-end.
+- **Native replay artefacts.** Per-combat `.mcr` and per-run `.run` files
+  are written through the engine's *own* writers — the same format the
+  game itself produces. A bundled TypeScript replay viewer renders them
+  straight from disk.
+- **Tested against the real DLL.** Three-axis test pyramid (unit /
+  integration / end-to-end), plus opt-in mechanic sweeps that drive every
+  card / relic / event / potion / power / encounter / affliction /
+  enchantment id through a minimal fixture.
+
 ## Current State
 This project is in *very active, very early* development. Expect breaking changes hourly.
 
