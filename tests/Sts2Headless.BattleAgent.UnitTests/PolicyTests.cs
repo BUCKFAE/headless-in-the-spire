@@ -78,7 +78,8 @@ public sealed class PolicyTests
     [Fact]
     public void DraftSkipsAllLowTierOffers()
     {
-        // All three cards are headless-unsafe (F-tier) — skip.
+        // All three cards are headless-unsafe / unmodelled-effect
+        // (F-tier) — skip.
         var cards = new[]
         {
             new CardRewardOption(Index: 0, Id: CardId.Headbutt, Cost: 1),

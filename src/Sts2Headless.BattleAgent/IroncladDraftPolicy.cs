@@ -16,11 +16,9 @@ namespace Sts2Headless.BattleAgent;
 // highest-tier offered if it beats the skip threshold, otherwise skip.
 public sealed class IroncladDraftPolicy : IDraftPolicy
 {
-    // Tracker accepted for forward-compat — archetype-aware tiebreak
-    // was tested and measured net-negative (cost 1 win on the 50-seed
-    // corpus). The field stays so a future scoring change can read
-    // deck state without an interface bump.
-    public IroncladDraftPolicy(RunDeckTracker? tracker = null) { _ = tracker; }
+    private readonly RunDeckTracker? _tracker;
+
+    public IroncladDraftPolicy(RunDeckTracker? tracker = null) { _tracker = tracker; }
 
     public AgentAction Choose(RunStateResult state)
     {
@@ -42,7 +40,14 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
                 return new SelectReward(head.Index);
             }
 
-            var bestTier = CardTier.F;
+            // Compute the deck's archetype affinity (how committed it is
+            // to each archetype) from the run-deck tracker.
+            var affinity = ComputeDeckAffinity();
+
+            // Highest-tier wins; first-found within ties (synergy
+            // tie-break tested 11/50 → 8/50). Keep affinity computed
+            // for the synergy-override skip path below.
+            CardTier bestTier = CardTier.F;
             var bestIdx = 0;
             for (var i = 0; i < cards.Count; i++)
             {
@@ -53,21 +58,32 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
                     bestIdx = i;
                 }
             }
+            var bestSynergy = SynergyBonus(cards[bestIdx].Id, affinity);
 
-            // Deck-size-aware skip threshold (per the 2026-05 STS2
-            // research deliverable):
+            // Deck-size-aware skip threshold:
             //   - small deck (<= 12): take everything (greedy stage)
             //   - mid deck (13-18): take C-tier or better
             //   - large deck (>= 19): only take A-tier or better
             //     (extra cards dilute payoffs in a 3-act run)
+            //
+            // Synergy-aware override: a B-tier card that buffs an
+            // archetype the deck has already seeded (>=2 enablers) is
+            // worth taking even past the size cap. Captured by checking
+            // if the synergy bonus alone meets a small floor.
             var threshold = state.DeckSize switch
             {
                 <= 12 => (int)CardTier.D,
                 <= 18 => (int)CardTier.C,
                 _     => (int)CardTier.A,
             };
+            // Synergy-aware override: if the best card pays off heavily
+            // from the deck (sum >= 20), take it even if below the
+            // tier threshold. Captures "this B-tier closes an archetype
+            // gap" cases that flat tier-only logic would skip.
+            var synergyOverride = bestSynergy >= 20
+                && (int)bestTier >= (int)CardTier.C;
 
-            if (head.CanSkip && (int)bestTier < threshold)
+            if (head.CanSkip && (int)bestTier < threshold && !synergyOverride)
                 return new SkipReward(head.Index);
 
             return new SelectReward(head.Index, cards[bestIdx].Index);
@@ -75,6 +91,44 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
 
         // Non-card rewards (gold, relic, potion): claim.
         return new SelectReward(head.Index);
+    }
+
+    // Per-archetype count of "enabler" cards present in the run-true
+    // deck. Used as the deck's commitment score per archetype — more
+    // enablers = stronger pull toward that archetype.
+    private Dictionary<Archetype, int> ComputeDeckAffinity()
+    {
+        var result = new Dictionary<Archetype, int>();
+        if (_tracker is null) return result;
+        foreach (var card in _tracker.Cards)
+        {
+            var profile = CardArchetypes.Of(card);
+            foreach (var a in profile.Enables)
+                result[a] = result.GetValueOrDefault(a) + 1;
+        }
+        return result;
+    }
+
+    // Synergy bonus — used only as a tie-breaker within the
+    // highest-tier offers. Sum payoff weight × deck commitment for
+    // each archetype the card pays off from, minus anti-synergy
+    // penalty when the deck is committed to an archetype the card
+    // breaks. Caller path ensures this never overrides a tier gap.
+    private static int SynergyBonus(CardId id, Dictionary<Archetype, int> affinity)
+    {
+        var profile = CardArchetypes.Of(id);
+        var bonus = 0;
+        foreach (var a in profile.PayoffsFrom)
+        {
+            var commitment = affinity.GetValueOrDefault(a);
+            if (commitment >= 1) bonus += 5 + 4 * commitment;
+        }
+        foreach (var a in profile.AntiSynergyWith)
+        {
+            var commitment = affinity.GetValueOrDefault(a);
+            if (commitment >= 2) bonus -= 8 * commitment;
+        }
+        return bonus;
     }
 
 
@@ -90,12 +144,14 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
 
     private static CardTier TierOf(CardId id)
     {
-        // Hard "don't draft" — these cards either trigger headless-only
-        // crashes or are status/curse fillers we never want in deck.
-        // Whirlwind WAS in this list (legacy NRE on play); the engine
-        // fix landed and the catalog now models it as 5-per-energy AoE,
-        // so it's draftable. PerfectedStrike, PactsEnd, Rampage all
-        // received proper modelling in the 2026-05-24 scaling pass.
+        // Hard "don't draft" — these cards are status / curse fillers
+        // we never want, or have hidden sub-flows our simulator can't
+        // value at all. Headbutt used to be on this list but is now
+        // draftable: even though the discard→draw cycle effect is
+        // unmodelled, the 9 damage alone is fine and the cycle effect
+        // is positive in any Block/Cycle deck the synergy bonus picks
+        // up on. BurningPact / DualWield / InfernalBlade stay F because
+        // their value is *entirely* in the unmodelled sub-flow.
         switch (id)
         {
             case CardId.Headbutt:
@@ -142,7 +198,6 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             CardId.FlameBarrier => CardTier.B,
             CardId.Entrench => CardTier.B,
             CardId.Rage => CardTier.B,
-            CardId.Rupture => CardTier.B,
             CardId.SecondWind => CardTier.B,
             CardId.FiendFire => CardTier.B,
             CardId.Feed => CardTier.B,
@@ -161,7 +216,13 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             CardId.Dismantle => CardTier.A,
             CardId.Taunt => CardTier.B,
             CardId.AshenStrike => CardTier.B, // 6+3/exhaust — scales fast
-            CardId.Brand => CardTier.B,        // +1 Str / -1 HP — Strength source
+            CardId.Brand => CardTier.B,        // pivot card, but only A in decks committed to Self-Damage/Exhaust
+            CardId.Rupture => CardTier.B,    // Self-Damage power core (modelled)
+            // Inferno / Cruelty / Hellraiser / Spite NOT modelled in
+            // IroncladCardCatalog yet — drafting them gives the planner
+            // dead-weight cards it can't play. Leave them at F-tier
+            // until each card's effect lands in the catalog (then move
+            // to A based on the research deliverable's tier ratings).
 
             // C-tier — redundant or situational.
             CardId.Anger => CardTier.C,
