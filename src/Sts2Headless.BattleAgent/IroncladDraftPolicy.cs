@@ -44,21 +44,46 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             // to each archetype) from the run-deck tracker.
             var affinity = ComputeDeckAffinity();
 
-            // Highest-tier wins; first-found within ties (synergy
-            // tie-break tested 11/50 → 8/50). Keep affinity computed
-            // for the synergy-override skip path below.
+            // Highest-tier wins. If the deck has a *committed*
+            // archetype (any single archetype with >= 3 enablers in the
+            // run deck), use synergy as the tie-break within the top
+            // tier. Otherwise stay first-found (synergy tie-break on an
+            // undecided deck regressed 11/50 → 8/50; the gate avoids
+            // biasing the early-act picks before the run has a
+            // direction).
+            // Threshold of 3 enablers before the synergy tie-break
+            // engages. Lower (= 2) regressed 11/50 → 10/50 because the
+            // bias kicked in before the deck had a real direction.
+            // Higher (= 4) is equivalent to dormant — almost no
+            // 50-seed run reaches 4 enablers of one archetype.
+            var committedThreshold = 3;
+            var committed = false;
+            foreach (var v in affinity.Values)
+                if (v >= committedThreshold) { committed = true; break; }
+
             CardTier bestTier = CardTier.F;
-            var bestIdx = 0;
             for (var i = 0; i < cards.Count; i++)
             {
                 var t = TierOf(cards[i].Id);
-                if ((int)t > (int)bestTier)
+                if ((int)t > (int)bestTier) bestTier = t;
+            }
+            var bestIdx = 0;
+            var bestSynergy = int.MinValue;
+            for (var i = 0; i < cards.Count; i++)
+            {
+                if (TierOf(cards[i].Id) != bestTier) continue;
+                var synergy = committed ? SynergyBonus(cards[i].Id, affinity) : 0;
+                if (synergy > bestSynergy)
                 {
-                    bestTier = t;
+                    bestSynergy = synergy;
                     bestIdx = i;
                 }
             }
-            var bestSynergy = SynergyBonus(cards[bestIdx].Id, affinity);
+            // Re-evaluate for the skip path: always compute the synergy
+            // of the picked card (regardless of `committed`) so the
+            // override fires on emerging-but-not-yet-committed archetypes
+            // too.
+            bestSynergy = SynergyBonus(cards[bestIdx].Id, affinity);
 
             // Deck-size-aware skip threshold:
             //   - small deck (<= 12): take everything (greedy stage)
