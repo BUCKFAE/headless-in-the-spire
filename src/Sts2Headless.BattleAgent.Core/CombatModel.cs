@@ -437,7 +437,20 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
                 totalHpDamage += hpDamage;
             }
         }
-        enemies[targetIdx] = target with { Block = block, Hp = hp, Slippery = slippery };
+        // Plow threshold (Beast Phase-1 → stun + Strength reset when
+        // HP crosses to <= threshold). Modelling the *trigger* (zero
+        // intent, reset Str, both) regressed 33/200 → 32/200 — the
+        // planner over-credited the free turn and skipped block prep
+        // for Phase 2. Kept the field readable (SimEnemy.PlowThreshold)
+        // for future evaluator-side experiments (e.g. bonus score for
+        // "this attack crosses the threshold") but the damage helper
+        // does not mutate state on the trigger.
+        enemies[targetIdx] = target with
+        {
+            Block = block,
+            Hp = hp,
+            Slippery = slippery,
+        };
         return (state with { Enemies = enemies }, totalHpDamage);
     }
 

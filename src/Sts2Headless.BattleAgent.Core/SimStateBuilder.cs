@@ -87,6 +87,7 @@ public static class SimStateBuilder
         var vuln = ReadPower(e.Powers, "VULNERABLE_POWER");
         var weak = ReadPower(e.Powers, "WEAK_POWER");
         var slippery = ReadPower(e.Powers, "SLIPPERY_POWER");
+        var plowThreshold = ReadPower(e.Powers, "PLOW_POWER");
         var firstIntent = e.Intents.Count > 0 ? e.Intents[0] : null;
         EnemyIntent? intent = firstIntent is null
             ? null
@@ -112,7 +113,8 @@ public static class SimStateBuilder
             Weak: weak,
             Intent: intent,
             OtherPowers: other.Length == 0 ? null : other,
-            Slippery: slippery);
+            Slippery: slippery,
+            PlowThreshold: plowThreshold);
     }
 
     private static PlayerStatus ReadStatus(IReadOnlyList<Power> powers)
@@ -154,7 +156,7 @@ public static class SimStateBuilder
     private static bool IsKnownEnemyPower(string id) => id switch
     {
         "STRENGTH_POWER" or "VULNERABLE_POWER" or "WEAK_POWER"
-            or "SLIPPERY_POWER" => true,
+            or "SLIPPERY_POWER" or "PLOW_POWER" => true,
         _ => false,
     };
 }

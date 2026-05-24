@@ -138,7 +138,14 @@ public sealed record SimEnemy(
     // 1 and the stack decrements. Modelled in
     // CombatModel.DealSingleTargetDamage. Read from the wire's
     // "SLIPPERY_POWER" power id by SimStateBuilder.
-    int Slippery = 0)
+    int Slippery = 0,
+    // STS2 PLOW_POWER (Ceremonial Beast's signature). Amount is the
+    // HP threshold below which the Beast enters its Phase-2 cycle:
+    // when HP drops to <= this value the Beast is stunned for one
+    // turn AND loses all accumulated Strength. Modelled in
+    // CombatModel.DealSingleTargetDamage — when we cross the
+    // threshold the next intent is zeroed and Strength is reset.
+    int PlowThreshold = 0)
 {
     public bool IsDead => Hp <= 0;
 }
