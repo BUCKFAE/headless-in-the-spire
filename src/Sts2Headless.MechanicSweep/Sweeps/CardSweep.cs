@@ -7,7 +7,16 @@ namespace Sts2Headless.MechanicSweep.Sweeps;
 
 // Per-CardId smoke sweep. For each id in CardIdNames.AllWireNames:
 //
-//   1. run/new(Ironclad, seed=42)                — fresh state
+//   1. run/new(<owning character>, seed=42)      — fresh state. Character
+//                                                  picked via CardOriginPools
+//                                                  .OwningCharacter so that
+//                                                  Regent / Defect / etc.
+//                                                  cards exercise with their
+//                                                  native resource system
+//                                                  (Stars vs Energy etc.).
+//                                                  Falls back to Ironclad
+//                                                  for shared / colorless /
+//                                                  curse / status cards.
 //   2. debug/set_hp(999, 999)                    — survive incidental damage
 //   3. debug/replace_deck(test + 4 starter)      — single deck containing the
 //                                                  test card plus Strike×2,
@@ -29,7 +38,10 @@ namespace Sts2Headless.MechanicSweep.Sweeps;
 //     count tells us where to extend the fixture.
 //   * Unplayable — wire said no (insufficient energy for 3-cost cards on
 //     turn 1, wrong target type, etc.). Engine handled the request and
-//     replied with a structured error; no crash.
+//     replied with a structured error; no crash. Detail prefix carries
+//     the card's pool category so a reader can tell at-a-glance whether
+//     this is an expected refusal (curse / status — always Unplayable by
+//     design) or a fixture-staging gap to investigate.
 //
 // Failure outcomes (assertion-grade):
 //   * Crashed — the host or runtime threw an unhandled exception.
@@ -54,10 +66,15 @@ public sealed class CardSweep
     public static readonly System.TimeSpan PerCardBudget = System.TimeSpan.FromSeconds(20);
 
     // Cards with Innate or "draw later" mechanics may not appear in the
-    // opening hand of a single-card deck. Loop a couple of end-turns so
-    // the second/third draw can surface them. More than 3 turns is
-    // probably a different fixture's problem.
-    public const int MaxTurnsToFindCard = 3;
+    // opening hand of a single-card deck. Loop a few end-turns so the
+    // second/third draw can surface them AND give one or two retries
+    // on cards whose CanPlay flips true once a passive condition holds
+    // (resource accumulation, stance acquisition, etc.). 5 turns is
+    // the saturation point in practice — bumping higher (tested 8) did
+    // not unblock any additional cards; the remaining Unplayables have
+    // hard conditional CanPlay that the smoke fixture doesn't stage
+    // (cataloged in SweepKnownIssues.CardExpectedRefusals).
+    public const int MaxTurnsToFindCard = 5;
 
     // SLIMES_NORMAL is the canonical "smallest threat in the game" — two
     // slimes, low damage, no SUMMON / EXHAUST / DOOM mechanics that would
@@ -65,23 +82,67 @@ public sealed class CardSweep
     // baseline uses elsewhere.
     public const string BenignEncounter = "SLIMES_NORMAL";
 
-    // Filler attached to every per-card deck so the engine has something
-    // to pull from when the test card has side-effects like "Draw 1"
-    // (FLASH_OF_STEEL), "Look at the top X cards", or "Pick a card from
-    // your discard pile" — a single-card deck would empty the draw pile
-    // after the card lands in hand and any subsequent draw would face an
-    // empty pile + empty discard. The Ironclad starter pattern (Strike×2,
-    // Defend×2) is the most-played mix in the codebase and was already
-    // proven safe for sweep fixtures by RelicSweep.FixedDeck. Total deck
-    // size is 5 (4 starter + 1 test), comfortably within the engine's
-    // 5-card opening hand so the test card lands in hand on turn 1.
-    private static readonly (string CardId, int UpgradeLevel)[] FillerDeck =
+    // Per-character filler. The engine's replace_deck rejects non-native
+    // starter cards (an Ironclad Strike won't drop into a Regent deck —
+    // the Regent player can't legally have Ironclad Strikes), so each
+    // character gets its own Strike/Defend pair. The four-card filler
+    // gives the engine something to pull from for "Draw 1" / "Look at
+    // top X" / "Pick from discard" cards; without filler, a single-card
+    // deck empties as soon as the test card lands in hand and any
+    // subsequent draw faces empty piles. Same total deck size (5 = 4
+    // filler + 1 test) for every character so the engine's 5-card
+    // opening-hand draw lands the test card on turn 1.
+    private static readonly (string CardId, int UpgradeLevel)[] IroncladFiller =
     [
-        ("STRIKE_IRONCLAD", 0),
-        ("STRIKE_IRONCLAD", 0),
-        ("DEFEND_IRONCLAD", 0),
-        ("DEFEND_IRONCLAD", 0),
+        ("STRIKE_IRONCLAD", 0), ("STRIKE_IRONCLAD", 0),
+        ("DEFEND_IRONCLAD", 0), ("DEFEND_IRONCLAD", 0),
     ];
+    private static readonly (string CardId, int UpgradeLevel)[] SilentFiller =
+    [
+        ("STRIKE_SILENT", 0), ("STRIKE_SILENT", 0),
+        ("DEFEND_SILENT", 0), ("DEFEND_SILENT", 0),
+    ];
+    private static readonly (string CardId, int UpgradeLevel)[] DefectFiller =
+    [
+        ("STRIKE_DEFECT", 0), ("STRIKE_DEFECT", 0),
+        ("DEFEND_DEFECT", 0), ("DEFEND_DEFECT", 0),
+    ];
+    private static readonly (string CardId, int UpgradeLevel)[] RegentFiller =
+    [
+        ("STRIKE_REGENT", 0), ("STRIKE_REGENT", 0),
+        ("DEFEND_REGENT", 0), ("DEFEND_REGENT", 0),
+    ];
+    private static readonly (string CardId, int UpgradeLevel)[] NecrobinderFiller =
+    [
+        ("STRIKE_NECROBINDER", 0), ("STRIKE_NECROBINDER", 0),
+        ("DEFEND_NECROBINDER", 0), ("DEFEND_NECROBINDER", 0),
+    ];
+
+    private static (string CardId, int UpgradeLevel)[] FillerDeckFor(Character c) => c switch
+    {
+        Character.Ironclad    => IroncladFiller,
+        Character.Silent      => SilentFiller,
+        Character.Defect      => DefectFiller,
+        Character.Regent      => RegentFiller,
+        Character.Necrobinder => NecrobinderFiller,
+        _ => IroncladFiller,
+    };
+
+    // Annotate a Detail with the card's pool category so readers can
+    // distinguish a curse / status being Unplayable (expected by engine
+    // design — these are never playable in any combat) from a fixture-
+    // staging gap (a real card that needs richer setup to exercise).
+    // Empty for character-class cards: the pool prefix would just clutter
+    // the row when there's no design-time refusal to flag.
+    private static string AnnotatePool(CardOriginPool pool, string detail) => pool switch
+    {
+        CardOriginPool.Curse  => $"pool=curse (always Unplayable by design); {detail}",
+        CardOriginPool.Status => $"pool=status (always Unplayable by design); {detail}",
+        CardOriginPool.Quest  => $"pool=quest (event-spawned, not a regular play target); {detail}",
+        CardOriginPool.Token  => $"pool=token (engine-spawned mid-combat, not deck-playable); {detail}",
+        CardOriginPool.Event  => $"pool=event (event-tied; CanPlay typically requires the event context); {detail}",
+        _ => detail,
+    };
 
     public async System.Threading.Tasks.Task<SweepReport> RunAsync(
         ITransport transport,
@@ -120,20 +181,33 @@ public sealed class CardSweep
         using var cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(outerCt);
         cts.CancelAfter(PerCardBudget);
         var ct = cts.Token;
+
+        // Pool category drives both the starting Character (so Regent
+        // cards run with Regent's Stars resource, Defect cards with their
+        // own, etc.) AND the Detail prefix on Unplayable outcomes so
+        // expected-by-design refusals (curses, statuses) read clearly.
+        var pool = CardOriginPools.OfCard(cardId);
+        var character = CardOriginPools.OwningCharacter(cardId) ?? Character.Ironclad;
+
         try
         {
             // 1. Fresh run — cleans accumulated relics, pending rewards,
             // half-transitioned combat from the previous card.
             await transport.SendAsync<RunNewResult>(
                 "run/new",
-                new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+                new RunNewParams(Character: character, Seed: 42uL));
 
             // 2-4. Setup: HP cheat, test card + starter filler, force
             // benign combat. The test card goes first in the deck so the
-            // engine's opening-hand draw (top 5) includes it.
+            // engine's opening-hand draw (top 5) includes it. Filler
+            // is character-appropriate (FillerDeckFor): non-Ironclad
+            // characters use their own STRIKE/DEFEND variants because
+            // the Ironclad starters refuse to enter another character's
+            // deck under replace_deck.
             await transport.SetHpAsync(999, 999);
-            var deck = new System.Collections.Generic.List<(string, int)>(FillerDeck.Length + 1) { (cardId, 0) };
-            deck.AddRange(FillerDeck);
+            var filler = FillerDeckFor(character);
+            var deck = new System.Collections.Generic.List<(string, int)>(filler.Length + 1) { (cardId, 0) };
+            deck.AddRange(filler);
             await transport.ReplaceDeckAsync(deck);
             var combat = await transport.StartCombatAsync(BenignEncounter);
             if (!combat.InProgress)
@@ -144,8 +218,16 @@ public sealed class CardSweep
                     Detail: $"debug/start_combat returned InProgress=false (enemyCount={combat.EnemyCount})");
             }
 
-            // 5. Find the card in hand. Loop a couple of end-turns so
-            // Innate / draw-pile-only cards still surface.
+            // 5. Find the card in hand and try to play it. Loop a few
+            // end-turns so (a) Innate / draw-pile-only cards still
+            // surface AND (b) resource-cost cards (Regent's Stars build
+            // over turns) accumulate the cost before we conclude they're
+            // unplayable. On a Played outcome we return immediately; on
+            // an Unplayable we retry on the next turn (resource may have
+            // accrued); the LAST attempt's classification is what
+            // surfaces in the row.
+            string? lastUnplayableDetail = null;
+            int lastUnplayableTurn = 0;
             for (int turn = 0; turn < MaxTurnsToFindCard; turn++)
             {
                 ct.ThrowIfCancellationRequested();
@@ -175,9 +257,22 @@ public sealed class CardSweep
                     }
                     catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
                     {
-                        sw.Stop();
                         var c = SweepInternals.ClassifyWireError("card", cardId, wx);
-                        return new SweepRow(cardId, c.Outcome, Steps: turn, sw.Elapsed, Detail: c.Detail);
+                        // Crashed / KnownUnsafe → no point waiting for
+                        // resources; the engine is broken on this id.
+                        // Unplayable → maybe a resource-cost issue that
+                        // will resolve on a later turn (Regent Stars,
+                        // ICONIC orange-accumulator cards, etc.). Record
+                        // the detail and fall through to end_turn so the
+                        // next iteration re-checks.
+                        if (c.Outcome != SweepOutcome.Unplayable)
+                        {
+                            sw.Stop();
+                            return new SweepRow(cardId, c.Outcome, Steps: turn, sw.Elapsed,
+                                Detail: AnnotatePool(pool, c.Detail));
+                        }
+                        lastUnplayableDetail = c.Detail;
+                        lastUnplayableTurn = turn;
                     }
                 }
 
@@ -193,14 +288,26 @@ public sealed class CardSweep
                     var c = SweepInternals.ClassifyWireError("card", cardId, wx);
                     return new SweepRow(
                         cardId, c.Outcome, Steps: turn, sw.Elapsed,
-                        Detail: $"end_turn failed: {c.Detail}");
+                        Detail: AnnotatePool(pool, $"end_turn failed: {c.Detail}"));
                 }
             }
 
             sw.Stop();
+            // If we saw the card in hand but Unplayable on every turn we
+            // tried, surface that — it's a more useful row than
+            // Unreachable. Otherwise the card never drew (uncommon with
+            // a 5-card deck and 5-turn budget; usually means the card
+            // was self-Exhausted or transformed during another effect).
+            if (lastUnplayableDetail is not null)
+            {
+                return new SweepRow(
+                    cardId, SweepOutcome.Unplayable,
+                    Steps: lastUnplayableTurn, sw.Elapsed,
+                    Detail: AnnotatePool(pool, lastUnplayableDetail));
+            }
             return new SweepRow(
                 cardId, SweepOutcome.Unreachable, Steps: MaxTurnsToFindCard, sw.Elapsed,
-                Detail: $"card never drawn in {MaxTurnsToFindCard} turns");
+                Detail: AnnotatePool(pool, $"card never drawn in {MaxTurnsToFindCard} turns"));
         }
         catch (System.OperationCanceledException) when (cts.Token.IsCancellationRequested && !outerCt.IsCancellationRequested)
         {

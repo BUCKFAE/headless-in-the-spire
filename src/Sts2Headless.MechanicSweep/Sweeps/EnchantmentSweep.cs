@@ -8,17 +8,36 @@ namespace Sts2Headless.MechanicSweep.Sweeps;
 // Per-EnchantmentId smoke sweep. Same shape as AfflictionSweep but via
 // CardCmd.Enchant. Enchantments attach to cards in hand and modify
 // their behavior (Adroit / Clone / Corrupted / ...).
+//
+// The fixture deck is a mixed Ironclad bundle that exposes one card of
+// each major type (Attack / Skill / Power) so type-restricted
+// enchantments (GOOPY / NIMBLE want Skills, IMBUED / SOULS_POWER want
+// Powers, etc.) can find a compatible target in hand even when their
+// CanEnchant predicate refuses Strike. The sweep walks the hand
+// looking for the first index whose enchant_card succeeds; only if
+// every index refuses do we surface Unplayable.
 public sealed class EnchantmentSweep
 {
     public static readonly System.TimeSpan PerEnchantmentBudget = System.TimeSpan.FromSeconds(30);
     public const string BenignEncounter = "SLIMES_NORMAL";
 
+    // Deck size 5 = engine's opening hand. One card per archetype
+    // (Attack / Skill / Power / Exhaust-keyword / Ethereal-keyword) so
+    // type-restricted enchantments find a compatible target:
+    //   * STRIKE_IRONCLAD — basic Attack (no keywords)
+    //   * DEFEND_IRONCLAD — basic Skill (no keywords)
+    //   * INFLAME         — Power (covers IMBUED / Power-restricted)
+    //   * IMPERVIOUS      — Skill, Exhaust keyword (covers SOULS_POWER
+    //                       and other Exhaust-restricted enchantments)
+    //   * DEMON_FORM      — second Power so the walk has a fallback if
+    //                       one Power slot is otherwise occupied
     private static readonly (string CardId, int UpgradeLevel)[] FixedDeck =
     [
         ("STRIKE_IRONCLAD", 0),
-        ("STRIKE_IRONCLAD", 0),
         ("DEFEND_IRONCLAD", 0),
-        ("DEFEND_IRONCLAD", 0),
+        ("INFLAME",         0),
+        ("IMPERVIOUS",      0),
+        ("DEMON_FORM",      0),
     ];
 
     public async System.Threading.Tasks.Task<SweepReport> RunAsync(
@@ -79,19 +98,43 @@ public sealed class EnchantmentSweep
             }
             DrainTriggers(await transport.SendAsync<RunStateResult>("run/state"), enchantmentId, firedHooks);
 
-            string targetCard;
-            try
+            // Try every hand index until one succeeds. Type-restricted
+            // enchantments (GOOPY/NIMBLE want Skills, IMBUED/SOULS_POWER
+            // want Powers, etc.) refuse mismatched cards with a clean
+            // "Cannot enchant CARD.X with ENCHANTMENT.Y" wire error;
+            // walking the hand surfaces a compatible target instead of
+            // declaring the enchantment Unplayable on the first refusal.
+            string targetCard = "?";
+            System.Exception? lastWx = null;
+            var state = await transport.SendAsync<RunStateResult>("run/state");
+            var handSize = state.CombatState?.Hand.Count ?? 0;
+            var enchanted = false;
+            for (int handIndex = 0; handIndex < handSize; handIndex++)
             {
-                var resp = await transport.EnchantCardAsync(enchantmentId, handIndex: 0, amount: 1);
-                targetCard = resp.CardId;
+                try
+                {
+                    var resp = await transport.EnchantCardAsync(enchantmentId, handIndex, amount: 1);
+                    targetCard = resp.CardId;
+                    enchanted = true;
+                    break;
+                }
+                catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
+                {
+                    lastWx = wx;
+                    // "Cannot enchant" → keep trying the next card.
+                    // Internal errors (engine NRE / etc.) are real
+                    // failures and should surface immediately.
+                    if (SweepInternals.IsInternalError(wx)) break;
+                }
             }
-            catch (System.Exception wx) when (SweepInternals.IsWireError(wx))
+            if (!enchanted)
             {
                 sw.Stop();
-                var c = SweepInternals.ClassifyWireError("enchantment", enchantmentId, wx);
+                var c = SweepInternals.ClassifyWireError("enchantment", enchantmentId,
+                    lastWx ?? new System.Exception("no cards in hand to enchant"));
                 return new SweepRow(
                     enchantmentId, c.Outcome, Steps: 0, sw.Elapsed,
-                    Detail: $"enchant_card: {c.Detail}");
+                    Detail: $"enchant_card refused on all {handSize} hand cards: {c.Detail}");
             }
             DrainTriggers(await transport.SendAsync<RunStateResult>("run/state"), enchantmentId, firedHooks);
 
