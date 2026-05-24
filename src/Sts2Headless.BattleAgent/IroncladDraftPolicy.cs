@@ -89,6 +89,12 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             var bestPairSyn = CardPairSynergy.DeckSynergyOf(cards[bestIdx].Id, deckCards);
             var bestSynergy = SynergyBonus(cards[bestIdx].Id, affinity) + bestPairSyn;
 
+            // Tested: force-take an A-tier power card when the deck
+            // had zero powers. Regressed 36/200 → 35/200; the regular
+            // pair-synergy scoring already picks the right power when
+            // it's clearly correct, and the override was redirecting
+            // away from synergy-strong attack picks.
+
             // Deck-size-aware skip threshold:
             //   - small deck (<= 12): take everything (greedy stage)
             //   - mid deck (13-18): take C-tier or better
