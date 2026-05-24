@@ -66,17 +66,61 @@ public class CardCatalogProbeTests : IClassFixture<HostSubprocess>
 
     [Theory]
     [MemberData(nameof(CardsUnderTest))]
-    [Trait("Category", "Diagnostic")]
-    public async Task ProbeCard(string cardWireId, bool upgraded)
+    public async Task ProbeCard_PlaysCleanly(string cardWireId, bool upgraded)
     {
+        // Regression net: each card we previously flagged unsafe or
+        // had a "TODO verify" guess for must keep playing cleanly. If
+        // a future engine change re-NREs one of them, this red test
+        // tells us before agent runs surface a mid-act crash.
         var observation = await ProbeOne(cardWireId, upgraded);
         _output.WriteLine(observation.ToString());
-        // No assertion on what the card *did* — this is a measurement
-        // test feeding catalog updates. We only fail if the wire surface
-        // itself broke (host crash, dispatch error). The Theory passes
-        // for every well-formed observation, including "card refused to
-        // play".
-        Assert.NotNull(observation.HandStatePreplay);
+        Assert.True(observation.Played,
+            $"{cardWireId} no longer plays cleanly headless: {observation.Note}");
+    }
+
+    // Pin the measured effect of each card with a crisp expectation.
+    // If the engine rebalances the card (or our probe fixture changes),
+    // this catches the drift — the catalog needs an explicit update,
+    // not silent acceptance.
+    [Theory]
+    [InlineData("BULLY",          4,  0, 0)]    // 4 dmg attack
+    [InlineData("ASHEN_STRIKE",   6,  0, 0)]    // 6 dmg attack
+    [InlineData("DISMANTLE",      8,  0, 0)]    // 8 dmg attack (was IsSkill in catalog)
+    [InlineData("TAUNT",          0,  7, 0)]    // 7 block skill (was no-op)
+    [InlineData("HEADBUTT",       9,  0, 0)]    // 9 dmg attack — no longer unsafe
+    [InlineData("ARMAMENTS",      0,  5, 0)]    // 5 block skill — no longer unsafe
+    [InlineData("BRAND",          0,  0, -1)]   // self-damage 1 (catalog used to guess 2)
+    public async Task ProbeCard_StatsMatchExpected(
+        string cardWireId, int expectedEnemyDamage, int expectedSelfBlock, int expectedHpDelta)
+    {
+        var obs = await ProbeOne(cardWireId, upgraded: false);
+        Assert.True(obs.Played, $"{cardWireId} did not play: {obs.Note}");
+        var pre = obs.HandStatePreplay!;
+        var post = obs.HandStatePostplay!;
+        var dmg = pre.Enemies.Count > 0 && post.Enemies.Count > 0
+            ? pre.Enemies[0].Hp - post.Enemies[0].Hp : 0;
+        Assert.Equal(expectedEnemyDamage, dmg);
+        Assert.Equal(expectedSelfBlock, post.PlayerBlock);
+        Assert.Equal(expectedHpDelta, obs.PostHp - obs.PreHp);
+    }
+
+    // Pin the powers each "power-shaped" card applies. CrimsonMantle and
+    // ExpectAFight don't fit the damage/block shape; they grant a named
+    // power to the player. Brand grants Strength as a side effect.
+    [Theory]
+    [InlineData("CRIMSON_MANTLE",  "CRIMSON_MANTLE_POWER", 8)]
+    [InlineData("EXPECT_A_FIGHT",  "NO_ENERGY_GAIN_POWER", 1)]
+    [InlineData("BRAND",           "STRENGTH_POWER",       1)]
+    public async Task ProbeCard_AppliesExpectedPower(
+        string cardWireId, string expectedPowerId, int expectedAmount)
+    {
+        var obs = await ProbeOne(cardWireId, upgraded: false);
+        Assert.True(obs.Played, $"{cardWireId} did not play: {obs.Note}");
+        var preAmount = obs.HandStatePreplay!.PlayerPowers
+            .FirstOrDefault(p => p.Id == expectedPowerId)?.Amount ?? 0;
+        var postAmount = obs.HandStatePostplay!.PlayerPowers
+            .FirstOrDefault(p => p.Id == expectedPowerId)?.Amount ?? 0;
+        Assert.Equal(expectedAmount, postAmount - preAmount);
     }
 
     // A single fact that runs the same probe over every card and writes

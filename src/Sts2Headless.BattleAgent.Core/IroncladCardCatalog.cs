@@ -7,19 +7,15 @@ namespace Sts2Headless.BattleAgent.Core;
 //   - existing CardMechanics.cs (the seed-42 path baseline, already
 //     verified to load and play through the engine)
 //   - STS1 Ironclad card stats where the card name appears identical
-//   - "TODO verify against engine" for STS2-original cards
-//     (Bully, Tremble, BloodWall, AshenStrike, …)
-//
-// Parity tests (Sts2Headless.IntegrationTests/CombatParityTests.cs) will
-// drive each modelled card through the engine and assert post-play
-// state matches the simulator. Stat drift surfaces there, not in
-// production runs, so the catalog can be updated as a one-line change
-// when a parity test goes red.
+//   - direct engine probing for STS2-original cards via
+//     tests/Sts2Headless.IntegrationTests/CardCatalogProbeTests.cs
 //
 // IsHeadlessUnsafe cards must never be returned by LegalActions; the
-// planner respects that flag and the runtime never invokes their
-// custom handler. They're catalogued anyway so DraftPolicy can rate
-// them down at reward time.
+// planner respects that flag. No Ironclad cards are currently flagged
+// — every prior unsafe card was a victim of the PrefsSave-NRE family
+// fixed by BootstrapSequence.InitSavePrefsData (2026-05-22) and now
+// plays cleanly (verified via the probe test). The field stays in the
+// shape for new cards that turn out to need it.
 public sealed class IroncladCardCatalog : ICardEffectCatalog
 {
     public static IroncladCardCatalog Instance { get; } = new();
@@ -44,7 +40,11 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         // Commons
         CardId.Anger          => new(IsAttack: true, Damage: 6),
         CardId.Clash          => new(IsAttack: true, Damage: 14), // attacks-only constraint enforced by planner heuristic
-        CardId.Headbutt       => new(IsAttack: true, Damage: 9, IsHeadlessUnsafe: true),
+        // Headbutt: "move a card from discard onto draw pile" effect is
+        // unmodelled; the damage component is what the sim sees. The
+        // engine handles an empty discard / no-pick gracefully (probe
+        // 2026-05-24); no NRE.
+        CardId.Headbutt       => new(IsAttack: true, Damage: 9),
         CardId.IronWave       => new(IsAttack: true, Damage: 5, Block: 5),
         CardId.PerfectedStrike=> new(IsAttack: true, Damage: 6),  // +2/Strike scaling deferred
         CardId.PommelStrike   => new(IsAttack: true, Damage: 9, DrawCards: 1),
@@ -56,25 +56,35 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.Havoc          => new(IsSkill: true, Exhausts: true), // play top of draw — sub-flow, treat as no-op safe
         CardId.Inflame        => new(IsPower: true, StrengthGain: 2),
 
-        // STS2-original commons (values from CardMechanics seed-42 baseline)
+        // STS2-original commons (probed against engine 2026-05-24).
         CardId.BodySlam       => new(IsAttack: true, BlockToDamage: true),
-        CardId.Bully          => new(IsAttack: true, Damage: 8), // TODO verify STS2 stats
-        CardId.Tremble        => new(IsSkill: true), // TODO verify; treated as no-op for now
+        CardId.Bully          => new(IsAttack: true, Damage: 4), // probed: 4 dmg vs slime
+        // Tremble: no observable effect in single-card SLIMES_NORMAL probe.
+        // Likely conditional (deck-context or hp-context); leave as skill no-op.
+        CardId.Tremble        => new(IsSkill: true),
 
         // Uncommons
         CardId.Bludgeon       => new(IsAttack: true, Damage: 32),
         CardId.Uppercut       => new(IsAttack: true, Damage: 13, WeakApply: 1, VulnerableApply: 1),
-        CardId.Armaments      => new(IsSkill: true, Block: 5, IsHeadlessUnsafe: true),
+        // Armaments: upgrade-card effect unmodelled; block component is what the
+        // sim plans around. Engine no longer NREs on the card-select (probed).
+        CardId.Armaments      => new(IsSkill: true, Block: 5),
         CardId.BloodWall      => new(IsAttack: true, Damage: 4, Block: 6), // STS2 — values from CardMechanics
         CardId.Bloodletting   => new(IsSkill: true, SelfDamage: 3, EnergyGain: 2, DrawCards: 1),
-        CardId.BurningPact    => new(IsSkill: true, IsHeadlessUnsafe: true),
+        // BurningPact: draws 2 + exhausts a random hand card. We don't model the
+        // exhaust (random; rarely matters for planning since the catalog already
+        // discounts low-value cards), only the draw.
+        CardId.BurningPact    => new(IsSkill: true, DrawCards: 2),
         CardId.BattleTrance   => new(IsSkill: true, DrawCards: 3),
-        CardId.DualWield      => new(IsSkill: true, IsHeadlessUnsafe: true), // copies a card — needs card-select
+        // DualWield: copy-a-card-in-hand effect unmodelled. Engine plays cleanly.
+        CardId.DualWield      => new(IsSkill: true),
         CardId.Entrench       => new(IsSkill: true, Custom: EntrenchHandler),
         CardId.FlameBarrier   => new(IsSkill: true, Block: 12),  // retaliate not modelled
         CardId.Hemokinesis    => new(IsAttack: true, Damage: 15, SelfDamage: 2),
         CardId.Impervious     => new(IsSkill: true, Block: 30, Exhausts: true),
-        CardId.InfernalBlade  => new(IsSkill: true, IsHeadlessUnsafe: true), // random attack to hand
+        // InfernalBlade: adds a random attack to hand + self-exhausts.
+        // Random-attack effect unmodelled.
+        CardId.InfernalBlade  => new(IsSkill: true, Exhausts: true),
         CardId.SecondWind     => new(IsSkill: true, Exhausts: true, DiscardForBlock: 5),
         CardId.Shockwave      => new(IsSkill: true, TargetsAllEnemies: true, WeakApply: 3, VulnerableApply: 3, Exhausts: true),
         CardId.Rage           => new(IsPower: true, RageGain: 3),
@@ -86,15 +96,24 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.FeelNoPain     => new(IsPower: true, FeelNoPainGain: 3),
         CardId.Juggernaut     => new(IsPower: true, JuggernautGain: 5),
 
-        // STS2-original uncommons (best-guess; parity tests will surface drift)
-        CardId.AshenStrike    => new(IsAttack: true, Damage: 6), // TODO verify
-        CardId.Cascade        => new(IsSkill: true), // TODO verify — likely scaling/synergy
-        CardId.Dismantle      => new(IsSkill: true), // TODO verify
-        CardId.Taunt          => new(IsSkill: true), // TODO verify
+        // STS2-original uncommons (probed against engine 2026-05-24).
+        CardId.AshenStrike    => new(IsAttack: true, Damage: 6), // probed: 6 dmg vs slime
+        // Cascade: no observable effect in single-card probe. Likely
+        // scaling/synergy with surrounding deck or hand state.
+        CardId.Cascade        => new(IsSkill: true),
+        CardId.Dismantle      => new(IsAttack: true, Damage: 8), // probed: 8 dmg attack (catalog had wrong category)
+        CardId.Taunt          => new(IsSkill: true, Block: 7),   // probed: 7 block skill
         CardId.StoneArmor     => new(IsPower: true, PlatedArmorGain: 1),
-        CardId.ExpectAFight   => new(IsPower: true), // TODO verify
-        CardId.CrimsonMantle  => new(IsPower: true), // TODO verify
-        CardId.Brand          => new(IsAttack: true, Damage: 6, SelfDamage: 2), // best guess; STS2 "self-damage archetype" card
+        // ExpectAFight: applies NO_ENERGY_GAIN_POWER=1 to self. Unmodelled
+        // (no sim field for it; effect is a self-debuff so the card is
+        // probably tempo-negative — DraftPolicy should rate down).
+        CardId.ExpectAFight   => new(IsPower: true),
+        // CrimsonMantle: gain CRIMSON_MANTLE_POWER stacks=8. Unmodelled
+        // (no sim field; gain is large so likely strong, but planner
+        // can't see it).
+        CardId.CrimsonMantle  => new(IsPower: true),
+        // Brand: +1 Strength, -1 self HP (probed). Not an attack — power-style.
+        CardId.Brand          => new(IsPower: true, StrengthGain: 1, SelfDamage: 1),
 
         // Rares
         CardId.FiendFire      => new(IsAttack: true, Damage: 7, Exhausts: true, Custom: FiendFireHandler),
@@ -127,7 +146,7 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
 
         CardId.Anger          => new(IsAttack: true, Damage: 8),
         CardId.Clash          => new(IsAttack: true, Damage: 18),
-        CardId.Headbutt       => new(IsAttack: true, Damage: 12, IsHeadlessUnsafe: true),
+        CardId.Headbutt       => new(IsAttack: true, Damage: 12),
         CardId.IronWave       => new(IsAttack: true, Damage: 7, Block: 7),
         CardId.PerfectedStrike=> new(IsAttack: true, Damage: 6),  // +3/Strike upgrade; scaling deferred
         CardId.PommelStrike   => new(IsAttack: true, Damage: 10, DrawCards: 2),
@@ -142,7 +161,7 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
 
         CardId.Bludgeon       => new(IsAttack: true, Damage: 42),
         CardId.Uppercut       => new(IsAttack: true, Damage: 13, WeakApply: 2, VulnerableApply: 2),
-        CardId.Armaments      => new(IsSkill: true, Block: 5, IsHeadlessUnsafe: true), // upgrade-all-in-hand variant
+        CardId.Armaments      => new(IsSkill: true, Block: 5), // upgrade-all-in-hand variant; effect unmodelled
         CardId.Bloodletting   => new(IsSkill: true, SelfDamage: 3, EnergyGain: 3, DrawCards: 1),
         CardId.BattleTrance   => new(IsSkill: true, DrawCards: 4),
         CardId.FlameBarrier   => new(IsSkill: true, Block: 16),

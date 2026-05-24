@@ -61,35 +61,37 @@ public static class CardMechanics
 
         // F4 rewards.
         // Headbutt: 9 dmg + place a card from discard on top of draw pile.
-        // The "place a card" side-effect routes through CardSelectCmd's
-        // screen-create path, which NREs in headless. Marked unsafe until
-        // the card-select screen stand-in lands.
-        [CardId.Headbutt]        = new Mechanics(Damage: 9, IsHeadlessUnsafe: true),
+        // Side effect unmodelled but the card plays cleanly headless
+        // (probed 2026-05-24 — engine handles the card-select pathway
+        // gracefully now that PrefsSave is initialised at bootstrap).
+        [CardId.Headbutt]        = new Mechanics(Damage: 9),
         // Expect-A-Fight: a power card.
         [CardId.ExpectAFight]    = new Mechanics(),
-        // Burning Pact: exhaust 1 card, draw 2. The "exhaust 1 card" leg
-        // is a hand-selection step → CardSelectCmd → screen-create NRE in
-        // headless. Marked unsafe until a screen stand-in lands.
-        [CardId.BurningPact]     = new Mechanics(IsHeadlessUnsafe: true),
+        // Burning Pact: exhaust 1 card, draw 2. Plays cleanly headless;
+        // the random-exhaust effect is unmodelled but harmless.
+        [CardId.BurningPact]     = new Mechanics(),
 
         // F5 rewards.
-        [CardId.Bully]           = new Mechanics(Damage: 8),
+        // Bully: probed at 4 dmg vs slimes (catalog used to guess 8).
+        [CardId.Bully]           = new Mechanics(Damage: 4),
         // Thunderclap: 4 dmg AOE + 1 vuln AOE.
         [CardId.Thunderclap]     = new Mechanics(Damage: 4, TargetsAllEnemies: true, Vulnerable: 1),
         // Bludgeon: 32 single-target damage, cost 3.
         [CardId.Bludgeon]        = new Mechanics(Damage: 32),
 
         // F8 (elite) rewards.
-        [CardId.Dismantle]       = new Mechanics(),
+        // Dismantle: probed at 8 dmg attack (catalog used to leave blank).
+        [CardId.Dismantle]       = new Mechanics(Damage: 8),
+        // Cascade: no observable effect in SLIMES_NORMAL probe; likely
+        // context-dependent (deck synergy).
         [CardId.Cascade]         = new Mechanics(),
 
         // F9 rewards.
         // Uppercut: 13 dmg + 1 Weak + 1 Vulnerable, cost 2.
         [CardId.Uppercut]        = new Mechanics(Damage: 13, Weak: 1, Vulnerable: 1),
-        // Armaments: 5 block + upgrade a card in hand. The upgrade leg
-        // routes through CardSelectCmd → headless screen-create NRE.
-        // Marked unsafe until a screen stand-in lands.
-        [CardId.Armaments]       = new Mechanics(Block: 5, IsHeadlessUnsafe: true),
+        // Armaments: 5 block + upgrade a card in hand. Plays cleanly
+        // headless; upgrade-pick effect is unmodelled.
+        [CardId.Armaments]       = new Mechanics(Block: 5),
         // Stone Armor: gain 1 plated armor (block at start of every turn).
         // Not yet modelled as block on the wire; the agent only cares that
         // it's a power-shaped card.
@@ -100,7 +102,8 @@ public static class CardMechanics
         [CardId.SecondWind]      = new Mechanics(),
 
         // F15 rewards.
-        [CardId.Taunt]           = new Mechanics(),
+        // Taunt: probed at 7 block skill (catalog used to leave blank).
+        [CardId.Taunt]           = new Mechanics(Block: 7),
         // Blood Wall: 4 dmg + 6 block, cost 2.
         [CardId.BloodWall]       = new Mechanics(Damage: 4, Block: 6),
 

@@ -38,32 +38,31 @@ public sealed class IroncladCardCatalogTests
     public void BodySlamIsBlockToDamage() =>
         Assert.True(Catalog.GetEffect(CardId.BodySlam, upgraded: false)!.BlockToDamage);
 
+    // The previous batch of "<Card>IsHeadlessUnsafe" tests was deleted on
+    // 2026-05-24: every Ironclad card the catalog had flagged unsafe
+    // (Headbutt, Armaments, BurningPact, DualWield, InfernalBlade,
+    // Whirlwind) now plays cleanly through the engine — verified by
+    // tests/Sts2Headless.IntegrationTests/CardCatalogProbeTests.cs. The
+    // PrefsSave-NRE bootstrap fix from 2026-05-22 closed the underlying
+    // issue. Re-add a test here only when a new card surfaces a real
+    // headless gap.
     [Fact]
-    public void HeadbuttIsHeadlessUnsafe() =>
-        Assert.True(Catalog.GetEffect(CardId.Headbutt, upgraded: false)!.IsHeadlessUnsafe);
-
-    [Fact]
-    public void ArmamentsIsHeadlessUnsafe() =>
-        Assert.True(Catalog.GetEffect(CardId.Armaments, upgraded: false)!.IsHeadlessUnsafe);
-
-    [Fact]
-    public void BurningPactIsHeadlessUnsafe() =>
-        Assert.True(Catalog.GetEffect(CardId.BurningPact, upgraded: false)!.IsHeadlessUnsafe);
-
-    [Fact]
-    public void DualWieldIsHeadlessUnsafe() =>
-        Assert.True(Catalog.GetEffect(CardId.DualWield, upgraded: false)!.IsHeadlessUnsafe);
-
-    [Fact]
-    public void InfernalBladeIsHeadlessUnsafe() =>
-        Assert.True(Catalog.GetEffect(CardId.InfernalBlade, upgraded: false)!.IsHeadlessUnsafe);
-
-    [Fact]
-    public void WhirlwindIsHeadlessUnsafe() =>
-        // Whirlwind NREs in the headless engine (discovered 2026-05-18
-        // via 10-seed sweep). HeadlessSafetyTests pins this from the
-        // planner side; this one pins it on the catalog side.
-        Assert.True(Catalog.GetEffect(CardId.Whirlwind, upgraded: false)!.IsHeadlessUnsafe);
+    public void NoIroncladCardsCurrentlyHeadlessUnsafe()
+    {
+        foreach (var id in Catalog.ModelledIds)
+        {
+            var effect = Catalog.GetEffect(id, upgraded: false);
+            Assert.False(effect!.IsHeadlessUnsafe,
+                $"card {id} is flagged IsHeadlessUnsafe — if this is intentional, " +
+                "update this test to allow it explicitly.");
+            var upgraded = Catalog.GetEffect(id, upgraded: true);
+            if (upgraded is not null)
+            {
+                Assert.False(upgraded.IsHeadlessUnsafe,
+                    $"upgraded card {id} is flagged IsHeadlessUnsafe — same rule.");
+            }
+        }
+    }
 
     [Fact]
     public void UnknownCardReturnsNull() =>

@@ -132,6 +132,10 @@ public sealed class ExhaustivePlannerTests
     public void SkipsHeadlessUnsafeCards()
     {
         // Headbutt (unsafe) + Strike — planner only plays Strike.
+        // Synthesise Headbutt as IsHeadlessUnsafe via test catalog — see
+        // CombatModelTests.LegalActionsSkipsHeadlessUnsafeCards for the
+        // rationale (no production card currently carries the flag).
+        var model = new CombatModel(TestFixtures.CatalogWithUnsafeOverride(CardId.Headbutt));
         var state = TestFixtures.State(
             energy: 3,
             hand: new[]
@@ -140,7 +144,7 @@ public sealed class ExhaustivePlannerTests
                 TestFixtures.Card(CardId.StrikeIronclad, 1, targetType: TargetType.AnyEnemy),
             },
             enemies: new[] { TestFixtures.Enemy(hp: 100) });
-        var plan = Planner.PlanTurn(state, Model, Eval, Budget, default);
+        var plan = Planner.PlanTurn(state, model, Eval, Budget, default);
         var played = plan.Actions.OfType<SimPlayCard>().ToList();
         Assert.All(played, p =>
             Assert.NotEqual(CardId.Headbutt, state.Hand[p.HandIndex].Id));

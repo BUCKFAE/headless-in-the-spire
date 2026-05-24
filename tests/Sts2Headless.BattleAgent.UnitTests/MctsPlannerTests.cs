@@ -71,6 +71,10 @@ public sealed class MctsPlannerTests
     [Fact]
     public void SkipsHeadlessUnsafeCards()
     {
+        // Synthetic unsafe flag (no production Ironclad card carries it
+        // as of 2026-05-24); preserves regression coverage for the
+        // filter mechanism itself.
+        var model = new CombatModel(TestFixtures.CatalogWithUnsafeOverride(CardId.Headbutt));
         var state = TestFixtures.State(
             energy: 3,
             hand: new[]
@@ -80,7 +84,7 @@ public sealed class MctsPlannerTests
             },
             enemies: new[] { TestFixtures.Enemy(hp: 100) });
         var planner = new MctsPlanner();
-        var plan = planner.PlanTurn(state, Model, Eval, new PlannerBudget(MaxNodes: 5000), default);
+        var plan = planner.PlanTurn(state, model, Eval, new PlannerBudget(MaxNodes: 5000), default);
         foreach (var play in plan.Actions.OfType<SimPlayCard>())
         {
             Assert.NotEqual(CardId.Headbutt, state.Hand[play.HandIndex].Id);
