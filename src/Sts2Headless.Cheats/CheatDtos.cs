@@ -84,6 +84,59 @@ public sealed record DebugSetHpResult(
     [property: JsonPropertyName("maxHp")] int MaxHp,
     [property: JsonPropertyName("isGameOver")] bool IsGameOver);
 
+// ── debug/set_energy ─────────────────────────────────────────────────────
+
+// Writes the player's current Energy (and optionally MaxEnergy) directly
+// into the engine's PlayerCombatState / Player. Bypasses the normal
+// EnergyChanged event chain on backing-field writes but uses the property
+// setter so listeners that subscribe through CombatHistory still observe
+// the change — same posture as debug/set_hp.
+//
+// Validation:
+//   * At least one of `energy` / `maxEnergy` must be provided.
+//   * Each value, when provided, >= 0.
+//   * `maxEnergy` >= 1 (an energy cap of 0 leaves the player permanently
+//     locked out and is almost certainly a typo).
+//
+// Use case: let MechanicSweep / regression tests stage a card whose
+// `EnergyCost` exceeds the character's default 3-energy budget (BURY,
+// METEOR_STRIKE, BANSHEES_CRY) without driving multi-combat AfterCardPlayed
+// hooks just to bump max energy.
+public sealed record DebugSetEnergyParams(
+    [property: JsonPropertyName("energy")] int? Energy = null,
+    [property: JsonPropertyName("maxEnergy")] int? MaxEnergy = null);
+
+public sealed record DebugSetEnergyResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("energy")] int Energy,
+    [property: JsonPropertyName("maxEnergy")] int MaxEnergy);
+
+// ── debug/gain_stars ─────────────────────────────────────────────────────
+
+// Grants N Stars (Regent's resource) by writing PlayerCombatState.Stars via
+// its public setter. The setter fires StarsChanged through CombatHistory so
+// listeners (relics like GalacticDust / MiniRegent that observe
+// AfterStarsSpent for refunds, BeforeCardPlayed listeners on Stars-related
+// powers) still see the change — same engine path PlayerCmd.GainStars takes
+// modulo the relic-listener chain that GainStars walks before writing.
+//
+// Validation:
+//   * `amount` >= 0 (granting negative stars would silently bypass
+//     UnplayableReason.NotEnoughStars and is almost certainly a typo —
+//     callers wanting to test spend should drive a real card play).
+//
+// Use case: let MechanicSweep stage Regent's Star budget so high-cost Stars
+// cards (COMET, SEVEN_STARS, NEUTRON_AEGIS, DEVASTATE, DECISIONS_DECISIONS,
+// ROYAL_GAMBLE, THE_SMITH) can exercise their OnPlay without waiting on the
+// DivineRight one-shot relic + multi-turn Stars accrual the engine
+// otherwise requires.
+public sealed record DebugGainStarsParams(
+    [property: JsonPropertyName("amount")] int Amount);
+
+public sealed record DebugGainStarsResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("stars")] int Stars);
+
 // ── debug/replace_deck ───────────────────────────────────────────────────
 
 // A card the caller wants placed into the player's deck. `cardId` is the

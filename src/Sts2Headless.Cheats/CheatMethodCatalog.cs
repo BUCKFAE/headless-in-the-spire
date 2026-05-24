@@ -58,6 +58,18 @@ public static class CheatMethodCatalog
             Summary: "Test affordance — set the player's CurrentHp (and optionally MaxHp) by writing the engine's backing fields. Bypasses damage events, on-hit relics, and game-over detection; the resulting state is not authoritative. Requires --enable-debug.",
             IsDebugOnly: true),
 
+        new("debug/set_energy",
+            ParamsType: typeof(DebugSetEnergyParams),
+            ResultType: typeof(DebugSetEnergyResult),
+            Summary: "Test affordance — set the player's current Energy and/or the per-run MaxEnergy cap by writing the engine's PlayerCombatState.Energy / Player.MaxEnergy properties. Bumping MaxEnergy lets a turn-rollover refill land at the cheated value. Requires an active combat. Requires --enable-debug.",
+            IsDebugOnly: true),
+
+        new("debug/gain_stars",
+            ParamsType: typeof(DebugGainStarsParams),
+            ResultType: typeof(DebugGainStarsResult),
+            Summary: "Test affordance — grant N Stars (Regent's per-combat resource) by writing PlayerCombatState.Stars via its public setter. Fires StarsChanged through CombatHistory so observing listeners (GalacticDust / MiniRegent relics, Stars-related powers) still see the change. Requires an active combat. Requires --enable-debug.",
+            IsDebugOnly: true),
+
         new("debug/replace_deck",
             ParamsType: typeof(DebugReplaceDeckParams),
             ResultType: typeof(DebugReplaceDeckResult),

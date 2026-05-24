@@ -20,6 +20,21 @@ public static class CheatClient
         this ITransport transport, int hp, int? maxHp = null) =>
         transport.SendAsync<DebugSetHpResult>("debug/set_hp", new DebugSetHpParams(hp, maxHp));
 
+    // debug/set_energy — set the player's current Energy and/or the per-run
+    // MaxEnergy cap. At least one of `energy` / `maxEnergy` must be non-null.
+    // Requires an active combat. See DebugSetEnergyParams for validation rules.
+    public static Task<DebugSetEnergyResult> SetEnergyAsync(
+        this ITransport transport, int? energy = null, int? maxEnergy = null) =>
+        transport.SendAsync<DebugSetEnergyResult>(
+            "debug/set_energy", new DebugSetEnergyParams(energy, maxEnergy));
+
+    // debug/gain_stars — grant N Stars (Regent's resource) via the engine's
+    // PlayerCombatState.Stars setter. Requires an active combat.
+    public static Task<DebugGainStarsResult> GainStarsAsync(
+        this ITransport transport, int amount) =>
+        transport.SendAsync<DebugGainStarsResult>(
+            "debug/gain_stars", new DebugGainStarsParams(amount));
+
     // debug/give_relic — grant a relic by id via RelicCmd.Obtain (engine path).
     public static Task<DebugGiveRelicResult> GiveRelicAsync(
         this ITransport transport, string relicId) =>

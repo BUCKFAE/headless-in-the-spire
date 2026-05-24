@@ -136,6 +136,30 @@ public class DebugDisabledTests
     }
 
     [Fact]
+    public async Task DebugSetEnergy_WithoutEnableDebugFlag_ReturnsDebugDisabledError()
+    {
+        await using var host = NoDebugHost.Start();
+
+        var err = await host.ExpectErrorAsync(
+            "debug/set_energy", new DebugSetEnergyParams(Energy: 5));
+
+        Assert.Equal(WireErrorCode.DebugMethodDisabled, err.Code);
+        Assert.Contains("debug/set_energy", err.Message);
+    }
+
+    [Fact]
+    public async Task DebugGainStars_WithoutEnableDebugFlag_ReturnsDebugDisabledError()
+    {
+        await using var host = NoDebugHost.Start();
+
+        var err = await host.ExpectErrorAsync(
+            "debug/gain_stars", new DebugGainStarsParams(Amount: 1));
+
+        Assert.Equal(WireErrorCode.DebugMethodDisabled, err.Code);
+        Assert.Contains("debug/gain_stars", err.Message);
+    }
+
+    [Fact]
     public async Task NonDebugMethod_StillWorks_WithoutEnableDebugFlag()
     {
         await using var host = NoDebugHost.Start();

@@ -213,6 +213,16 @@ public sealed partial class Sts2Bindings
     private readonly PropertyInfo? _pcsDiscardPile;
     private readonly PropertyInfo? _pcsEnergy;
     private readonly PropertyInfo? _pcsMaxEnergy;
+    // Per-combat Stars counter (Regent's resource). Mutating it via the
+    // property setter fires StarsChanged through CombatHistory, mirroring
+    // the engine path — same posture as set_Energy. Used by debug/gain_stars.
+    private readonly PropertyInfo? _pcsStars;
+    // Player.MaxEnergy is the per-run cap that ResetEnergy refills from each
+    // turn (PlayerCombatState.MaxEnergy is a computed property that wraps
+    // Player.MaxEnergy through Hook.ModifyMaxEnergy). Writable for
+    // debug/set_energy's `maxEnergy` parameter — bumping it lets a turn-
+    // boundary refill land at the cheated value rather than reverting.
+    private readonly PropertyInfo? _playerMaxEnergy;
     private readonly PropertyInfo? _handCards;
     private readonly PropertyInfo? _pileCards;
     private readonly PropertyInfo? _creaturePowers;
@@ -414,6 +424,8 @@ public sealed partial class Sts2Bindings
         _pcsDiscardPile = c.PcsDiscardPile;
         _pcsEnergy = c.PcsEnergy;
         _pcsMaxEnergy = c.PcsMaxEnergy;
+        _pcsStars = c.PcsStars;
+        _playerMaxEnergy = c.PlayerMaxEnergy;
         _handCards = c.HandCards;
         _pileCards = c.PileCards;
         _creaturePowers = c.CreaturePowers;
@@ -1196,7 +1208,8 @@ public sealed partial class Sts2Bindings
 
         // PlayerCombatState → Hand / DrawPile / DiscardPile / Energy.
         var pcs = playerType.GetProperty("PlayerCombatState", BindingFlags.Public | BindingFlags.Instance);
-        PropertyInfo? pcsHand = null, pcsDraw = null, pcsDiscard = null, pcsEnergy = null, pcsMaxEnergy = null;
+        PropertyInfo? pcsHand = null, pcsDraw = null, pcsDiscard = null, pcsEnergy = null, pcsMaxEnergy = null, pcsStars = null;
+        PropertyInfo? playerMaxEnergy = playerType.GetProperty("MaxEnergy", BindingFlags.Public | BindingFlags.Instance);
         PropertyInfo? handCards = null, pileCards = null;
         PropertyInfo? cardId = null, cardEnergyCost = null, cardTargetType = null, cardIsUpgraded = null;
         MethodInfo? energyCostGetResolved = null, cardCanPlay = null;
@@ -1209,6 +1222,7 @@ public sealed partial class Sts2Bindings
             pcsDiscard = pcsType.GetProperty("DiscardPile", BindingFlags.Public | BindingFlags.Instance);
             pcsEnergy = pcsType.GetProperty("Energy", BindingFlags.Public | BindingFlags.Instance);
             pcsMaxEnergy = pcsType.GetProperty("MaxEnergy", BindingFlags.Public | BindingFlags.Instance);
+            pcsStars = pcsType.GetProperty("Stars", BindingFlags.Public | BindingFlags.Instance);
 
             if (pcsHand is not null)
             {
@@ -1365,7 +1379,7 @@ public sealed partial class Sts2Bindings
         return new CombatBindings(
             cmInstance, cmIsInProgress, cmIsPlayPhase, cmDebugOnly,
             csEnemies, csRound,
-            pcs, pcsHand, pcsDraw, pcsDiscard, pcsEnergy, pcsMaxEnergy,
+            pcs, pcsHand, pcsDraw, pcsDiscard, pcsEnergy, pcsMaxEnergy, pcsStars, playerMaxEnergy,
             handCards, pileCards,
             creaturePowers, creatureBlock, creatureIsDead,
             powerId, powerAmount, idEntry,
@@ -1516,6 +1530,7 @@ public sealed partial class Sts2Bindings
         PropertyInfo? CombatStateEnemies, PropertyInfo? CombatStateRoundNumber,
         PropertyInfo? PlayerCombatState, PropertyInfo? PcsHand, PropertyInfo? PcsDrawPile,
         PropertyInfo? PcsDiscardPile, PropertyInfo? PcsEnergy, PropertyInfo? PcsMaxEnergy,
+        PropertyInfo? PcsStars, PropertyInfo? PlayerMaxEnergy,
         PropertyInfo? HandCards, PropertyInfo? PileCards,
         PropertyInfo? CreaturePowers, PropertyInfo? CreatureBlock, PropertyInfo? CreatureIsDead,
         PropertyInfo? PowerId, PropertyInfo? PowerAmount, PropertyInfo? IdEntry,

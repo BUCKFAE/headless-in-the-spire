@@ -803,6 +803,84 @@ public sealed partial class Sts2Bindings
         return (newHp, newMaxHp);
     }
 
+    // Set the player's current Energy (and optionally the per-run MaxEnergy
+    // cap). Energy is the per-turn refillable resource; MaxEnergy is the value
+    // that ResetEnergy refills FROM at every turn boundary. Both go through
+    // their property setters — set_Energy fires StarsChanged/EnergyChanged
+    // through CombatHistory (same posture as SetPlayerHp using a writable
+    // property); set_MaxEnergy on Player writes the auto backing field
+    // directly. Bumping MaxEnergy lets a turn-rollover refill land at the
+    // cheated value rather than reverting to the character default of 3.
+    //
+    // Caller is responsible for validation — HostMethods.DebugSetEnergy
+    // enforces non-negative values; this helper trusts its inputs and reports
+    // the post-write (Energy, MaxEnergy) tuple for the wire result.
+    public (int Energy, int MaxEnergy) SetPlayerEnergy(RunHandle handle, int? energy, int? maxEnergy)
+    {
+        if (_playerCombatState is null || _pcsEnergy is null || _pcsMaxEnergy is null)
+        {
+            throw new InvalidOperationException(
+                "debug/set_energy: PlayerCombatState.Energy / MaxEnergy were not located at bootstrap. " +
+                "Either the engine renamed the properties or BindingFlags need updating.");
+        }
+        var pcs = _playerCombatState.GetValue(handle.Player)
+            ?? throw new InvalidOperationException(
+                "Player.PlayerCombatState was null — no live combat to mutate. " +
+                "debug/set_energy requires an active combat (call debug/start_combat first).");
+
+        // MaxEnergy first so a same-cycle write to Energy can settle above the
+        // old cap. Player.MaxEnergy is the per-run anchor PlayerCombatState
+        // .MaxEnergy reads from (filtered through Hook.ModifyMaxEnergy), so a
+        // Player-side write outlives a turn-rollover ResetEnergy that would
+        // otherwise revert the cap.
+        if (maxEnergy is not null)
+        {
+            if (_playerMaxEnergy is null)
+            {
+                throw new InvalidOperationException(
+                    "debug/set_energy: maxEnergy was requested but Player.MaxEnergy was not located.");
+            }
+            _playerMaxEnergy.SetValue(handle.Player, maxEnergy.Value);
+        }
+
+        if (energy is not null)
+        {
+            _pcsEnergy.SetValue(pcs, energy.Value);
+        }
+
+        var newEnergy = (int)_pcsEnergy.GetValue(pcs)!;
+        var newMaxEnergy = (int)_pcsMaxEnergy.GetValue(pcs)!;
+        return (newEnergy, newMaxEnergy);
+    }
+
+    // Grant N Stars to the player by writing PlayerCombatState.Stars via its
+    // public setter. The setter fires StarsChanged through CombatHistory
+    // (BeforeCardPlayed listeners on relics like GalacticDust / MiniRegent
+    // observe this hook), matching the engine path — PlayerCmd.GainStars
+    // ultimately calls the same setter. Used by debug/gain_stars to let
+    // sweeps stage Regent's Stars budget without driving multi-turn Stars
+    // accrual from relics like DivineRight.
+    //
+    // Returns the post-write total. Caller is responsible for validation
+    // (Amount >= 0); this helper trusts its input.
+    public int GainStars(RunHandle handle, int amount)
+    {
+        if (_playerCombatState is null || _pcsStars is null)
+        {
+            throw new InvalidOperationException(
+                "debug/gain_stars: PlayerCombatState.Stars was not located at bootstrap. " +
+                "Either the engine renamed the property or BindingFlags need updating.");
+        }
+        var pcs = _playerCombatState.GetValue(handle.Player)
+            ?? throw new InvalidOperationException(
+                "Player.PlayerCombatState was null — no live combat to mutate. " +
+                "debug/gain_stars requires an active combat (call debug/start_combat first).");
+
+        var current = (int)_pcsStars.GetValue(pcs)!;
+        _pcsStars.SetValue(pcs, current + amount);
+        return (int)_pcsStars.GetValue(pcs)!;
+    }
+
     // Test affordance: drop every alive enemy in the current combat to 0 HP
     // by writing the same Creature._currentHp backing field that SetPlayerHp
     // uses (Enemy : Creature in sts2's hierarchy — confirmed by sts2-cli's

@@ -30,6 +30,8 @@ public static class CheatHostMethods
             ["debug/afflict_card"] = WireHandlers.Typed<DebugAfflictCardParams, DebugAfflictCardResult>(p => DebugAfflictCard(bindings, getRun, p)),
             ["debug/enchant_card"] = WireHandlers.Typed<DebugEnchantCardParams, DebugEnchantCardResult>(p => DebugEnchantCard(bindings, getRun, p)),
             ["debug/set_hp"] = WireHandlers.Typed<DebugSetHpParams, DebugSetHpResult>(p => DebugSetHp(bindings, getRun, p)),
+            ["debug/set_energy"] = WireHandlers.Typed<DebugSetEnergyParams, DebugSetEnergyResult>(p => DebugSetEnergy(bindings, getRun, p)),
+            ["debug/gain_stars"] = WireHandlers.Typed<DebugGainStarsParams, DebugGainStarsResult>(p => DebugGainStars(bindings, getRun, p)),
             ["debug/replace_deck"] = WireHandlers.Typed<DebugReplaceDeckParams, DebugReplaceDeckResult>(p => DebugReplaceDeck(bindings, getRun, p)),
             ["debug/read_deck"] = WireHandlers.Typed<DebugReadDeckParams, DebugReadDeckResult>(_ => DebugReadDeck(bindings, getRun)),
             ["debug/kill_all_enemies"] = WireHandlers.Typed<DebugKillAllEnemiesParams, DebugKillAllEnemiesResult>(_ => DebugKillAllEnemies(bindings, getRun)),
@@ -78,6 +80,50 @@ public static class CheatHostMethods
             Hp: s.CurrentHp,
             MaxHp: s.MaxHp,
             IsGameOver: s.IsGameOver);
+    }
+
+    private static DebugSetEnergyResult DebugSetEnergy(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugSetEnergyParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/set_energy requires params {energy?, maxEnergy?}");
+        if (args.Energy is null && args.MaxEnergy is null)
+        {
+            throw new WireException(WireErrorCode.InvalidParams,
+                "debug/set_energy: at least one of energy / maxEnergy must be provided");
+        }
+        if (args.Energy is { } e && e < 0)
+        {
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"debug/set_energy: energy must be >= 0 (got {e})");
+        }
+        if (args.MaxEnergy is { } m && m < 1)
+        {
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"debug/set_energy: maxEnergy must be >= 1 (got {m})");
+        }
+
+        var (newEnergy, newMaxEnergy) = bindings.SetPlayerEnergy(run, args.Energy, args.MaxEnergy);
+        return new DebugSetEnergyResult(Ok: true, Energy: newEnergy, MaxEnergy: newMaxEnergy);
+    }
+
+    private static DebugGainStarsResult DebugGainStars(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugGainStarsParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/gain_stars requires params {amount}");
+        if (args.Amount < 0)
+        {
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"debug/gain_stars: amount must be >= 0 (got {args.Amount})");
+        }
+
+        var newStars = bindings.GainStars(run, args.Amount);
+        return new DebugGainStarsResult(Ok: true, Stars: newStars);
     }
 
     private static DebugReplaceDeckResult DebugReplaceDeck(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugReplaceDeckParams? @params)
