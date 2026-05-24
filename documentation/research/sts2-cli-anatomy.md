@@ -219,7 +219,10 @@ What we gain by going further:
   formalise the fixture-builder as a typed API rather than a JSON
   command grab-bag.
 - **A reusable process pool** (one warm `dotnet` process per worker) so
-  test startup time isn't paid per-test.
+  test startup time isn't paid per-test. Shipped as
+  `src/Sts2Headless.Agents/Hosting/HostPool.cs` + `HostProcess.cs`;
+  covered by
+  `tests/Sts2Headless.End2EndTests/ParallelHostPoolTests.cs`.
 - **Determinism canaries**: rerun the same seed → byte-equal stream.
 - **Snapshot tests**: persist the response stream from a known scenario,
   diff on rerun. This is missing entirely from sts2-cli.
@@ -258,7 +261,7 @@ What we gain by going further:
   envelope from day one — it costs almost nothing and unblocks parallel,
   async events, and structured replays.
 - **One `dotnet run` per test**. We invest in a process pool and a warm
-  cache.
+  cache (shipped — see HostPool / ParallelHostPoolTests above).
 - **Auto-deleted logs after 7 days.** Replays are first-class artefacts;
   they don't expire silently.
 
