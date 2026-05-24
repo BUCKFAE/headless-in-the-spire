@@ -91,13 +91,6 @@ public partial class PropertyTweener : Tweener
     public new class MethodName : Tweener.MethodName { }
     public new class PropertyName : Tweener.PropertyName { }
     public new class SignalName : Tweener.SignalName { }
-
-    // from: SPINY_TOAD's Buff intent (and likely many other monster move
-    // animations) chains tweener configuration via the fluent Godot 4
-    // PropertyTweener API. The methods below are all no-ops that return
-    // `this` so the chain compiles and runs without animating anything.
-    // Headless has no animation pipeline; these stubs only need to satisfy
-    // the metadata + the chain's `this`-return contract.
     public PropertyTweener From(Variant _) => this;
     public PropertyTweener FromCurrent() => this;
     public PropertyTweener AsRelative() => this;
@@ -123,12 +116,6 @@ public partial class CallbackTweener : Tweener
     public new class MethodName : Tweener.MethodName { }
     public new class PropertyName : Tweener.PropertyName { }
     public new class SignalName : Tweener.SignalName { }
-
-    // from: RelicSweep — ELECTRIC_SHRYMP, PAELS_GROWTH, PUNCH_DAGGER all
-    //   crashed on give_relic with "Method not found: SetDelay(Double)".
-    //   Real Godot's CallbackTweener.SetDelay returns the tweener for
-    //   fluent chaining. Returning `this` keeps any
-    //   tween.TweenCallback(...).SetDelay(0.2) chain alive in headless.
     public CallbackTweener SetDelay(double _) => this;
 }
 
@@ -142,11 +129,6 @@ public static partial class Engine
     public static double GetFramesPerSecond() => 60.0;
     public static GodotObject? GetSingleton(StringName _) => null;
 
-    // from: NDamageNumVfx.Create casts the result to SceneTree, then reads
-    //   .Root.GetViewport().GetVisibleRect(). Returning null NREs the cast.
-    //   ActionExecutor / CombatState also do `(SceneTree)Engine.GetMainLoop()`
-    //   and `((GodotObject)Engine.GetMainLoop()).ToSignal(...)`. A singleton
-    //   stub satisfies all of them; nothing reads back from the tree.
     private static readonly SceneTree _mainLoop = new();
     public static MainLoop? GetMainLoop() => _mainLoop;
     public static string GetArchitectureName() => "x86_64";
@@ -159,12 +141,7 @@ public partial class MainLoop : GodotObject
     public new class SignalName : GodotObject.SignalName { }
 }
 
-// Godot.NodePath and Godot.Callable referenced by Tween signatures. Both
-// are value types in real Godot; structs with default state are enough
-// here since nothing reads from them.
-// Real Godot.NodePath is a sealed class, not a struct — the implicit
-// string→NodePath conversion sts2 emits is a `call class NodePath
-// op_Implicit(string)`, which fails to bind against a struct stub.
+
 public sealed partial class NodePath
 {
     public NodePath(string _) { }

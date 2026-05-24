@@ -211,10 +211,6 @@ public partial class ParticleProcessMaterial : Material
     public new class PropertyName : Material.PropertyName { }
     public new class SignalName : Material.SignalName { }
 
-    // from: monster move VFX (e.g. JAXFRUIT spore burst, FLYCONID emit chain)
-    //   tune the particle's emission box at spawn. Auto-property is enough;
-    //   no consumer reads the value back in headless. Grow on demand —
-    //   `probe-combat-stall` is the source of the "what's next?" list.
     public Vector3 EmissionBoxExtents { get; set; }
 }
 
@@ -441,25 +437,9 @@ public static partial class ClassDB { }
 public static partial class Colors
 {
     public static Color Green => default;
-    // from: a card-play VFX path on the Pommel/Hellraiser combo route
-    //   (surfaced on seed 42 Act 2 floor 12 once the deck-replace cheat
-    //   landed the agent in a previously-unvisited combat).
     public static Color White => default;
-    // from: run/use_potion paths — discovered 2026-05-18 via 50-seed
-    //   A0 sweep that crashed on 8/50 seeds with
-    //   "MissingMethodException: Method not found:
-    //   'Godot.Color Godot.Colors.get_Red()'" /
-    //   "...Colors.get_Blue()". Specific potions touch a VFX path
-    //   that reads these.
     public static Color Red => default;
     public static Color Blue => default;
-    // from: treasure-chest open path (NTreasureRoom → chest-open VFX) and
-    //   the card-removal screen — both hard-locked seed 42 on 2026-05-20
-    //   with "Method not found: 'Godot.Color Godot.Colors.get_Black()'".
-    //   The remaining colors (Cyan, DarkGray, DarkRed, DimGray, Gold, Gray,
-    //   Magenta, Purple, Transparent) round out the full Godot.Colors
-    //   reference surface from sts2.dll; the audit test would fail without
-    //   them.
     public static Color Black => default;
     public static Color Cyan => default;
     public static Color DarkGray => default;
@@ -489,22 +469,12 @@ public static partial class ProjectSettings
 }
 public static partial class RenderingDevice { }
 public static partial class RenderingServer { }
-// from: monster moves with sprite/scene fetches call
-//   ResourceLoader.Load<T>(path, typeHint, cacheMode). MissingMethodException
-//   surfaces synchronously here (not swallowed via TaskHelper), so a stall
-//   manifests as an unhandled exception in the host. T is always a Godot
-//   resource type; returning default(T) yields null for class T's and
-//   default-struct for value T's. The CacheMode enum mirrors real Godot's
-//   so call sites that name an enum value still compile.
+
 public static partial class ResourceLoader
 {
     public enum CacheMode { Ignore = 0, Reuse = 1, Replace = 2, IgnoreDeep = 3, ReplaceDeep = 4 }
     public static T? Load<T>(string _, string __ = "", CacheMode ___ = CacheMode.Reuse) where T : class => null;
     public static Resource? Load(string _, string __ = "", CacheMode ___ = CacheMode.Reuse) => null;
-    // from: AutoSlay scene-existence checks and event-room asset preflight.
-    //   Returning false steers callers into "asset not present, skip preview"
-    //   branches; the engine still logs `Asset not cached:` as a warning,
-    //   which is informational only in headless paths.
     public static bool Exists(string _, string __ = "") => false;
 }
 public static partial class StringExtensions { }
