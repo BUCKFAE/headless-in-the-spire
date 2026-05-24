@@ -132,7 +132,13 @@ public sealed record SimEnemy(
     EnemyIntent? Intent,
     // For powers we don't typed-model — kept around so the evaluator can
     // still notice "this enemy has a power".
-    IReadOnlyList<OpaquePower>? OtherPowers = null)
+    IReadOnlyList<OpaquePower>? OtherPowers = null,
+    // STS2 SLIPPERY_POWER (Vantom's signature). Each stack absorbs
+    // one HP-loss event into 1 HP — the per-hit damage is capped at
+    // 1 and the stack decrements. Modelled in
+    // CombatModel.DealSingleTargetDamage. Read from the wire's
+    // "SLIPPERY_POWER" power id by SimStateBuilder.
+    int Slippery = 0)
 {
     public bool IsDead => Hp <= 0;
 }

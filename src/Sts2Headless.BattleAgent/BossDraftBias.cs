@@ -61,17 +61,26 @@ public static class BossDraftBias
         },
         ["VANTOM_BOSS"] = new()
         {
-            // Positive — Whirlwind is *the* single Slippery counter
-            // in the kit. Per-boss winrate before the bias: 2/15.
-            // The bias only fires when Whirlwind is offered alongside
-            // another same-tier card; the tier list already values
-            // it at A, so we're not redirecting away from S-tier picks.
-            [CardId.Whirlwind]   = new(+12, "the cleanest Slippery counter"),
+            // Now that Slippery is modelled in the combat sim
+            // (CombatModel.DealSingleTargetDamage caps Slippery-hit
+            // damage at 1 and decrements the stack), the planner
+            // already values multi-hit cards correctly mid-fight.
+            // The remaining gap is drafting them in the first place —
+            // losing Vantom seeds typically don't have ANY multi-hit
+            // card drafted. Boost magnitudes so multi-hit cards get
+            // priority over equal-tier alternatives when offered.
+            [CardId.Whirlwind]    = new(+25, "the cleanest Slippery counter"),
+            [CardId.TwinStrike]   = new(+20, "2 hits / 1 energy strips 2 stacks"),
+            [CardId.SwordBoomerang] = new(+20, "3 hits / 1 energy strips 3 stacks"),
+            [CardId.PommelStrike] = new(+15, "single hit but draws — keeps the multi-hit chain"),
+            [CardId.Anger]        = new(+15, "self-copy fills draw with cheap multi-hits"),
+            [CardId.Thunderclap]  = new(+15, "AoE 4 + Vuln; all-enemies strips on the player turn"),
             // Traps — burn Slippery stacks on big single hits.
-            [CardId.Hemokinesis] = new(-12, "15 dmg burns 1 Slippery stack — value collapse"),
+            [CardId.Hemokinesis] = new(-12, "15 dmg → 1 HP on Slippery; 2 self-dmg sticks"),
             [CardId.Inferno]     = new(-12, "single-target boss; AoE wasted, HP cost real"),
             [CardId.Spite]       = new(-12, "single hits per cast on Slippery"),
             [CardId.Rupture]     = new(-6,  "Str only matters post-Slippery"),
+            [CardId.Bludgeon]    = new(-8,  "32 dmg → 1 HP on Slippery; only fine post-strip"),
         },
         ["THE_KIN_BOSS"] = new()
         {

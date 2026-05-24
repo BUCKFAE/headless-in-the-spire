@@ -408,17 +408,36 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         var totalHpDamage = 0;
         var block = target.Block;
         var hp = target.Hp;
+        var slippery = target.Slippery;
         for (var i = 0; i < hits && hp > 0; i++)
         {
-            var hpDamage = Math.Max(0, modified - block);
-            block = Math.Max(0, block - modified);
+            int hpDamage;
+            if (slippery > 0)
+            {
+                // Slippery (Vantom): cap the hit at 1 damage; decrement
+                // the stack. Block doesn't help against Slippery hits
+                // in our model (the stack absorbs the hit pre-block) —
+                // wiki.gg describes the effect as "absorb the hit into
+                // 1 HP", and STS-style implementations cap the hit
+                // after block too. Conservative: apply the 1-HP cap
+                // after block calc (so block first, then min(1)).
+                var rawAfterBlock = Math.Max(0, modified - block);
+                block = Math.Max(0, block - modified);
+                hpDamage = Math.Min(1, rawAfterBlock);
+                slippery--;
+            }
+            else
+            {
+                hpDamage = Math.Max(0, modified - block);
+                block = Math.Max(0, block - modified);
+            }
             if (hpDamage > 0)
             {
                 hp = Math.Max(0, hp - hpDamage);
                 totalHpDamage += hpDamage;
             }
         }
-        enemies[targetIdx] = target with { Block = block, Hp = hp };
+        enemies[targetIdx] = target with { Block = block, Hp = hp, Slippery = slippery };
         return (state with { Enemies = enemies }, totalHpDamage);
     }
 
