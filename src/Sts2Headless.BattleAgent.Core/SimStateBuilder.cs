@@ -146,7 +146,8 @@ public static class SimStateBuilder
             Berserk:       ReadPower(powers, "BERSERK_POWER"),
             Barricade:     ReadPower(powers, "BARRICADE_POWER"),
             Corruption:    ReadPower(powers, "CORRUPTION_POWER"),
-            Ringing:       ReadPower(powers, "RINGING_POWER"));
+            Ringing:       ReadPower(powers, "RINGING_POWER"),
+            Thorns:        ReadPower(powers, "THORNS_POWER"));
     }
 
     private static int ReadPower(IReadOnlyList<Power> powers, string id)

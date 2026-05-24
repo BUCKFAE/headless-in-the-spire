@@ -607,6 +607,15 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
                     if (s.Status.Vulnerable > 0) perHit = (int)Math.Floor(perHit * 1.5);
                     // TUNGSTEN_ROD: -1 to each incoming attack hit.
                     if (HasRelic(s, "TUNGSTEN_ROD")) perHit = Math.Max(0, perHit - 1);
+                    // Thorns wire-read into PlayerStatus.Thorns but
+                    // NOT applied in this loop. Tested 33/200 → 31/200
+                    // on the 200-seed corpus — the planner under-blocks
+                    // because it credits the reflection too richly
+                    // (multi-hit incoming yields N thorn hits, scoring
+                    // as +N×3 enemy HP, which doesn't actually save
+                    // the player from the unblocked damage). Keep the
+                    // field readable so a future fix can re-apply
+                    // with a player-HP-aware guard.
                     for (var h = 0; h < intent.Hits && !IsPlayerDead(s); h++)
                     {
                         var afterBlock = Math.Max(0, perHit - s.Block);

@@ -115,7 +115,12 @@ public sealed record PlayerStatus(
     // end of player turn. Enforced in CombatModel.LegalActions:
     // once CardsPlayedThisTurn reaches Ringing the player is locked
     // to EndTurn. Source: research-act1-bosses.md §1 (Beast Phase 2).
-    int Ringing = 0)
+    int Ringing = 0,
+    // THORNS_POWER: whenever the player is hit by an enemy attack,
+    // deal this many damage back to the attacker (per hit, in
+    // multi-hit attacks). Sourced from Bronze Scales relic, or the
+    // Thorns event reward (event-side), and persists for the combat.
+    int Thorns = 0)
 {
     public static PlayerStatus Empty { get; } = new();
 }
