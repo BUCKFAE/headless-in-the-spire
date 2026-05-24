@@ -127,7 +127,8 @@ public sealed partial class Sts2Bindings
         // callers index against a dense list.
         var ownedPotions = ReadOwnedPotions(handle);
 
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, currentActIndex, isGameOver, isVictory, isDead, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, availableTreasureRelics, combatState, rewardsState, relics, ownedPotions);
+        var (bossId, secondBossId) = ReadActBosses(handle);
+        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, currentActIndex, isGameOver, isVictory, isDead, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, availableTreasureRelics, combatState, rewardsState, relics, ownedPotions, bossId, secondBossId);
     }
 
     // Project the stashed list of pending rewards into the wire DTO. Returns

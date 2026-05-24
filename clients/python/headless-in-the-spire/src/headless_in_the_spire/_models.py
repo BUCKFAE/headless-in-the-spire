@@ -1230,6 +1230,10 @@ class RunStateResult(BaseModel):
         list[TriggerEvent], Field(alias="triggeredSincePrev")
     ]
     triggered_dropped: Annotated[int, Field(alias="triggeredDropped")]
+    boss_encounter_id: Annotated[str | None, Field(alias="bossEncounterId")] = None
+    second_boss_encounter_id: Annotated[
+        str | None, Field(alias="secondBossEncounterId")
+    ] = None
 
 
 class RunUsePotionResult(BaseModel):

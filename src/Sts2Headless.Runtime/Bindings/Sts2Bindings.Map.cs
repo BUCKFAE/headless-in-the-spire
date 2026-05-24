@@ -142,15 +142,41 @@ public sealed partial class Sts2Bindings
 
         var pointTypeValue = _mapPointPointType.GetValue(mapPoint);
         var pointTypeName = pointTypeValue?.ToString();
-        // Same Unknown-fallback discipline as RoomType. If the test harness
-        // reports an Unknown that isn't actually unknown, the fix is to add
-        // the value to MapNodeType — not to widen the parse.
         var type = pointTypeName is not null
                    && Enum.TryParse<MapNodeType>(pointTypeName, ignoreCase: false, out var parsed)
             ? parsed
             : MapNodeType.Unknown;
 
         return new MapNode(col, row, type);
+    }
+
+    // Act-level boss/second-boss preview. Sts2 doesn't store per-MapPoint
+    // encounters on the map (they're rolled at room-entry), but the act
+    // boss IS deterministic at act start — and visible in the in-game
+    // UI as the boss icon. Returns (bossId, secondBossId?) wire strings;
+    // either may be null if the bindings didn't resolve (no act / no
+    // boss-encounter property).
+    public (string? BossId, string? SecondBossId) ReadActBosses(RunHandle handle)
+    {
+        if (_actModelBossEncounter is null) return (null, null);
+        var act = _runStateAct.GetValue(handle.RunState);
+        if (act is null) return (null, null);
+        var bossId = ReadEncounterId(_actModelBossEncounter.GetValue(act));
+        string? secondBossId = null;
+        if (_actModelHasSecondBoss is not null && _actModelSecondBossEncounter is not null
+            && _actModelHasSecondBoss.GetValue(act) is true)
+        {
+            secondBossId = ReadEncounterId(_actModelSecondBossEncounter.GetValue(act));
+        }
+        return (bossId, secondBossId);
+    }
+
+    private string? ReadEncounterId(object? encounter)
+    {
+        if (encounter is null) return null;
+        var modelId = _abstractModelId.GetValue(encounter);
+        if (modelId is null) return null;
+        return _modelIdEntry.GetValue(modelId)?.ToString();
     }
 
     // Build a MapCoord from {col, row} and pump RunManager.EnterMapCoord.

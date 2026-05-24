@@ -231,7 +231,9 @@ public static class HostMethods
             Relics: s.Relics,
             OwnedPotions: s.OwnedPotions,
             TriggeredSincePrev: triggered,
-            TriggeredDropped: dropped);
+            TriggeredDropped: dropped,
+            BossEncounterId: s.BossEncounterId,
+            SecondBossEncounterId: s.SecondBossEncounterId);
     }
 
     private static RunSelectMapNodeResult RunSelectMapNode(Sts2Bindings bindings, Session session, RunSelectMapNodeParams? @params)

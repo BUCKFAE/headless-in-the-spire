@@ -70,4 +70,9 @@ public sealed record RunSnapshot(
     CombatState? CombatState,
     RewardsState? RewardsState,
     IReadOnlyList<Relic> Relics,
-    IReadOnlyList<OwnedPotion> OwnedPotions);
+    IReadOnlyList<OwnedPotion> OwnedPotions,
+    // Act-level boss preview. RunState.Act.BossEncounter.Id.Entry.
+    // Null before the first act map is generated. Read once per
+    // snapshot — no cost to populate.
+    string? BossEncounterId = null,
+    string? SecondBossEncounterId = null);

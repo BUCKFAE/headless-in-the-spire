@@ -525,7 +525,18 @@ public sealed record RunStateResult(
     // can surface that as a warning, or just treat it as "go read state
     // more often".
     [property: JsonPropertyName("triggeredSincePrev")] IReadOnlyList<TriggerEvent> TriggeredSincePrev,
-    [property: JsonPropertyName("triggeredDropped")] long TriggeredDropped);
+    // Engine-deterministic act-boss preview. Sourced from
+    // RunState.Act.BossEncounter.Id.Entry (e.g. "DOORMAKER_BOSS"). Set
+    // at act start when the engine generates the map; visible to the
+    // in-game player as the boss icon at the top of the act map. Lets
+    // a draft / path policy bias its choices toward the specific boss
+    // counter (Vulnerable for high-HP bosses, Block for hard-hitting
+    // bosses, etc.). secondBossEncounterId is non-null only in acts
+    // that have a Second Boss (Act 3 in STS2). Both fields are null
+    // before the first act map generates (pre-Neow / mid-transition).
+    [property: JsonPropertyName("triggeredDropped")] long TriggeredDropped,
+    [property: JsonPropertyName("bossEncounterId")] string? BossEncounterId = null,
+    [property: JsonPropertyName("secondBossEncounterId")] string? SecondBossEncounterId = null);
 
 // ── run/select_map_node ──────────────────────────────────────────────────
 

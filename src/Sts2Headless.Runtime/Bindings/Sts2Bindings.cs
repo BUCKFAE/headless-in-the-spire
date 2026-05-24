@@ -111,6 +111,12 @@ public sealed partial class Sts2Bindings
     private readonly PropertyInfo _runStateMap;
     private readonly PropertyInfo _runStateCurrentMapCoord;
     private readonly PropertyInfo _mapStartingMapPoint;
+    private readonly PropertyInfo _runStateAct;
+    private readonly PropertyInfo? _actModelBossEncounter;
+    private readonly PropertyInfo? _actModelSecondBossEncounter;
+    private readonly PropertyInfo? _actModelHasSecondBoss;
+    private readonly PropertyInfo _abstractModelId;
+    private readonly PropertyInfo _modelIdEntry;
     private readonly MethodInfo _mapGetPoint;
     private readonly PropertyInfo _mapPointChildren;
     private readonly FieldInfo _mapPointCoord;
@@ -365,6 +371,12 @@ public sealed partial class Sts2Bindings
         _runStateMap = s.RunStateMap;
         _runStateCurrentMapCoord = s.RunStateCurrentMapCoord;
         _mapStartingMapPoint = s.MapStartingMapPoint;
+        _runStateAct = s.RunStateAct;
+        _actModelBossEncounter = s.ActModelBossEncounter;
+        _actModelSecondBossEncounter = s.ActModelSecondBossEncounter;
+        _actModelHasSecondBoss = s.ActModelHasSecondBoss;
+        _abstractModelId = s.AbstractModelId;
+        _modelIdEntry = s.ModelIdEntry;
         _mapGetPoint = s.MapGetPoint;
         _mapPointChildren = s.MapPointChildren;
         _mapPointCoord = s.MapPointCoord;
@@ -751,6 +763,33 @@ public sealed partial class Sts2Bindings
             ?? mapPointType.GetField("Coord", BindingFlags.Public | BindingFlags.Instance)
             ?? throw new InvalidOperationException($"{mapPointType.FullName}.coord field not found");
         var mapPointPointType = RequireProperty(mapPointType, "PointType");
+        // Per-MapPoint encounters aren't stored on the map — sts2 rolls
+        // them at room-entry time. So we surface the *act-level* boss
+        // instead: RunState.Act.BossEncounter.Id.Entry gives the act
+        // boss encounter id at act start (deterministic for the seed,
+        // visible to the player in the in-game UI as the boss icon at
+        // the top of the map). For elites/regulars only the per-act
+        // *pool* is exposed (ActModel.AllEliteEncounters), not the
+        // specific encounter rolled for a given map point.
+        var runStateAct = RequireProperty(runStateType, "Act");
+        var actModelType = mapPointType.Assembly.GetType("MegaCrit.Sts2.Core.Models.ActModel")
+            ?? throw new InvalidOperationException("ActModel type not found");
+        var actModelBossEncounter = actModelType.GetProperty("BossEncounter",
+            BindingFlags.Public | BindingFlags.Instance);
+        var actModelSecondBossEncounter = actModelType.GetProperty("SecondBossEncounter",
+            BindingFlags.Public | BindingFlags.Instance);
+        var actModelHasSecondBoss = actModelType.GetProperty("HasSecondBoss",
+            BindingFlags.Public | BindingFlags.Instance);
+        var abstractModelType = mapPointType.Assembly.GetType("MegaCrit.Sts2.Core.Models.AbstractModel")
+            ?? throw new InvalidOperationException("AbstractModel type not found");
+        var abstractModelId = abstractModelType.GetProperty("Id",
+            BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("AbstractModel.Id not found");
+        var modelIdType = mapPointType.Assembly.GetType("MegaCrit.Sts2.Core.Models.ModelId")
+            ?? throw new InvalidOperationException("ModelId type not found");
+        var modelIdEntry = modelIdType.GetProperty("Entry",
+            BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("ModelId.Entry not found");
         var mapCoordColField = mapCoordType.GetField("col", BindingFlags.Public | BindingFlags.Instance)
             ?? mapCoordType.GetField("Col", BindingFlags.Public | BindingFlags.Instance)
             ?? throw new InvalidOperationException($"{mapCoordType.FullName}.col field not found");
@@ -981,6 +1020,8 @@ public sealed partial class Sts2Bindings
             currentRoom, actFloor, currentActIndex, isGameOver,
             runStateMap, runStateCurrentMapCoord, mapStartingMapPoint, mapGetPoint,
             mapPointChildren, mapPointCoord, mapPointPointType,
+            runStateAct, actModelBossEncounter, actModelSecondBossEncounter, actModelHasSecondBoss,
+            abstractModelId, modelIdEntry,
             mapCoordColField, mapCoordRowField,
             runManagerEventSync, eventSyncGetLocalEvent, eventIsFinished, eventCurrentOptions,
             eventOptionTextKey, eventOptionIsLocked, eventOptionChosen,
@@ -1477,7 +1518,11 @@ public sealed partial class Sts2Bindings
         PropertyInfo RunStateCurrentActIndex, PropertyInfo RunStateIsGameOver,
         PropertyInfo RunStateMap, PropertyInfo RunStateCurrentMapCoord, PropertyInfo MapStartingMapPoint,
         MethodInfo MapGetPoint, PropertyInfo MapPointChildren, FieldInfo MapPointCoord,
-        PropertyInfo MapPointPointType, FieldInfo MapCoordColField, FieldInfo MapCoordRowField,
+        PropertyInfo MapPointPointType,
+        PropertyInfo RunStateAct,
+        PropertyInfo? ActModelBossEncounter, PropertyInfo? ActModelSecondBossEncounter, PropertyInfo? ActModelHasSecondBoss,
+        PropertyInfo AbstractModelId, PropertyInfo ModelIdEntry,
+        FieldInfo MapCoordColField, FieldInfo MapCoordRowField,
         PropertyInfo RunManagerEventSynchronizer, MethodInfo EventSyncGetLocalEvent,
         PropertyInfo EventIsFinished, PropertyInfo EventCurrentOptions,
         PropertyInfo? EventOptionTextKey, PropertyInfo EventOptionIsLocked, MethodInfo EventOptionChosen,
