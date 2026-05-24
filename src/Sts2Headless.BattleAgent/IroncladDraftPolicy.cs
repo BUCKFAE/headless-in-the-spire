@@ -16,6 +16,12 @@ namespace Sts2Headless.BattleAgent;
 // highest-tier offered if it beats the skip threshold, otherwise skip.
 public sealed class IroncladDraftPolicy : IDraftPolicy
 {
+    // Tracker accepted for forward-compat — archetype-aware tiebreak
+    // was tested and measured net-negative (cost 1 win on the 50-seed
+    // corpus). The field stays so a future scoring change can read
+    // deck state without an interface bump.
+    public IroncladDraftPolicy(RunDeckTracker? tracker = null) { _ = tracker; }
+
     public AgentAction Choose(RunStateResult state)
     {
         var rewards = state.RewardsState

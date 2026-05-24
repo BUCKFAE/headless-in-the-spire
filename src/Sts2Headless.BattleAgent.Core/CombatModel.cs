@@ -201,14 +201,18 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         s = ApplyPowerGains(s, effect);
 
         // Damage. STRIKE_DUMMY adds +3 damage per hit to Strike-named cards;
-        // we apply the bonus to the declarative path here (Custom-handler
-        // cards apply it themselves inside the handler so PerfectedStrike
-        // and Whirlwind also pick up the boost).
+        // AKABEKO adds +8 to the first attack played in combat.
         var damagePerHit = effect.Damage;
         if (damagePerHit > 0 && HasRelic(state, "STRIKE_DUMMY")
             && SimStateBuilder.IsStrikeNamedCard(card.Id))
         {
             damagePerHit += 3;
+        }
+        var akabekoFired = false;
+        if (effect.IsAttack && state.AkabekoAvailable && HasRelic(state, "AKABEKO"))
+        {
+            damagePerHit += 8;
+            akabekoFired = true;
         }
 
         if (effect.BlockToDamage)
@@ -222,6 +226,8 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
             if (effect.TargetsAllEnemies) s = DealAoeDamage(s, damagePerHit, effect.Hits).state;
             else s = DealSingleTargetDamage(s, play.TargetEnemyIndex ?? 0, damagePerHit, effect.Hits).state;
         }
+        // Latch off Akabeko after first attack consumed it.
+        if (akabekoFired) s = s with { AkabekoAvailable = false };
 
         // Debuffs to enemies (post-damage so kills aren't wasted)
         if (effect.VulnerableApply > 0 || effect.WeakApply > 0)
@@ -513,6 +519,8 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
                     // damage doesn't bake in *player* vulnerable, since
                     // we apply it during our own turn.
                     if (s.Status.Vulnerable > 0) perHit = (int)Math.Floor(perHit * 1.5);
+                    // TUNGSTEN_ROD: -1 to each incoming attack hit.
+                    if (HasRelic(s, "TUNGSTEN_ROD")) perHit = Math.Max(0, perHit - 1);
                     for (var h = 0; h < intent.Hits && !IsPlayerDead(s); h++)
                     {
                         var afterBlock = Math.Max(0, perHit - s.Block);

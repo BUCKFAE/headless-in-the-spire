@@ -261,8 +261,15 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         var perStrike = ctx.Card.Upgraded ? 3 : 2;
         var dmg = 6 + perStrike * Math.Max(0, ctx.State.StrikeCardsInDeck);
         if (CombatModel.HasRelic(ctx.State, "STRIKE_DUMMY")) dmg += 3;
+        var akabekoFired = false;
+        if (ctx.State.AkabekoAvailable && CombatModel.HasRelic(ctx.State, "AKABEKO"))
+        {
+            dmg += 8;
+            akabekoFired = true;
+        }
         var (state, _) = CombatModel.DealSingleTargetDamage(
             ctx.State, ctx.TargetIndex ?? 0, dmg, hits: 1);
+        if (akabekoFired) state = state with { AkabekoAvailable = false };
         return state;
     }
 

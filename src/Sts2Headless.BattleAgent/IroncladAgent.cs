@@ -33,7 +33,11 @@ public sealed class IroncladAgent : SimAgent
         PlannerBudget? budget = null)
         : base(model, evaluator, planner, budget)
     {
-        DraftPolicy    = draftPolicy ?? new IroncladDraftPolicy();
+        // Pass the run-deck tracker into DraftPolicy so it can pick a
+        // gap-filler when offered cards tie in tier. DeckTracker is a
+        // field-initialised RunDeckTracker so it's already non-null
+        // here.
+        DraftPolicy    = draftPolicy ?? new IroncladDraftPolicy(tracker: DeckTracker);
         PathPolicy     = pathPolicy ?? new IroncladPathPolicy();
         RestPolicy     = restPolicy ?? new IroncladRestPolicy();
         EventPolicy    = eventPolicy ?? new IroncladEventPolicy();

@@ -51,7 +51,12 @@ public sealed record SimState(
     // damage to Strike-named cards, etc.). Defaults to empty so legacy
     // tests still work; SimStateBuilder.FromWire populates this from
     // the run state's relics list.
-    IReadOnlyCollection<string>? Relics = null);
+    IReadOnlyCollection<string>? Relics = null,
+    // True until the first attack card has been played this combat.
+    // Akabeko relic adds +8 damage on the first attack and only the
+    // first; tracking the latch on SimState lets the planner correctly
+    // value "open with Bash" vs "open with Defend".
+    bool AkabekoAvailable = true);
 
 // Player-side status effects. Includes both turn-decaying debuffs
 // (Vulnerable, Weak, Frail) and persistent power-card effects (Combust,
