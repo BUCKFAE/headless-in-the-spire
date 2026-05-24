@@ -51,7 +51,8 @@ What lives here:
 
 - "Greedy agent reaches the Act-1 boss room on seed S."
 - "Replay R re-executes byte-for-byte against a fresh host."
-- "Full Act-1 win on seed S with character C." (future)
+- "Full game on seed S with character C runs to the Architect terminus"
+  (`BeatGameOnSeed42Tests.cs`).
 - Anything that spans **a player journey**, not a single wire call.
 
 Per-test cost: tens of seconds. Runs in `just test` for now; may move to a
