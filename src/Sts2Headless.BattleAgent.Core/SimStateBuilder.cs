@@ -143,7 +143,8 @@ public static class SimStateBuilder
             Evolve:        ReadPower(powers, "EVOLVE_POWER"),
             Berserk:       ReadPower(powers, "BERSERK_POWER"),
             Barricade:     ReadPower(powers, "BARRICADE_POWER"),
-            Corruption:    ReadPower(powers, "CORRUPTION_POWER"));
+            Corruption:    ReadPower(powers, "CORRUPTION_POWER"),
+            Ringing:       ReadPower(powers, "RINGING_POWER"));
     }
 
     private static int ReadPower(IReadOnlyList<Power> powers, string id)

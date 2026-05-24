@@ -56,7 +56,10 @@ public sealed record SimState(
     // Akabeko relic adds +8 damage on the first attack and only the
     // first; tracking the latch on SimState lets the planner correctly
     // value "open with Bash" vs "open with Defend".
-    bool AkabekoAvailable = true);
+    bool AkabekoAvailable = true,
+    // How many cards the player has played so far this player turn.
+    // Used to enforce Ringing's per-turn play cap in LegalActions.
+    int CardsPlayedThisTurn = 0);
 
 // Player-side status effects. Includes both turn-decaying debuffs
 // (Vulnerable, Weak, Frail) and persistent power-card effects (Combust,
@@ -99,7 +102,13 @@ public sealed record PlayerStatus(
     // Corruption power: while > 0, Skills cost 0 and exhaust on play.
     // Tracked as int (stacks additively like any wire power) but treated
     // as boolean in CombatModel — engine never grants > 1.
-    int Corruption = 0)
+    int Corruption = 0,
+    // Ringing (Beast Phase 2 Beast Cry debuff): when > 0, the player
+    // can only play `Ringing` total cards this turn. Decays by 1 at
+    // end of player turn. Enforced in CombatModel.LegalActions:
+    // once CardsPlayedThisTurn reaches Ringing the player is locked
+    // to EndTurn. Source: research-act1-bosses.md §1 (Beast Phase 2).
+    int Ringing = 0)
 {
     public static PlayerStatus Empty { get; } = new();
 }

@@ -38,6 +38,19 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         var actions = new List<SimAction> { new SimEndTurn() };
         if (IsCombatOver(state)) return new[] { (SimAction)new SimEndTurn() };
 
+        // Ringing enforcement deliberately *off* — when we capped the
+        // legal actions at `Ringing` plays this turn (logic was right,
+        // matched the engine) the planner started picking a different
+        // single best card than the first card of its optimal full-
+        // sequence, and net -1 vs not modelling it at all on the
+        // 200-seed corpus (33 → 32). Suspected cause: with cap-off
+        // the engine rejects extra plays so only the first one fires,
+        // and the "first of optimal full sequence" happens to be a
+        // better Ringing-turn pick than the planner's "optimal
+        // single card under cap". Data is still read from the wire
+        // (PlayerStatus.Ringing) so a future evaluator-side fix can
+        // re-engage without re-plumbing.
+
         for (var handIdx = 0; handIdx < state.Hand.Count; handIdx++)
         {
             var card = state.Hand[handIdx];
@@ -291,6 +304,10 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         // Rage: gain block per attack played this turn.
         if (effect.IsAttack && s.Status.Rage > 0)
             s = ApplyBlock(s, s.Status.Rage);
+
+        // Bump the per-turn play counter (Ringing enforcement reads
+        // this in LegalActions).
+        s = s with { CardsPlayedThisTurn = s.CardsPlayedThisTurn + 1 };
 
         // Remove from hand.
         if (handIdx < 0 || handIdx >= s.Hand.Count)
@@ -628,6 +645,7 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         Weak       = Math.Max(0, st.Weak - 1),
         Frail      = Math.Max(0, st.Frail - 1),
         Rage       = 0,  // Rage resets at end of turn
+        Ringing    = Math.Max(0, st.Ringing - 1),
     };
 
     private static SimState StartPlayerTurn(SimState s)
@@ -663,6 +681,7 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
             // ahead must treat post-EOT Hand as empty.
             Hand = Array.Empty<SimCard>(),
             CardsDrawnThisTurn = 0 + drawnExtra,
+            CardsPlayedThisTurn = 0,
         };
     }
 }
