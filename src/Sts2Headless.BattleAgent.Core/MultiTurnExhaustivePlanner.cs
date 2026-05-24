@@ -101,9 +101,6 @@ public sealed class MultiTurnExhaustivePlanner : ICombatPlanner
         for (var t = 0; t < turns; t++)
         {
             if (model.IsCombatOver(s)) break;
-            // First projected player turn already has the real EOT
-            // applied by the planner's caller; subsequent ones get
-            // injected phantom plays.
             if (t > 0)
             {
                 s = ApplyPhantomPlayerTurn(s);
