@@ -13,17 +13,20 @@ public sealed class BossAwarePlanner : ICombatPlanner
     public int Lookahead { get; }
     public ICombatPlanner Regular { get; }
     public ICombatPlanner Boss { get; }
+    public int BossNodeMultiplier { get; }
 
     public BossAwarePlanner(
         int bossThreshold = 100,
         int lookahead = 2,
         ICombatPlanner? regular = null,
-        ICombatPlanner? boss = null)
+        ICombatPlanner? boss = null,
+        int bossNodeMultiplier = 1)
     {
         BossThreshold = bossThreshold;
         Lookahead = lookahead;
         Regular = regular ?? new ExhaustivePlanner();
         Boss = boss ?? new MultiTurnExhaustivePlanner(lookaheadTurns: lookahead);
+        BossNodeMultiplier = bossNodeMultiplier;
     }
 
     public TurnPlan PlanTurn(
@@ -33,8 +36,14 @@ public sealed class BossAwarePlanner : ICombatPlanner
         PlannerBudget budget,
         CancellationToken cancellationToken)
     {
-        var planner = IsBossFight(rootState) ? Boss : Regular;
-        return planner.PlanTurn(rootState, model, evaluator, budget, cancellationToken);
+        if (IsBossFight(rootState))
+        {
+            var bigger = BossNodeMultiplier == 1
+                ? budget
+                : budget with { MaxNodes = budget.MaxNodes * BossNodeMultiplier };
+            return Boss.PlanTurn(rootState, model, evaluator, bigger, cancellationToken);
+        }
+        return Regular.PlanTurn(rootState, model, evaluator, budget, cancellationToken);
     }
 
     private bool IsBossFight(SimState state)
