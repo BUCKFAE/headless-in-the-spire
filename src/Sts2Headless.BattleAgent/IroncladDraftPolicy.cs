@@ -249,6 +249,15 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             CardId.AshenStrike => CardTier.B, // 6+3/exhaust — scales fast
             CardId.Brand => CardTier.B,        // pivot card, but only A in decks committed to Self-Damage/Exhaust
             CardId.Rupture => CardTier.B,    // Self-Damage power core (modelled). Tier-A regressed 11/50 → 9/50.
+            // Modelled this commit:
+            //   Hellraiser → power that fires expected-strikes-drawn ×
+            //     (6 + Str) damage end-of-turn (see CombatModel for
+            //     the math). A-tier because per research it's a
+            //     run-defining archetype anchor.
+            //   Cruelty → 12 dmg single-target attack (conservative
+            //     under-value; real card is Vulnerable-amp). B-tier.
+            CardId.Hellraiser => CardTier.A,
+            CardId.Cruelty => CardTier.B,
             // Newly modelled (this commit): Spite as 6/2-hit attack,
             // Inferno as Combust-style 6/turn AoE — approximations
             // (see catalog comments for accuracy notes).

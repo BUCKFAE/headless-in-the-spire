@@ -37,6 +37,21 @@ public class IroncladAgentA0ClearTests
 
     [Fact]
     [Trait("Category", "Diagnostic")]
+    public async Task IroncladAgent_ClearA0_200Seeds_Parallel()
+    {
+        // Bigger sample for tighter confidence intervals. 50-seed runs
+        // hover at 11/50 (22%); the standard error is ±~6%, so a real
+        // change of 2-3 seeds is hard to distinguish from noise. 200
+        // tightens the SE to ~3%.
+        await RunMeasurement(
+            label: "IroncladAgent (200-seed default Exhaustive)",
+            seeds: Enumerable.Range(1, 200).Select(i => (ulong)i).ToArray(),
+            agentFactory: () => new IroncladAgent(),
+            outFile: "/tmp/ironclad-a0-clear/default-exhaustive-200.md");
+    }
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
     public async Task IroncladAgent_ClearA0_50Seeds_MultiTurn2()
     {
         await RunMeasurement(

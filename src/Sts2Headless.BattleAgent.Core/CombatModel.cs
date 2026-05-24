@@ -387,6 +387,7 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         if (e.BerserkGain > 0)        st = st with { Berserk = st.Berserk + e.BerserkGain };
         if (e.BarricadeGain > 0)      st = st with { Barricade = st.Barricade + e.BarricadeGain };
         if (e.CorruptionGain > 0)     st = st with { Corruption = st.Corruption + e.CorruptionGain };
+        if (e.HellraiserGain > 0)     st = st with { Hellraiser = st.Hellraiser + e.HellraiserGain };
         return s with { Status = st };
     }
 
@@ -496,6 +497,42 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
             if (AllEnemiesDead(s)) return s;
         }
         if (s.Status.Metallicize > 0) s = ApplyBlock(s, s.Status.Metallicize);
+
+        // Hellraiser end-of-turn payoff (see SimState comment for the
+        // model). We don't have the per-card draw stream, so this
+        // applies the expected-value damage burst at end-of-player-
+        // turn against the highest-HP living enemy.
+        if (s.Status.Hellraiser > 0 && s.CardsDrawnThisTurn > 0
+            && s.StrikeCardsInDeck > 0)
+        {
+            // Approximate deck size from pile counts plus current hand.
+            // Underestimate is safe (over-values Hellraiser); over-
+            // estimate is the recoverable direction.
+            var deckSize = Math.Max(1,
+                s.DrawPileCount + s.DiscardPileCount + s.ExhaustPileCount + s.Hand.Count);
+            var density = s.StrikeCardsInDeck / (double)deckSize;
+            // Cap density at 0.6 — beyond that we're modelling a Strike
+            // singleton deck the agent can't realistically hold.
+            density = Math.Min(0.6, density);
+            var expectedStrikes = (int)Math.Floor(s.CardsDrawnThisTurn * density);
+            if (expectedStrikes > 0)
+            {
+                var perStrike = 6 + Math.Max(0, s.Status.Strength);
+                // Target the highest-HP living enemy.
+                var targetIdx = -1;
+                var bestHp = -1;
+                for (var i = 0; i < s.Enemies.Count; i++)
+                {
+                    if (s.Enemies[i].IsDead) continue;
+                    if (s.Enemies[i].Hp > bestHp) { bestHp = s.Enemies[i].Hp; targetIdx = i; }
+                }
+                if (targetIdx >= 0)
+                {
+                    s = DealSingleTargetDamage(s, targetIdx, perStrike, expectedStrikes).state;
+                    if (AllEnemiesDead(s)) return s;
+                }
+            }
+        }
 
         // Enemy intents resolve. The wire's intent.Damage already bakes
         // in enemy Strength + player Vulnerable at snapshot time. Our

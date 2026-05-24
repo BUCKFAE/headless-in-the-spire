@@ -71,6 +71,18 @@ public sealed record PlayerStatus(
     int Frail = 0,
     // Power-card effects (persist for the combat). Amounts stack additively.
     int Combust = 0,            // deal N damage to ALL at end of turn (cost: 1 HP)
+    // Hellraiser power (STS2 Ironclad rare 2E): whenever you DRAW a
+    // Strike-named card, auto-play it on a random enemy. The
+    // simulator doesn't track per-draw card identities (only
+    // CardsDrawnThisTurn counter), so we approximate:
+    //   end-of-turn damage to highest-HP enemy =
+    //     stacks × (6 + Strength) × expectedStrikesDrawn
+    //   where expectedStrikesDrawn ≈
+    //     CardsDrawnThisTurn × (StrikeCardsInDeck / max(deck_size, 1))
+    // For a starter Ironclad deck (5 Strikes / 10 cards) with 5 cards
+    // drawn this turn the model expects ~2.5 strikes auto-played for
+    // ~15 dmg/turn. A Pommel-Strike-loop deck multiplies this.
+    int Hellraiser = 0,
     int Metallicize = 0,        // gain N block at end of turn
     int PlatedArmor = 0,        // gain N block at end of turn; decays 1 on attack damage taken
     int FeelNoPain = 0,         // gain N block when a card is exhausted

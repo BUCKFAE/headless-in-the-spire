@@ -59,6 +59,7 @@ public sealed record HeuristicWeights(
     double Evolve = 4.0,               // (previously zero — unweighted!)
     double Berserk = 20.0,             // (previously zero — unweighted!) +1 max energy
     double PlatedArmor = 5.0,          // (previously zero — unweighted!)
+    double Hellraiser = 30.0,          // auto-Strike-on-draw — scales with deck strike density
     double CardsDrawn = 1.0,           // small bonus per card drawn this turn
     // Unblocked damage weight. -3.5 (was -2.5) because a one-turn
     // lookahead systematically underestimates HP cost — damage taken now
@@ -147,6 +148,7 @@ public sealed class HeuristicEvaluator(HeuristicWeights? weights = null) : IEval
         score += _w.Evolve * st.Evolve * durationMultiplier;
         score += _w.Berserk * st.Berserk * durationMultiplier;
         score += _w.PlatedArmor * st.PlatedArmor * durationMultiplier;
+        score += _w.Hellraiser * st.Hellraiser * durationMultiplier;
 
         score += _w.CardsDrawn * s.CardsDrawnThisTurn;
 

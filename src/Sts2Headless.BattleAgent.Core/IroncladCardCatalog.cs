@@ -115,6 +115,17 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         // deck gets 1 hit, so this is a slight over-count when drafted
         // outside the archetype.
         CardId.Spite          => new(IsAttack: true, Damage: 6, Hits: 2),
+        // Hellraiser (STS2 rare, 2E power): auto-plays drawn Strikes.
+        // Modelled as a power stack that triggers an end-of-turn
+        // damage burst based on deck strike-density × cards drawn —
+        // see CombatModel.EndPlayerTurn's Hellraiser block.
+        CardId.Hellraiser     => new(IsPower: true, HellraiserGain: 1),
+        // Cruelty (STS2 rare attack, single-source): Vulnerable
+        // damage multiplier. Without verified card text we approximate
+        // as a 12-damage AnyEnemy attack so it's at least playable
+        // as a generic A-tier finisher. Conservative under-value
+        // vs the real "damage multiplier" effect.
+        CardId.Cruelty        => new(IsAttack: true, Damage: 12),
         // Inferno (STS2): 1E power. Turn-start lose 1 HP; whenever
         // you lose HP on your turn deal 6/9 to ALL enemies. Modelled
         // as a Combust-style end-of-turn AoE: the actual trigger is
@@ -232,6 +243,8 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.Rupture        => new(IsPower: true, RuptureGain: 2),
         CardId.Spite          => new(IsAttack: true, Damage: 8, Hits: 2),
         CardId.Inferno        => new(IsPower: true, CombustGain: 9),
+        CardId.Hellraiser     => new(IsPower: true, HellraiserGain: 1),
+        CardId.Cruelty        => new(IsAttack: true, Damage: 15),
 
         CardId.DarkEmbrace    => new(IsPower: true, DarkEmbraceGain: 1), // upgrade: cost 1
         CardId.FeelNoPain     => new(IsPower: true, FeelNoPainGain: 4),
