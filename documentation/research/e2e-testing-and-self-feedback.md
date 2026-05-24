@@ -211,8 +211,10 @@ just as much as runtime correctness does.
 5. **Author the first ~10 scenario fixtures** by hand (one per character, a
    few per room type, a few edge-case combats). This will surface protocol
    bugs faster than any other activity.
-6. **Add a top-level `documentation/testing.md`** later that consolidates the
-   above into instructions, once the tooling exists.
+6. **Add a top-level `documentation/testing.md`** that consolidates the
+   above into instructions, once the tooling exists. (Shipped — see
+   [`documentation/testing.md`](../testing.md); the four-layer pyramid
+   below maps onto the three operational axes that doc documents.)
 
 ## Open questions
 
