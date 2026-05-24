@@ -21,6 +21,18 @@ ones to resolve before writing code.
 > "Quick recommendation" at the bottom is the one bit that no longer
 > applies — keep reading it for historical context but treat AD-8 as
 > the live decision.
+>
+> **Update 2026-05-24 — what shipped for option B.** The web viewer
+> lives at `tools/replay-viewer/` and is **vanilla TypeScript + Vite**
+> (not React / Next.js as the body below sketched). It reads
+> `manifest.json` + `.mcr.timeline.json` files written by
+> `src/Sts2Headless.Replay/` and renders run / floor / combat
+> metadata — outcome, room type, act, floor — not a pixel-accurate
+> board state. No external asset pipeline is wired (spire-codex /
+> sts2-modding-mcp were *not* adopted), and the "Suggested external
+> clones for `external-tools/`" list at the bottom was *not*
+> materialised — only `sts2-cli/` is checked out. Run with
+> `just dev-viewer`.
 
 ---
 
