@@ -44,18 +44,16 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             // to each archetype) from the run-deck tracker.
             var affinity = ComputeDeckAffinity();
 
-            // Highest-tier wins. If the deck has a *committed*
-            // archetype (any single archetype with >= 3 enablers in the
-            // run deck), use synergy as the tie-break within the top
-            // tier. Otherwise stay first-found (synergy tie-break on an
-            // undecided deck regressed 11/50 → 8/50; the gate avoids
-            // biasing the early-act picks before the run has a
-            // direction).
-            // Threshold of 3 enablers before the synergy tie-break
-            // engages. Lower (= 2) regressed 11/50 → 10/50 because the
-            // bias kicked in before the deck had a real direction.
-            // Higher (= 4) is equivalent to dormant — almost no
-            // 50-seed run reaches 4 enablers of one archetype.
+            // Highest-tier wins. Within the top tier, two signals
+            // combine for the tie-break:
+            //   (a) committed-archetype synergy bonus (gated on the
+            //       deck having >= 3 enablers in one archetype — see
+            //       SynergyBonus comment for why the gate exists);
+            //   (b) per-boss draft bias (RunStateResult.BossEncounterId
+            //       drives BossDraftBias deltas).
+            // Both are additive on top of the tier score; the tier gap
+            // (= 100 between tiers) is large enough that neither flips
+            // a B-tier over an A-tier on its own.
             var committedThreshold = 3;
             var committed = false;
             foreach (var v in affinity.Values)
@@ -68,22 +66,25 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
                 if ((int)t > (int)bestTier) bestTier = t;
             }
             var bestIdx = 0;
-            var bestSynergy = int.MinValue;
+            var bestCombined = int.MinValue;
             for (var i = 0; i < cards.Count; i++)
             {
                 if (TierOf(cards[i].Id) != bestTier) continue;
                 var synergy = committed ? SynergyBonus(cards[i].Id, affinity) : 0;
-                if (synergy > bestSynergy)
+                var bossDelta = BossDraftBias.DeltaFor(state.BossEncounterId, cards[i].Id);
+                var combined = synergy + bossDelta;
+                if (combined > bestCombined)
                 {
-                    bestSynergy = synergy;
+                    bestCombined = combined;
                     bestIdx = i;
                 }
             }
-            // Re-evaluate for the skip path: always compute the synergy
-            // of the picked card (regardless of `committed`) so the
-            // override fires on emerging-but-not-yet-committed archetypes
-            // too.
-            bestSynergy = SynergyBonus(cards[bestIdx].Id, affinity);
+            // Re-evaluate for the skip path: only the archetype-synergy
+            // term gates the skip override (the boss bias is purely a
+            // within-tier tie-breaker; allowing it to override skip
+            // threshold pulled in C-tier counter-cards that bloated
+            // the deck on the 50-seed corpus).
+            var bestSynergy = SynergyBonus(cards[bestIdx].Id, affinity);
 
             // Deck-size-aware skip threshold:
             //   - small deck (<= 12): take everything (greedy stage)
