@@ -167,17 +167,33 @@ public sealed class PolicyTests
     // ── Event ─────────────────────────────────────────────────────────
 
     [Fact]
-    public void EventPicksLastUnlockedOption()
+    public void EventPolicyPrefersSafeExitOverDanger()
     {
+        // SLIPPERY_BRIDGE regression: HOLD_ON_0 keeps draining HP; the
+        // safe path is OVERCOME. The policy must pick OVERCOME.
         var options = new[]
         {
-            new EventOption(Index: 0, TextKey: "A", IsLocked: false),
-            new EventOption(Index: 1, TextKey: "B", IsLocked: false),
-            new EventOption(Index: 2, TextKey: "C", IsLocked: true),
+            new EventOption(0, "SLIPPERY_BRIDGE.pages.INITIAL.options.OVERCOME", IsLocked: false),
+            new EventOption(1, "SLIPPERY_BRIDGE.pages.INITIAL.options.HOLD_ON_0", IsLocked: false),
         };
         var state = NewState(eventOptions: options, currentRoomType: RoomType.EventRoom);
         var policy = new IroncladEventPolicy();
         var pick = Assert.IsType<SelectEventOption>(policy.Choose(state));
-        Assert.Equal(1, pick.OptionIndex); // last unlocked
+        Assert.Equal(0, pick.OptionIndex);
+    }
+
+    [Fact]
+    public void EventPolicySkipsLockedOptions()
+    {
+        // Locked option mustn't be chosen even if scored high.
+        var options = new[]
+        {
+            new EventOption(0, "EVT.pages.INITIAL.options.TAKE", IsLocked: true),
+            new EventOption(1, "EVT.pages.INITIAL.options.LEAVE", IsLocked: false),
+        };
+        var state = NewState(eventOptions: options, currentRoomType: RoomType.EventRoom);
+        var policy = new IroncladEventPolicy();
+        var pick = Assert.IsType<SelectEventOption>(policy.Choose(state));
+        Assert.Equal(1, pick.OptionIndex);
     }
 }

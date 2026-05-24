@@ -72,8 +72,12 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
 
     private static CardTier TierOf(CardId id)
     {
-        // Hard "don't draft" — these cards trip the headless host or
-        // are unmodelled status fillers.
+        // Hard "don't draft" — these cards either trigger headless-only
+        // crashes or are status/curse fillers we never want in deck.
+        // Whirlwind WAS in this list (legacy NRE on play); the engine
+        // fix landed and the catalog now models it as 5-per-energy AoE,
+        // so it's draftable. PerfectedStrike, PactsEnd, Rampage all
+        // received proper modelling in the 2026-05-24 scaling pass.
         switch (id)
         {
             case CardId.Headbutt:
@@ -82,8 +86,6 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             case CardId.DualWield:
             case CardId.InfernalBlade:
             case CardId.Infection:
-            // Whirlwind NREs in the headless engine — never draft.
-            case CardId.Whirlwind:
                 return CardTier.F;
         }
 
@@ -93,16 +95,20 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             CardId.DemonForm => CardTier.S,
             CardId.Barricade => CardTier.S,
             CardId.Bludgeon => CardTier.S,
+            CardId.Corruption => CardTier.S, // 0-cost skill-spam + exhaust scaling: run-defining
 
             // A-tier — strong scalers / utility powers.
             CardId.Inflame => CardTier.A,
             CardId.FeelNoPain => CardTier.A,
             CardId.DarkEmbrace => CardTier.A,
-            CardId.Corruption => CardTier.A,
             CardId.PommelStrike => CardTier.A,
             CardId.ShrugItOff => CardTier.A,
             CardId.Impervious => CardTier.A,
-            CardId.Bash => CardTier.A, // starting copy is fine; duplicates still useful in big fights
+            CardId.Bash => CardTier.A,
+            CardId.Whirlwind => CardTier.A, // X-cost AoE — 5/8 per energy to all enemies
+            CardId.Offering => CardTier.A,  // burst draw + energy, even at 6 HP cost
+            CardId.Juggernaut => CardTier.A,// per-block damage scales with Barricade/FeelNoPain decks
+            CardId.PactsEnd => CardTier.A,  // 17 AoE once exhaust pile online
 
             // B-tier — workhorse damage / block.
             CardId.IronWave => CardTier.B,
@@ -118,34 +124,38 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             CardId.FlameBarrier => CardTier.B,
             CardId.Entrench => CardTier.B,
             CardId.Rage => CardTier.B,
-            CardId.Juggernaut => CardTier.B,
             CardId.Rupture => CardTier.B,
             CardId.SecondWind => CardTier.B,
             CardId.FiendFire => CardTier.B,
             CardId.Feed => CardTier.B,
-            CardId.Offering => CardTier.B,
             CardId.StoneArmor => CardTier.B, // PlatedArmor power
+            CardId.PerfectedStrike => CardTier.B, // 6 + 2 per Strike — fine pick in Strike decks
+            CardId.Rampage => CardTier.B,         // 9 base, in-combat scaling (planner under-estimates but engine is right)
+
+            // A/B-tier additions from STS2 Vulnerable archetype (per the
+            // 2026-05 research deliverable):
+            //   - Tremble: 3 Vulnerable to all enemies (exhaust). Common skill.
+            //   - Bully: 4 + 2/Vuln. 0-cost uncommon attack.
+            //   - Dismantle: 8 dmg, hits twice if Vuln.
+            //   - Taunt: 7 block + 1 Vuln AoE.
+            CardId.Tremble => CardTier.A,
+            CardId.Bully => CardTier.A,
+            CardId.Dismantle => CardTier.A,
+            CardId.Taunt => CardTier.B,
+            CardId.AshenStrike => CardTier.B, // 6+3/exhaust — scales fast
+            CardId.Brand => CardTier.B,        // +1 Str / -1 HP — Strength source
 
             // C-tier — redundant or situational.
             CardId.Anger => CardTier.C,
-            CardId.PerfectedStrike => CardTier.C,
             CardId.TrueGrit => CardTier.C,
-            CardId.Bully => CardTier.C,
             CardId.BloodWall => CardTier.C,
-            CardId.Rampage => CardTier.C,
-            CardId.AshenStrike => CardTier.C,
             CardId.Havoc => CardTier.C,
 
             // D-tier — playable but risky / unmodelled-effect.
             CardId.Clash => CardTier.D,
-            CardId.Tremble => CardTier.D,
             CardId.Cascade => CardTier.D,
-            CardId.Dismantle => CardTier.D,
-            CardId.Taunt => CardTier.D,
             CardId.ExpectAFight => CardTier.D,
             CardId.CrimsonMantle => CardTier.D,
-            CardId.Brand => CardTier.D,
-            CardId.PactsEnd => CardTier.D,
 
             _ => CardTier.F,
         };

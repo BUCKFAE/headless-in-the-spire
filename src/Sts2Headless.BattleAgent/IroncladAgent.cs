@@ -18,22 +18,25 @@ public sealed class IroncladAgent : SimAgent
     public IPathPolicy PathPolicy { get; }
     public IRestPolicy RestPolicy { get; }
     public IEventPolicy EventPolicy { get; }
+    public IMerchantPolicy MerchantPolicy { get; }
 
     public IroncladAgent(
         IDraftPolicy? draftPolicy = null,
         IPathPolicy? pathPolicy = null,
         IRestPolicy? restPolicy = null,
         IEventPolicy? eventPolicy = null,
+        IMerchantPolicy? merchantPolicy = null,
         ICombatModel? model = null,
         IEvaluator? evaluator = null,
         ICombatPlanner? planner = null,
         PlannerBudget? budget = null)
         : base(model, evaluator, planner, budget)
     {
-        DraftPolicy = draftPolicy ?? new IroncladDraftPolicy();
-        PathPolicy  = pathPolicy ?? new IroncladPathPolicy();
-        RestPolicy  = restPolicy ?? new IroncladRestPolicy();
-        EventPolicy = eventPolicy ?? new IroncladEventPolicy();
+        DraftPolicy    = draftPolicy ?? new IroncladDraftPolicy();
+        PathPolicy     = pathPolicy ?? new IroncladPathPolicy();
+        RestPolicy     = restPolicy ?? new IroncladRestPolicy();
+        EventPolicy    = eventPolicy ?? new IroncladEventPolicy();
+        MerchantPolicy = merchantPolicy ?? new IroncladMerchantPolicy();
     }
 
     protected override AgentAction DecideMap(RunStateResult state) =>
@@ -47,4 +50,7 @@ public sealed class IroncladAgent : SimAgent
 
     protected override AgentAction DecideEvent(RunStateResult state) =>
         EventPolicy.Choose(state);
+
+    protected override AgentAction DecideMerchant(RunStateResult state) =>
+        MerchantPolicy.Choose(state);
 }

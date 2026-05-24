@@ -34,7 +34,18 @@ public sealed record SimState(
     // Set when Apply returns a state we should not transition out of —
     // e.g. headless-unsafe card or any other unrecoverable mid-turn
     // condition. Planners must treat this as a dead end.
-    bool IsInvalid);
+    bool IsInvalid,
+    // Count of "Strike"-named cards (StrikeIronclad, PerfectedStrike,
+    // PommelStrike, TwinStrike, AshenStrike, …) anywhere in the deck —
+    // draw pile + discard + exhaust + hand. PerfectedStrike's damage
+    // formula reads this directly: 6 (+2 per Strike, +3 upgraded). The
+    // wire doesn't expose deck composition during combat; SimStateBuilder
+    // initialises this from the visible hand only and the agent can
+    // override via SimStateBuilder.FromWire's optional parameter once a
+    // run-level deck tracker is wired up. Underestimating is conservative
+    // — PerfectedStrike still picks a sensible target, just deals less
+    // than the engine actually rolls.
+    int StrikeCardsInDeck = 0);
 
 // Player-side status effects. Includes both turn-decaying debuffs
 // (Vulnerable, Weak, Frail) and persistent power-card effects (Combust,
@@ -61,7 +72,11 @@ public sealed record PlayerStatus(
     int Brutality = 0,          // lose N HP and draw N at start of every turn
     int Evolve = 0,             // draw N whenever a status card is drawn
     int Berserk = 0,            // +N max energy at the cost of 2 Vulnerable
-    int Barricade = 0)          // block persists across turns when > 0 (Barricade = 1)
+    int Barricade = 0,          // block persists across turns when > 0 (Barricade = 1)
+    // Corruption power: while > 0, Skills cost 0 and exhaust on play.
+    // Tracked as int (stacks additively like any wire power) but treated
+    // as boolean in CombatModel — engine never grants > 1.
+    int Corruption = 0)
 {
     public static PlayerStatus Empty { get; } = new();
 }

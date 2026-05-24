@@ -15,7 +15,20 @@ namespace Sts2Headless.BattleAgent.Core;
 //     to typed fields on PlayerStatus and stash the rest in Other.
 public static class SimStateBuilder
 {
-    public static SimState FromWire(CombatState combat, int currentHp, int maxHp)
+    // strikeCardsInDeck — if the caller has a full-run deck tracker it
+    // can pass the engine-truth count of "Strike"-named cards (Strike,
+    // PerfectedStrike, PommelStrike, TwinStrike, AshenStrike, …) in the
+    // deck. When null, we fall back to a hand-visible count (every
+    // Strike-named card visible in the current hand). That undercounts
+    // — there could be Strikes still in draw/discard/exhaust we can't
+    // see — but a wrong-low PerfectedStrike damage is safer than a
+    // wrong-high one: the planner picks it only when the visible
+    // contribution alone already makes the play attractive.
+    public static SimState FromWire(
+        CombatState combat,
+        int currentHp,
+        int maxHp,
+        int? strikeCardsInDeck = null)
     {
         var status = ReadStatus(combat.PlayerPowers);
         var hand = combat.Hand
@@ -30,6 +43,7 @@ public static class SimStateBuilder
         var enemies = combat.Enemies
             .Select(MapEnemy)
             .ToArray();
+        var strikes = strikeCardsInDeck ?? hand.Count(c => IsStrikeNamedCard(c.Id));
 
         return new SimState(
             Hp: currentHp,
@@ -45,8 +59,25 @@ public static class SimStateBuilder
             ExhaustPileCount: 0,
             Enemies: enemies,
             CardsDrawnThisTurn: 0,
-            IsInvalid: false);
+            IsInvalid: false,
+            StrikeCardsInDeck: strikes);
     }
+
+    // CardIds whose wire name contains "Strike". The CardId enum's
+    // JsonStringEnumMemberName is the canonical wire id (SCREAMING_SNAKE);
+    // we don't have direct access to that mapping at runtime, so the
+    // list is enumerated explicitly. Update when sts2 adds new Strike-
+    // named cards (engine probe: drop the new card into a deck and watch
+    // PerfectedStrike's damage move).
+    public static bool IsStrikeNamedCard(CardId id) => id switch
+    {
+        CardId.StrikeIronclad
+            or CardId.PerfectedStrike
+            or CardId.PommelStrike
+            or CardId.TwinStrike
+            or CardId.AshenStrike => true,
+        _ => false,
+    };
 
     private static SimEnemy MapEnemy(Enemy e)
     {
@@ -105,7 +136,8 @@ public static class SimStateBuilder
             Brutality:     ReadPower(powers, "BRUTALITY_POWER"),
             Evolve:        ReadPower(powers, "EVOLVE_POWER"),
             Berserk:       ReadPower(powers, "BERSERK_POWER"),
-            Barricade:     ReadPower(powers, "BARRICADE_POWER"));
+            Barricade:     ReadPower(powers, "BARRICADE_POWER"),
+            Corruption:    ReadPower(powers, "CORRUPTION_POWER"));
     }
 
     private static int ReadPower(IReadOnlyList<Power> powers, string id)

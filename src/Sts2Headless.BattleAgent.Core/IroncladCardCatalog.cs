@@ -46,7 +46,11 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         // 2026-05-24); no NRE.
         CardId.Headbutt       => new(IsAttack: true, Damage: 9),
         CardId.IronWave       => new(IsAttack: true, Damage: 5, Block: 5),
-        CardId.PerfectedStrike=> new(IsAttack: true, Damage: 6),  // +2/Strike scaling deferred
+        // PerfectedStrike: 6 base + 2 per "Strike"-named card in deck
+        // (probed 2026-05-24: 1 PS alone → 8 dmg, 1 PS + 4 Strikes → 16 dmg).
+        // Custom handler reads SimState.StrikeCardsInDeck; SimStateBuilder
+        // counts hand-visible Strikes by default (undercount tolerated).
+        CardId.PerfectedStrike=> new(IsAttack: true, Damage: 6, Custom: PerfectedStrikeHandler),
         CardId.PommelStrike   => new(IsAttack: true, Damage: 9, DrawCards: 1),
         CardId.ShrugItOff     => new(IsSkill: true, Block: 8, DrawCards: 1),
         CardId.SwordBoomerang => new(IsAttack: true, Damage: 3, Hits: 3, TargetsAllEnemies: false),
@@ -58,10 +62,16 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
 
         // STS2-original commons (probed against engine 2026-05-24).
         CardId.BodySlam       => new(IsAttack: true, BlockToDamage: true),
-        CardId.Bully          => new(IsAttack: true, Damage: 4), // probed: 4 dmg vs slime
-        // Tremble: no observable effect in single-card SLIMES_NORMAL probe.
-        // Likely conditional (deck-context or hp-context); leave as skill no-op.
-        CardId.Tremble        => new(IsSkill: true),
+        // Bully: 4 damage + 2 per Vulnerable stack on target (STS2 community
+        // consensus, 2026-05). Modelled via Custom handler reading target's
+        // Vulnerable stack count and adding +2/stack to base damage.
+        CardId.Bully          => new(IsAttack: true, Damage: 4, Custom: BullyHandler),
+        // Tremble: apply 3 Vulnerable to ALL enemies, exhaust. Probe gave
+        // no observable effect in a single-card combat snapshot because the
+        // engine applies the debuff *before* the wire takes the snapshot
+        // we read; intent damage already reflects vulnerability. Modelled
+        // per STS2 community docs (sts2front, wiki).
+        CardId.Tremble        => new(IsSkill: true, TargetsAllEnemies: true, VulnerableApply: 3, Exhausts: true),
 
         // Uncommons
         CardId.Bludgeon       => new(IsAttack: true, Damage: 32),
@@ -88,7 +98,13 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.SecondWind     => new(IsSkill: true, Exhausts: true, DiscardForBlock: 5),
         CardId.Shockwave      => new(IsSkill: true, TargetsAllEnemies: true, WeakApply: 3, VulnerableApply: 3, Exhausts: true),
         CardId.Rage           => new(IsPower: true, RageGain: 3),
-        CardId.Rampage        => new(IsAttack: true, Damage: 8), // scaling deferred
+        // Rampage: 9 dmg base (probed 2026-05-24; catalog said 8). Real
+        // mechanic is +5 per play this combat, per-instance, persisting
+        // across turns. Wire doesn't expose the per-instance bonus, so
+        // the planner only sees the first-play damage — accepted under-
+        // estimate. If the wire ever surfaces per-card bonus damage,
+        // promote this to a Custom handler that reads it.
+        CardId.Rampage        => new(IsAttack: true, Damage: 9),
         CardId.Rupture        => new(IsPower: true, RuptureGain: 1),
 
         // Uncommon powers
@@ -97,12 +113,17 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.Juggernaut     => new(IsPower: true, JuggernautGain: 5),
 
         // STS2-original uncommons (probed against engine 2026-05-24).
-        CardId.AshenStrike    => new(IsAttack: true, Damage: 6), // probed: 6 dmg vs slime
+        // AshenStrike: 6 dmg + 3 per card in Exhaust pile (STS2 community).
+        // Modelled via Custom handler.
+        CardId.AshenStrike    => new(IsAttack: true, Damage: 6, Custom: AshenStrikeHandler),
         // Cascade: no observable effect in single-card probe. Likely
         // scaling/synergy with surrounding deck or hand state.
         CardId.Cascade        => new(IsSkill: true),
-        CardId.Dismantle      => new(IsAttack: true, Damage: 8), // probed: 8 dmg attack (catalog had wrong category)
-        CardId.Taunt          => new(IsSkill: true, Block: 7),   // probed: 7 block skill
+        // Dismantle: 8 dmg single-target; if target has Vulnerable, hit twice
+        // (STS2 community consensus). Modelled via Custom handler.
+        CardId.Dismantle      => new(IsAttack: true, Damage: 8, Custom: DismantleHandler),
+        // Taunt: 7 block + apply 1 Vulnerable to all enemies (STS2 community).
+        CardId.Taunt          => new(IsSkill: true, Block: 7, TargetsAllEnemies: true, VulnerableApply: 1),
         CardId.StoneArmor     => new(IsPower: true, PlatedArmorGain: 1),
         // ExpectAFight: applies NO_ENERGY_GAIN_POWER=1 to self. Unmodelled
         // (no sim field for it; effect is a self-debuff so the card is
@@ -125,11 +146,27 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         // headless didn't initialise PrefsSave; the unsafe flag covered
         // a broader symptom. BootstrapSequence.InitSavePrefsData now seeds
         // a default PrefsSave at host start, and Whirlwind plays cleanly.
-        CardId.Whirlwind      => new(IsAttack: true),
+        // Whirlwind: X-cost AoE — 5 dmg × current energy, hit ALL enemies,
+        // drain energy to 0 (probed 2026-05-24: 5,10,15,25 per enemy at
+        // energy 1/2/3/5). Engine modelling for the Hits-vs-Damage split:
+        // we use Damage=5 × Hits=X so Strength stacks correctly per hit,
+        // matching STS1 "Deal 5 damage to ALL enemies. Repeat for each
+        // energy" wording (Vuln/Weak only apply once, Strength per hit).
+        CardId.Whirlwind      => new(IsAttack: true, Custom: WhirlwindHandler),
         CardId.Barricade      => new(IsPower: true, BarricadeGain: 1),
-        CardId.Corruption     => new(IsPower: true),  // exhaust-skill behaviour deferred
+        // Corruption: while CORRUPTION_POWER > 0, every Skill costs 0 and
+        // exhausts on play (probed 2026-05-24: Defend cost 1 → 0, post-
+        // play routed to exhaust). The power-on-self gain lives here;
+        // the cost-discount + exhaust-routing is enforced in CombatModel
+        // (CanPlay + FinalisePlay).
+        CardId.Corruption     => new(IsPower: true, CorruptionGain: 1),
         CardId.DemonForm      => new(IsPower: true, DemonFormGain: 2),
-        CardId.PactsEnd       => new(IsAttack: true, Damage: 12), // STS2 — scales with exhaust pile size; deferred
+        // PactsEnd: 17 dmg AoE, requires ≥3 cards in exhaust to play
+        // (probed 2026-05-24: constant 17 dmg per enemy across exhaust
+        // counts 3..10). The engine enforces the exhaust-threshold via
+        // CardModel.IsPlayable → SimCard.CanPlayFlag reflects it; the
+        // simulator just trusts the wire.
+        CardId.PactsEnd       => new(IsAttack: true, Damage: 17, TargetsAllEnemies: true),
 
         // Status / curse
         CardId.Infection      => new(IsStatus: true, Ethereal: true), // unplayable in engine; treated as no-op here
@@ -148,7 +185,7 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.Clash          => new(IsAttack: true, Damage: 18),
         CardId.Headbutt       => new(IsAttack: true, Damage: 12),
         CardId.IronWave       => new(IsAttack: true, Damage: 7, Block: 7),
-        CardId.PerfectedStrike=> new(IsAttack: true, Damage: 6),  // +3/Strike upgrade; scaling deferred
+        CardId.PerfectedStrike=> new(IsAttack: true, Damage: 6, Custom: PerfectedStrikeHandler),  // +3/Strike upgrade — selected inside handler
         CardId.PommelStrike   => new(IsAttack: true, Damage: 10, DrawCards: 2),
         CardId.ShrugItOff     => new(IsSkill: true, Block: 11, DrawCards: 1),
         CardId.SwordBoomerang => new(IsAttack: true, Damage: 3, Hits: 4),
@@ -158,6 +195,11 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.Inflame        => new(IsPower: true, StrengthGain: 3),
 
         CardId.BodySlam       => new(IsAttack: true, BlockToDamage: true), // cost 0 upgrade — cost change applied via SimCard.Cost
+        CardId.Bully          => new(IsAttack: true, Damage: 6, Custom: BullyHandler),
+        CardId.Tremble        => new(IsSkill: true, TargetsAllEnemies: true, VulnerableApply: 4, Exhausts: true),
+        CardId.AshenStrike    => new(IsAttack: true, Damage: 8, Custom: AshenStrikeHandler),
+        CardId.Dismantle      => new(IsAttack: true, Damage: 10, Custom: DismantleHandler),
+        CardId.Taunt          => new(IsSkill: true, Block: 9, TargetsAllEnemies: true, VulnerableApply: 1),
 
         CardId.Bludgeon       => new(IsAttack: true, Damage: 42),
         CardId.Uppercut       => new(IsAttack: true, Damage: 13, WeakApply: 2, VulnerableApply: 2),
@@ -178,7 +220,9 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.FiendFire      => new(IsAttack: true, Damage: 10, Exhausts: true, Custom: FiendFireHandler),
         CardId.Feed           => new(IsAttack: true, Damage: 12, Exhausts: true, Custom: FeedHandler),
         CardId.Offering       => new(IsSkill: true, SelfDamage: 6, EnergyGain: 2, DrawCards: 5, Exhausts: true),
-        CardId.Whirlwind      => new(IsAttack: true),
+        // Whirlwind+ upgrades the per-energy damage to 8 (STS1 convention).
+        // Probe deferred — picked declaratively in the Custom handler.
+        CardId.Whirlwind      => new(IsAttack: true, Custom: WhirlwindHandler),
         CardId.DemonForm      => new(IsPower: true, DemonFormGain: 3),
 
         _ => null,
@@ -205,6 +249,69 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
             Hand = Array.Empty<SimCard>(),
             ExhaustPileCount = state.ExhaustPileCount + exhausted,
         };
+    }
+
+    // PerfectedStrike: 6 base damage + 2 per "Strike"-named card in the
+    // entire deck (StrikeIronclad/PerfectedStrike/PommelStrike/TwinStrike/
+    // AshenStrike). +3 per Strike when upgraded. PerfectedStrike counts
+    // itself in the strike count. SimState.StrikeCardsInDeck carries the
+    // count (SimStateBuilder defaults to hand-visible — see its doc).
+    private static SimState PerfectedStrikeHandler(CardEffectContext ctx)
+    {
+        var perStrike = ctx.Card.Upgraded ? 3 : 2;
+        var dmg = 6 + perStrike * Math.Max(0, ctx.State.StrikeCardsInDeck);
+        var (state, _) = CombatModel.DealSingleTargetDamage(
+            ctx.State, ctx.TargetIndex ?? 0, dmg, hits: 1);
+        return state;
+    }
+
+    // Whirlwind: X-cost AoE. Deal 5 damage (8 upgraded) to ALL enemies,
+    // repeating for each energy. CombatModel.ApplyPlayCard runs the
+    // X-cost spend right before calling Custom, so ctx.State.Energy is
+    // the available X. We model the AoE as 5 damage × X hits so Strength
+    // amplifies per hit (STS1 convention) while Vuln/Weak apply once.
+    private static SimState WhirlwindHandler(CardEffectContext ctx)
+    {
+        var perHit = ctx.Card.Upgraded ? 8 : 5;
+        var x = Math.Max(0, ctx.State.Energy);
+        if (x == 0) return ctx.State with { IsInvalid = true };
+        var (state, _) = CombatModel.DealAoeDamage(ctx.State, perHit, x);
+        return state with { Energy = 0 };
+    }
+
+    // Bully: 4 dmg + 2 per Vulnerable stack on the target enemy (STS2).
+    // The Vulnerable damage amp (×1.5) still applies on top via AdjustDamage.
+    private static SimState BullyHandler(CardEffectContext ctx)
+    {
+        var basePerHit = ctx.Card.Upgraded ? 6 : 4;
+        var target = ctx.TargetIndex ?? 0;
+        var enemy = ctx.State.Enemies.ElementAtOrDefault(target);
+        var vulnStacks = enemy?.Vulnerable ?? 0;
+        var dmg = basePerHit + 2 * vulnStacks;
+        var (state, _) = CombatModel.DealSingleTargetDamage(ctx.State, target, dmg, hits: 1);
+        return state;
+    }
+
+    // Dismantle: 8 dmg (10 upgraded); if target has Vulnerable, hits twice (STS2).
+    private static SimState DismantleHandler(CardEffectContext ctx)
+    {
+        var dmg = ctx.Card.Upgraded ? 10 : 8;
+        var target = ctx.TargetIndex ?? 0;
+        var enemy = ctx.State.Enemies.ElementAtOrDefault(target);
+        var hits = enemy?.Vulnerable > 0 ? 2 : 1;
+        var (state, _) = CombatModel.DealSingleTargetDamage(ctx.State, target, dmg, hits: hits);
+        return state;
+    }
+
+    // AshenStrike: 6 dmg + 3 per card already in the Exhaust pile (STS2).
+    // Upgraded: 8 dmg + 3 per (TODO probe).
+    private static SimState AshenStrikeHandler(CardEffectContext ctx)
+    {
+        var basePerHit = ctx.Card.Upgraded ? 8 : 6;
+        var bonus = 3 * Math.Max(0, ctx.State.ExhaustPileCount);
+        var target = ctx.TargetIndex ?? 0;
+        var (state, _) = CombatModel.DealSingleTargetDamage(ctx.State, target, basePerHit + bonus, hits: 1);
+        return state;
     }
 
     // Feed: deal damage; if it kills, gain +3 max HP (+4 upgraded).

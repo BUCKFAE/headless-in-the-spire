@@ -12,10 +12,20 @@ namespace Sts2Headless.BattleAgent.Core;
 public sealed record HeuristicWeights(
     double LethalBonus = 100_000,
     double DeathPenalty = 100_000,
-    double PlayerHp = 3.0,
+    // Tuned 2026-05-24 via 50-seed sweep (sweep-v2-balanced.md): the
+    // shift to PlayerHp 4 / EnemyHp -3 lifted Act 1 boss clears from
+    // 7/50 → 8/50 against the same corpus. Pairs with IncomingDamage
+    // -3.0 (default below) to slightly reduce defensive over-block.
+    double PlayerHp = 4.0,
     double PlayerBlock = 0.5,          // block discounted vs HP (block expires)
-    double EnemyHp = -2.0,
+    double EnemyHp = -3.0,
     double EnemyBlock = -0.3,
+    // Penalty per stack of enemy Strength. Wire intent damage already
+    // bakes in current Strength but the evaluator can't see future
+    // intents — so a buffing/ramping enemy slipping the killing line
+    // is worth this penalty per stack to make the planner prefer kill-
+    // before-buff.
+    double EnemyStrength = -3.0,
     double PlayerStrength = 6.0,
     double PlayerDexterity = 3.0,
     // Weak bumped 2026-05-18 (was 2.0) — Weak suppresses incoming
@@ -58,7 +68,12 @@ public sealed record HeuristicWeights(
     // (6 dmg, 10 block) when staring down 24 incoming; at -5 it becomes
     // too defensive and draws out fights, surrendering seed 9 (which
     // previously won the Act 1 boss). -3.5 splits the difference.
-    double IncomingDamage = -3.5)
+    double IncomingDamage = -3.0,
+    // Tempo penalty per "turns-to-kill all enemies" estimate. Disabled
+    // by default (=0) — the 50-seed sweep at -6 cost ~4 wins because the
+    // term double-counts against EnemyHp and pushes the planner into
+    // reckless attacks. Kept as a tuning knob for future experiments.
+    double TempoPenalty = 0.0)
 {
     public static HeuristicWeights Default { get; } = new();
 }
@@ -69,17 +84,23 @@ public sealed class HeuristicEvaluator(HeuristicWeights? weights = null) : IEval
 
     public double Score(SimState s)
     {
-        // Terminal short-circuits dominate any feature-sum: even a
-        // catastrophic lethal-state HP loss is worth taking.
+        // Terminal short-circuits as additive offsets so death/lethal
+        // states still rank by damage dealt / damage taken. Old
+        // behaviour returned a flat ±penalty which made every "I die
+        // this turn" line score identically and let the planner pick
+        // "do nothing" when low HP. Now a line that deals more damage
+        // before dying scores higher than a line that ends turn with
+        // unspent energy.
         var alive = false;
         foreach (var e in s.Enemies)
         {
             if (!e.IsDead) { alive = true; break; }
         }
-        if (!alive) return _w.LethalBonus;
-        if (s.Hp <= 0) return -_w.DeathPenalty;
 
         var score = 0.0;
+        if (!alive) score += _w.LethalBonus;
+        if (s.Hp <= 0) score -= _w.DeathPenalty;
+
         score += _w.PlayerHp * s.Hp;
         score += _w.PlayerBlock * s.Block;
 
@@ -90,6 +111,7 @@ public sealed class HeuristicEvaluator(HeuristicWeights? weights = null) : IEval
             score += _w.EnemyBlock * e.Block;
             score += _w.EnemyVulnerable * e.Vulnerable;
             score += _w.EnemyWeak * e.Weak;
+            score += _w.EnemyStrength * e.Strength;
         }
 
         var st = s.Status;
@@ -98,15 +120,16 @@ public sealed class HeuristicEvaluator(HeuristicWeights? weights = null) : IEval
         score += _w.PlayerVulnerable * st.Vulnerable;
         score += _w.PlayerWeak * st.Weak;
         score += _w.PlayerFrail * st.Frail;
+        var totalEnemyHp = 0;
+        foreach (var e in s.Enemies)
+            if (!e.IsDead) totalEnemyHp += e.Hp;
+
         // Power-card value scales with remaining combat duration.
         // A DemonForm against a 250-HP boss is worth multiple full
         // turns of triggers; a DemonForm against a 30-HP-left rat is
         // wasted. We approximate "turns left" as sum(enemy_hp) / 10
         // (~10 damage/turn assumed Ironclad output), clamped to [0.5x, 3x]
         // so the multiplier stays sane.
-        var totalEnemyHp = 0;
-        foreach (var e in s.Enemies)
-            if (!e.IsDead) totalEnemyHp += e.Hp;
         var turnsLeft = totalEnemyHp / 10.0;
         var durationMultiplier = Math.Clamp(0.5 + turnsLeft / 10.0, 0.5, 3.0);
 
@@ -138,6 +161,17 @@ public sealed class HeuristicEvaluator(HeuristicWeights? weights = null) : IEval
         }
         var unblocked = Math.Max(0, incoming - s.Block);
         score += _w.IncomingDamage * unblocked;
+
+        // Tempo: prefer lines that kill enemies sooner. DPS estimate
+        // from Strength + Vulnerable approximates "what a typical
+        // 3-energy Ironclad turn deals." Clamp to a sane floor so the
+        // term doesn't blow up when Strength=0.
+        if (alive)
+        {
+            var dpsEstimate = Math.Max(6.0, 8.0 + 1.5 * st.Strength);
+            var turnsToKill = totalEnemyHp / dpsEstimate;
+            score += _w.TempoPenalty * turnsToKill;
+        }
 
         return score;
     }

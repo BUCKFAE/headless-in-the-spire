@@ -84,13 +84,59 @@ public sealed class MultiTurnExhaustivePlanner : ICombatPlanner
     // Project N additional enemy turns from `state`. Caps when combat
     // ends. Used both as the leaf-scoring projection and as the seed
     // baseline.
+    //
+    // Phantom-turn injection: between each EndPlayerTurn pair we apply
+    // a synthetic "average player turn" — gain some block, deal some
+    // damage to the highest-HP enemy. Without this the projection lets
+    // the enemy hit the player for free for N turns, which makes the
+    // planner over-defensive (it sees "stand still" as -N enemy hits
+    // worth of HP loss and prefers blocking forever).
+    //
+    // Numbers chosen to approximate ~70% of a nominal 3-energy Ironclad
+    // turn: 7 block, 9 damage. Damage scales with Strength so post-
+    // Inflame projections correctly value killing faster.
     private static SimState ProjectForward(SimState state, ICombatModel model, int turns)
     {
         var s = state;
         for (var t = 0; t < turns; t++)
         {
             if (model.IsCombatOver(s)) break;
+            // First projected player turn already has the real EOT
+            // applied by the planner's caller; subsequent ones get
+            // injected phantom plays.
+            if (t > 0)
+            {
+                s = ApplyPhantomPlayerTurn(s);
+                if (model.IsCombatOver(s)) break;
+            }
             s = model.EndPlayerTurn(s);
+        }
+        return s;
+    }
+
+    private static SimState ApplyPhantomPlayerTurn(SimState s)
+    {
+        // Block gain — approximates one Defend played.
+        var blockGain = 7 + s.Status.Dexterity;
+        if (s.Status.Frail > 0) blockGain = (int)Math.Floor(blockGain * 0.75);
+        s = s with { Block = s.Block + Math.Max(0, blockGain) };
+
+        // Damage to the highest-HP living enemy — approximates one
+        // attack card. Strength scales but we don't double-count Vuln
+        // amp (the engine applies that via DealSingleTargetDamage).
+        var perHit = Math.Max(0, 9 + s.Status.Strength);
+        if (s.Status.Weak > 0) perHit = (int)Math.Floor(perHit * 0.75);
+        if (perHit > 0)
+        {
+            var targetIdx = -1;
+            var bestHp = -1;
+            for (var i = 0; i < s.Enemies.Count; i++)
+            {
+                if (s.Enemies[i].IsDead) continue;
+                if (s.Enemies[i].Hp > bestHp) { bestHp = s.Enemies[i].Hp; targetIdx = i; }
+            }
+            if (targetIdx >= 0)
+                s = CombatModel.DealSingleTargetDamage(s, targetIdx, perHit, hits: 1).state;
         }
         return s;
     }

@@ -65,6 +65,7 @@ public sealed record CardEffect(
     int EvolveGain = 0,
     int BerserkGain = 0,
     int BarricadeGain = 0,
+    int CorruptionGain = 0,
 
     // Card-flow effects
     bool Exhausts = false,        // exhausts on play

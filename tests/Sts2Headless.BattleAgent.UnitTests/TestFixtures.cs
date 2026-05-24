@@ -62,7 +62,8 @@ internal static class TestFixtures
         int discardPileCount = 0,
         int exhaustPileCount = 0,
         int turn = 1,
-        int cardsDrawnThisTurn = 0) => new(
+        int cardsDrawnThisTurn = 0,
+        int strikeCardsInDeck = 0) => new(
             Hp: hp,
             MaxHp: maxHp,
             Energy: energy,
@@ -76,7 +77,8 @@ internal static class TestFixtures
             ExhaustPileCount: exhaustPileCount,
             Enemies: enemies ?? new[] { Enemy() },
             CardsDrawnThisTurn: cardsDrawnThisTurn,
-            IsInvalid: false);
+            IsInvalid: false,
+            StrikeCardsInDeck: strikeCardsInDeck);
 
     // A test-only catalog that overlays a single CardId as
     // IsHeadlessUnsafe on top of the production catalog. Used by the
@@ -121,6 +123,9 @@ internal static class TestFixtures
         CardId.Bloodletting => 0,
         CardId.Hemokinesis => 1,
         CardId.Whirlwind => -1,    // X-cost
+        CardId.PactsEnd => 2,
+        CardId.Rampage => 1,
+        CardId.PerfectedStrike => 2,
         CardId.DemonForm => 3,
         CardId.Offering => 0,
         CardId.FeelNoPain => 1,

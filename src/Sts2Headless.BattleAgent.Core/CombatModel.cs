@@ -66,8 +66,30 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         return actions;
     }
 
-    private static bool CanPlay(SimState state, SimCard card) =>
-        card.CanPlayFlag && card.Cost >= 0 && card.Cost <= state.Energy;
+    // CanPlay: respect the engine's CanPlayFlag (it bakes in IsPlayable
+    // overrides like PactsEnd's exhaust-pile threshold) and verify the
+    // card's energy cost is satisfied. Three cost regimes:
+    //   - cost ≥ 0      → standard, needs cost ≤ state.Energy
+    //   - cost == -1    → X-cost, playable when energy > 0 (drains all)
+    //   - Skill while
+    //     Corruption    → cost is 0 regardless of declared cost
+    private bool CanPlay(SimState state, SimCard card)
+    {
+        if (!card.CanPlayFlag) return false;
+        if (IsCorruptedSkill(state, card)) return true;
+        if (card.Cost == -1) return state.Energy > 0;
+        return card.Cost >= 0 && card.Cost <= state.Energy;
+    }
+
+    // True when Corruption is active on the player AND the card being
+    // played is a Skill (per catalog). Lets CanPlay / energy-spend /
+    // pile-routing branch on the discount uniformly.
+    private bool IsCorruptedSkill(SimState state, SimCard card)
+    {
+        if (state.Status.Corruption <= 0) return false;
+        var effect = _catalog.GetEffect(card.Id, card.Upgraded);
+        return effect?.IsSkill == true;
+    }
 
     // ── Apply ─────────────────────────────────────────────────────────
     public SimState Apply(SimState state, SimAction action)
@@ -111,8 +133,27 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         if (effect.IsHeadlessUnsafe) return state with { IsInvalid = true };
 
         // Spend energy first so Custom handlers (Whirlwind etc.) see
-        // post-cost energy.
-        var s = state with { Energy = state.Energy - Math.Max(0, card.Cost) };
+        // post-cost energy. Cost regimes:
+        //   - X-cost (Cost == -1): drain to 0; the handler reads pre-drain
+        //     energy via ctx.State.Energy (which is state.Energy here).
+        //   - Skill under Corruption: cost is 0.
+        //   - Otherwise: deduct the declared cost.
+        int energyAfterSpend;
+        if (effect.Custom is not null && card.Cost == -1)
+        {
+            // X-cost: leave Energy as the X value for the handler to read.
+            // The handler is responsible for zeroing energy after use.
+            energyAfterSpend = state.Energy;
+        }
+        else if (IsCorruptedSkill(state, card))
+        {
+            energyAfterSpend = state.Energy;  // Skill cost is 0 while Corrupted.
+        }
+        else
+        {
+            energyAfterSpend = state.Energy - Math.Max(0, card.Cost);
+        }
+        var s = state with { Energy = energyAfterSpend };
 
         // Custom handler completely replaces the declarative effect path.
         if (effect.Custom is not null)
@@ -235,8 +276,10 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         var newHand = RemoveAt(s.Hand, handIdx);
         s = s with { Hand = newHand };
 
-        // Route to exhaust / discard pile.
-        var exhausts = effect.Exhausts;
+        // Route to exhaust / discard pile. Corruption forces Skills to
+        // exhaust on play in addition to their declared route.
+        var exhausts = effect.Exhausts
+            || (effect.IsSkill && s.Status.Corruption > 0);
         if (exhausts)
         {
             s = s with { ExhaustPileCount = s.ExhaustPileCount + 1 };
@@ -321,6 +364,7 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         if (e.EvolveGain > 0)         st = st with { Evolve = st.Evolve + e.EvolveGain };
         if (e.BerserkGain > 0)        st = st with { Berserk = st.Berserk + e.BerserkGain };
         if (e.BarricadeGain > 0)      st = st with { Barricade = st.Barricade + e.BarricadeGain };
+        if (e.CorruptionGain > 0)     st = st with { Corruption = st.Corruption + e.CorruptionGain };
         return s with { Status = st };
     }
 
