@@ -56,6 +56,12 @@ public class SimAgent : HeuristicAgent
     // returns null → SimStateBuilder falls back to hand-visible count.
     protected virtual int? GetStrikeCardsInDeck() => null;
 
+    // Per-combat exhaust pile counter. The wire doesn't expose the pile
+    // size during combat; we track it ourselves between turns. Reset
+    // when the wire snapshot says we're at round 1 (new combat).
+    private int _trackedExhaustPileCount = 0;
+    private int _lastCombatRound = -1;
+
     protected override AgentAction DecideCombat(RunStateResult state)
     {
         var combat = state.CombatState
@@ -72,18 +78,39 @@ public class SimAgent : HeuristicAgent
         var relics = state.Relics is null || state.Relics.Count == 0
             ? null
             : state.Relics.Select(r => r.Id).ToArray();
+
+        // Maintain a per-combat exhaust pile counter. The wire snapshot
+        // re-zeroes ExhaustPileCount each time, but cards like
+        // AshenStrike (6 + 3/exhaust) scale on it across turns. Reset
+        // on round 1 (combat start); after each plan, add the exhaust
+        // delta the planner's first action would create. The planner
+        // sees a non-zero starting count from turn 2 onward.
+        if (combat.Round <= 1 || _lastCombatRound > combat.Round)
+            _trackedExhaustPileCount = 0;
+        _lastCombatRound = combat.Round;
+
         var sim = SimStateBuilder.FromWire(
             combat,
             state.Hp,
             state.MaxHp,
             strikeCardsInDeck: GetStrikeCardsInDeck(),
-            relics: relics);
+            relics: relics) with { ExhaustPileCount = _trackedExhaustPileCount };
         var plan = _planner.PlanTurn(sim, _model, _evaluator, _budget, default);
         LastPlanSummary =
             $"plan: {plan.Actions.Count} steps, nodes={plan.NodesExplored}, "
-            + $"score={plan.Score:F1}, lethal={plan.IsLethal}";
+            + $"score={plan.Score:F1}, lethal={plan.IsLethal}, "
+            + $"exhaust={_trackedExhaustPileCount}";
 
         if (plan.Actions.Count == 0) return new EndTurn();
+        // Tally projected exhaust pile growth from the upcoming play.
+        // The plan's ProjectedEndOfTurnState includes the model's view
+        // of exhaust growth this turn; use it as the running counter
+        // for next turn's planning. (Conservative: this assumes the
+        // agent executes the planned line through end of turn. If the
+        // agent re-plans mid-turn after a deviation we will slightly
+        // over-count; an under-count is the recoverable direction.)
+        _trackedExhaustPileCount = Math.Max(_trackedExhaustPileCount,
+            plan.ProjectedEndOfTurnState.ExhaustPileCount);
         return Translate(plan.Actions[0], sim);
     }
 
