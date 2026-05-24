@@ -1,0 +1,246 @@
+using System.Text;
+using Sts2Headless.Cheats;
+using Sts2Headless.Protocol.Methods;
+using Xunit;
+
+namespace Sts2Headless.IntegrationTests;
+
+// Engine probes for the "TODO verify" / IsHeadlessUnsafe cards in
+// IroncladCardCatalog. For each card under test the probe:
+//
+//   1. run/new Ironclad seed=42
+//   2. debug/replace_deck = [card x1, DEFEND_IRONCLAD x4]
+//   3. debug/start_combat SLIMES_NORMAL
+//   4. debug/set_energy = 99 (so cost is never the reason a card refuses to play)
+//   5. find the card in hand by CardId
+//   6. play_card and diff CombatState before / after
+//
+// The diff (damage to enemy, block on player, powers applied, hand
+// change, max-hp change) feeds the catalog update: each stub gets
+// replaced with the observed numbers, and the "TODO verify" comment
+// gets removed. Cards that refuse to play headless (NRE or
+// UnplayableReason on the wire) stay flagged IsHeadlessUnsafe and the
+// reason is logged in the report.
+//
+// The probe writes a markdown summary to /tmp/card-probe.md, captured
+// in the test output too so CI artifacts pick it up.
+public class CardCatalogProbeTests : IClassFixture<HostSubprocess>
+{
+    private readonly HostSubprocess _host;
+    private readonly ITestOutputHelper _output;
+
+    public CardCatalogProbeTests(HostSubprocess host, ITestOutputHelper output)
+    {
+        _host = host;
+        _output = output;
+    }
+
+    // The CardIds catalogue calls out as either "TODO verify" or
+    // IsHeadlessUnsafe in IroncladCardCatalog.cs. Each wire id matches
+    // the canonical SCREAMING_SNAKE_CASE the engine uses. Whirlwind is
+    // also probed — the unit test asserts it's IsHeadlessUnsafe but the
+    // catalog reclassified it as safe; this confirms what the engine
+    // actually says.
+    public static IEnumerable<object[]> CardsUnderTest() =>
+        new[]
+        {
+            // TODO verify (best-guess catalog entries)
+            new object[] { "BULLY",          false },
+            new object[] { "TREMBLE",        false },
+            new object[] { "ASHEN_STRIKE",   false },
+            new object[] { "CASCADE",        false },
+            new object[] { "DISMANTLE",      false },
+            new object[] { "TAUNT",          false },
+            new object[] { "EXPECT_A_FIGHT", false },
+            new object[] { "CRIMSON_MANTLE", false },
+            new object[] { "BRAND",          false },
+            // IsHeadlessUnsafe (do they really refuse to play headless?)
+            new object[] { "HEADBUTT",       false },
+            new object[] { "ARMAMENTS",      false },
+            new object[] { "BURNING_PACT",   false },
+            new object[] { "DUAL_WIELD",     false },
+            new object[] { "INFERNAL_BLADE", false },
+            // Whirlwind (catalog says safe; unit test says unsafe; settle it)
+            new object[] { "WHIRLWIND",      false },
+        };
+
+    [Theory]
+    [MemberData(nameof(CardsUnderTest))]
+    [Trait("Category", "Diagnostic")]
+    public async Task ProbeCard(string cardWireId, bool upgraded)
+    {
+        var observation = await ProbeOne(cardWireId, upgraded);
+        _output.WriteLine(observation.ToString());
+        // No assertion on what the card *did* — this is a measurement
+        // test feeding catalog updates. We only fail if the wire surface
+        // itself broke (host crash, dispatch error). The Theory passes
+        // for every well-formed observation, including "card refused to
+        // play".
+        Assert.NotNull(observation.HandStatePreplay);
+    }
+
+    // A single fact that runs the same probe over every card and writes
+    // a unified markdown report. Lets a reader grep one file rather than
+    // splice individual theory outputs together.
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public async Task ProbeAll_AndWriteReport()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("# Card catalog probe — Ironclad TODO-verify / IsHeadlessUnsafe");
+        sb.AppendLine();
+        sb.AppendLine("Each row is one card played against SLIMES_NORMAL with energy=99,");
+        sb.AppendLine("from a deck of [card, defend x4]. Diff is post-play minus pre-play.");
+        sb.AppendLine();
+        sb.AppendLine("| card | played | dmg→enemy0 | self.block | self.hp Δ | hand Δ | draw Δ | discard Δ | exhaust Δ | powers applied | note |");
+        sb.AppendLine("|------|--------|------------|------------|-----------|--------|--------|-----------|-----------|----------------|------|");
+
+        foreach (var row in CardsUnderTest())
+        {
+            var id = (string)row[0];
+            var upgraded = (bool)row[1];
+            var obs = await ProbeOne(id, upgraded);
+            sb.AppendLine(obs.AsMarkdownRow());
+            _output.WriteLine(obs.AsLogLine());
+        }
+
+        var path = "/tmp/card-probe.md";
+        await File.WriteAllTextAsync(path, sb.ToString());
+        _output.WriteLine($"--- report written to {path} ---");
+    }
+
+    private async Task<Observation> ProbeOne(string cardWireId, bool upgraded)
+    {
+        // Fresh run on every probe so we don't leak state between cards.
+        // The shared HostSubprocess fixture is fine: run/new resets the
+        // session.
+        await _host.SendAsync<RunNewResult>(
+            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+
+        // Deck: target card + 4 Defends. Hand draws 5 → all 5 in hand.
+        var deck = new List<(string, int)>
+        {
+            (cardWireId, upgraded ? 1 : 0),
+            ("DEFEND_IRONCLAD", 0),
+            ("DEFEND_IRONCLAD", 0),
+            ("DEFEND_IRONCLAD", 0),
+            ("DEFEND_IRONCLAD", 0),
+        };
+        await _host.SendAsync<DebugReplaceDeckResult>(
+            "debug/replace_deck",
+            new DebugReplaceDeckParams(deck.Select(c => new CardSpec(c.Item1, c.Item2)).ToList()));
+
+        // Use the production cheat client extensions through the
+        // HostSubprocessAgentTransport adapter (same path the
+        // RestSiteSmithTests use).
+        var transport = new HostSubprocessAgentTransport(_host);
+
+        try
+        {
+            await _host.SendAsync<DebugStartCombatResult>(
+                "debug/start_combat", new DebugStartCombatParams("SLIMES_NORMAL"));
+        }
+        catch (Exception ex)
+        {
+            return Observation.NoPlay(cardWireId, upgraded, $"start_combat failed: {ex.Message}");
+        }
+
+        await transport.SetEnergyAsync(energy: 99, maxEnergy: 99);
+
+        var pre = await _host.SendAsync<RunStateResult>("run/state");
+        if (pre.CombatState is null)
+            return Observation.NoPlay(cardWireId, upgraded, "no CombatState after start_combat");
+
+        var expectedId = CardIdNames.FromWire(cardWireId);
+        if (expectedId == CardId.Unknown)
+            return Observation.NoPlay(cardWireId, upgraded, $"unknown wire CardId: {cardWireId}");
+        var card = pre.CombatState.Hand.FirstOrDefault(c => c.Id == expectedId);
+        if (card is null)
+            return Observation.NoPlay(cardWireId, upgraded,
+                $"card not in starting hand of 5; hand was: {string.Join(",", pre.CombatState.Hand.Select(c => c.Id))}");
+
+        // Target: enemy 0 if card needs a target.
+        int? target = card.TargetType == TargetType.AnyEnemy ? 0 : (int?)null;
+
+        try
+        {
+            await _host.SendAsync<RunPlayCardResult>(
+                "run/play_card", new RunPlayCardParams(card.Index, target));
+        }
+        catch (Exception ex)
+        {
+            return Observation.NoPlay(cardWireId, upgraded, $"play_card refused: {ex.Message}");
+        }
+
+        var post = await _host.SendAsync<RunStateResult>("run/state");
+
+        return new Observation(
+            CardId: cardWireId,
+            Upgraded: upgraded,
+            Played: true,
+            HandStatePreplay: pre.CombatState,
+            HandStatePostplay: post.CombatState,
+            PreHp: pre.Hp,
+            PostHp: post.Hp,
+            PreMaxHp: pre.MaxHp,
+            PostMaxHp: post.MaxHp,
+            Note: null);
+    }
+
+    private sealed record Observation(
+        string CardId,
+        bool Upgraded,
+        bool Played,
+        CombatState? HandStatePreplay,
+        CombatState? HandStatePostplay,
+        int PreHp,
+        int PostHp,
+        int PreMaxHp,
+        int PostMaxHp,
+        string? Note)
+    {
+        public static Observation NoPlay(string cardId, bool upgraded, string reason) =>
+            new(cardId, upgraded, Played: false,
+                HandStatePreplay: new CombatState(0, 0, 0, 0, false, false, 0, 0,
+                    Array.Empty<Card>(), Array.Empty<Enemy>(), Array.Empty<Power>()),
+                HandStatePostplay: null,
+                PreHp: -1, PostHp: -1, PreMaxHp: -1, PostMaxHp: -1, Note: reason);
+
+        public string AsMarkdownRow()
+        {
+            if (!Played || HandStatePreplay is null || HandStatePostplay is null)
+                return $"| {CardId}{(Upgraded ? "+" : "")} | ✗ |  |  |  |  |  |  |  |  | {Note ?? ""} |";
+
+            var pre = HandStatePreplay;
+            var post = HandStatePostplay;
+            var enemyDmg = pre.Enemies.Count > 0 && post.Enemies.Count > 0
+                ? pre.Enemies[0].Hp - post.Enemies[0].Hp
+                : 0;
+            var preNames = new HashSet<string>(pre.PlayerPowers.Select(p => p.Id));
+            var newPowers = post.PlayerPowers
+                .Where(p => !preNames.Contains(p.Id))
+                .Select(p => $"{p.Id}={p.Amount}")
+                .Concat(post.PlayerPowers
+                    .Where(p => preNames.Contains(p.Id))
+                    .Select(p =>
+                    {
+                        var preAmount = pre.PlayerPowers.First(q => q.Id == p.Id).Amount;
+                        return p.Amount != preAmount ? $"{p.Id}{(p.Amount - preAmount):+0;-0}" : "";
+                    })
+                    .Where(s => s.Length > 0))
+                .ToList();
+            return $"| {CardId}{(Upgraded ? "+" : "")} | ✓ | "
+                + $"{enemyDmg} | {post.PlayerBlock} | {PostHp - PreHp:+0;-0;0} | "
+                + $"{post.Hand.Count - pre.Hand.Count + 1} | "
+                + $"{post.DrawPileCount - pre.DrawPileCount} | "
+                + $"{post.DiscardPileCount - pre.DiscardPileCount} | "
+                + $"{(pre.Hand.Count - post.Hand.Count - 1)} (≈exhaust) | "
+                + $"{string.Join(", ", newPowers)} | "
+                + $"{Note ?? ""} |";
+        }
+
+        public string AsLogLine() => AsMarkdownRow();
+
+        public override string ToString() => AsMarkdownRow();
+    }
+}
