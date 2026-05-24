@@ -37,14 +37,14 @@ public class SimAgent : HeuristicAgent
     {
         _model = model ?? new CombatModel(IroncladCardCatalog.Instance);
         _evaluator = evaluator ?? new HeuristicEvaluator();
-        // Default to the single-turn ExhaustivePlanner — it wins the
-        // 10-seed head-to-head against MultiTurnExhaustivePlanner
-        // (same 3/10 wins, better avg floor 10.3 vs 9.3) and against
-        // MctsPlanner (3/10 vs 0/10). MultiTurn and MCTS stay
-        // injectable for the comparison harness and for callers that
-        // want different exploration profiles. See
-        // tests/.End2EndTests/PlannerComparisonHarness.cs and
-        // /tmp/planner-comparison.md for the measured data.
+        // Default to the single-turn ExhaustivePlanner. On the canonical
+        // 50-seed A0 sweep it beats Act 1 boss 3/50 vs MultiTurn(2)'s
+        // 1/50 and MultiTurn(3)'s 1/50; full A0 clear is 0/50 for every
+        // current planner. Multi-turn lookahead with the current
+        // evaluator weights drifts toward over-defensive lines — worth
+        // revisiting after evaluator tuning. Numbers + reproducer:
+        // documentation/coverage/battleagent-baseline-2026-05-24.md.
+        // MultiTurn and MCTS stay injectable for comparison sweeps.
         _planner = planner ?? new ExhaustivePlanner();
         _budget = budget ?? PlannerBudget.Default;
     }
