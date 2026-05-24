@@ -7,12 +7,22 @@ namespace Sts2Headless.IntegrationTests.MechanicSweepRegressions;
 // Regression pin for the CardExpectedRefusals catalog.
 //
 // Cards listed in SweepKnownIssues.CardExpectedRefusals are Unplayable
-// in the smoke CardSweep fixture by design — their CanPlay predicate
-// hinges on runtime state our fixture doesn't stage (a non-empty Pact
-// stack for PACTS_END, a 'last card played' for MIMIC, an active Orb
-// for the Defect cards, multi-Star accumulation for late-game Regent
-// cards, etc.). The sweep marks their Detail with
-// "expected-refusal: <reason>" so reports stay self-explanatory.
+// in the smoke CardSweep fixture even with the fixture's debug/set_energy
+// + debug/gain_stars resource boost. Two empirical buckets:
+//
+//   * TargetType=AnyAlly (bitflag=64): CardModel.CanPlay refuses because
+//     CombatState.PlayerCreatures.Where(IsAlive).Count() > 1 is
+//     structurally false in single-player — these are co-op-multiplayer
+//     cards (BELIEVE_IN_YOU, COORDINATE, DEMONIC_SHIELD, IGNITION,
+//     INTERCEPT, LARGESSE, LIFT, MIMIC). Out of scope per requirements
+//     /01-initial-goals.md.
+//
+//   * IsPlayable override (bitflag=8): PACTS_END's PactsEnd.get_IsPlayable
+//     requires Exhaust pile count >= DynamicVars.Cards (~3); the fixture
+//     starts combat with an empty Exhaust pile.
+//
+// The sweep marks each row Detail with "expected-refusal: <reason>" so
+// reports stay self-explanatory.
 //
 // These tests catch three drift scenarios:
 //   (1) An id in the catalog no longer exists in the manifest (rename
@@ -57,7 +67,11 @@ public class CardSweepExpectedRefusalsTests
             SweepKnownIssues.TryGetExpectedRefusal("card", "PACTS_END", out var reason),
             "PACTS_END should be in CardExpectedRefusals");
         Assert.NotNull(reason);
-        Assert.Contains("Pact", reason!, StringComparison.OrdinalIgnoreCase);
+        // Reason cites the IsPlayable override + the Exhaust-pile predicate
+        // it gates on. A drift here (e.g. the engine removes the override
+        // or our reason loses the IL citation) is worth surfacing.
+        Assert.Contains("IsPlayable", reason!, StringComparison.Ordinal);
+        Assert.Contains("Exhaust", reason!, StringComparison.Ordinal);
     }
 
     [Fact]

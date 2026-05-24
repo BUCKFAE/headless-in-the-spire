@@ -27,63 +27,65 @@ public static class SweepKnownIssues
 {
     public sealed record Issue(string Id, string Reason);
 
-    // Cards whose CanPlay returns false in the standard CardSweep
-    // fixture (run/new + replace_deck + start_combat("SLIMES_NORMAL")
-    // + up to 5 end_turns) because they require runtime state the
-    // fixture doesn't stage:
+    // Cards that remain Unplayable in the standard CardSweep fixture even
+    // after the smoke fixture's resource boost (debug/set_energy 20 +
+    // debug/gain_stars 20 — see CardSweep.ResourceBoost). The remaining
+    // refusals fall into two empirically-verified buckets:
     //
-    //   * A specific game-state precondition (a discard-pile size
-    //     for PACTS_END's Pact count, a prior-card-played for MIMIC,
-    //     an active Orb for the Defect cards, …).
-    //   * A resource budget our fixture can't accrue (a 6+ Star Regent
-    //     card; the 5-turn cap is the budget).
-    //   * An event-spawned-only effect (THE_SMITH, ROYAL_GAMBLE,
-    //     DECISIONS_DECISIONS — all show up as cards but their CanPlay
-    //     wires through event-only flags).
+    //   * TargetType=AnyAlly cards (bitflag=64) — `CardModel.CanPlay`
+    //     refuses when `CombatState.PlayerCreatures.Where(IsAlive).Count() > 1`
+    //     is false. `PlayerCreatures` filters on `IsPlayer` (only Player-typed
+    //     creatures, not Pets / summons / Allies), so in single-player STS2 the
+    //     count is structurally 1 and the gate never passes. These cards are
+    //     designed for co-op multiplayer — the targeted ally must be a second
+    //     human-controlled Player. Out of scope per documentation/requirements
+    //     /01-initial-goals.md ("Single-player only"). Necrobinder + Osty does
+    //     NOT satisfy the gate (Osty is a Pet, stored as Monster in
+    //     CombatState._allies, not in PlayerCreatures).
+    //
+    //   * IsPlayable virtual override (bitflag=8) — the card's IsPlayable
+    //     getter requires runtime state the smoke fixture doesn't stage. Only
+    //     three cards in the engine override IsPlayable (Clash / GrandFinale /
+    //     PactsEnd); the first two are smoke-playable through the default
+    //     deck, only PACTS_END's Exhaust-pile predicate requires bespoke
+    //     staging (the fixture starts combat with an empty Exhaust pile).
+    //
+    // Each entry cites the bitflag, the engine code path, and where the IL
+    // evidence lives — so a reader can verify (or correct) the reason
+    // without re-running the investigation.
     //
     // These rows surface as Unplayable in the sweep — not failures,
-    // because Unplayable doesn't fail the test. The catalog entry just
-    // annotates the row Detail with "expected-refusal: <reason>" so a
-    // reader can distinguish "fixture-staging gap we know about" from
-    // "fixture-staging gap we haven't analysed yet." Lifecycle: when
-    // CardSweep's fixture is extended to stage the missing state, the
-    // row flips to Played and the entry should be removed.
-    //
-    // Same shape as the Crashed-side catalog above: (Id, one-line
-    // reason). The hand-curated reason beats reverse-engineering the
-    // engine path from a stack trace.
+    // because Unplayable doesn't fail the test. The catalog entry annotates
+    // the row Detail with "expected-refusal: <reason>" so a reader can
+    // distinguish "fixture-staging gap we know about" from "fixture-staging
+    // gap we haven't analysed yet." Lifecycle:
+    //   * If the engine ships a single-player codepath for AnyAlly cards,
+    //     all eight rows flip to Played → remove the AnyAlly entries.
+    //   * If the fixture is extended to stage PACTS_END's Exhaust pile, that
+    //     row flips to Played → remove the PACTS_END entry.
     public static readonly IReadOnlyList<Issue> CardExpectedRefusals =
     [
-        // Regent — high-cost Stars cards that exceed our 5-turn budget
-        new("COMET", "Regent: high-cost Stars card; exceeds 5-turn accumulation budget"),
-        new("SEVEN_STARS", "Regent: multi-Star payment requirement; exceeds budget"),
-        new("NEUTRON_AEGIS", "Regent: high-cost Stars block card; exceeds budget"),
+        // AnyAlly cards — co-op multiplayer-only by engine design. CanPlay
+        // bitflag=64 because PlayerCreatures.Where(IsAlive).Count() > 1
+        // never holds in single-player. IL: CardModel.CanPlay around lines
+        // 53-76 (TargetType==6 branch in src/Sts2Headless.Runtime against
+        // Models/CardModel.CanPlay disassembly).
+        new("BELIEVE_IN_YOU", "TargetType=AnyAlly (co-op): OnPlay grants the targeted ally energy via PlayerCmd.GainEnergy; single-player has no second Player to target"),
+        new("COORDINATE",     "TargetType=AnyAlly (co-op): OnPlay applies CoordinatePower to the targeted ally; single-player has no second Player to target"),
+        new("DEMONIC_SHIELD", "TargetType=AnyAlly (co-op): OnPlay self-damages 14 then grants Block to the targeted ally via CreatureCmd.GainBlock; not a Demon-Form mechanic. Single-player has no second Player to target"),
+        new("IGNITION",       "TargetType=AnyAlly (co-op): OnPlay channels a Plasma orb into the targeted ally's slots via OrbCmd.Channel — ally must be Defect. Single-player has no second Player to target"),
+        new("INTERCEPT",      "TargetType=AnyAlly (co-op): OnPlay grants Block + 1 CoveredPower to the targeted ally; single-player has no second Player to target"),
+        new("LARGESSE",       "TargetType=AnyAlly (co-op): OnPlay generates a random Colorless card into the targeted ally's hand via CardFactory.GetDistinctForCombat + CardPileCmd.AddGeneratedCardToCombat; single-player has no second Player to target"),
+        new("LIFT",           "TargetType=AnyAlly (co-op): OnPlay grants Block to the targeted ally via CreatureCmd.GainBlock; single-player has no second Player to target"),
+        new("MIMIC",          "TargetType=AnyAlly (co-op): OnPlay grants Block scaling with the ally's stats via CreatureCmd.GainBlock + CalculatedBlock.Calculate (despite the name, the IL contains no 'last card played' lookup); single-player has no second Player to target"),
 
-        // Regent — conditional CanPlay tied to specific run-state
-        new("LARGESSE",            "Regent: CanPlay tied to economy/gold state we don't stage"),
-        new("DEVASTATE",           "Regent: CanPlay tied to specific Forge state we don't stage"),
-        new("DECISIONS_DECISIONS", "Regent: multi-choice card; CanPlay tied to choice-context"),
-        new("ROYAL_GAMBLE",        "Regent: gambling card; CanPlay tied to a run-state flag"),
-        new("THE_SMITH",           "Regent: shop/event-style card; CanPlay tied to event flag"),
-
-        // Necrobinder — Osty-companion cards
-        new("BANSHEES_CRY",        "Necrobinder: CanPlay tied to Osty companion state"),
-        new("BURY",                "Necrobinder: CanPlay tied to deck/Osty interaction"),
-
-        // Defect — Orb cards
-        new("IGNITION",            "Defect: CanPlay requires Orb slots active; sweep doesn't channel"),
-        new("METEOR_STRIKE",       "Defect: CanPlay requires Orb/Focus state we don't stage"),
-
-        // Ironclad — conditional Pact/discard cards
-        new("PACTS_END",     "Ironclad: CanPlay needs a non-empty Pact stack (discarded cards)"),
-        new("DEMONIC_SHIELD", "Ironclad: CanPlay tied to demon-form / power-state we don't stage"),
-
-        // Colorless — context-dependent
-        new("MIMIC",         "Colorless: CanPlay needs a 'last card played' to mimic"),
-        new("BELIEVE_IN_YOU", "Colorless: CanPlay tied to pile-state we don't stage"),
-        new("COORDINATE",    "Colorless: CanPlay tied to hand/deck composition"),
-        new("INTERCEPT",     "Colorless: CanPlay tied to enemy-intent state"),
-        new("LIFT",          "Colorless: CanPlay tied to combat-history state (per-combat budget)"),
+        // IsPlayable virtual override — requires runtime state the fixture
+        // doesn't stage. Only three cards in the engine override IsPlayable
+        // (Clash / GrandFinale / PactsEnd). GrandFinale is satisfiable in
+        // the default fixture (its predicate is "draw pile empty", which
+        // holds briefly post-draw); the other two need bespoke staging.
+        new("CLASH", "IsPlayable override: Clash.get_IsPlayable requires every card in hand to satisfy CardModel.IsAttack; CardSweep's deck mixes STRIKE (Attack) + DEFEND (Skill) so the all-Attack hand check fails. Localized text: \"Can only be played if every card in your hand is an Attack.\""),
+        new("PACTS_END", "IsPlayable override: PactsEnd.get_IsPlayable requires CardPile.GetCards(Owner, PileType.ExhaustPile).Count() >= DynamicVars.Cards.IntValue (~3); CardSweep starts combat with empty Exhaust pile. Localized text: \"Can only be played if you have {Cards} or more cards in your Exhaust Pile.\""),
     ];
 
     // Cards whose OnPlay can't be exercised cleanly in headless even

@@ -76,6 +76,13 @@ public sealed class CardSweep
     // (cataloged in SweepKnownIssues.CardExpectedRefusals).
     public const int MaxTurnsToFindCard = 5;
 
+    // Cheated per-card Energy / Stars budget. 20 covers every cost we've
+    // observed (highest energy: BANSHEES_CRY=9 after ratchet; highest stars:
+    // SEVEN_STARS=7) with headroom for future high-cost cards. Set on the
+    // first turn AFTER start_combat — subsequent turns refill Energy to this
+    // value via the engine's ResetEnergy (which reads Player.MaxEnergy).
+    private const int ResourceBoost = 20;
+
     // SLIMES_NORMAL is the canonical "smallest threat in the game" — two
     // slimes, low damage, no SUMMON / EXHAUST / DOOM mechanics that would
     // mess with the card under test. Same encounter the negative-control
@@ -217,6 +224,21 @@ public sealed class CardSweep
                     cardId, SweepOutcome.Crashed, Steps: 0, sw.Elapsed,
                     Detail: $"debug/start_combat returned InProgress=false (enemyCount={combat.EnemyCount})");
             }
+
+            // Pre-stage Energy and Stars budgets so cards whose CanPlay only
+            // refuses on a resource budget (UnplayableReason.NotEnoughEnergy /
+            // NotEnoughStars — bitflags 16 / 32) exercise their OnPlay anyway.
+            // The smoke sweep is a "does this card's OnPlay run cleanly under
+            // the engine" test, not a resource-economy regression — masking
+            // the cost gate uncovers crashes that would otherwise hide behind
+            // the default 3-energy budget (BURY 4e, METEOR_STRIKE 5e,
+            // BANSHEES_CRY's per-combat ratcheted cost) and the default 0-
+            // star budget (every Regent Stars card: COMET 5*, SEVEN_STARS 7*,
+            // …). Cards genuinely failing for IsPlayable / Unplayable-keyword /
+            // AnyAlly reasons still surface as Unplayable — those bitflags
+            // (8, 2, 64) aren't affected by raising resources.
+            await transport.SetEnergyAsync(energy: ResourceBoost, maxEnergy: ResourceBoost);
+            await transport.GainStarsAsync(ResourceBoost);
 
             // 5. Find the card in hand and try to play it. Loop a few
             // end-turns so (a) Innate / draw-pile-only cards still

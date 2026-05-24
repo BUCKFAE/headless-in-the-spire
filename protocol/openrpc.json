@@ -438,6 +438,48 @@
       "x-debugOnly": true
     },
     {
+      "name": "debug/set_energy",
+      "summary": "Test affordance — set the player's current Energy and/or the per-run MaxEnergy cap by writing the engine's PlayerCombatState.Energy / Player.MaxEnergy properties. Bumping MaxEnergy lets a turn-rollover refill land at the cheated value. Requires an active combat. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugSetEnergyParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugSetEnergyResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
+      "name": "debug/gain_stars",
+      "summary": "Test affordance — grant N Stars (Regent's per-combat resource) by writing PlayerCombatState.Stars via its public setter. Fires StarsChanged through CombatHistory so observing listeners (GalacticDust / MiniRegent relics, Stars-related powers) still see the change. Requires an active combat. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugGainStarsParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugGainStarsResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
       "name": "debug/replace_deck",
       "summary": "Test affordance — replace the player's deck with a curated list of (CardId, UpgradeLevel) pairs. Routes through RunState.CreateCard so the new cards are properly tracked; bypasses on-deck-change listeners. Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -798,6 +840,32 @@
           "cardId"
         ]
       },
+      "DebugGainStarsParams": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
+      "DebugGainStarsResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "stars": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "stars"
+        ]
+      },
       "DebugGivePotionParams": {
         "type": "object",
         "properties": {
@@ -955,6 +1023,44 @@
           "ok",
           "deckSize",
           "cardIds"
+        ]
+      },
+      "DebugSetEnergyParams": {
+        "type": "object",
+        "properties": {
+          "energy": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          },
+          "maxEnergy": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          }
+        }
+      },
+      "DebugSetEnergyResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "energy": {
+            "type": "integer"
+          },
+          "maxEnergy": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "energy",
+          "maxEnergy"
         ]
       },
       "DebugSetHpParams": {

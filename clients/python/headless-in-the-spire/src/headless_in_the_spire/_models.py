@@ -100,6 +100,21 @@ class DebugEnchantCardResult(BaseModel):
     card_id: Annotated[str, Field(alias="cardId")]
 
 
+class DebugGainStarsParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    amount: int
+
+
+class DebugGainStarsResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    stars: int
+
+
 class DebugGivePotionParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -180,6 +195,23 @@ class DebugReplaceDeckResult(BaseModel):
     ok: bool
     deck_size: Annotated[int, Field(alias="deckSize")]
     card_ids: Annotated[list[str], Field(alias="cardIds")]
+
+
+class DebugSetEnergyParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    energy: int | None = None
+    max_energy: Annotated[int | None, Field(alias="maxEnergy")] = None
+
+
+class DebugSetEnergyResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    energy: int
+    max_energy: Annotated[int, Field(alias="maxEnergy")]
 
 
 class DebugSetHpParams(BaseModel):
