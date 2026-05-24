@@ -51,6 +51,11 @@ public class SimAgent : HeuristicAgent
 
     public string LastPlanSummary { get; private set; } = "";
 
+    // Optional override: derived agents can report the run-true count of
+    // Strike-named cards in the deck (PerfectedStrike scaling). Default
+    // returns null → SimStateBuilder falls back to hand-visible count.
+    protected virtual int? GetStrikeCardsInDeck() => null;
+
     protected override AgentAction DecideCombat(RunStateResult state)
     {
         var combat = state.CombatState
@@ -67,7 +72,12 @@ public class SimAgent : HeuristicAgent
         var relics = state.Relics is null || state.Relics.Count == 0
             ? null
             : state.Relics.Select(r => r.Id).ToArray();
-        var sim = SimStateBuilder.FromWire(combat, state.Hp, state.MaxHp, relics: relics);
+        var sim = SimStateBuilder.FromWire(
+            combat,
+            state.Hp,
+            state.MaxHp,
+            strikeCardsInDeck: GetStrikeCardsInDeck(),
+            relics: relics);
         var plan = _planner.PlanTurn(sim, _model, _evaluator, _budget, default);
         LastPlanSummary =
             $"plan: {plan.Actions.Count} steps, nodes={plan.NodesExplored}, "
