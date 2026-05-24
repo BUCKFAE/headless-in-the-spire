@@ -260,6 +260,7 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
     {
         var perStrike = ctx.Card.Upgraded ? 3 : 2;
         var dmg = 6 + perStrike * Math.Max(0, ctx.State.StrikeCardsInDeck);
+        if (CombatModel.HasRelic(ctx.State, "STRIKE_DUMMY")) dmg += 3;
         var (state, _) = CombatModel.DealSingleTargetDamage(
             ctx.State, ctx.TargetIndex ?? 0, dmg, hits: 1);
         return state;

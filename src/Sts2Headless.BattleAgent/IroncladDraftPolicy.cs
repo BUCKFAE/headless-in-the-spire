@@ -16,8 +16,6 @@ namespace Sts2Headless.BattleAgent;
 // highest-tier offered if it beats the skip threshold, otherwise skip.
 public sealed class IroncladDraftPolicy : IDraftPolicy
 {
-    private const int SkipBelow = (int)CardTier.C;
-
     public AgentAction Choose(RunStateResult state)
     {
         var rewards = state.RewardsState
@@ -50,7 +48,20 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
                 }
             }
 
-            if (head.CanSkip && (int)bestTier < SkipBelow)
+            // Deck-size-aware skip threshold (per the 2026-05 STS2
+            // research deliverable):
+            //   - small deck (<= 12): take everything (greedy stage)
+            //   - mid deck (13-18): take C-tier or better
+            //   - large deck (>= 19): only take A-tier or better
+            //     (extra cards dilute payoffs in a 3-act run)
+            var threshold = state.DeckSize switch
+            {
+                <= 12 => (int)CardTier.D,
+                <= 18 => (int)CardTier.C,
+                _     => (int)CardTier.A,
+            };
+
+            if (head.CanSkip && (int)bestTier < threshold)
                 return new SkipReward(head.Index);
 
             return new SelectReward(head.Index, cards[bestIdx].Index);
@@ -59,6 +70,7 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
         // Non-card rewards (gold, relic, potion): claim.
         return new SelectReward(head.Index);
     }
+
 
     private enum CardTier
     {

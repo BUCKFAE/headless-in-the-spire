@@ -300,6 +300,70 @@ public class WeightSweepTests
             Juggernaut = 12.0,
         });
 
+    // V6 — combo around the 10/50 plateau.
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V6_LowVeryEnemyHp() => Measure(
+        "v6-low-very-enemy-hp",
+        HeuristicWeights.Default with { EnemyHp = -2.0, IncomingDamage = -1.5 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V6_BiggerVuln() => Measure(
+        "v6-bigger-vuln",
+        HeuristicWeights.Default with { EnemyVulnerable = 8.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V6_NoVulnNoWeak() => Measure(
+        "v6-no-vuln-no-weak",
+        HeuristicWeights.Default with { EnemyVulnerable = 0.0, EnemyWeak = 0.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V6_HpFiveOnly() => Measure(
+        "v6-hp-five-only",
+        HeuristicWeights.Default with { PlayerHp = 5.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V6_BiggerStrAndVuln() => Measure(
+        "v6-bigger-str-and-vuln",
+        HeuristicWeights.Default with {
+            PlayerStrength = 12.0,
+            EnemyVulnerable = 5.0,
+            EnemyStrength = -5.0,
+        });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V6_LowBlockVeryAggr() => Measure(
+        "v6-low-block-very-aggr",
+        HeuristicWeights.Default with {
+            PlayerBlock = 0.0,
+            IncomingDamage = -1.5,
+        });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V6_LethalSeek() => Measure(
+        "v6-lethal-seek",
+        HeuristicWeights.Default with {
+            EnemyHp = -3.5,
+            IncomingDamage = -2.0,
+            PlayerBlock = 0.2,
+        });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V6_StrengthEmphasis() => Measure(
+        "v6-strength-emphasis",
+        HeuristicWeights.Default with {
+            PlayerStrength = 14.0,
+            DemonForm = 80.0,
+            PlayerDexterity = 5.0,
+        });
+
     private async Task MeasureWithPlanner(string name, HeuristicWeights weights, PlannerBudget budget)
         => await DoMeasure(name, () => new IroncladAgent(
             evaluator: new HeuristicEvaluator(weights),

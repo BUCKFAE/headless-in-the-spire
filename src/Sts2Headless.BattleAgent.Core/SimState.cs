@@ -45,7 +45,13 @@ public sealed record SimState(
     // run-level deck tracker is wired up. Underestimating is conservative
     // — PerfectedStrike still picks a sensible target, just deals less
     // than the engine actually rolls.
-    int StrikeCardsInDeck = 0);
+    int StrikeCardsInDeck = 0,
+    // Wire-string ids of relics currently held by the player. Used by
+    // CombatModel to apply known relic bonuses (Strike Dummy adds 3
+    // damage to Strike-named cards, etc.). Defaults to empty so legacy
+    // tests still work; SimStateBuilder.FromWire populates this from
+    // the run state's relics list.
+    IReadOnlyCollection<string>? Relics = null);
 
 // Player-side status effects. Includes both turn-decaying debuffs
 // (Vulnerable, Weak, Frail) and persistent power-card effects (Combust,

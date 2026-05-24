@@ -57,3 +57,102 @@ budget to research, experiment, and iterate.
 - Tune evaluator weights against the new agent
 
 I will measure after each change, write the result here, and iterate.
+
+## Iteration log
+
+Headline arc of the session, in order:
+
+| change                                              | act-1 boss | notes                                                                  |
+|-----------------------------------------------------|------------|------------------------------------------------------------------------|
+| baseline (start of session)                         | 3/50  6%   | doc said 3/50 — re-verified                                            |
+| DraftPolicy: Tremble/Bully/Dismantle/Whirlwind promo | 5/50 10%   | catalog also fixed: Tremble→3 Vuln AoE, Bully+2/Vuln, Dismantle ×2/Vuln |
+| + IroncladMerchantPolicy                            | 6/50 12%   | conservative card-only buys; "greedy buy relic" cost 1 win              |
+| + PathPolicy floors-to-boss + lower elite HP gate   | 7/50 14%   | always rest pre-boss; elites at >=65% HP                                |
+| + IroncladEventPolicy text-key heuristic            | 7/50 14%   | fixes SLIPPERY_BRIDGE-style "stay = die" events                         |
+| + evaluator additive-on-death (no more flat tie)    | 8/50 16%   | also PlayerHp 3→4, EnemyHp -2→-3, IncomingDamage -3.5→-3.0              |
+| + STRIKE_DUMMY relic awareness (CombatModel)        | 10/50 20%  | (intertwined with v3 sweep)                                            |
+| evaluator weight sweep v3 — IncomingDamage -2.0     | 10/50 20%  | PlayerBlock 0.5 → 0.3. Counter-intuitive: less defensive is better      |
+| v4/v5/v6 sweeps (33 weight variants)                | ~10/50    | hit a hard plateau                                                     |
+
+The session moved act-1-boss winrate from 6% to 20% — a 3.3x lift —
+but did **not** unlock an A0 victory (0/50 throughout). Below is the
+why-not analysis.
+
+## Where it plateaus
+
+After the v6 sweep we ran 33 distinct evaluator variants. Nothing
+beat 10/50 = 20% on act-1 boss. Specifically:
+
+- More aggressive damage weights (EnemyHp -4 or -5) collapse early-
+  fight survival (4-6/50 wins). The 6/50 evaluator's mid-act fights
+  get harder because the agent walks into incoming damage to deal an
+  extra 1-2 HP it doesn't need.
+- More defensive weights (IncomingDamage -4.5 or -6.0) lose to the
+  Act 1 boss the same way the un-tuned baseline did — too much
+  blocking, not enough kill pressure on Ceremonial-Beast-tier opponents.
+- MCTS: catastrophically worse (1/50). The current MCTS uses
+  heuristic-eval at leaves with no real rollouts; UCB exploration
+  doesn't substitute for the planner's exhaustive coverage.
+- Budget: tested 1M nodes (vs default 50k); no change. We're not
+  budget-limited.
+- MultiTurn lookahead: even with phantom-player-turn injection it
+  underperforms single-turn (3-6/50). Multi-turn's projection error
+  exceeds its signal advantage on this corpus.
+- BossAwareEvaluator (different weights at MaxHp>=100 enemies): 6/50.
+  The threshold trips on big Act 1 elites and the boss-aggressive
+  weight set burns them down too fast and dies to follow-up.
+
+## What would break the plateau
+
+The 10/50 ceiling is a deck-quality problem, not a planner problem.
+The 22 seeds that reach the boss and lose look indistinguishable from
+the 10 that win EXCEPT that the winning decks have a Vulnerable
+source (Tremble or Bash) AND either Strike Dummy / multi-hit damage.
+A path forward:
+
+1. **Run-deck tracker.** Track full-deck composition across wire
+   calls. Let DraftPolicy pick gap-fillers (no Strength → must take
+   Inflame; no Vuln → must take Tremble) and SmithPolicy pick the
+   highest-value card to upgrade (not just index 0). Engine doesn't
+   expose deck contents during combat, so we'd track via reward picks
+   and event card-gains.
+
+2. **Relic-aware evaluator.** STRIKE_DUMMY plumbing is in; extend to
+   AKABEKO (first attack +8), VAJRA (already in PlayerPowers),
+   BRONZE_SCALES (thorns 3), BOOK_OF_FIVE_RINGS (+1 STR per Strike up
+   to 5), and other common Ironclad relics.
+
+3. **Event lookup table.** The text-key heuristic catches obvious
+   patterns but misses event-specific payouts. A per-event lookup
+   ("HUNGRY_FOR_MUSHROOMS → take SOUP for relic"; "WOOD_CARVINGS →
+   take SNAKE for Strength relic") would compound several wins.
+
+4. **Per-card-damage-aware sequencing.** The exhaustive planner
+   explores all sequences but uses a static action-priority for
+   ordering. Whirlwind specifically should always lead when energy
+   is high — currently it shares priority with regular attacks.
+
+5. **Real multi-turn lookahead via Monte Carlo rollouts.** The
+   phantom-turn projection in MultiTurn is too coarse. Genuine MC
+   rollouts (random card from observed deck distribution + planner
+   pick at each step) would catch lines where killing now prevents
+   N turns of compounding damage.
+
+## Final state
+
+- Default ExhaustivePlanner with the tuned `HeuristicWeights`
+  (IncomingDamage -2.0, PlayerBlock 0.3, EnemyHp -3.0, PlayerHp 4.0,
+  EnemyStrength -3.0).
+- Catalog: Tremble/Bully/Dismantle/Taunt/AshenStrike modelled per
+  STS2 community.
+- DraftPolicy: Vulnerable cluster promoted; Whirlwind un-blacklisted;
+  deck-size-aware skip threshold (D-tier <=12, C-tier 13-18, A-tier
+  >=19 cards).
+- PathPolicy: HP-aware row picks with pre-boss rest preference.
+- EventPolicy: text-key heuristic blocking dangerous "stay" choices.
+- MerchantPolicy: card-only + card-removal, gold-reserve guarded.
+- RestPolicy: HEAL if HP<75%, SMITH otherwise.
+- SimAgent: relic-aware SimState building (STRIKE_DUMMY +3 to Strikes).
+
+Final 50-seed corpus: **0/50 A0 clears (0%) / 10/50 Act-1-boss
+clears (20%)** vs starting **0/50 / 3/50 (6%)**. avg floor 11.9.

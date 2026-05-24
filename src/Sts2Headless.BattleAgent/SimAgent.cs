@@ -64,7 +64,10 @@ public class SimAgent : HeuristicAgent
         if (TryDecidePotion(state, combat) is { } potionAction)
             return potionAction;
 
-        var sim = SimStateBuilder.FromWire(combat, state.Hp, state.MaxHp);
+        var relics = state.Relics is null || state.Relics.Count == 0
+            ? null
+            : state.Relics.Select(r => r.Id).ToArray();
+        var sim = SimStateBuilder.FromWire(combat, state.Hp, state.MaxHp, relics: relics);
         var plan = _planner.PlanTurn(sim, _model, _evaluator, _budget, default);
         LastPlanSummary =
             $"plan: {plan.Actions.Count} steps, nodes={plan.NodesExplored}, "
@@ -76,12 +79,11 @@ public class SimAgent : HeuristicAgent
 
     // Conservative potion-drinking: only fires when (a) we own at least
     // one usable potion AND (b) the player is in real danger — HP below
-    // 40% of max OR incoming damage this turn exceeds remaining HP.
-    // Picks the first usable potion regardless of effect; most potions
-    // (block, attack, energy, draw, heal) are net positive in a combat
-    // we're losing. Targeting: pass enemy 0 for AnyEnemy potions; null
-    // otherwise. Anything subtler than that requires a typed potion
-    // catalog we don't have yet.
+    // 50% of max OR incoming damage this turn exceeds remaining HP.
+    // Pre-emptive boss-fight potion use was tested and dropped Act 1
+    // boss clears 10/50 → 9/50 (potions burned on Strength-potion-or-
+    // similar at turn 1 don't help the fights the agent currently loses,
+    // and they're not available for later turn-N emergencies).
     private static AgentAction? TryDecidePotion(RunStateResult state, CombatState combat)
     {
         if (state.OwnedPotions is null) return null;
@@ -103,9 +105,6 @@ public class SimAgent : HeuristicAgent
             }
         }
         var threatened = incoming - combat.PlayerBlock >= state.Hp;
-        // Lower bar (0.50) than the rest-site policy because we want
-        // to spend potions before they expire end-of-fight — not hoard
-        // them until we're nearly dead.
         if (!threatened && hpRatio >= 0.50) return null;
 
         // Targeting: prefer the highest-HP living enemy. This is the

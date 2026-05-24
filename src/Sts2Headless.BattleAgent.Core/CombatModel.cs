@@ -22,6 +22,12 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
 {
     private readonly ICardEffectCatalog _catalog = catalog;
 
+    // Static helper so handlers in IroncladCardCatalog (Custom delegates)
+    // can apply the same relic boost. Returns true when the relic id is
+    // present in the player's relic set.
+    public static bool HasRelic(SimState state, string relicId)
+        => state.Relics is not null && state.Relics.Contains(relicId);
+
     public bool AllEnemiesDead(SimState state) => state.Enemies.All(e => e.IsDead);
     public bool IsPlayerDead(SimState state) => state.Hp <= 0;
     public bool IsCombatOver(SimState state) => AllEnemiesDead(state) || IsPlayerDead(state);
@@ -194,17 +200,27 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         // Apply power-card persistent effects.
         s = ApplyPowerGains(s, effect);
 
-        // Damage
+        // Damage. STRIKE_DUMMY adds +3 damage per hit to Strike-named cards;
+        // we apply the bonus to the declarative path here (Custom-handler
+        // cards apply it themselves inside the handler so PerfectedStrike
+        // and Whirlwind also pick up the boost).
+        var damagePerHit = effect.Damage;
+        if (damagePerHit > 0 && HasRelic(state, "STRIKE_DUMMY")
+            && SimStateBuilder.IsStrikeNamedCard(card.Id))
+        {
+            damagePerHit += 3;
+        }
+
         if (effect.BlockToDamage)
         {
             var dmg = state.Block; // Body Slam uses block at moment of play (pre any new block from this card)
             if (effect.TargetsAllEnemies) s = DealAoeDamage(s, dmg, effect.Hits).state;
             else s = DealSingleTargetDamage(s, play.TargetEnemyIndex ?? 0, dmg, effect.Hits).state;
         }
-        else if (effect.Damage > 0)
+        else if (damagePerHit > 0)
         {
-            if (effect.TargetsAllEnemies) s = DealAoeDamage(s, effect.Damage, effect.Hits).state;
-            else s = DealSingleTargetDamage(s, play.TargetEnemyIndex ?? 0, effect.Damage, effect.Hits).state;
+            if (effect.TargetsAllEnemies) s = DealAoeDamage(s, damagePerHit, effect.Hits).state;
+            else s = DealSingleTargetDamage(s, play.TargetEnemyIndex ?? 0, damagePerHit, effect.Hits).state;
         }
 
         // Debuffs to enemies (post-damage so kills aren't wasted)
