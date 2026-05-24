@@ -149,12 +149,20 @@ public sealed partial class Sts2Bindings
 
         // Pre-flight CanPlay so the wire returns a helpful error rather than
         // silently no-oping when energy/conditions don't allow the play.
+        // On failure, fall back to the 2-out CanPlay overload so the
+        // UnplayableReason bitflag surfaces in the error message — that's
+        // what MechanicSweep needs to classify "expected refusals" with
+        // empirical evidence rather than card-name intuition. The 2-out
+        // reflection cost only fires on the failure path.
         if (_cardCanPlay is not null)
         {
             var ok = (bool)(_cardCanPlay.Invoke(card, null) ?? false);
             if (!ok)
             {
-                throw new InvalidOperationException("card cannot be played (CanPlay returned false)");
+                var reason = TryGetUnplayableReason(card);
+                throw new InvalidOperationException(reason is { } r
+                    ? $"card cannot be played (CanPlay returned false, reason={r})"
+                    : "card cannot be played (CanPlay returned false)");
             }
         }
 
@@ -280,5 +288,81 @@ public sealed partial class Sts2Bindings
         {
             return false;
         }
+    }
+
+    // Find and invoke the 2-out CanPlay(out UnplayableReason, out AbstractModel)
+    // overload on the card's runtime type so the bitflag surfaces in the wire
+    // error. UnplayableReason is a [Flags] enum from sts2.dll; the bitflag
+    // values are documented in MechanicSweep's UnplayableReasonDecoder.
+    // Reflection is cached per Type so the failure path doesn't pay it twice.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, MethodInfo?> s_canPlayWithReasonCache = new();
+    private string? TryGetUnplayableReason(object card)
+    {
+        try
+        {
+            var t = card.GetType();
+            var method = s_canPlayWithReasonCache.GetOrAdd(t, static type =>
+                type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(m => m.Name == "CanPlay"
+                                      && m.ReturnType == typeof(bool)
+                                      && m.GetParameters().Length == 2
+                                      && m.GetParameters()[0].ParameterType.IsByRef
+                                      && m.GetParameters()[1].ParameterType.IsByRef));
+            if (method is null) return null;
+            var ps = method.GetParameters();
+            // Allocate a zero-initialised UnplayableReason via the engine's
+            // enum type — the underlying storage is int but the reflection
+            // boxing only accepts an instance of the exact enum type.
+            var args = new object?[]
+            {
+                System.Activator.CreateInstance(ps[0].ParameterType.GetElementType()!),
+                null,
+            };
+            method.Invoke(card, args);
+            var raw = args[0];
+            if (raw is null) return null;
+            var bitflag = Convert.ToInt32(raw, System.Globalization.CultureInfo.InvariantCulture);
+            // Include card-level signals that disambiguate which check fired:
+            // TargetType (the AnyEnemy/AllAllies/Caster discriminator behind
+            // bitflag 64) and EnergyCost / StarCost (the resource budget that
+            // drives bitflags 16/32). All read via the same reflection surface
+            // the wire already binds in CombatBindings.
+            var targetTypeStr = "?";
+            try { targetTypeStr = _cardTargetType?.GetValue(card)?.ToString() ?? "?"; } catch { /* ignore */ }
+            var energyCostStr = "?";
+            try
+            {
+                var ec = _cardEnergyCost?.GetValue(card);
+                if (ec is not null && _energyCostGetResolved is not null)
+                    energyCostStr = _energyCostGetResolved.Invoke(ec, null)?.ToString() ?? "?";
+            }
+            catch { /* ignore */ }
+            return $"{DescribeUnplayableReason(bitflag)} (bitflag={bitflag}, targetType={targetTypeStr}, energy={energyCostStr})";
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // UnplayableReason bitflag set by CardModel.CanPlay (see Bindings/
+    // README or the comment block in MechanicSweep.SweepInternals). Values
+    // are derived from IL of CardModel.CanPlay + PlayerCombatState
+    // .HasEnoughResourcesFor in sts2.dll. Multiple bits OR together for
+    // cards that fail several checks simultaneously.
+    private static string DescribeUnplayableReason(int flags)
+    {
+        if (flags == 0) return "None";
+        var parts = new List<string>(4);
+        if ((flags & 2)  != 0) parts.Add("UnplayableKeyword");
+        if ((flags & 4)  != 0) parts.Add("HookShouldPlay=false");
+        if ((flags & 8)  != 0) parts.Add("IsPlayable=false");
+        if ((flags & 16) != 0) parts.Add("NotEnoughEnergy");
+        if ((flags & 32) != 0) parts.Add("NotEnoughStars");
+        if ((flags & 64) != 0) parts.Add("NeedsMoreTargets");
+        var known = (2 | 4 | 8 | 16 | 32 | 64);
+        var residual = flags & ~known;
+        if (residual != 0) parts.Add($"Other=0x{residual:X}");
+        return string.Join("|", parts);
     }
 }
