@@ -56,6 +56,10 @@ dev-viewer:
     @bash scripts/check-pnpm.sh
     @cd tools/replay-viewer && pnpm run dev
 
+# Serve protocol/openrpc.json with CORS and open it in the hosted OpenRPC Playground (https://playground.open-rpc.org). Re-run `just export-schema` and reload the playground tab to refresh. Uses uv-managed Python; no node deps. Ctrl-C to stop.
+docs-protocol:
+    @uv run python3 scripts/docs-protocol.py
+
 # Clone reference projects (currently sts2-cli) into external-tools/.
 clone-external-tools:
     @mkdir -p external-tools

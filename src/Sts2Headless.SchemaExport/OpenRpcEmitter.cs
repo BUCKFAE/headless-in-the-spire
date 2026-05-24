@@ -54,7 +54,11 @@ internal static class OpenRpcEmitter
                 ["version"] = gameVersion,
                 ["description"] = "Wire protocol for the headless-in-the-spire runner. "
                     + "NDJSON over stdio with a JSON-RPC envelope (AD-2). "
-                    + "Schema generated from C# records in Sts2Headless.Protocol (AD-5).",
+                    + "Schema generated from C# records in Sts2Headless.Protocol (AD-5). "
+                    + "Transport is stdio-only — there is no HTTP server, so the "
+                    + "OpenRPC Playground's \"Try it now\" button has nothing to call. "
+                    + "Drive methods via `just stdio`, the C# agents in Sts2Headless.Agents, "
+                    + "the generated Python client under clients/python/, or the MCP server.",
             },
             ["methods"] = methods,
             ["components"] = new JsonObject
