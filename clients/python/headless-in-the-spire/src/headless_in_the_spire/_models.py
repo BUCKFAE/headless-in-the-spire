@@ -4,7 +4,7 @@
 from enum import Enum
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 
 class BadgeRarity(Enum):
@@ -12,6 +12,10 @@ class BadgeRarity(Enum):
     bronze = "bronze"
     silver = "silver"
     gold = "gold"
+
+
+class CardOriginPool(RootModel[int]):
+    root: int
 
 
 class CardRewardOption(BaseModel):

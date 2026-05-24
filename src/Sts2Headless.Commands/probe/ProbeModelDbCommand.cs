@@ -165,6 +165,11 @@ internal static class ProbeModelDbCommand
             sb.AppendLine();
         }
 
+        // Card-pool → card-id membership. Useful for answering "which
+        // character owns this card", which the per-id sweeps need so they
+        // can run/new with the right Character before testing the card.
+        DumpCardPoolMembership(sts2, modelDbType, repoRoot, sb);
+
         var summary = sb.ToString();
         Console.Write(summary);
 
@@ -174,6 +179,74 @@ internal static class ProbeModelDbCommand
         File.WriteAllText(summaryPath, summary);
         Console.WriteLine($"wrote {Path.GetRelativePath(repoRoot, summaryPath)}");
         return 0;
+    }
+
+    // Walk every CardPoolModel in ModelDb.AllCardPools (plus the shared
+    // pool list) and dump pool→[cardId] membership. The per-id sweeps
+    // (CardSweep, EnchantmentSweep) need this to know which character to
+    // run/new with for non-Ironclad cards. Output goes to
+    // documentation/research/modeldb/card-pool-membership.txt as a flat
+    // "POOL_ID\tCARD_ID" table (cheap to grep).
+    private static void DumpCardPoolMembership(
+        Assembly sts2, Type modelDbType, string repoRoot, StringBuilder sb)
+    {
+        sb.AppendLine("## CardPool membership (POOL_ID → CARD_IDs)");
+        var allPoolsProp = modelDbType.GetProperty("AllCardPools",
+            BindingFlags.Public | BindingFlags.Static);
+        if (allPoolsProp?.GetValue(null) is not IEnumerable pools)
+        {
+            sb.AppendLine("  (ModelDb.AllCardPools not enumerable)");
+            sb.AppendLine();
+            return;
+        }
+
+        var lines = new List<string>();
+        var totalCards = 0;
+        foreach (var pool in pools)
+        {
+            if (pool is null) continue;
+            var poolId = DescribeModel(pool);
+            // CardPoolModel exposes the card list via the AllCardIds
+            // property (IEnumerable<ModelId>). GenerateAllCards() exists
+            // too but takes hidden parameters in some pool subclasses;
+            // AllCardIds is the simpler universal accessor.
+            IEnumerable? cards = null;
+            var idsProp = pool.GetType().GetProperty("AllCardIds",
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            if (idsProp?.GetValue(pool) is IEnumerable idsEnum) cards = idsEnum;
+            if (cards is null)
+            {
+                var gen = pool.GetType().GetMethod("GenerateAllCards",
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+                if (gen is { } g && g.GetParameters().Length == 0
+                    && g.Invoke(pool, null) is IEnumerable genEnum)
+                    cards = genEnum;
+            }
+            if (cards is null)
+            {
+                sb.AppendLine($"  {poolId}: (no AllCardIds / GenerateAllCards() accessor)");
+                continue;
+            }
+            var n = 0;
+            foreach (var card in cards)
+            {
+                if (card is null) continue;
+                var cardId = DescribeModel(card);
+                lines.Add($"{poolId}\t{cardId}");
+                n++;
+            }
+            sb.AppendLine($"  {poolId}: {n} cards");
+            totalCards += n;
+        }
+        sb.AppendLine($"  total: {totalCards} pool→card edges");
+        sb.AppendLine();
+
+        var outDir = Path.Combine(repoRoot, "documentation", "research", "modeldb");
+        Directory.CreateDirectory(outDir);
+        var outPath = Path.Combine(outDir, "card-pool-membership.txt");
+        File.WriteAllText(outPath, string.Join('\n', lines) + '\n');
+        sb.AppendLine($"  full membership: {Path.GetRelativePath(repoRoot, outPath)}");
+        sb.AppendLine();
     }
 
     // Pull a stable, human-readable identifier from any ModelDb item. Tries

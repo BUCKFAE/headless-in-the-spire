@@ -563,6 +563,9 @@
           "upgraded"
         ]
       },
+      "CardOriginPool": {
+        "type": "integer"
+      },
       "CardRewardOption": {
         "type": "object",
         "properties": {

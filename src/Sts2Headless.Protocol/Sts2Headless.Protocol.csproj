@@ -44,5 +44,6 @@
   <ItemGroup Condition="Exists('Methods/ModifierId.g.cs')">     <Compile Remove="Methods/ModifierId.Fallback.cs" /> </ItemGroup>
   <ItemGroup Condition="Exists('Methods/EnchantmentId.g.cs')">  <Compile Remove="Methods/EnchantmentId.Fallback.cs" /> </ItemGroup>
   <ItemGroup Condition="Exists('Methods/OrbId.g.cs')">          <Compile Remove="Methods/OrbId.Fallback.cs" /> </ItemGroup>
+  <ItemGroup Condition="Exists('Methods/CardOriginPool.g.cs')"> <Compile Remove="Methods/CardOriginPool.Fallback.cs" /> </ItemGroup>
 
 </Project>

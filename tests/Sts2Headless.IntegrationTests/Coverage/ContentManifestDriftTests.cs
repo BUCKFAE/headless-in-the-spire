@@ -45,6 +45,27 @@ public class ContentManifestDriftTests : IClassFixture<ContentManifestFixture>
     [Fact] public void EnchantmentManifest_IsInSyncWithModelDb()  => AssertInSync("Enchantment", EnchantmentIdNames.AllWireNames);
     [Fact] public void OrbManifest_IsInSyncWithModelDb()          => AssertInSync("Orb",         OrbIdNames.AllWireNames);
 
+    // CardOriginPool maps cardId → pool category (Ironclad / Regent /
+    // Curse / …). Drift here means the generated map is stale relative
+    // to ModelDb.AllCardPools — e.g. a new Regent card landed but
+    // CardOriginPool.g.cs still claims Unknown. Same one-command fix as
+    // the *Id manifests: `just generate-content-ids`.
+    [Fact]
+    public void CardOriginPoolManifest_IsInSyncWithModelDb()
+    {
+        var fresh = GenerateContentIdsCommand.EnumerateCardPoolMembership(_f.ModelDbType);
+        var diff = new System.Collections.Generic.List<string>();
+        foreach (var (cardId, expected) in fresh)
+        {
+            var actual = CardOriginPools.OfCard(cardId).ToString();
+            if (!string.Equals(actual, expected, StringComparison.Ordinal))
+                diff.Add($"{cardId}: disk={actual} fresh={expected}");
+        }
+        if (diff.Count > 0)
+            Assert.Fail($"CardOriginPool drift — re-run `just generate-content-ids`. "
+                + $"First {Math.Min(8, diff.Count)} of {diff.Count}: [{string.Join("; ", diff.Take(8))}].");
+    }
+
     private void AssertInSync(string kind, System.Collections.Generic.IReadOnlyCollection<string> onDisk)
     {
         var spec = GenerateContentIdsCommand.Kinds.SingleOrDefault(k => k.Kind == kind)

@@ -139,6 +139,24 @@ public static class GenerateContentIdsCommand
             Console.WriteLine($"wrote {Path.GetRelativePath(repoRoot, outPath)}  ({ids.Count} {spec.Kind.ToLowerInvariant()}s)");
         }
 
+        // Emit CardOriginPool.g.cs alongside the Id manifests. Sweeps need
+        // to know "which character owns this card" to start a run with the
+        // right Character (Regent cards cost Stars, not Energy, etc.) and
+        // to tag curse/status/quest cards as expected-Unplayable rather
+        // than treating their CanPlay=false as suspicious.
+        try
+        {
+            var membership = EnumerateCardPoolMembership(modelDbType);
+            var outPath = Path.Combine(outDir, "CardOriginPool.g.cs");
+            File.WriteAllText(outPath, EmitCardOriginPool(membership));
+            Console.WriteLine($"wrote {Path.GetRelativePath(repoRoot, outPath)}  ({membership.Count} card→pool edges)");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"generate-content-ids: CardOriginPool — {ex.GetType().Name}: {ex.Message}");
+            anyFailed = true;
+        }
+
         return anyFailed ? 1 : 0;
     }
 
@@ -198,6 +216,151 @@ public static class GenerateContentIdsCommand
             if (entry is not null) ids.Add(entry);
         }
         return ids;
+    }
+
+    // ── card-pool membership ─────────────────────────────────────────────
+
+    // Pool ids the engine ships (from documentation/research/modeldb/
+    // modeldb-AllCardPools.txt). Each ID maps to a CardOriginPool enum
+    // value. The 5 character pools mirror the Character enum exactly;
+    // the 7 non-character pools (Colorless / Curse / Status / …) are
+    // separate because they're not playable-by-a-specific-character.
+    //
+    // Suffix is stripped ("_CARD_POOL") to keep enum values short. If
+    // the engine ever ships a new pool that doesn't match this map, the
+    // enumerator throws (visible failure beats silent miscategorisation).
+    private static readonly IReadOnlyDictionary<string, string> PoolIdToEnumValue =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["IRONCLAD_CARD_POOL"]    = "Ironclad",
+            ["SILENT_CARD_POOL"]      = "Silent",
+            ["DEFECT_CARD_POOL"]      = "Defect",
+            ["REGENT_CARD_POOL"]      = "Regent",
+            ["NECROBINDER_CARD_POOL"] = "Necrobinder",
+            ["COLORLESS_CARD_POOL"]   = "Colorless",
+            ["CURSE_CARD_POOL"]       = "Curse",
+            ["DEPRECATED_CARD_POOL"]  = "Deprecated",
+            ["EVENT_CARD_POOL"]       = "Event",
+            ["QUEST_CARD_POOL"]       = "Quest",
+            ["STATUS_CARD_POOL"]      = "Status",
+            ["TOKEN_CARD_POOL"]       = "Token",
+        };
+
+    public static SortedDictionary<string, string> EnumerateCardPoolMembership(Type modelDbType)
+    {
+        var allPoolsProp = modelDbType.GetProperty("AllCardPools",
+            BindingFlags.Public | BindingFlags.Static)
+            ?? throw new InvalidOperationException("ModelDb.AllCardPools not found");
+        if (allPoolsProp.GetValue(null) is not IEnumerable pools)
+            throw new InvalidOperationException("ModelDb.AllCardPools did not return IEnumerable");
+
+        // First pass: when a card is in BOTH a character pool AND
+        // colorless/event/etc., the character pool wins (the engine treats
+        // it as that character's content). Empirically: at least
+        // IRONCLAD_CARD_POOL contains some shared utility cards, so the
+        // tiebreak matters. Walk in pool-priority order.
+        var priority = new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["IRONCLAD_CARD_POOL"] = 0, ["SILENT_CARD_POOL"] = 0,
+            ["DEFECT_CARD_POOL"] = 0, ["REGENT_CARD_POOL"] = 0,
+            ["NECROBINDER_CARD_POOL"] = 0,
+            ["CURSE_CARD_POOL"] = 1, ["STATUS_CARD_POOL"] = 1,
+            ["QUEST_CARD_POOL"] = 1, ["TOKEN_CARD_POOL"] = 1,
+            ["EVENT_CARD_POOL"] = 2, ["COLORLESS_CARD_POOL"] = 3,
+            ["DEPRECATED_CARD_POOL"] = 9,
+        };
+
+        var result = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        var bestPriority = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (var pool in pools)
+        {
+            if (pool is null) continue;
+            var poolId = ReadIdEntry(pool);
+            if (poolId is null || !PoolIdToEnumValue.TryGetValue(poolId, out var enumValue))
+                throw new InvalidOperationException($"Unknown card pool id '{poolId}' — extend PoolIdToEnumValue");
+            if (!priority.TryGetValue(poolId, out var prio)) prio = 99;
+
+            var idsProp = pool.GetType().GetProperty("AllCardIds",
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            if (idsProp?.GetValue(pool) is not IEnumerable ids)
+                throw new InvalidOperationException($"Pool {poolId}: no AllCardIds property");
+
+            foreach (var id in ids)
+            {
+                if (id is null) continue;
+                // ModelId has an Entry string property — same shape as
+                // the other ReadIdEntry call sites.
+                var entryProp = id.GetType().GetProperty("Entry",
+                    BindingFlags.Public | BindingFlags.Instance);
+                if (entryProp?.GetValue(id) is not string cardId || cardId.Length == 0) continue;
+
+                if (!bestPriority.TryGetValue(cardId, out var currentPrio) || prio < currentPrio)
+                {
+                    result[cardId] = enumValue;
+                    bestPriority[cardId] = prio;
+                }
+            }
+        }
+        return result;
+    }
+
+    private static string EmitCardOriginPool(SortedDictionary<string, string> membership)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("// <auto-generated>");
+        sb.AppendLine("//   Source: generated by `just generate-content-ids` (Sts2Headless --generate-content-ids).");
+        sb.AppendLine("//   Sourced from ModelDb.AllCardPools in the pinned vendor/sts2.dll.");
+        sb.AppendLine("//   Do not edit by hand — re-run the generator after bumping the game pin.");
+        sb.AppendLine("// </auto-generated>");
+        sb.AppendLine("using System.Collections.Generic;");
+        sb.AppendLine();
+        sb.AppendLine("namespace Sts2Headless.Protocol.Methods;");
+        sb.AppendLine();
+        sb.AppendLine("// Which of sts2's card pools a given card id belongs to. The 5");
+        sb.AppendLine("// character values mirror the Character enum; the 7 non-character");
+        sb.AppendLine("// values flag cards that can't be played by a specific character");
+        sb.AppendLine("// (Curse / Status are always unplayable; Colorless / Event are");
+        sb.AppendLine("// usually conditional; Token / Quest are spawned by other content;");
+        sb.AppendLine("// Deprecated is engine-internal). Unknown is the sentinel for");
+        sb.AppendLine("// cards introduced after this pin.");
+        sb.AppendLine("public enum CardOriginPool");
+        sb.AppendLine("{");
+        sb.AppendLine("    Unknown,");
+        sb.AppendLine("    Ironclad, Silent, Defect, Regent, Necrobinder,");
+        sb.AppendLine("    Colorless, Curse, Deprecated, Event, Quest, Status, Token,");
+        sb.AppendLine("}");
+        sb.AppendLine();
+        sb.AppendLine("public static class CardOriginPools");
+        sb.AppendLine("{");
+        sb.AppendLine("    private static readonly Dictionary<string, CardOriginPool> _map =");
+        sb.AppendLine("        new(System.StringComparer.Ordinal)");
+        sb.AppendLine("        {");
+        foreach (var (cardId, poolEnum) in membership)
+        {
+            sb.AppendLine($"            [\"{cardId}\"] = CardOriginPool.{poolEnum},");
+        }
+        sb.AppendLine("        };");
+        sb.AppendLine();
+        sb.AppendLine("    public static CardOriginPool OfCard(string cardId) =>");
+        sb.AppendLine("        _map.TryGetValue(cardId, out var p) ? p : CardOriginPool.Unknown;");
+        sb.AppendLine();
+        sb.AppendLine("    // Character that owns this card, or null if the card belongs to a");
+        sb.AppendLine("    // shared / curse / status / token pool that no character \"owns\".");
+        sb.AppendLine("    // Use this to decide which Character to start a run with when");
+        sb.AppendLine("    // exercising the card in isolation.");
+        sb.AppendLine("    public static Character? OwningCharacter(string cardId) =>");
+        sb.AppendLine("        OfCard(cardId) switch");
+        sb.AppendLine("        {");
+        sb.AppendLine("            CardOriginPool.Ironclad    => Character.Ironclad,");
+        sb.AppendLine("            CardOriginPool.Silent      => Character.Silent,");
+        sb.AppendLine("            CardOriginPool.Defect      => Character.Defect,");
+        sb.AppendLine("            CardOriginPool.Regent      => Character.Regent,");
+        sb.AppendLine("            CardOriginPool.Necrobinder => Character.Necrobinder,");
+        sb.AppendLine("            _                          => null,");
+        sb.AppendLine("        };");
+        sb.AppendLine("}");
+        return sb.ToString();
     }
 
     // ── id extraction ────────────────────────────────────────────────────
