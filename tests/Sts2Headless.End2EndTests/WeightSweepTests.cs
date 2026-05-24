@@ -434,6 +434,53 @@ public class WeightSweepTests
         "v7-defend-is-bad",
         HeuristicWeights.Default with { PlayerBlock = -1.0, IncomingDamage = -1.5 });
 
+    // V8 — deck-tracker active; retry winning v3/v4 variants and combinations.
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V8_Default() => Measure("v8-default", HeuristicWeights.Default);
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V8_Stronger() => Measure(
+        "v8-stronger",
+        HeuristicWeights.Default with { PlayerHp = 5.0, EnemyHp = -3.5 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V8_AggrAttack() => Measure(
+        "v8-aggr-attack",
+        HeuristicWeights.Default with { EnemyHp = -3.5, IncomingDamage = -2.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V8_DefendBlock() => Measure(
+        "v8-defend-block",
+        HeuristicWeights.Default with { PlayerBlock = 0.7, IncomingDamage = -2.5 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V8_StrengthBig() => Measure(
+        "v8-strength-big",
+        HeuristicWeights.Default with { PlayerStrength = 11.0, DemonForm = 55.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V8_NoCardsDrawn() => Measure(
+        "v8-no-cards-drawn",
+        HeuristicWeights.Default with { CardsDrawn = 0.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V8_HugeCardsDrawn() => Measure(
+        "v8-huge-cards-drawn",
+        HeuristicWeights.Default with { CardsDrawn = 5.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V8_MoreLethal() => Measure(
+        "v8-more-lethal",
+        HeuristicWeights.Default with { LethalBonus = 10_000_000 });
+
     private async Task MeasureWithPlanner(string name, HeuristicWeights weights, PlannerBudget budget)
         => await DoMeasure(name, () => new IroncladAgent(
             evaluator: new HeuristicEvaluator(weights),

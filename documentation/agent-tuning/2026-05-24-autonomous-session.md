@@ -156,3 +156,36 @@ A path forward:
 
 Final 50-seed corpus: **0/50 A0 clears (0%) / 10/50 Act-1-boss
 clears (20%)** vs starting **0/50 / 3/50 (6%)**. avg floor 11.9.
+
+## Second pass (autonomous loop tick)
+
+The autonomous loop continued past the original "20% plateau". One
+more change unblocked a win:
+
+  - **RunDeckTracker** (src/Sts2Headless.BattleAgent/RunDeckTracker.cs)
+    tracks the running deck across the run (Ironclad starter +
+    drafted/bought cards). `IroncladAgent.GetStrikeCardsInDeck()` now
+    feeds the real count into `SimStateBuilder`, so
+    `PerfectedStrike`'s `6 + 2/Strike` formula plans on the real
+    number (5+ from starter alone) instead of the hand-visible 0-1.
+    50-seed: **10/50 → 11/50 (22%)**. One more win.
+
+Also added but didn't move the metric:
+
+  - AKABEKO / TUNGSTEN_ROD relic awareness — strictly additive when
+    the relic is present, but neither relic surfaced in the corpus's
+    losing seeds.
+  - BRONZE_SCALES (thorns) — tested but cost 1 win (the projection
+    made the agent under-block; reverted).
+  - V8 weight sweep with deck-tracker active — confirmed 11/50 is
+    robust under further weight tuning. Several variants tied at
+    11/50 (no-cards-drawn, huge-cards-drawn, more-lethal); nothing
+    exceeded.
+
+**Final session metric: 11/50 (22%) Act 1 boss, 0/50 A0 clear.**
+
+The 3-act A0 clear remains unreached. The next genuinely-impactful
+levers are the same three from the prior doc (event lookup table,
+deeper MultiTurn / MC rollouts, more relic-aware modelling) plus
+modelling the exhaust pile count so AshenStrike's `6 + 3/exhaust`
+formula has real signal too.
