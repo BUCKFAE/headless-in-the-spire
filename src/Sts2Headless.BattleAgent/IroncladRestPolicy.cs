@@ -8,6 +8,10 @@ namespace Sts2Headless.BattleAgent;
 // an explicit threshold so the policy is testable in isolation.
 public sealed class IroncladRestPolicy : IRestPolicy
 {
+    // 50-seed sweep: lowering the smith threshold to 0.40 dropped
+    // Act-1-boss clears from 10/50 → 1/50 because the agent stops
+    // healing during mid-Act-1 lulls and dies the next fight. The
+    // ratio matters more than the absolute HP — keep the heal-bias.
     private const double HealThreshold = 0.75;
 
     public AgentAction Choose(RunStateResult state)
@@ -22,7 +26,8 @@ public sealed class IroncladRestPolicy : IRestPolicy
             && string.Equals(o.OptionId, "SMITH", StringComparison.OrdinalIgnoreCase));
 
         var hpRatio = state.MaxHp <= 0 ? 0.0 : (double)state.Hp / state.MaxHp;
-        if (hpRatio >= HealThreshold && smith is not null)
+        // Smith path — high HP or no heal available.
+        if (smith is not null && hpRatio >= HealThreshold)
             return new SelectRestSiteOption(smith.Index, new[] { new[] { 0 } });
         if (heal is not null)
             return new SelectRestSiteOption(heal.Index);

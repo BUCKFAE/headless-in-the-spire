@@ -17,7 +17,7 @@ public sealed record HeuristicWeights(
     // 7/50 → 8/50 against the same corpus. Pairs with IncomingDamage
     // -3.0 (default below) to slightly reduce defensive over-block.
     double PlayerHp = 4.0,
-    double PlayerBlock = 0.5,          // block discounted vs HP (block expires)
+    double PlayerBlock = 0.3,          // block discounted vs HP (block expires)
     double EnemyHp = -3.0,
     double EnemyBlock = -0.3,
     // Penalty per stack of enemy Strength. Wire intent damage already
@@ -68,7 +68,7 @@ public sealed record HeuristicWeights(
     // (6 dmg, 10 block) when staring down 24 incoming; at -5 it becomes
     // too defensive and draws out fights, surrendering seed 9 (which
     // previously won the Act 1 boss). -3.5 splits the difference.
-    double IncomingDamage = -3.0,
+    double IncomingDamage = -2.0,
     // Tempo penalty per "turns-to-kill all enemies" estimate. Disabled
     // by default (=0) — the 50-seed sweep at -6 cost ~4 wins because the
     // term double-counts against EnemyHp and pushes the planner into

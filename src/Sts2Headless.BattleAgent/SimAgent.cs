@@ -45,7 +45,7 @@ public class SimAgent : HeuristicAgent
         // revisiting after evaluator tuning. Numbers + reproducer:
         // documentation/coverage/battleagent-baseline-2026-05-24.md.
         // MultiTurn and MCTS stay injectable for comparison sweeps.
-        _planner = planner ?? new ExhaustivePlanner();
+        _planner = planner ?? new BossAwarePlanner();
         _budget = budget ?? PlannerBudget.Default;
     }
 
