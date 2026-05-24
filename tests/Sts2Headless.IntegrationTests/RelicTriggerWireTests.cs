@@ -18,7 +18,12 @@ public class RelicTriggerWireTests
     [Fact]
     public async Task SelectCardReward_SurfacesLuckyFyshTrigger_OnTriggeredSincePrev()
     {
-        await using var host = new HostSubprocess();
+        // WithHookInstrumentation() → BootstrapSequence.ApplyHookPatches
+        // actually runs, so RelicHookPatches installs the
+        // AfterCardChangedPiles postfix that populates TriggerLog and
+        // surfaces here as TriggeredSincePrev. Without it the wire field
+        // is empty even though the relic's gold side effect still fires.
+        await using var host = HostSubprocess.WithHookInstrumentation();
         await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
 
         // Inject LuckyFysh before the first combat — same pattern as

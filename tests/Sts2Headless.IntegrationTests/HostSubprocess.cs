@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Sts2Headless.Protocol;
+using Sts2Headless.Runtime.Loading;
 using Xunit;
 using Xunit.Sdk;
 
@@ -24,7 +25,19 @@ public sealed class HostSubprocess : IAsyncDisposable
     private bool _stdinClosed;
     private bool _disposed;
 
-    public HostSubprocess()
+    // Parameterless ctor is the one xUnit's IClassFixture mechanism resolves
+    // (xUnit requires a single public ctor on fixture types). Tests that
+    // need hook instrumentation use the WithHookInstrumentation() factory
+    // below — it routes through a private bool ctor so the public surface
+    // stays "one constructor", which keeps the fixture activator happy.
+    public HostSubprocess() : this(instrumentHooks: false) { }
+
+    // `instrumentHooks` opts the spawned subprocess into the AbstractModel
+    // hook-postfix patcher so RunStateResult.TriggeredSincePrev is populated.
+    // Off by default — the patcher costs ~440ms per cold start and most
+    // integration tests don't read TriggeredSincePrev. Trigger-attribution
+    // tests (RelicTriggerWireTests etc.) use WithHookInstrumentation().
+    private HostSubprocess(bool instrumentHooks)
     {
         var hostDll = Path.Combine(AppContext.BaseDirectory, "Sts2Headless.dll");
         Assert.True(File.Exists(hostDll), $"Sts2Headless.dll not found at {hostDll}");
@@ -51,6 +64,8 @@ public sealed class HostSubprocess : IAsyncDisposable
         // explicitly. RecordingHost (the counterpart) DOES set
         // STS2_REPLAY_OUT to a tmp path when it wants the artifacts.
         psi.Environment["STS2_REPLAY_OUT"] = "off";
+        if (instrumentHooks)
+            psi.Environment[BootstrapSequence.InstrumentHooksEnvVar] = "1";
 
         _proc = Process.Start(psi)
             ?? throw new InvalidOperationException("failed to start headless host subprocess");
@@ -68,6 +83,13 @@ public sealed class HostSubprocess : IAsyncDisposable
             }
         });
     }
+
+    // Spawn a subprocess with the AbstractModel hook-postfix patcher
+    // enabled. Use this when the test reads RunStateResult.TriggeredSincePrev
+    // and needs the patcher to populate it. The patcher costs ~440ms per
+    // cold start, so generic integration tests stick with the parameterless
+    // ctor.
+    public static HostSubprocess WithHookInstrumentation() => new(instrumentHooks: true);
 
     // Send a request, expect a successful response (envelope.error == null),
     // deserialise the result as TResult. The id is generated and verified
