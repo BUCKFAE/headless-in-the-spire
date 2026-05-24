@@ -106,6 +106,24 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         // promote this to a Custom handler that reads it.
         CardId.Rampage        => new(IsAttack: true, Damage: 9),
         CardId.Rupture        => new(IsPower: true, RuptureGain: 1),
+        // Spite (STS2): 6 dmg, hits twice if you lost HP this turn
+        // (research-archetypes-synergies §0 + community). Without an
+        // explicit "LostHpThisTurn" SimState field we approximate the
+        // expected hit count at 2 — a Self-Damage deck will trigger
+        // the multi-hit nearly every turn (Brand / Bloodletting /
+        // Offering / Crimson Mantle all lose HP); a non-self-damage
+        // deck gets 1 hit, so this is a slight over-count when drafted
+        // outside the archetype.
+        CardId.Spite          => new(IsAttack: true, Damage: 6, Hits: 2),
+        // Inferno (STS2): 1E power. Turn-start lose 1 HP; whenever
+        // you lose HP on your turn deal 6/9 to ALL enemies. Modelled
+        // as a Combust-style end-of-turn AoE: the actual trigger is
+        // per-HP-loss-event, but the catalog's only AoE field is
+        // CombustGain. Approximate as Combust 6/9 — slightly under-
+        // values Inferno in heavy-self-damage decks (where it triggers
+        // 2-3x/turn) and over-values it in fights where the player
+        // doesn't lose HP. Acceptable for v1 archetype awareness.
+        CardId.Inferno        => new(IsPower: true, CombustGain: 6),
 
         // Uncommon powers
         CardId.DarkEmbrace    => new(IsPower: true, DarkEmbraceGain: 1),
@@ -212,6 +230,8 @@ public sealed class IroncladCardCatalog : ICardEffectCatalog
         CardId.SecondWind     => new(IsSkill: true, Exhausts: true, DiscardForBlock: 7),
         CardId.Rage           => new(IsPower: true, RageGain: 5),
         CardId.Rupture        => new(IsPower: true, RuptureGain: 2),
+        CardId.Spite          => new(IsAttack: true, Damage: 8, Hits: 2),
+        CardId.Inferno        => new(IsPower: true, CombustGain: 9),
 
         CardId.DarkEmbrace    => new(IsPower: true, DarkEmbraceGain: 1), // upgrade: cost 1
         CardId.FeelNoPain     => new(IsPower: true, FeelNoPainGain: 4),

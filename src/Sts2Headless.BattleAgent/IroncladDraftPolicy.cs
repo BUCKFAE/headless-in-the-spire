@@ -70,6 +70,11 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             // archetype the deck has already seeded (>=2 enablers) is
             // worth taking even past the size cap. Captured by checking
             // if the synergy bonus alone meets a small floor.
+            // 50-seed sweep verified the current thresholds. Tighter
+            // skip (require B+ in mid-deck) regresses 11/50 → 8/50:
+            // the planner currently extracts value from C-tier cards
+            // that fill out short Act-1 hands (more options per turn
+            // beats narrower-archetype focus given a 1-turn planner).
             var threshold = state.DeckSize switch
             {
                 <= 12 => (int)CardTier.D,
@@ -217,12 +222,21 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             CardId.Taunt => CardTier.B,
             CardId.AshenStrike => CardTier.B, // 6+3/exhaust — scales fast
             CardId.Brand => CardTier.B,        // pivot card, but only A in decks committed to Self-Damage/Exhaust
-            CardId.Rupture => CardTier.B,    // Self-Damage power core (modelled)
-            // Inferno / Cruelty / Hellraiser / Spite NOT modelled in
-            // IroncladCardCatalog yet — drafting them gives the planner
-            // dead-weight cards it can't play. Leave them at F-tier
-            // until each card's effect lands in the catalog (then move
-            // to A based on the research deliverable's tier ratings).
+            CardId.Rupture => CardTier.B,    // Self-Damage power core (modelled). Tier-A regressed 11/50 → 9/50.
+            // Newly modelled (this commit): Spite as 6/2-hit attack,
+            // Inferno as Combust-style 6/turn AoE — approximations
+            // (see catalog comments for accuracy notes).
+            // Tiers are conservative: Inferno-as-Combust is an
+            // *overstatement* (real triggers per HP-loss event, model
+            // triggers every turn) and a B keeps the agent from
+            // chasing the false ramp.
+            CardId.Spite => CardTier.C,
+            CardId.Inferno => CardTier.B,
+            // Cruelty / Hellraiser still NOT modelled — their effects
+            // (Vulnerable damage multiplier, auto-Strike loop) can't
+            // be captured in the declarative catalog and a Custom
+            // handler for either would need new SimState fields.
+            // Leave at F-tier so the planner doesn't draft dead cards.
 
             // C-tier — redundant or situational.
             CardId.Anger => CardTier.C,
