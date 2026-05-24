@@ -451,6 +451,16 @@ public static partial class HangPatches
         if (monsterType is null)
             return new PatchOutcome(entry.Label, Patched: false, Detail: $"type {entry.TypeFqn} not found");
 
+        // Empty MethodNames is a deliberate registry-only entry: the type is
+        // mentioned for the narrative + the reflection-based audit registry
+        // (EnumerateMonsterPatchEntries), but the actual patching happens
+        // elsewhere — e.g. Crusher / Rocket are patched via
+        // PatchKaiserCrabBackgroundGetters, LagavulinMatriarch / SlumberingBeetle
+        // via PatchSleepingMonsterAfterAddedToRoom. Report Ok so the
+        // bootstrap snapshot doesn't flag these as missing patches.
+        if (entry.MethodNames.Count == 0)
+            return new PatchOutcome(entry.Label, Patched: true, Detail: "no methods patched here (registry-only entry; patched elsewhere)");
+
         var methods = monsterType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
             .Where(m => entry.MethodNames.Contains(m.Name) && !m.IsSpecialName)
             .ToArray();
