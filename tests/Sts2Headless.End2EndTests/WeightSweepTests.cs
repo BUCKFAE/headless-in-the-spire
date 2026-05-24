@@ -481,6 +481,65 @@ public class WeightSweepTests
         "v8-more-lethal",
         HeuristicWeights.Default with { LethalBonus = 10_000_000 });
 
+    // V9 — re-sweep on 200-seed corpus since the 50-seed numbers we
+    // tuned against earlier turned out to be noisily favourable.
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V9_200Default() => Measure200("v9-200-default", HeuristicWeights.Default);
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V9_200LessIncoming() => Measure200(
+        "v9-200-less-incoming",
+        HeuristicWeights.Default with { IncomingDamage = -1.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V9_200MoreIncoming() => Measure200(
+        "v9-200-more-incoming",
+        HeuristicWeights.Default with { IncomingDamage = -3.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V9_200MoreBlock() => Measure200(
+        "v9-200-more-block",
+        HeuristicWeights.Default with { PlayerBlock = 0.6 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V9_200AggressiveEnemy() => Measure200(
+        "v9-200-aggressive-enemy",
+        HeuristicWeights.Default with { EnemyHp = -4.0 });
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public Task Sweep_V9_200StrengthBig() => Measure200(
+        "v9-200-strength-big",
+        HeuristicWeights.Default with { PlayerStrength = 10.0 });
+
+    private async Task Measure200(string name, HeuristicWeights weights)
+    {
+        var seeds = Enumerable.Range(1, 200).Select(i => (ulong)i).ToArray();
+        var workers = Math.Clamp(Environment.ProcessorCount / 2, 2, 8);
+        using var tmp = new TempDir("sts2-a0-sweep");
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
+        var report = await WinRateHarness.MeasureAsync(
+            new WinRateHarness.MeasurementOptions(
+                Ascension: 0,
+                Seeds: seeds,
+                WorkerCount: workers,
+                ReplayRootBase: tmp.Path,
+                AgentFactory: () => new IroncladAgent(
+                    evaluator: new HeuristicEvaluator(weights)),
+                Label: $"sweep200:{name}",
+                PerSeedTimeout: TimeSpan.FromMinutes(5)),
+            cts.Token);
+        var outFile = $"/tmp/ironclad-a0-clear/sweep-{name}.md";
+        Directory.CreateDirectory(Path.GetDirectoryName(outFile)!);
+        await File.WriteAllTextAsync(outFile, WinRateHarness.FormatMarkdown(report));
+        Assert.Equal(seeds.Length, report.Seeds.Count);
+    }
+
     private async Task MeasureWithPlanner(string name, HeuristicWeights weights, PlannerBudget budget)
         => await DoMeasure(name, () => new IroncladAgent(
             evaluator: new HeuristicEvaluator(weights),

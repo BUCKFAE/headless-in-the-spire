@@ -69,7 +69,7 @@ public sealed record HeuristicWeights(
     // (6 dmg, 10 block) when staring down 24 incoming; at -5 it becomes
     // too defensive and draws out fights, surrendering seed 9 (which
     // previously won the Act 1 boss). -3.5 splits the difference.
-    double IncomingDamage = -2.0,
+    double IncomingDamage = -1.0,
     // Tempo penalty per "turns-to-kill all enemies" estimate. Disabled
     // by default (=0) — the 50-seed sweep at -6 cost ~4 wins because the
     // term double-counts against EnemyHp and pushes the planner into
