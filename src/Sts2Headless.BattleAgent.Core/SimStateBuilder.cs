@@ -29,7 +29,8 @@ public static class SimStateBuilder
         int currentHp,
         int maxHp,
         int? strikeCardsInDeck = null,
-        IReadOnlyCollection<string>? relics = null)
+        IReadOnlyCollection<string>? relics = null,
+        IReadOnlyList<CardId>? deckCardIds = null)
     {
         var status = ReadStatus(combat.PlayerPowers);
         var hand = combat.Hand
@@ -62,7 +63,8 @@ public static class SimStateBuilder
             CardsDrawnThisTurn: 0,
             IsInvalid: false,
             StrikeCardsInDeck: strikes,
-            Relics: relics);
+            Relics: relics,
+            DeckCardIds: deckCardIds);
     }
 
     // CardIds whose wire name contains "Strike". The CardId enum's

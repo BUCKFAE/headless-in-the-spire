@@ -56,6 +56,12 @@ public class SimAgent : HeuristicAgent
     // returns null → SimStateBuilder falls back to hand-visible count.
     protected virtual int? GetStrikeCardsInDeck() => null;
 
+    // Optional override: derived agents can report the full run-deck
+    // card ids. Used by RolloutMultiTurnPlanner to sample projected-
+    // turn hands. Default returns null → planners fall back to the
+    // fixed phantom-turn estimate.
+    protected virtual IReadOnlyList<CardId>? GetDeckCardIds() => null;
+
     // Per-combat exhaust pile counter. The wire doesn't expose the pile
     // size during combat; we track it ourselves between turns. Reset
     // when the wire snapshot indicates a new combat.
@@ -88,7 +94,8 @@ public class SimAgent : HeuristicAgent
             state.Hp,
             state.MaxHp,
             strikeCardsInDeck: GetStrikeCardsInDeck(),
-            relics: relics) with { ExhaustPileCount = _trackedExhaustPileCount };
+            relics: relics,
+            deckCardIds: GetDeckCardIds()) with { ExhaustPileCount = _trackedExhaustPileCount };
         var plan = _planner.PlanTurn(sim, _model, _evaluator, _budget, default);
         LastPlanSummary =
             $"plan: {plan.Actions.Count} steps, nodes={plan.NodesExplored}, "

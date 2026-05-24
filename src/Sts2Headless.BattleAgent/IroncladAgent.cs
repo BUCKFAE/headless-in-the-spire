@@ -48,6 +48,13 @@ public sealed class IroncladAgent : SimAgent
     // PerfectedStrike's scaling formula reads the real Strike count.
     protected override int? GetStrikeCardsInDeck() => DeckTracker.CountStrikeNamed();
 
+    // Pass the full run-deck list to the planner so the rollout-based
+    // MultiTurn variant can sample projected-turn hands. Conservative
+    // copy — DeckTracker.Cards is the live list and the planner
+    // shouldn't mutate it, but the snapshot semantics are clearer.
+    protected override IReadOnlyList<CardId>? GetDeckCardIds() =>
+        DeckTracker.Cards.Count == 0 ? null : DeckTracker.Cards;
+
     protected override AgentAction DecideMap(RunStateResult state) =>
         PathPolicy.Choose(state);
 

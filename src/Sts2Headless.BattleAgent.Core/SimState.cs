@@ -59,7 +59,14 @@ public sealed record SimState(
     bool AkabekoAvailable = true,
     // How many cards the player has played so far this player turn.
     // Used to enforce Ringing's per-turn play cap in LegalActions.
-    int CardsPlayedThisTurn = 0);
+    int CardsPlayedThisTurn = 0,
+    // Full run-deck card ids (Ironclad starter + drafted/bought
+    // cards), passed in by SimAgent from IroncladAgent.DeckTracker.
+    // RolloutMultiTurnPlanner samples projected-turn hands from this
+    // list. Null when the agent doesn't track its deck (legacy
+    // SimAgent path), in which case rollouts fall back to a fixed
+    // phantom-turn estimate.
+    IReadOnlyList<CardId>? DeckCardIds = null);
 
 // Player-side status effects. Includes both turn-decaying debuffs
 // (Vulnerable, Weak, Frail) and persistent power-card effects (Combust,
