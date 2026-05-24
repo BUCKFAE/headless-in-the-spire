@@ -63,6 +63,10 @@ public sealed class IroncladPathPolicy : IPathPolicy
         }
         if (hpRatio >= 0.65)
         {
+            // Elite-seeking band tested at 0.55 (32/200, too eager,
+            // takes elites at low HP), 0.65 (36/200 — current),
+            // 0.75 (34/200, too cautious, skips elite floors that
+            // give the agent relics it needs to reach the boss).
             return type switch
             {
                 MapNodeType.Elite    => 0,
