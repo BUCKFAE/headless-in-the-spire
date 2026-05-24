@@ -43,48 +43,51 @@ public sealed class IroncladDraftPolicy : IDraftPolicy
             // Compute the deck's archetype affinity (how committed it is
             // to each archetype) from the run-deck tracker.
             var affinity = ComputeDeckAffinity();
+            var deckCards = _tracker?.Cards ?? (IReadOnlyList<CardId>)Array.Empty<CardId>();
 
-            // Highest-tier wins. Within the top tier, two signals
-            // combine for the tie-break:
-            //   (a) committed-archetype synergy bonus (gated on the
-            //       deck having >= 3 enablers in one archetype — see
-            //       SynergyBonus comment for why the gate exists);
-            //   (b) per-boss draft bias (RunStateResult.BossEncounterId
-            //       drives BossDraftBias deltas).
-            // Both are additive on top of the tier score; the tier gap
-            // (= 100 between tiers) is large enough that neither flips
-            // a B-tier over an A-tier on its own.
+            // Score each offered card with:
+            //   tier (×100)
+            //   + pair-synergy total (each card already in deck
+            //     contributes Score(deck_card, offer) — see
+            //     CardPairSynergy for the rated pair list)
+            //   + committed-archetype bonus (gated)
+            //   + boss-specific delta
+            // The pair-synergy term is the load-bearing part: it can
+            // cross tier boundaries (an S-pair worth 35 plus another
+            // S-pair worth 35 lifts a B-tier card by 70 — within a
+            // tier step of an A-tier card with no partners).
             var committedThreshold = 3;
             var committed = false;
             foreach (var v in affinity.Values)
                 if (v >= committedThreshold) { committed = true; break; }
 
-            CardTier bestTier = CardTier.F;
-            for (var i = 0; i < cards.Count; i++)
-            {
-                var t = TierOf(cards[i].Id);
-                if ((int)t > (int)bestTier) bestTier = t;
-            }
             var bestIdx = 0;
-            var bestCombined = int.MinValue;
+            var bestTotal = int.MinValue;
+            var bestTier = CardTier.F;
             for (var i = 0; i < cards.Count; i++)
             {
-                if (TierOf(cards[i].Id) != bestTier) continue;
-                var synergy = committed ? SynergyBonus(cards[i].Id, affinity) : 0;
-                var bossDelta = BossDraftBias.DeltaFor(state.BossEncounterId, cards[i].Id);
-                var combined = synergy + bossDelta;
-                if (combined > bestCombined)
+                var id = cards[i].Id;
+                var t = TierOf(id);
+                if (t == CardTier.F) continue;
+                var pairSyn = CardPairSynergy.DeckSynergyOf(id, deckCards);
+                var archSyn = committed ? SynergyBonus(id, affinity) : 0;
+                var bossDelta = BossDraftBias.DeltaFor(state.BossEncounterId, id);
+                var total = (int)t * 100 + pairSyn + archSyn + bossDelta;
+                if (total > bestTotal)
                 {
-                    bestCombined = combined;
+                    bestTotal = total;
                     bestIdx = i;
+                    bestTier = t;
                 }
             }
-            // Re-evaluate for the skip path: only the archetype-synergy
-            // term gates the skip override (the boss bias is purely a
-            // within-tier tie-breaker; allowing it to override skip
-            // threshold pulled in C-tier counter-cards that bloated
-            // the deck on the 50-seed corpus).
-            var bestSynergy = SynergyBonus(cards[bestIdx].Id, affinity);
+            // If every offer was F-tier (or no offers parseable), fall
+            // back to first card to keep forward progress.
+            if (bestTotal == int.MinValue) { bestIdx = 0; bestTier = TierOf(cards[0].Id); }
+
+            // For the skip path, account for both the archetype
+            // commit-gate signal and the pair-synergy total.
+            var bestPairSyn = CardPairSynergy.DeckSynergyOf(cards[bestIdx].Id, deckCards);
+            var bestSynergy = SynergyBonus(cards[bestIdx].Id, affinity) + bestPairSyn;
 
             // Deck-size-aware skip threshold:
             //   - small deck (<= 12): take everything (greedy stage)

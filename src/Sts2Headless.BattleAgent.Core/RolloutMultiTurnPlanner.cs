@@ -26,12 +26,14 @@ namespace Sts2Headless.BattleAgent.Core;
 public sealed class RolloutMultiTurnPlanner : ICombatPlanner
 {
     public int LookaheadTurns { get; }
+    public int Samples { get; }
     private readonly ICardEffectCatalog _catalog;
     private readonly MultiTurnExhaustivePlanner _fallback;
 
-    public RolloutMultiTurnPlanner(int lookaheadTurns = 2, ICardEffectCatalog? catalog = null)
+    public RolloutMultiTurnPlanner(int lookaheadTurns = 2, int samples = 3, ICardEffectCatalog? catalog = null)
     {
         LookaheadTurns = lookaheadTurns;
+        Samples = Math.Max(1, samples);
         _catalog = catalog ?? IroncladCardCatalog.Instance;
         _fallback = new MultiTurnExhaustivePlanner(lookaheadTurns);
     }
@@ -66,11 +68,12 @@ public sealed class RolloutMultiTurnPlanner : ICombatPlanner
             BestIsLethal = false,
         };
 
-        var seedProjected = ProjectForward(rootState, model, _catalog, LookaheadTurns);
+        var seedProjected = ProjectForward(rootState, model, _catalog, LookaheadTurns, rolloutSeed: 0);
         search.BestActions = new SimAction[] { new SimEndTurn() };
         search.BestState = seedProjected;
-        search.BestScore = evaluator.Score(seedProjected);
+        search.BestScore = AverageScoreOverSamples(rootState, model, _catalog, evaluator, LookaheadTurns, Samples);
         search.BestIsLethal = model.AllEnemiesDead(seedProjected);
+        search.Samples = Samples;
 
         var path = new List<SimAction>(8);
         DepthFirst(rootState, path, search);
@@ -83,7 +86,7 @@ public sealed class RolloutMultiTurnPlanner : ICombatPlanner
             NodesExplored: search.Nodes);
     }
 
-    private static SimState ProjectForward(SimState state, ICombatModel model, ICardEffectCatalog catalog, int turns)
+    private static SimState ProjectForward(SimState state, ICombatModel model, ICardEffectCatalog catalog, int turns, int rolloutSeed)
     {
         var s = state;
         for (var t = 0; t < turns; t++)
@@ -91,7 +94,7 @@ public sealed class RolloutMultiTurnPlanner : ICombatPlanner
             if (model.IsCombatOver(s)) break;
             if (t > 0)
             {
-                s = ApplyRolloutPlayerTurn(s, model, catalog);
+                s = ApplyRolloutPlayerTurn(s, model, catalog, rolloutSeed * 31 + t);
                 if (model.IsCombatOver(s)) break;
             }
             s = model.EndPlayerTurn(s);
@@ -99,18 +102,62 @@ public sealed class RolloutMultiTurnPlanner : ICombatPlanner
         return s;
     }
 
+    // Average end-of-projection score over `samples` independent
+    // rollouts. Cuts the single-sample variance by ~√N. Cost grows
+    // linearly with N but each rollout is cheap (~15 ops).
+    private static double AverageScoreOverSamples(
+        SimState state, ICombatModel model, ICardEffectCatalog catalog,
+        IEvaluator evaluator, int turns, int samples)
+    {
+        if (samples <= 1) return evaluator.Score(ProjectForward(state, model, catalog, turns, rolloutSeed: 0));
+        var sum = 0.0;
+        for (var k = 0; k < samples; k++)
+        {
+            var s = ProjectForward(state, model, catalog, turns, rolloutSeed: k);
+            sum += evaluator.Score(s);
+        }
+        return sum / samples;
+    }
+
     // Greedy single-turn rollout against a sampled hand. The output
     // is the post-player-turn SimState (energy spent, hand drained,
     // any damage / block applied).
-    private static SimState ApplyRolloutPlayerTurn(SimState s, ICombatModel model, ICardEffectCatalog catalog)
+    private static SimState ApplyRolloutPlayerTurn(SimState s, ICombatModel model, ICardEffectCatalog catalog, int rolloutSeed)
     {
-        var hand = SampleHand(s, catalog, count: 5);
+        var hand = SampleHand(s, catalog, count: 5, rolloutSeed);
         s = s with { Hand = hand };
 
-        // Greedy play loop. Each iteration: score every playable card
-        // by a cheap value heuristic, pick the best, apply. Stop when
-        // no card scores above the "end turn" baseline.
-        for (var step = 0; step < 6; step++)
+        // Two-phase scripted rollout — defend then attack. The greedy-
+        // attack-only version over-projects damage and makes the outer
+        // planner under-defend in the real turn. Splitting the rollout
+        // turn between block and attack matches what a real player
+        // does and matches what the agent's own evaluator will pick.
+        //
+        // Phase 1: estimate incoming damage. If incoming > current
+        // block, play one block-only card (Defend / Shrug-It-Off /
+        // Iron-Wave family). Skip the phase entirely if the player
+        // is already safe (block >= incoming).
+        var incoming = 0;
+        foreach (var e in s.Enemies)
+        {
+            if (e.IsDead || e.Intent is not { } intent) continue;
+            if (intent.Damage > 0) incoming += intent.Damage * Math.Max(1, intent.Hits);
+        }
+        if (incoming > s.Block)
+        {
+            var blockIdx = PickBestBlockCard(s, catalog);
+            if (blockIdx >= 0)
+            {
+                var play = new SimPlayCard(blockIdx, TargetEnemyIndex: null);
+                var next = model.Apply(s, play);
+                if (!next.IsInvalid) s = next;
+            }
+        }
+
+        // Phase 2: spend remaining energy on damage. Pick highest
+        // value attack card each iteration; stop when no playable
+        // positive-value card remains.
+        for (var step = 0; step < 5; step++)
         {
             if (model.IsCombatOver(s)) break;
             if (s.Energy <= 0) break;
@@ -135,21 +182,39 @@ public sealed class RolloutMultiTurnPlanner : ICombatPlanner
         return s;
     }
 
+    private static int PickBestBlockCard(SimState s, ICardEffectCatalog catalog)
+    {
+        var bestIdx = -1;
+        var bestBlock = 0;
+        for (var i = 0; i < s.Hand.Count; i++)
+        {
+            var c = s.Hand[i];
+            if (!IsPlayable(c, s)) continue;
+            var e = catalog.GetEffect(c.Id, c.Upgraded);
+            if (e is null || e.Block <= 0 || e.Damage > 0) continue;
+            if (e.Block > bestBlock) { bestBlock = e.Block; bestIdx = i; }
+        }
+        return bestIdx;
+    }
+
     // Sample `count` cards from DeckCardIds, treating the current
     // discard/draw piles as unknown contents. Deterministic for
     // search stability — uses a hash of (turn, enemy-hp) so the
     // sample shifts as the simulation advances but is the same for
     // every visit to the same node.
-    private static IReadOnlyList<SimCard> SampleHand(SimState s, ICardEffectCatalog catalog, int count)
+    private static IReadOnlyList<SimCard> SampleHand(SimState s, ICardEffectCatalog catalog, int count, int rolloutSeed)
     {
         if (s.DeckCardIds is null || s.DeckCardIds.Count == 0) return Array.Empty<SimCard>();
 
         // Mix in some state to pseudo-randomise across projection
         // depths while staying deterministic for transposition keys.
+        // rolloutSeed varies across Monte-Carlo samples at the same
+        // node so the averaged score cuts the per-sample variance.
         var seed = 17;
         seed = seed * 31 + s.Turn;
         seed = seed * 31 + s.Hp;
         seed = seed * 31 + s.Energy;
+        seed = seed * 31 + rolloutSeed;
 
         var deck = s.DeckCardIds;
         var n = deck.Count;
@@ -290,13 +355,16 @@ public sealed class RolloutMultiTurnPlanner : ICombatPlanner
             search.LethalFound = true;
             return;
         }
-        var projected = ProjectForward(state, search.Model, search.Catalog, search.LookaheadTurns);
-        var score = search.Evaluator.Score(projected);
-        if (score > search.BestScore)
+        var avgScore = AverageScoreOverSamples(
+            state, search.Model, search.Catalog, search.Evaluator,
+            search.LookaheadTurns, search.Samples);
+        if (avgScore > search.BestScore)
         {
+            // Keep one representative projection for state surfacing.
+            var projected = ProjectForward(state, search.Model, search.Catalog, search.LookaheadTurns, rolloutSeed: 0);
             search.BestActions = MaterialiseWithEndTurn(path);
             search.BestState = projected;
-            search.BestScore = score;
+            search.BestScore = avgScore;
             search.BestIsLethal = search.Model.AllEnemiesDead(projected);
         }
     }
@@ -334,6 +402,7 @@ public sealed class RolloutMultiTurnPlanner : ICombatPlanner
         public DateTime? Deadline;
         public CancellationToken CancellationToken;
         public int LookaheadTurns;
+        public int Samples;
         public int Nodes;
         public IReadOnlyList<SimAction> BestActions = Array.Empty<SimAction>();
         public SimState BestState = null!;

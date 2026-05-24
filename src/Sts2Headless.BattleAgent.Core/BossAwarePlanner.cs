@@ -25,16 +25,14 @@ public sealed class BossAwarePlanner : ICombatPlanner
         BossThreshold = bossThreshold;
         Lookahead = lookahead;
         Regular = regular ?? new ExhaustivePlanner();
-        // RolloutMultiTurnPlanner was tested as the boss-branch (200
-        // seeds: 17/200 with raw greedy QuickValue, 24/200 after
-        // tuning power-card score down). Both regressed vs 33/200 for
-        // the fixed-phantom MultiTurn. The rollout's per-turn
-        // projection is more accurate on AVERAGE but injects too much
-        // variance — the outer planner sees "we'll handle it next
-        // turn" projections that didn't match the actual mid-fight
-        // hand. Keep the rollout class in tree for re-experimentation
-        // with proper averaging / smarter QuickValue, but route the
-        // boss branch back to plain MultiTurn.
+        // RolloutMultiTurnPlanner tested with N=1/3/5 samples (single-
+        // sample variance fix) and greedy/scripted player turns
+        // (mean bias fix). Best result was 30/200 vs 35/200 for plain
+        // MultiTurn — the rollout's mean is biased no matter how the
+        // turn is scripted (greedy-attack over-projects damage,
+        // defend-then-attack under-projects damage to the *attack*
+        // side). Bias dominates the variance reduction. Reverted.
+        // Kept the class and SimState.DeckCardIds plumbing in tree.
         Boss = boss ?? new MultiTurnExhaustivePlanner(lookaheadTurns: lookahead);
         BossNodeMultiplier = bossNodeMultiplier;
     }
