@@ -523,6 +523,14 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
         var enemies = s.Enemies.ToArray();
         var e = enemies[idx];
         if (e.IsDead) return s;
+        // Artifact wire-read into SimEnemy.Artifact but NOT enforced
+        // here. Tested 33/200 → 32/200: with Artifact modelled, the
+        // planner sees Bash-on-Cubex applying 0 Vulnerable (correctly,
+        // matching the engine) and devalues the play. But the optimal
+        // Cubex line is *burn* the Artifact with one Bash and reap
+        // Vuln on the next turn — a payoff the 1-turn planner can't
+        // see. Leaving the field readable for a future evaluator-
+        // side bonus ("the next debuff land is X turns away").
         enemies[idx] = e with
         {
             Vulnerable = e.Vulnerable + vulnApply,

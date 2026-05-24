@@ -166,7 +166,14 @@ public sealed record SimEnemy(
     // turn AND loses all accumulated Strength. Modelled in
     // CombatModel.DealSingleTargetDamage — when we cross the
     // threshold the next intent is zeroed and Strength is reset.
-    int PlowThreshold = 0)
+    int PlowThreshold = 0,
+    // ARTIFACT_POWER: absorbs the next N debuff applications. When
+    // the player tries to apply Vulnerable/Weak/Frail to this enemy,
+    // the stack decrements instead and no debuff lands.
+    // CUBEX_CONSTRUCT (Act 1 elite) opens with Artifact:1; modelling
+    // this prevents the planner from "wasting" Bash on it as the
+    // opener.
+    int Artifact = 0)
 {
     public bool IsDead => Hp <= 0;
 }
