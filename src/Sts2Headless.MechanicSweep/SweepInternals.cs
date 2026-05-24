@@ -114,7 +114,17 @@ internal static class SweepInternals
         string kind, string id, System.Exception wx)
     {
         var wireMsg = $"{wx.GetType().Name}: {Truncate(wx.Message)}";
-        if (!IsInternalError(wx)) return (SweepOutcome.Unplayable, wireMsg);
+        if (!IsInternalError(wx))
+        {
+            // Clean refusal — annotate with the per-id expected-refusal
+            // reason when we have one. The Unplayable outcome stays
+            // (non-failure), the Detail just gains a one-line
+            // breadcrumb so a reader can tell this is a known
+            // fixture-staging gap rather than an un-investigated row.
+            if (SweepKnownIssues.TryGetExpectedRefusal(kind, id, out var refReason))
+                return (SweepOutcome.Unplayable, $"expected-refusal: {refReason} | {wireMsg}");
+            return (SweepOutcome.Unplayable, wireMsg);
+        }
         if (SweepKnownIssues.TryGetReason(kind, id, out var reason))
             return (SweepOutcome.KnownUnsafe, $"known-unsafe: {reason} | {wireMsg}");
         return (SweepOutcome.Crashed, wireMsg);

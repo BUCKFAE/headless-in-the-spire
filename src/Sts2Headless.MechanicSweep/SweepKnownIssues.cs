@@ -27,6 +27,65 @@ public static class SweepKnownIssues
 {
     public sealed record Issue(string Id, string Reason);
 
+    // Cards whose CanPlay returns false in the standard CardSweep
+    // fixture (run/new + replace_deck + start_combat("SLIMES_NORMAL")
+    // + up to 5 end_turns) because they require runtime state the
+    // fixture doesn't stage:
+    //
+    //   * A specific game-state precondition (a discard-pile size
+    //     for PACTS_END's Pact count, a prior-card-played for MIMIC,
+    //     an active Orb for the Defect cards, …).
+    //   * A resource budget our fixture can't accrue (a 6+ Star Regent
+    //     card; the 5-turn cap is the budget).
+    //   * An event-spawned-only effect (THE_SMITH, ROYAL_GAMBLE,
+    //     DECISIONS_DECISIONS — all show up as cards but their CanPlay
+    //     wires through event-only flags).
+    //
+    // These rows surface as Unplayable in the sweep — not failures,
+    // because Unplayable doesn't fail the test. The catalog entry just
+    // annotates the row Detail with "expected-refusal: <reason>" so a
+    // reader can distinguish "fixture-staging gap we know about" from
+    // "fixture-staging gap we haven't analysed yet." Lifecycle: when
+    // CardSweep's fixture is extended to stage the missing state, the
+    // row flips to Played and the entry should be removed.
+    //
+    // Same shape as the Crashed-side catalog above: (Id, one-line
+    // reason). The hand-curated reason beats reverse-engineering the
+    // engine path from a stack trace.
+    public static readonly IReadOnlyList<Issue> CardExpectedRefusals =
+    [
+        // Regent — high-cost Stars cards that exceed our 5-turn budget
+        new("COMET", "Regent: high-cost Stars card; exceeds 5-turn accumulation budget"),
+        new("SEVEN_STARS", "Regent: multi-Star payment requirement; exceeds budget"),
+        new("NEUTRON_AEGIS", "Regent: high-cost Stars block card; exceeds budget"),
+
+        // Regent — conditional CanPlay tied to specific run-state
+        new("LARGESSE",            "Regent: CanPlay tied to economy/gold state we don't stage"),
+        new("DEVASTATE",           "Regent: CanPlay tied to specific Forge state we don't stage"),
+        new("DECISIONS_DECISIONS", "Regent: multi-choice card; CanPlay tied to choice-context"),
+        new("ROYAL_GAMBLE",        "Regent: gambling card; CanPlay tied to a run-state flag"),
+        new("THE_SMITH",           "Regent: shop/event-style card; CanPlay tied to event flag"),
+
+        // Necrobinder — Osty-companion cards
+        new("BANSHEES_CRY",        "Necrobinder: CanPlay tied to Osty companion state"),
+        new("BURY",                "Necrobinder: CanPlay tied to deck/Osty interaction"),
+
+        // Defect — Orb cards
+        new("IGNITION",            "Defect: CanPlay requires Orb slots active; sweep doesn't channel"),
+        new("METEOR_STRIKE",       "Defect: CanPlay requires Orb/Focus state we don't stage"),
+
+        // Ironclad — conditional Pact/discard cards
+        new("PACTS_END",     "Ironclad: CanPlay needs a non-empty Pact stack (discarded cards)"),
+        new("DEMONIC_SHIELD", "Ironclad: CanPlay tied to demon-form / power-state we don't stage"),
+
+        // Colorless — context-dependent
+        new("MIMIC",         "Colorless: CanPlay needs a 'last card played' to mimic"),
+        new("BELIEVE_IN_YOU", "Colorless: CanPlay tied to pile-state we don't stage"),
+        new("COORDINATE",    "Colorless: CanPlay tied to hand/deck composition"),
+        new("INTERCEPT",     "Colorless: CanPlay tied to enemy-intent state"),
+        new("LIFT",          "Colorless: CanPlay tied to combat-history state (per-combat budget)"),
+    ];
+
     // Cards whose OnPlay can't be exercised cleanly in headless even
     // after the standard fixture work in CardSweep. Currently empty:
     //
@@ -71,7 +130,25 @@ public static class SweepKnownIssues
     public static readonly IReadOnlyList<Issue> Potions      = [];
     public static readonly IReadOnlyList<Issue> Events       = [];
     public static readonly IReadOnlyList<Issue> Encounters   = [];
-    public static readonly IReadOnlyList<Issue> Powers       = [];
+
+    // BATTLEWORN_DUMMY_TIME_LIMIT_POWER is the only power tied to a
+    // specific event (the BATTLEWORN_DUMMY training-dummy fight). Its
+    // AfterTurnEnd hook isinst-casts CombatState.Encounter to
+    // BattlewornDummyEventEncounter; outside that event the cast yields
+    // null and the subsequent PlayerCombatState.MaxEnergy hook walk
+    // dereferences a field the engine never sets in the SLIMES_NORMAL
+    // path. Applying this power to the player in any other combat is
+    // unreachable in normal play — the engine doesn't defend against
+    // a scenario its event flow guarantees won't happen.
+    public static readonly IReadOnlyList<Issue> Powers =
+    [
+        new("BATTLEWORN_DUMMY_TIME_LIMIT_POWER",
+            "event-tied to BATTLEWORN_DUMMY; AfterTurnEnd hook NREs on "
+            + "Hook.ModifyMaxEnergy when applied outside the BattlewornDummy "
+            + "event context (PlayerCombatState.MaxEnergy walk hits an "
+            + "uninitialised event-only field)"),
+    ];
+
     public static readonly IReadOnlyList<Issue> Afflictions  = [];
     public static readonly IReadOnlyList<Issue> Enchantments = [];
 
@@ -122,5 +199,33 @@ public static class SweepKnownIssues
         foreach (var (kind, dict) in s_byKind)
             foreach (var (id, reason) in dict)
                 yield return (kind, id, reason);
+    }
+
+    // Lookup for the expected-refusal catalog. Returns the reason when
+    // the card is on the CardExpectedRefusals list; null when it's not.
+    // Sweep call sites prefix the row Detail with "expected-refusal:
+    // <reason>" when this returns non-null so a reader can tell the row
+    // apart from an un-investigated Unplayable.
+    private static readonly Dictionary<string, string> s_cardExpectedRefusals =
+        CardExpectedRefusals.ToDictionary(i => i.Id, i => i.Reason, StringComparer.Ordinal);
+
+    public static bool TryGetExpectedRefusal(
+        string kind, string id,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? reason)
+    {
+        if (string.Equals(kind, "card", StringComparison.Ordinal)
+            && s_cardExpectedRefusals.TryGetValue(id, out var r))
+        {
+            reason = r;
+            return true;
+        }
+        reason = null;
+        return false;
+    }
+
+    public static IEnumerable<(string Kind, string Id, string Reason)> AllExpectedRefusals()
+    {
+        foreach (var (id, reason) in s_cardExpectedRefusals)
+            yield return ("card", id, reason);
     }
 }
