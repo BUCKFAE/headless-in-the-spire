@@ -16,11 +16,30 @@ namespace Sts2Headless.Content;
 // bindings handle and read its `.Sts2` assembly to seed the reader.
 public static class ContentHostMethods
 {
+    // Build the dispatch table, sharing a single ContentReader between the
+    // content/* handlers and the per-snapshot NameLookup so the reflection
+    // caches that walk sts2's ModelDb are filled exactly once per host
+    // process. `out names` hands the host a ready-to-use NameLookup; the
+    // reader itself stays internal — nothing outside this assembly needs
+    // it (and keeping it internal stops SchemaExport from ever mistaking
+    // it for a wire DTO).
     public static IReadOnlyDictionary<string, Func<JsonNode?, JsonNode?>> Build(
-        Sts2Bindings bindings, Func<RunHandle?> getRun)
+        Sts2Bindings bindings, Func<RunHandle?> getRun, out NameLookup names)
     {
         var reader = new ContentReader(bindings.Sts2);
+        names = new NameLookup(reader);
+        return BuildWithReader(reader, getRun);
+    }
 
+    // Overload retained for callers that don't need the lookup
+    // (e.g. SchemaExport, which only exercises the dispatch shape).
+    public static IReadOnlyDictionary<string, Func<JsonNode?, JsonNode?>> Build(
+        Sts2Bindings bindings, Func<RunHandle?> getRun) =>
+        BuildWithReader(new ContentReader(bindings.Sts2), getRun);
+
+    private static IReadOnlyDictionary<string, Func<JsonNode?, JsonNode?>> BuildWithReader(
+        ContentReader reader, Func<RunHandle?> getRun)
+    {
         return new Dictionary<string, Func<JsonNode?, JsonNode?>>
         {
             ["content/describe_card"] = WireHandlers.Typed<ContentDescribeCardParams, ContentDescribeCardResult>(

@@ -40,6 +40,7 @@ METHOD_NAMES: dict[str, str] = {
     "run/enter_next_act": "run_enter_next_act",
     "run/proceed_event": "run_proceed_event",
     "run/history": "run_history",
+    "run/read_deck": "run_read_deck",
     "content/describe_card": "content_describe_card",
     "content/describe_relic": "content_describe_relic",
     "content/describe_potion": "content_describe_potion",
@@ -269,6 +270,16 @@ class Client:
     ) -> m.RunProceedEventResult:
         result = self._transport.call("run/proceed_event", None, timeout=timeout)
         return m.RunProceedEventResult.model_validate(result)
+
+    def run_read_deck(self, *, timeout: float | None = None) -> m.RunReadDeckResult:
+        """Read every card in the player's deck (cardId, upgradeLevel, displayName).
+
+        Same data as debug/read_deck but available without --enable-debug —
+        the deck is information the player legitimately owns; we keep it
+        off RunStateResult only to avoid bloating per-snapshot polls.
+        """
+        result = self._transport.call("run/read_deck", None, timeout=timeout)
+        return m.RunReadDeckResult.model_validate(result)
 
     def run_history(self, *, timeout: float | None = None) -> m.RunHistoryDocument:
         """Read the game's RunHistory for the most recently ended run (AD-8).

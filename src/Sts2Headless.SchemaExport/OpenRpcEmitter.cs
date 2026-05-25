@@ -70,12 +70,18 @@ internal static class OpenRpcEmitter
     }
 
     // Every public record and enum in Sts2Headless.Protocol.Methods *and*
-    // Sts2Headless.Cheats is a candidate for hoisting. We don't try to be
-    // selective — anything in those namespaces is by convention part of the
-    // wire surface, and hoisting unused types is harmless (callers ignore
-    // them). The cheat namespace is split out into its own assembly so
+    // Sts2Headless.Cheats *and* Sts2Headless.Content is a candidate for
+    // hoisting. The cheat namespace is split out into its own assembly so
     // Sts2Headless.Agents can't see it (AD-7); the schema however describes
     // the full surface the host serves.
+    //
+    // The filter is records-only: every wire-shape type in these namespaces
+    // is authored as `public sealed record`, so requiring the compiler's
+    // synthesized `EqualityContract` property cleanly distinguishes wire
+    // DTOs from implementation helpers that happen to share the namespace
+    // (e.g. ContentReader, NameLookup in Sts2Headless.Content). Without
+    // this, any future `public class` in those namespaces would silently
+    // leak into the protocol schema as a phantom wire type.
     private static HashSet<Type> CollectHoistSet()
     {
         var protocolAsm = typeof(MethodCatalog).Assembly;
@@ -86,11 +92,7 @@ internal static class OpenRpcEmitter
                 && (t.Namespace == "Sts2Headless.Protocol.Methods"
                     || t.Namespace == "Sts2Headless.Cheats"
                     || t.Namespace == "Sts2Headless.Content")
-                && (t.IsEnum || t.IsClass)
-                // Static classes (compiler emits IsAbstract+IsSealed): no
-                // instance members, no wire shape — they're helpers like
-                // CardIdNames that don't belong in components/schemas.
-                && !(t.IsAbstract && t.IsSealed)
+                && (t.IsEnum || IsRecord(t))
                 // [OpaqueWireString] enums (CardId today): the enum values
                 // are proprietary content sourced from vendor/sts2.dll and
                 // must not appear in committed wire artefacts. Skipping
@@ -100,6 +102,16 @@ internal static class OpenRpcEmitter
                 && t.GetCustomAttribute<OpaqueWireStringAttribute>() is null)
             .ToHashSet();
     }
+
+    // Records carry a compiler-synthesized `EqualityContract` property
+    // (non-public, instance, returns Type). No hand-written class has it,
+    // so it's the simplest reliable marker that doesn't require a custom
+    // attribute on every wire record.
+    private static bool IsRecord(Type t) =>
+        t.IsClass
+        && t.GetProperty("EqualityContract",
+            BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public) is { } p
+        && p.PropertyType == typeof(Type);
 
     private static JsonObject BuildComponentSchemas(HashSet<Type> hoistSet)
     {

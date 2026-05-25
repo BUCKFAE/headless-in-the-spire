@@ -11,6 +11,7 @@ out the legal options it can choose between.
 """
 
 from collections.abc import Sequence
+from enum import Enum
 from io import StringIO
 
 from headless_in_the_spire._models import (
@@ -127,7 +128,9 @@ def _write_phase_options(out: StringIO, state: RunStateResult) -> None:
         return
     if state.current_room_type is RoomType.treasure_room:
         if state.available_treasure_relics:
-            offering = ", ".join(r.relic_id for r in state.available_treasure_relics)
+            offering = ", ".join(
+                _label(r.display_name, r.relic_id) for r in state.available_treasure_relics
+            )
             out.write(
                 f"\nTreasure room — chest offering: {offering}.\n"
                 f"  Call `run_take_treasure` to claim the offered relic, "
@@ -150,11 +153,11 @@ def _write_rewards(out: StringIO, rewards: RewardsState) -> None:
         if reward.gold_amount is not None:
             label += f" ({reward.gold_amount} gold)"
         if reward.cards:
-            label += ": " + ", ".join(c.id for c in reward.cards)
+            label += ": " + ", ".join(_label(c.display_name, c.id) for c in reward.cards)
         if reward.relic_id is not None:
-            label += f": {reward.relic_id}"
+            label += f": {_label(reward.display_name, reward.relic_id)}"
         if reward.potion_id is not None:
-            label += f": {reward.potion_id}"
+            label += f": {_label(reward.display_name, reward.potion_id)}"
         skip = "" if reward.can_skip else " (cannot skip)"
         out.write(f"  [{reward.index}] {label}{skip}\n")
 
@@ -162,15 +165,28 @@ def _write_rewards(out: StringIO, rewards: RewardsState) -> None:
 def _write_relics(out: StringIO, relics: Sequence[Relic]) -> None:
     if not relics:
         return
-    ids = ", ".join(r.id for r in relics)
-    out.write(f"\nRelics: {ids}\n")
+    labels = ", ".join(_label(r.display_name, r.id) for r in relics)
+    out.write(f"\nRelics: {labels}\n")
 
 
 def _write_potions(out: StringIO, potions: Sequence[OwnedPotion]) -> None:
     if not potions:
         return
-    parts = [f"[{p.index}] {p.id}" for p in potions]
+    parts = [f"[{p.index}] {_label(p.display_name, p.id)}" for p in potions]
     out.write(f"Potions: {', '.join(parts)}\n")
+
+
+def _label(display_name: str | None, wire_id: object) -> str:
+    """Prefer the engine's human-readable name; fall back to the wire id
+    when no displayName has been filled in (older host, unknown id).
+    `wire_id` accepts both plain strings and str-valued Enum members
+    (CardId, RelicId, PotionId, MonsterId) — pydantic's generated enums
+    render their wire value via `str()`."""
+    if display_name:
+        return display_name
+    if isinstance(wire_id, Enum):
+        return str(wire_id.value)
+    return str(wire_id)
 
 
 # ── Line formatters ─────────────────────────────────────────────────────
@@ -183,7 +199,7 @@ def _room_label(room: RoomType) -> str:
 
 
 def _card_line(card: Card) -> str:
-    pieces = [f"[{card.index}] {card.id} (cost {card.cost})"]
+    pieces = [f"[{card.index}] {_label(card.display_name, card.id)} (cost {card.cost})"]
     pieces.append(f"→ {card.target_type.value}")
     if not card.can_play:
         pieces.append("(cannot play)")
@@ -191,7 +207,7 @@ def _card_line(card: Card) -> str:
 
 
 def _enemy_line(enemy: Enemy) -> str:
-    name = enemy.monster_id or "?"
+    name = _label(enemy.display_name, enemy.monster_id or "?")
     block = f" block {enemy.block}" if enemy.block else ""
     intent = _intent_summary(enemy.intents)
     powers = f" — powers: {_powers(enemy.powers)}" if enemy.powers else ""
@@ -226,7 +242,7 @@ def _format_one_intent(intent: Intent) -> str:
 def _powers(powers: Sequence[Power]) -> str:
     if not powers:
         return "(none)"
-    return ", ".join(f"{p.id}({p.amount})" for p in powers)
+    return ", ".join(f"{_label(p.display_name, p.id)}({p.amount})" for p in powers)
 
 
 def _map_node_line(node: MapNode) -> str:
@@ -245,7 +261,8 @@ def _rest_option_line(option: RestSiteOption) -> str:
 
 
 def _merchant_item_line(item: MerchantItem) -> str:
-    label = item.card_id or item.relic_id or item.potion_id or "?"
+    wire_id = item.card_id or item.relic_id or item.potion_id or "?"
+    label = _label(item.display_name, wire_id)
     stocked = "" if item.is_stocked else " (out of stock)"
     affordable = "" if item.is_affordable else " (cannot afford)"
     return f"[{item.index}] {item.kind.value}: {label} — {item.cost} gold{stocked}{affordable}"

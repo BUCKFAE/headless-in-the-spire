@@ -69,9 +69,9 @@ internal static class RunSummary
                 var label = r.Kind.ToString();
                 if (r.GoldAmount is int g) label += $" ({g} gold)";
                 if (r.Cards is { Count: > 0 } cards)
-                    label += ": " + string.Join(", ", cards.Select(c => c.Id.ToString()));
-                if (r.RelicId is RelicId rel) label += $": {rel}";
-                if (r.PotionId is PotionId pot) label += $": {pot}";
+                    label += ": " + string.Join(", ", cards.Select(c => Label(c.DisplayName, c.Id.ToString())));
+                if (r.RelicId is RelicId rel) label += $": {Label(r.DisplayName, rel.ToString())}";
+                if (r.PotionId is PotionId pot) label += $": {Label(r.DisplayName, pot.ToString())}";
                 var skip = r.CanSkip ? string.Empty : " (cannot skip)";
                 sb.Append($"  [{r.Index}] {label}{skip}\n");
             }
@@ -115,10 +115,11 @@ internal static class RunSummary
             sb.Append("\nMerchant inventory:\n");
             foreach (var item in state.AvailableMerchantItems)
             {
-                string label = item.CardId?.ToString()
-                            ?? item.RelicId?.ToString()
-                            ?? item.PotionId?.ToString()
-                            ?? "?";
+                string id = item.CardId?.ToString()
+                         ?? item.RelicId?.ToString()
+                         ?? item.PotionId?.ToString()
+                         ?? "?";
+                var label = Label(item.DisplayName, id);
                 var stocked = item.IsStocked ? string.Empty : " (out of stock)";
                 var affordable = item.IsAffordable ? string.Empty : " (cannot afford)";
                 sb.Append($"  [{item.Index}] {item.Kind}: {label} — {item.Cost} gold{stocked}{affordable}\n");
@@ -129,7 +130,7 @@ internal static class RunSummary
         {
             if (state.AvailableTreasureRelics.Count > 0)
             {
-                var offering = string.Join(", ", state.AvailableTreasureRelics.Select(r => r.RelicId.ToString()));
+                var offering = string.Join(", ", state.AvailableTreasureRelics.Select(r => Label(r.DisplayName, r.RelicId.ToString())));
                 sb.Append($"\nTreasure room — chest offering: {offering}.\n")
                   .Append("  Call `run/take_treasure` to claim the offered relic, or `run/skip_treasure` to walk past.\n");
             }
@@ -148,18 +149,18 @@ internal static class RunSummary
     private static void WriteRelics(StringBuilder sb, IReadOnlyList<Relic> relics)
     {
         if (relics.Count == 0) return;
-        sb.Append($"\nRelics: {string.Join(", ", relics.Select(r => r.Id.ToString()))}\n");
+        sb.Append($"\nRelics: {string.Join(", ", relics.Select(r => Label(r.DisplayName, r.Id.ToString())))}\n");
     }
 
     private static void WritePotions(StringBuilder sb, IReadOnlyList<OwnedPotion> potions)
     {
         if (potions.Count == 0) return;
-        sb.Append($"Potions: {string.Join(", ", potions.Select(p => $"[{p.Index}] {p.Id}"))}\n");
+        sb.Append($"Potions: {string.Join(", ", potions.Select(p => $"[{p.Index}] {Label(p.DisplayName, p.Id.ToString())}"))}\n");
     }
 
     private static string CardLine(Card card)
     {
-        var pieces = new List<string> { $"[{card.Index}] {card.Id} (cost {card.Cost})", $"→ {card.TargetType}" };
+        var pieces = new List<string> { $"[{card.Index}] {Label(card.DisplayName, card.Id.ToString())} (cost {card.Cost})", $"→ {card.TargetType}" };
         if (!card.CanPlay) pieces.Add("(cannot play)");
         return string.Join(" ", pieces);
     }
@@ -169,7 +170,7 @@ internal static class RunSummary
         var block = enemy.Block > 0 ? $" block {enemy.Block}" : string.Empty;
         var intent = IntentSummary(enemy.Intents);
         var powers = enemy.Powers.Count > 0 ? $" — powers: {Powers(enemy.Powers)}" : string.Empty;
-        return $"[{enemy.Index}] {enemy.MonsterId} HP {enemy.Hp}/{enemy.MaxHp}{block} — intends {intent}{powers}";
+        return $"[{enemy.Index}] {Label(enemy.DisplayName, enemy.MonsterId.ToString())} HP {enemy.Hp}/{enemy.MaxHp}{block} — intends {intent}{powers}";
     }
 
     private static string IntentSummary(IReadOnlyList<Intent> intents)
@@ -203,6 +204,13 @@ internal static class RunSummary
     private static string Powers(IReadOnlyList<Power> powers)
     {
         if (powers.Count == 0) return "(none)";
-        return string.Join(", ", powers.Select(p => $"{p.Id}({p.Amount})"));
+        return string.Join(", ", powers.Select(p => $"{Label(p.DisplayName, p.Id.ToString())}({p.Amount})"));
     }
+
+    // Prefer the engine's human-readable display name; fall back to the
+    // wire id when content lookup wasn't available (host without
+    // ContentReader, or unknown id). Falling back to id keeps the
+    // summary informative even in degraded contexts.
+    private static string Label(string? displayName, string id) =>
+        string.IsNullOrEmpty(displayName) ? id : displayName;
 }

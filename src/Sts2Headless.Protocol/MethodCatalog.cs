@@ -133,6 +133,11 @@ public static class MethodCatalog
             ResultType: typeof(RunHistoryDocument),
             Summary: "Read the game's `RunHistory` for the most recently ended run (AD-8). Available only when recording is active (STS2_REPLAY_OUT) and the run has ended (RunManager.OnEnded — death or victory). Returns the same shape the retail game writes to its `.run` history files: snake_case fields, schema_version=9 at the v0.103.2 pin. Throws InvalidParams when no history is available yet."),
 
+        new("run/read_deck",
+            ParamsType: typeof(RunReadDeckParams),
+            ResultType: typeof(RunReadDeckResult),
+            Summary: "Read every card in the player's deck as (cardId, upgradeLevel, displayName) entries. Order matches the engine's Deck.Cards list (insertion order). Call this at decision points (drafting, rest-site upgrade picks, card-removal) — the deck is intentionally kept off per-snapshot RunStateResult to keep polls cheap. Full card descriptions stay behind content/describe_card."),
+
     };
 
     // Throws if the supplied dispatch-table keys differ from the catalogue

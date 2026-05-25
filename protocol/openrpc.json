@@ -319,6 +319,26 @@
       }
     },
     {
+      "name": "run/read_deck",
+      "summary": "Read every card in the player's deck as (cardId, upgradeLevel, displayName) entries. Order matches the engine's Deck.Cards list (insertion order). Call this at decision points (drafting, rest-site upgrade picks, card-removal) — the deck is intentionally kept off per-snapshot RunStateResult to keep polls cheap. Full card descriptions stay behind content/describe_card.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RunReadDeckParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunReadDeckResult"
+        }
+      }
+    },
+    {
       "name": "debug/give_relic",
       "summary": "Test affordance — grant a relic via RelicCmd.Obtain (engine path). Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -1058,6 +1078,10 @@
           },
           "upgraded": {
             "type": "boolean"
+          },
+          "displayName": {
+            "type": "string",
+            "default": ""
           }
         },
         "required": [
@@ -1083,6 +1107,10 @@
           },
           "cost": {
             "type": "integer"
+          },
+          "displayName": {
+            "type": "string",
+            "default": ""
           }
         },
         "required": [
@@ -2741,6 +2769,25 @@
           "optionsCount"
         ]
       },
+      "DeckCard": {
+        "type": "object",
+        "properties": {
+          "cardId": {
+            "type": "string"
+          },
+          "upgradeLevel": {
+            "type": "integer"
+          },
+          "displayName": {
+            "type": "string",
+            "default": ""
+          }
+        },
+        "required": [
+          "cardId",
+          "upgradeLevel"
+        ]
+      },
       "EncounterTier": {
         "enum": [
           "unknown",
@@ -2782,6 +2829,10 @@
             "items": {
               "$ref": "#/components/schemas/Power"
             }
+          },
+          "displayName": {
+            "type": "string",
+            "default": ""
           }
         },
         "required": [
@@ -4241,6 +4292,10 @@
               null
             ],
             "default": null
+          },
+          "displayName": {
+            "type": "string",
+            "default": ""
           }
         },
         "required": [
@@ -4274,6 +4329,10 @@
           },
           "canUse": {
             "type": "boolean"
+          },
+          "displayName": {
+            "type": "string",
+            "default": ""
           }
         },
         "required": [
@@ -4301,6 +4360,10 @@
           },
           "amount": {
             "type": "integer"
+          },
+          "displayName": {
+            "type": "string",
+            "default": ""
           }
         },
         "required": [
@@ -4313,6 +4376,10 @@
         "properties": {
           "id": {
             "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "default": ""
           }
         },
         "required": [
@@ -4760,6 +4827,10 @@
               "$ref": "#/components/schemas/CardRewardOption"
             },
             "default": null
+          },
+          "displayName": {
+            "type": "string",
+            "default": ""
           }
         },
         "required": [
@@ -5816,6 +5887,31 @@
           "availableTreasureRelics",
           "relics",
           "ownedPotions"
+        ]
+      },
+      "RunReadDeckParams": {
+        "type": "object"
+      },
+      "RunReadDeckResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "deckSize": {
+            "type": "integer"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeckCard"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "deckSize",
+          "cards"
         ]
       },
       "RunSelectEventOptionParams": {
@@ -7170,6 +7266,10 @@
         "properties": {
           "relicId": {
             "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "default": ""
           }
         },
         "required": [

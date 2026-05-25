@@ -433,6 +433,19 @@ def _register_core_tools(mcp: FastMCP, handle: _HostHandle) -> None:
         return _dump(handle.client().run_proceed_event())
 
     @mcp.tool()
+    def run_read_deck() -> dict[str, Any]:
+        """Read every card in the player's deck (cardId, upgradeLevel,
+        displayName). Same shape as `debug/read_deck` but available
+        without `--enable-debug` — the deck is information the player
+        legitimately owns. Kept off `summarize_state`/`run_state` to
+        avoid bloating every poll; call this at decision points
+        (drafting card rewards, picking a card to smith / remove,
+        evaluating an unknown-deck card-aware event). For full card
+        descriptions still call `content_describe_card`.
+        """
+        return _dump(handle.client().run_read_deck())
+
+    @mcp.tool()
     def run_history() -> dict[str, Any]:
         """Read the game's RunHistory JSON for the most recently ended run
         (AD-8). Available only when the host is recording

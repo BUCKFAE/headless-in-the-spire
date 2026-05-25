@@ -30,6 +30,15 @@ public static class HostMethods
             .Concat(ContentMethodCatalog.All)
             .ToList();
 
+        // ContentHostMethods.Build hands back a NameLookup that shares the
+        // same ContentReader the content/* handlers use, so the reflection
+        // caches that read sts2's ModelDb are filled exactly once per host
+        // process. We push the lookup onto Sts2Bindings so the snapshot
+        // path can fill DisplayName fields without every handler having
+        // to plumb the lookup through its signature.
+        var contentDispatch = ContentHostMethods.Build(bindings, () => session.Run, out var names);
+        bindings.SetSnapshotPostProcessor(s => s.WithDisplayNames(names));
+
         var dict = new Dictionary<string, StdioHost.Handler>
         {
             ["host/ping"] = TypedNoParams(() => Ping(repoRoot)),
@@ -57,6 +66,7 @@ public static class HostMethods
             // the wire's camelCase elsewhere) survives EnvelopeIo's
             // serialisation unchanged.
             ["run/history"] = RawNoParams(_ => RunHistoryHandler(session)),
+            ["run/read_deck"] = Typed<RunReadDeckParams, RunReadDeckResult>(_ => RunReadDeck(bindings, session, names)),
         };
         // AD-7: cheat handlers (debug/*) live in the Sts2Headless.Cheats
         // assembly so the Agents project, which only references Protocol,
@@ -74,7 +84,7 @@ public static class HostMethods
         // info only; seed-deterministic reveals live under debug/* with
         // GateDebug above). One ContentReader per host instance reads
         // ModelDb lazily on first call.
-        foreach (var (name, handler) in ContentHostMethods.Build(bindings, () => session.Run))
+        foreach (var (name, handler) in contentDispatch)
         {
             dict[name] = new StdioHost.Handler(handler.Invoke);
         }
@@ -531,6 +541,26 @@ public static class HostMethods
         }
 
         return bindings.ReadSnapshot(run).ToRunProceedEventResult();
+    }
+
+    // Read the player's full deck (cardId, upgradeLevel, displayName) via
+    // the same Sts2Bindings.ReadDeck used by debug/read_deck, but exposed
+    // un-gated because the deck is information the player legitimately
+    // owns. Kept off the per-snapshot RunStateResult to keep state polls
+    // cheap; agents call this at decision points (drafting, smithing,
+    // card-removal).
+    private static RunReadDeckResult RunReadDeck(Sts2Bindings bindings, Session session, NameLookup names)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var pairs = bindings.ReadDeck(run);
+        var cards = new List<DeckCard>(pairs.Count);
+        foreach (var (wireId, upgradeLevel) in pairs)
+        {
+            var cardId = CardIdNames.FromWire(wireId);
+            cards.Add(new DeckCard(cardId, upgradeLevel, names.Card(cardId)));
+        }
+        return new RunReadDeckResult(Ok: true, DeckSize: cards.Count, Cards: cards);
     }
 
     // Wraps the shared WireHandlers.Typed adapter into StdioHost.Handler —

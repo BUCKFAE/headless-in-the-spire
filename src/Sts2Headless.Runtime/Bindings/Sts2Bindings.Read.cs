@@ -13,6 +13,17 @@ namespace Sts2Headless.Runtime.Bindings;
 // Sts2Bindings.cs alongside the rest of the binding state.
 public sealed partial class Sts2Bindings
 {
+    // Optional post-read transform applied to every snapshot the bindings
+    // produce. The host injects a name-lookup-aware enricher
+    // (SnapshotEnricher.WithDisplayNames) so inline DisplayName fields
+    // come back filled. Kept as an opaque delegate so this layer stays
+    // Content-agnostic — Sts2Headless.Content depends on Runtime, not
+    // the other way around.
+    private Func<RunSnapshot, RunSnapshot>? _snapshotPostProcessor;
+
+    public void SetSnapshotPostProcessor(Func<RunSnapshot, RunSnapshot>? transform) =>
+        _snapshotPostProcessor = transform;
+
     public RunSnapshot ReadSnapshot(RunHandle handle)
     {
         var creature = _playerCreature.GetValue(handle.Player);
@@ -130,7 +141,8 @@ public sealed partial class Sts2Bindings
         var (bossWireId, secondBossWireId) = ReadActBosses(handle);
         EncounterId? bossId = bossWireId is not null ? EncounterIdNames.FromWire(bossWireId) : null;
         EncounterId? secondBossId = secondBossWireId is not null ? EncounterIdNames.FromWire(secondBossWireId) : null;
-        return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, currentActIndex, isGameOver, isVictory, isDead, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, availableTreasureRelics, combatState, rewardsState, relics, ownedPotions, bossId, secondBossId);
+        var snapshot = new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, currentActIndex, isGameOver, isVictory, isDead, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, availableTreasureRelics, combatState, rewardsState, relics, ownedPotions, bossId, secondBossId);
+        return _snapshotPostProcessor is null ? snapshot : _snapshotPostProcessor(snapshot);
     }
 
     // Project the stashed list of pending rewards into the wire DTO. Returns

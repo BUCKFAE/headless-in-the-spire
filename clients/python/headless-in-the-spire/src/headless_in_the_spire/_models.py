@@ -25,6 +25,7 @@ class CardRewardOption(BaseModel):
     index: int
     id: str
     cost: int
+    display_name: Annotated[str | None, Field(alias="displayName")] = ""
 
 
 class CardSpec(BaseModel):
@@ -606,6 +607,15 @@ class DebugStartEventParams(BaseModel):
         populate_by_name=True,
     )
     event_id: Annotated[str, Field(alias="eventId")]
+
+
+class DeckCard(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    card_id: Annotated[str, Field(alias="cardId")]
+    upgrade_level: Annotated[int, Field(alias="upgradeLevel")]
+    display_name: Annotated[str | None, Field(alias="displayName")] = ""
 
 
 class EncounterTier(Enum):
@@ -1717,6 +1727,7 @@ class Power(BaseModel):
     )
     id: str
     amount: int
+    display_name: Annotated[str | None, Field(alias="displayName")] = ""
 
 
 class Relic(BaseModel):
@@ -1724,6 +1735,7 @@ class Relic(BaseModel):
         populate_by_name=True,
     )
     id: str
+    display_name: Annotated[str | None, Field(alias="displayName")] = ""
 
 
 class RestSiteOptionId(Enum):
@@ -1757,6 +1769,7 @@ class RewardOption(BaseModel):
     potion_id: Annotated[PotionId | None, Field(alias="potionId")] = None
     relic_id: Annotated[RelicId | None, Field(alias="relicId")] = None
     cards: list[CardRewardOption] | None = None
+    display_name: Annotated[str | None, Field(alias="displayName")] = ""
 
 
 class RewardsState(BaseModel):
@@ -1847,6 +1860,21 @@ class RunPlayCardParams(BaseModel):
     card_select_indices: Annotated[
         list[list[int]] | None, Field(alias="cardSelectIndices")
     ] = None
+
+
+class RunReadDeckParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+
+class RunReadDeckResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    deck_size: Annotated[int, Field(alias="deckSize")]
+    cards: list[DeckCard]
 
 
 class RunSelectEventOptionParams(BaseModel):
@@ -2091,6 +2119,7 @@ class TreasureRelic(BaseModel):
         populate_by_name=True,
     )
     relic_id: Annotated[str, Field(alias="relicId")]
+    display_name: Annotated[str | None, Field(alias="displayName")] = ""
 
 
 class TriggerKind(Enum):
@@ -2118,6 +2147,7 @@ class Card(BaseModel):
     can_play: Annotated[bool, Field(alias="canPlay")]
     target_type: Annotated[TargetType, Field(alias="targetType")]
     upgraded: bool
+    display_name: Annotated[str | None, Field(alias="displayName")] = ""
 
 
 class ContentDescribeCardResult(BaseModel):
@@ -2301,6 +2331,7 @@ class MerchantItem(BaseModel):
     card_id: Annotated[CardId | None, Field(alias="cardId")] = None
     relic_id: Annotated[RelicId | None, Field(alias="relicId")] = None
     potion_id: Annotated[PotionId | None, Field(alias="potionId")] = None
+    display_name: Annotated[str | None, Field(alias="displayName")] = ""
 
 
 class OwnedPotion(BaseModel):
@@ -2311,6 +2342,7 @@ class OwnedPotion(BaseModel):
     id: str
     target_type: Annotated[TargetType, Field(alias="targetType")]
     can_use: Annotated[bool, Field(alias="canUse")]
+    display_name: Annotated[str | None, Field(alias="displayName")] = ""
 
 
 class RestSiteOption(BaseModel):
@@ -2370,6 +2402,7 @@ class Enemy(BaseModel):
     intends_attack: Annotated[bool, Field(alias="intendsAttack")]
     intents: list[Intent]
     powers: list[Power]
+    display_name: Annotated[str | None, Field(alias="displayName")] = ""
 
 
 class MapPointHistoryEntry(BaseModel):

@@ -173,9 +173,16 @@ public sealed record EventOption(
 // Amount is the stack count. Unknown surfaces for powers the generated
 // PowerId enum doesn't yet list — never strip them; an Unknown amount=5
 // still tells the agent something is buffed.
+// DisplayName is the engine's human-readable label for the power
+// (e.g. "Vulnerable", "Strength"); populated by the host's name-lookup
+// enrichment pass and empty when the host runs without content access
+// or the lookup misses. Agents that want the full description still
+// call content/describe_power; this is the short label for in-state
+// rendering.
 public sealed record Power(
     [property: JsonPropertyName("id")] PowerId Id,
-    [property: JsonPropertyName("amount")] int Amount);
+    [property: JsonPropertyName("amount")] int Amount,
+    [property: JsonPropertyName("displayName")] string DisplayName = "");
 
 // Rest-site option identifiers the engine surfaces today. Wire shape
 // matches sts2's RestSiteOption.OptionId string exactly (uppercase). New
@@ -244,15 +251,20 @@ public sealed record MerchantItem(
     [property: JsonPropertyName("isAffordable")] bool IsAffordable,
     [property: JsonPropertyName("cardId")] CardId? CardId = null,
     [property: JsonPropertyName("relicId")] RelicId? RelicId = null,
-    [property: JsonPropertyName("potionId")] PotionId? PotionId = null);
+    [property: JsonPropertyName("potionId")] PotionId? PotionId = null,
+    [property: JsonPropertyName("displayName")] string DisplayName = "");
 
 // One relic carried by the player. Id is the game's stable relic key
 // (e.g. "BURNING_BLOOD"); clients translate to a localised name themselves.
 // Per-relic runtime state (DynamicVars: counters, charges, etc.) isn't
 // surfaced yet — adding fields here is non-breaking and should be driven
 // by a concrete caller need rather than mirroring the engine's full shape.
+// DisplayName is the engine's human-readable label (e.g. "Burning
+// Blood"); see Power.DisplayName for the broader pattern. Full
+// descriptions stay behind content/describe_relic.
 public sealed record Relic(
-    [property: JsonPropertyName("id")] RelicId Id);
+    [property: JsonPropertyName("id")] RelicId Id,
+    [property: JsonPropertyName("displayName")] string DisplayName = "");
 
 // One relic the current treasure-room chest is offering. RelicId is the
 // engine's canonical wire form (e.g. "GORGET"); empty list when the
@@ -262,7 +274,8 @@ public sealed record Relic(
 // relic before deciding whether to take or skip via
 // run/take_treasure or run/skip_treasure.
 public sealed record TreasureRelic(
-    [property: JsonPropertyName("relicId")] RelicId RelicId);
+    [property: JsonPropertyName("relicId")] RelicId RelicId,
+    [property: JsonPropertyName("displayName")] string DisplayName = "");
 
 // One potion in a player's belt slot. Index is the slot position (pass
 // back via run/use_potion.potionIndex); empty slots are omitted entirely
@@ -278,7 +291,8 @@ public sealed record OwnedPotion(
     [property: JsonPropertyName("index")] int Index,
     [property: JsonPropertyName("id")] PotionId Id,
     [property: JsonPropertyName("targetType")] TargetType TargetType,
-    [property: JsonPropertyName("canUse")] bool CanUse);
+    [property: JsonPropertyName("canUse")] bool CanUse,
+    [property: JsonPropertyName("displayName")] string DisplayName = "");
 
 // One element of an enemy's NextMove. Damage is per-hit (multiply by Hits for
 // total); Block is the amount the enemy will gain. Kind is sts2's primary
@@ -304,7 +318,8 @@ public sealed record Card(
     [property: JsonPropertyName("cost")] int Cost,
     [property: JsonPropertyName("canPlay")] bool CanPlay,
     [property: JsonPropertyName("targetType")] TargetType TargetType,
-    [property: JsonPropertyName("upgraded")] bool Upgraded);
+    [property: JsonPropertyName("upgraded")] bool Upgraded,
+    [property: JsonPropertyName("displayName")] string DisplayName = "");
 
 // One enemy in the current combat. Index is the position in the alive-enemy
 // list (pass back via run/play_card.targetIndex when the card's TargetType is
@@ -320,7 +335,8 @@ public sealed record Enemy(
     [property: JsonPropertyName("block")] int Block,
     [property: JsonPropertyName("intendsAttack")] bool IntendsAttack,
     [property: JsonPropertyName("intents")] IReadOnlyList<Intent> Intents,
-    [property: JsonPropertyName("powers")] IReadOnlyList<Power> Powers);
+    [property: JsonPropertyName("powers")] IReadOnlyList<Power> Powers,
+    [property: JsonPropertyName("displayName")] string DisplayName = "");
 
 // Kind of reward offered by the engine after a combat resolves. Wire shape
 // matches the sts2 type name (CardReward → "card", GoldReward → "gold", …);
@@ -345,7 +361,8 @@ public enum RewardKind
 public sealed record CardRewardOption(
     [property: JsonPropertyName("index")] int Index,
     [property: JsonPropertyName("id")] CardId Id,
-    [property: JsonPropertyName("cost")] int Cost);
+    [property: JsonPropertyName("cost")] int Cost,
+    [property: JsonPropertyName("displayName")] string DisplayName = "");
 
 // One reward in the post-combat reward set. Index is the position in the
 // pending list; pass back via run/select_reward.rewardIndex (and
@@ -364,7 +381,8 @@ public sealed record RewardOption(
     [property: JsonPropertyName("goldAmount")] int? GoldAmount = null,
     [property: JsonPropertyName("potionId")] PotionId? PotionId = null,
     [property: JsonPropertyName("relicId")] RelicId? RelicId = null,
-    [property: JsonPropertyName("cards")] IReadOnlyList<CardRewardOption>? Cards = null);
+    [property: JsonPropertyName("cards")] IReadOnlyList<CardRewardOption>? Cards = null,
+    [property: JsonPropertyName("displayName")] string DisplayName = "");
 
 // Post-combat decision payload. Surfaced on snapshots whenever the engine
 // has an unconsumed reward set — typically after combat ends and before the
@@ -1042,6 +1060,30 @@ public sealed record RunProceedEventResult(
     [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
     [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
+
+// ── run/read_deck ────────────────────────────────────────────────────────
+
+// One card in the player's deck. Mirrors CardSpec's (cardId, upgradeLevel)
+// shape but is wire-typed (CardId enum) and carries the engine's short
+// label inline — same pattern as Card / Relic / OwnedPotion. Agents that
+// want the full description still call content/describe_card.
+public sealed record DeckCard(
+    [property: JsonPropertyName("cardId")] CardId CardId,
+    [property: JsonPropertyName("upgradeLevel")] int UpgradeLevel,
+    [property: JsonPropertyName("displayName")] string DisplayName = "");
+
+// Read every card in the player's deck. Same shape as debug/read_deck but
+// not debug-gated — the deck is information an agent legitimately needs
+// (drafting, rest-site upgrade picks, card-removal decisions) and there
+// is no seed-leakage concern: the deck is the player's own state. We
+// keep it off the per-snapshot RunStateResult to avoid bloating every
+// poll; agents call it on demand at decision points.
+public sealed record RunReadDeckParams();
+
+public sealed record RunReadDeckResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("deckSize")] int DeckSize,
+    [property: JsonPropertyName("cards")] IReadOnlyList<DeckCard> Cards);
 
 // ── debug/*: see Sts2Headless.Cheats ─────────────────────────────────────
 //
