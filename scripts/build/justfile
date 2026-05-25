@@ -1,0 +1,60 @@
+import '../common.just'
+
+# See scripts/setup/justfile for why this `set` is per-module.
+set working-directory := '../..'
+
+# Build the whole solution with MSBuild parallelism; override with
+# `BUILD_CORES=4 just build::build`.
+build:
+    @dotnet build Sts2Headless.slnx {{MSBUILD_MAX_CPU}}
+
+# Build just the host exe (and its transitive deps). Used by
+# generate-content-ids so the bootstrap can produce *Id.g.cs *before*
+# the consumer projects (Agents, tests) try to reference values that
+# only exist post-generation.
+build-generator:
+    @dotnet build src/Sts2Headless/Sts2Headless.csproj {{MSBUILD_MAX_CPU}}
+
+# Remove all bin/ and obj/ build artifacts.
+clean:
+    @dotnet clean Sts2Headless.slnx
+    @find src -type d \( -name bin -o -name obj \) -exec rm -rf {} +
+
+# Regenerate every *Id.g.cs manifest under src/Sts2Headless.Protocol/
+# (cards, relics, potions, monsters, encounters, events, powers,
+# afflictions, modifiers, enchantments, orbs). All gitignored —
+# proprietary content sourced from vendor/sts2.dll. Run after bumping
+# the game pin.
+generate-content-ids: build-generator
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --generate-content-ids
+
+# Regenerate src/GodotStubs/Generated/*.g.cs from sts2.dll's
+# MemberReference table — closes the latent MissingMethodException
+# surface without speculative mirroring. Rebuilds GodotStubs after
+# generation so `--no-build` test runs see the fresh surface.
+regen-godot-stubs: build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --generate-godot-stubs
+    @dotnet build src/GodotStubs/GodotStubs.csproj --nologo --verbosity quiet
+
+# Regenerate protocol/openrpc.json from Sts2Headless.Protocol records (AD-5).
+export-schema: build
+    @dotnet run --project src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj --no-build
+
+# Regenerate the Python client's pydantic DTOs from protocol/openrpc.json (AD-5).
+generate-python:
+    @bash scripts/setup/check-uv.sh
+    @uv run python clients/python/headless-in-the-spire/scripts/generate_models.py
+
+# Regenerate every wire-protocol artefact (per-kind content manifests +
+# openrpc.json + Python DTOs). Run after touching Methods.cs or bumping
+# the game pin.
+regen: generate-content-ids export-schema generate-python
+
+# Regenerate the AbstractModel hook-surface snapshot
+# (tests/Sts2Headless.IntegrationTests/Coverage/known-abstract-model-hooks.txt).
+# Run after a GAME_VERSION bump or when an intentional sts2 change
+# adds/removes a listener method — review the diff before committing.
+regen-hook-snapshot:
+    @UPDATE_HOOK_SNAPSHOT=1 dotnet test tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~HookSurfaceSnapshotTest"
+    @echo ""
+    @echo "snapshot: tests/Sts2Headless.IntegrationTests/Coverage/known-abstract-model-hooks.txt"
