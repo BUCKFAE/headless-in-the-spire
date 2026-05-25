@@ -22,9 +22,9 @@ models='clients/python/headless-in-the-spire/src/headless_in_the_spire/_models.p
 protocol_relevant='^(src/Sts2Headless\.Protocol/|src/Sts2Headless\.SchemaExport/|protocol/openrpc\.json$|clients/python/headless-in-the-spire/src/headless_in_the_spire/_models\.py$)'
 
 if echo "$staged" | grep -qE "$protocol_relevant"; then
-    echo "pre-commit: regenerating wire-protocol artefacts (just regen)…"
-    if ! just regen >/dev/null; then
-        echo "pre-commit: just regen failed — see output above." >&2
+    echo "pre-commit: regenerating wire-protocol artefacts (just build::regen)…"
+    if ! just build::regen >/dev/null; then
+        echo "pre-commit: just build::regen failed — see output above." >&2
         exit 1
     fi
 
@@ -55,9 +55,9 @@ if echo "$staged" | grep -qE "$stubs_relevant"; then
     if [[ ! -f vendor/sts2.dll ]]; then
         echo "pre-commit: vendor/sts2.dll missing — skipping GodotStubs check (run \`just setup\` to enable)." >&2
     else
-        echo "pre-commit: refreshing GodotStubs from sts2.dll (just regen-godot-stubs)…"
-        if ! just regen-godot-stubs >/dev/null; then
-            echo "pre-commit: just regen-godot-stubs failed — see output above." >&2
+        echo "pre-commit: refreshing GodotStubs from sts2.dll (just build::regen-godot-stubs)…"
+        if ! just build::regen-godot-stubs >/dev/null; then
+            echo "pre-commit: just build::regen-godot-stubs failed — see output above." >&2
             exit 1
         fi
 
