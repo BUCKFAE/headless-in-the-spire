@@ -41,8 +41,8 @@ jobs:
           python-version: "3.13"
           enable-cache: true
 
-      - name: Install age
-        run: sudo apt-get update && sudo apt-get install -y age
+      - name: Install age + just
+        run: sudo apt-get update && sudo apt-get install -y age just
 
       - name: Fetch vendor from private mirror
         env:
