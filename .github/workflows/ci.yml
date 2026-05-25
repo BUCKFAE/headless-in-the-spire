@@ -77,7 +77,7 @@ jobs:
       # records and fails if the checked-in artefact differs.
       - name: Schema drift check
         run: |
-          dotnet run --project src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj --configuration Release --no-build
+          dotnet run --project src/Sts2Headless.SchemaExport/Sts2Headless.SchemaExport.csproj --no-build
           git diff --exit-code protocol/openrpc.json
 
       # AD-5 drift guard for the Python DTOs. Same idea for _models.py.
