@@ -51,6 +51,9 @@ __pycache__/
 .mypy_cache/
 dist/
 build/
+# `build/` above also catches scripts/build/, which holds the just module
+# (`mod build 'scripts/build/justfile'`) — un-ignore it explicitly.
+!scripts/build/
 
 # Node toolchain (tools/replay-viewer). pnpm-lock.yaml is checked in for
 # reproducibility; node_modules and Vite's dist/ are not.
