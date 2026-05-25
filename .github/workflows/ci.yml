@@ -85,6 +85,78 @@ jobs:
       - name: Python tests
         run: uv run pytest clients/python/
 
+  # Trusted tier — has access to the private vendor mirror via secrets, so
+  # it can build + run the integration / e2e suites that load sts2.dll.
+  # Only runs on events we trust:
+  #   - push (only pushes from collaborators with write access reach here),
+  #   - workflow_dispatch (manual trigger),
+  #   - pull_request opened from a branch IN this repo (not a fork).
+  # Fork PRs deliberately do NOT reach this job: secrets aren't exposed to
+  # fork-PR runs anyway, but the explicit gate avoids the failed-fetch
+  # noise and documents the security boundary.
+  full-build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install age
+        run: sudo apt-get update && sudo apt-get install -y age
+
+      - name: Fetch vendor from private mirror
+        env:
+          STS2_VENDOR_REPO: ${{ vars.STS2_VENDOR_REPO }}
+          STS2_VENDOR_TOKEN: ${{ secrets.STS2_VENDOR_TOKEN }}
+          STS2_VENDOR_PRIVKEY: ${{ secrets.STS2_VENDOR_PRIVKEY }}
+          STS2_VENDOR_REF: ${{ vars.STS2_VENDOR_REF || 'main' }}
+        run: bash scripts/setup/fetch-vendor-remote.sh
+
+      - name: uv sync
+        run: uv sync --all-packages
+
+      - name: Generate content-ids + GodotStubs from vendor
+        run: |
+          just build::generate-content-ids
+          just build::regen-godot-stubs
+
+      - name: Build
+        run: just build::build
+
+      - name: Test (full — C# integration + e2e + Python)
+        env:
+          XUNIT_THREADS: "2"
+        run: just validation::test
+
+      # Belt-and-suspenders against accidentally publishing vendor bytes
+      # as an artifact. If a future step adds actions/upload-artifact,
+      # this guard catches a stray vendor DLL in the upload root.
+      - name: Artifact leak guard
+        if: always()
+        run: |
+          set -euo pipefail
+          stray=$(find . -type f \( -name 'sts2.dll' -o -name '0Harmony.dll' \) \
+                    -not -path './vendor/*' \
+                    -not -path '*/bin/*' \
+                    -not -path '*/obj/*' \
+                    -print)
+          if [ -n "$stray" ]; then
+            echo "::error::Vendor DLL found outside vendor/ — investigate before any artifact upload."
+            echo "$stray"
+            exit 1
+          fi
+
   update-badges:
     runs-on: ubuntu-latest
     timeout-minutes: 5

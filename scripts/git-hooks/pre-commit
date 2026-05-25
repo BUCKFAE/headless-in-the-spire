@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Drift guard. Two independent checks, each gated on whether the relevant
+# Drift guard. Three independent checks, each gated on whether the relevant
 # files are staged:
-#   1. Wire-protocol artefacts (Protocol / SchemaExport sources → openrpc.json
+#   1. Vendor leak guard — refuse any staged path under vendor/. `.gitignore`
+#      already excludes it, but `git add -f` would bypass that.
+#   2. Wire-protocol artefacts (Protocol / SchemaExport sources → openrpc.json
 #      → _models.py). Mirrors the CI "Schema drift check" + "Python models
 #      drift check" steps so drift is caught locally instead of in a PR.
-#   2. GodotStubs coverage — every Godot MemberRef/TypeRef in sts2.dll has a
+#   3. GodotStubs coverage — every Godot MemberRef/TypeRef in sts2.dll has a
 #      matching stub. Mirrors GodotStubsCoverageTests.
 
 set -euo pipefail
@@ -13,6 +15,27 @@ repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
 staged="$(git diff --cached --name-only)"
+
+# --- Vendor leak guard -----------------------------------------------------
+# Bytes under vendor/ are proprietary (extracted from the user's Steam
+# install). `.gitignore` covers the normal case; this hook covers `git
+# add -f` and any other bypass. There is no legitimate reason to commit
+# anything under vendor/ in this repo — the vendor mirror lives elsewhere.
+
+if echo "$staged" | grep -qE '^vendor/'; then
+    cat >&2 <<EOF
+
+pre-commit: refusing to commit paths under vendor/.
+
+Bytes under vendor/ are proprietary (extracted from your local Steam
+install) and must not be checked into this repo. The vendor mirror lives
+in a separate private repo; see scripts/setup/fetch-vendor-remote.sh.
+
+If you genuinely intended this (extremely unlikely): bypass with
+  git commit --no-verify
+EOF
+    exit 1
+fi
 
 # --- Wire-protocol drift guard ---------------------------------------------
 
