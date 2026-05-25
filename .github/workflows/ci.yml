@@ -41,8 +41,13 @@ jobs:
           python-version: "3.13"
           enable-cache: true
 
-      - name: Install age + just
-        run: sudo apt-get update && sudo apt-get install -y age just
+      - name: Install age
+        run: sudo apt-get update && sudo apt-get install -y age
+
+      # Ubuntu 24.04's apt-shipped `just` (1.14) predates the `mod`
+      # feature stabilising — the repo justfile won't parse. Pull the
+      # latest release from GitHub.
+      - uses: extractions/setup-just@v3
 
       - name: Fetch vendor from private mirror
         env:
