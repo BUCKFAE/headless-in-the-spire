@@ -38,8 +38,8 @@ public sealed class IroncladMerchantPolicy : IMerchantPolicy
             {
                 if (item.Kind != MerchantKind.Card) continue;
                 if (!item.IsStocked || !item.IsAffordable) continue;
-                if (item.CardId is null) continue;
-                if (!IsBossCounter(bossId, item.CardId)) continue;
+                if (item.CardId is not CardId cId) continue;
+                if (!IsBossCounter(bossId, cId)) continue;
                 if (state.Gold - item.Cost < 30) continue;
                 return item;
             }
@@ -50,8 +50,8 @@ public sealed class IroncladMerchantPolicy : IMerchantPolicy
         {
             if (item.Kind != MerchantKind.Card) continue;
             if (!item.IsStocked || !item.IsAffordable) continue;
-            if (item.CardId is null) continue;
-            if (!IsHighTierMerchantCard(item.CardId)) continue;
+            if (item.CardId is not CardId cId2) continue;
+            if (!IsHighTierMerchantCard(cId2)) continue;
             if (state.Gold - item.Cost < 30) continue;  // leave reserve
             return item;
         }
@@ -98,55 +98,56 @@ public sealed class IroncladMerchantPolicy : IMerchantPolicy
     // BossDraftBias (research-act1-bosses.md §5). Only cards that are
     // *strict* counters for the boss — every entry here is also at
     // A or B tier in the general draft policy, so we're not pulling
-    // garbage just because the boss is bad news.
-    private static bool IsBossCounter(string bossId, string cardId) => bossId switch
+    // garbage just because the boss is bad news. bossId is still the
+    // wire-shape string (RunStateResult.BossEncounterId hasn't migrated
+    // to a typed enum yet); cardId is the typed CardId.
+    private static bool IsBossCounter(string bossId, CardId cardId) => bossId switch
     {
         // Beast: Strength + Vulnerable cluster. 252-HP HP race.
         "CEREMONIAL_BEAST_BOSS" => cardId switch
         {
-            "INFLAME" or "TREMBLE" or "BASH" or "BULLY"
-                or "DISMANTLE" or "DEMON_FORM" => true,
+            CardId.Inflame or CardId.Tremble or CardId.Bash or CardId.Bully
+                or CardId.Dismantle or CardId.DemonForm => true,
             _ => false,
         },
         // Vantom: multi-hit clears 9 Slippery. Whirlwind > all.
         "VANTOM_BOSS" => cardId switch
         {
-            "WHIRLWIND" or "TWIN_STRIKE" or "POMMEL_STRIKE"
-                or "ANGER" or "HELLRAISER" or "SWORD_BOOMERANG" => true,
+            CardId.Whirlwind or CardId.TwinStrike or CardId.PommelStrike
+                or CardId.Anger or CardId.Hellraiser or CardId.SwordBoomerang => true,
             _ => false,
         },
         // Kin: AoE or single-target rush on Priest with Vuln.
         "THE_KIN_BOSS" => cardId switch
         {
-            "WHIRLWIND" or "INFERNO" or "PACTS_END"
-                or "TREMBLE" or "INFLAME" or "CORRUPTION" => true,
+            CardId.Whirlwind or CardId.Inferno or CardId.PactsEnd
+                or CardId.Tremble or CardId.Inflame or CardId.Corruption => true,
             _ => false,
         },
         _ => false,
     };
 
     // High-tier cards worth shop gold for Ironclad. Mirrors the
-    // DraftPolicy's S/A tier names (kept as strings here because
-    // MerchantItem.CardId is the wire string id, not the typed CardId).
-    private static bool IsHighTierMerchantCard(string id) => id switch
+    // DraftPolicy's S/A tier names.
+    private static bool IsHighTierMerchantCard(CardId id) => id switch
     {
-        "DEMON_FORM"
-            or "BARRICADE"
-            or "BLUDGEON"
-            or "CORRUPTION"
-            or "INFLAME"
-            or "FEEL_NO_PAIN"
-            or "DARK_EMBRACE"
-            or "POMMEL_STRIKE"
-            or "SHRUG_IT_OFF"
-            or "IMPERVIOUS"
-            or "OFFERING"
-            or "JUGGERNAUT"
-            or "WHIRLWIND"
-            or "TREMBLE"
-            or "BULLY"
-            or "DISMANTLE"
-            or "PACTS_END" => true,
+        CardId.DemonForm
+            or CardId.Barricade
+            or CardId.Bludgeon
+            or CardId.Corruption
+            or CardId.Inflame
+            or CardId.FeelNoPain
+            or CardId.DarkEmbrace
+            or CardId.PommelStrike
+            or CardId.ShrugItOff
+            or CardId.Impervious
+            or CardId.Offering
+            or CardId.Juggernaut
+            or CardId.Whirlwind
+            or CardId.Tremble
+            or CardId.Bully
+            or CardId.Dismantle
+            or CardId.PactsEnd => true,
         _ => false,
     };
 }

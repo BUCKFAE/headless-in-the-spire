@@ -49,7 +49,7 @@ public class CombatTests : IClassFixture<HostSubprocess>
         {
             Assert.True(e.Hp > 0, $"enemy {e.Index} hp should be positive, was {e.Hp}");
             Assert.True(e.MaxHp >= e.Hp);
-            Assert.False(string.IsNullOrEmpty(e.MonsterId), $"enemy {e.Index} missing monsterId");
+            Assert.NotEqual(MonsterId.Unknown, e.MonsterId);
         });
         // Hand cards should have non-empty ids and well-defined target types.
         // Unknown surfaces would mean ParseEnum failed against a sts2 value

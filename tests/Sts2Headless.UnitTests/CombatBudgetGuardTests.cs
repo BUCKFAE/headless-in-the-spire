@@ -32,7 +32,7 @@ public class CombatBudgetGuardTests
             // Each round: enemy loses HP, player takes a hit. Real progress.
             var playerHp = 60 - round;
             var enemyHp = 50 - round * 4;
-            guard.Observe(CombatSnapshot(round: round, hp: playerHp, ("LOUSE", enemyHp, 0, [])));
+            guard.Observe(CombatSnapshot(round: round, hp: playerHp, ("LOUSE_PROGENITOR", enemyHp, 0, [])));
         }
         // Combat ends inside the budget — must not throw.
     }
@@ -45,14 +45,16 @@ public class CombatBudgetGuardTests
         // guard must trip on the MaxRounds branch.
         for (var round = 1; round <= 5; round++)
         {
-            guard.Observe(CombatSnapshot(round: round, hp: 60 - round, ("LOUSE", 50 - round, 0, [])));
+            guard.Observe(CombatSnapshot(round: round, hp: 60 - round, ("LOUSE_PROGENITOR", 50 - round, 0, [])));
         }
         var ex = Assert.Throws<CombatBudgetExceededException>(() =>
-            guard.Observe(CombatSnapshot(round: 6, hp: 54, ("LOUSE", 44, 0, []))));
+            guard.Observe(CombatSnapshot(round: 6, hp: 54, ("LOUSE_PROGENITOR", 44, 0, []))));
         Assert.Equal(BudgetKind.MaxRounds, ex.Kind);
         Assert.Equal(5, ex.Budget);
         Assert.Equal(6, ex.Observed);
-        Assert.Contains("LOUSE", ex.Encounter);
+        // EncounterKey renders MonsterId via .ToString() (PascalCase
+        // enum-member name, not the wire SCREAMING_SNAKE form).
+        Assert.Contains("LouseProgenitor", ex.Encounter);
     }
 
     [Fact]
@@ -112,8 +114,8 @@ public class CombatBudgetGuardTests
         // Switch to combat B — different monster, same room flag etc.
         // Must reset the counter (otherwise back-to-back encounters
         // would inherit each other's no-progress count).
-        guard.Observe(CombatSnapshot(round: 1, hp: 60, ("LOUSE", 20, 0, [])));
-        guard.Observe(CombatSnapshot(round: 2, hp: 60, ("LOUSE", 20, 0, [])));
+        guard.Observe(CombatSnapshot(round: 1, hp: 60, ("LOUSE_PROGENITOR", 20, 0, [])));
+        guard.Observe(CombatSnapshot(round: 2, hp: 60, ("LOUSE_PROGENITOR", 20, 0, [])));
         // Two no-progress rounds in combat B (would have tripped if
         // we'd carried over A's count of 2).
     }
@@ -134,7 +136,9 @@ public class CombatBudgetGuardTests
             guard.Observe(CombatSnapshot(round: 4, hp: 60, ("DOORMAKER", 999_999_996, 0, []))));
         Assert.NotNull(ex.Advisory);
         Assert.Contains("sentinel-HP", ex.Advisory!);
-        Assert.Contains("DOORMAKER", ex.Advisory!);
+        // Advisory renders MonsterId via .ToString() (PascalCase
+        // enum-member name, not the wire SCREAMING_SNAKE form).
+        Assert.Contains("Doormaker", ex.Advisory!);
         // The advisory must also land in the exception's Message (the
         // common consumption path — sweep reports use ex.Message verbatim).
         Assert.Contains("sentinel-HP", ex.Message);
@@ -180,13 +184,13 @@ public class CombatBudgetGuardTests
     {
         var enemies = enemiesIn.Select((e, ix) => new Enemy(
             Index: ix,
-            MonsterId: e.MonsterId,
+            MonsterId: MonsterIdNames.FromWire(e.MonsterId),
             Hp: e.Hp,
             MaxHp: Math.Max(e.Hp, 100),
             Block: e.Block,
             IntendsAttack: false,
             Intents: Array.Empty<Intent>(),
-            Powers: e.Powers.Select(p => new Power(p.Id, p.Amount)).ToList())).ToList();
+            Powers: e.Powers.Select(p => new Power(PowerIdNames.FromWire(p.Id), p.Amount)).ToList())).ToList();
         var combat = new CombatState(
             Round: round,
             Energy: 3, MaxEnergy: 3,

@@ -27,7 +27,6 @@ from headless_in_the_spire_agents import (
     GameSnapshot,
     GreedyAgent,
     LeaveMerchantRoom,
-    LeaveTreasureRoom,
     PlayCard,
     ProceedEvent,
     RunOutcome,
@@ -36,6 +35,8 @@ from headless_in_the_spire_agents import (
     SelectRestSiteOption,
     SelectReward,
     SkipReward,
+    SkipTreasure,
+    TakeTreasure,
     current_phase,
     play_run,
 )
@@ -66,8 +67,10 @@ def _format_action(action: Action) -> str:
             return f"skip_reward(reward={ri})"
         case SelectRestSiteOption(option_index=oi):
             return f"select_rest_site_option(option={oi})"
-        case LeaveTreasureRoom():
-            return "leave_treasure_room"
+        case TakeTreasure():
+            return "take_treasure"
+        case SkipTreasure():
+            return "skip_treasure"
         case LeaveMerchantRoom():
             return "leave_merchant_room"
         case EnterNextAct():

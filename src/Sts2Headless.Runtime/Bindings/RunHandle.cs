@@ -29,7 +29,7 @@ public sealed record RunHandle(object Player, object RunState, object RunManager
 // unless the player is standing on a chest, otherwise carries the chest's
 // offering (typically one relic). Eagerly populated by driving
 // TreasureRoom.DoNormalRewards on first read, so callers can decide
-// whether to take or skip before invoking run/leave_treasure_room.
+// whether to take or skip via run/take_treasure or run/skip_treasure.
 // CombatState is the combat read-out; null unless CurrentRoomType == CombatRoom.
 // RewardsState carries the post-combat reward decisions when the engine has
 // any unclaimed; null whenever the wire has nothing pending for the caller.

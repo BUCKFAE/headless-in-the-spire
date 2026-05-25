@@ -19,6 +19,18 @@
       }
     },
     {
+      "name": "host/methods",
+      "summary": "Enumerate every wire method this host exposes (name, summary, hasParams, isDebugOnly). Mirrors the merged MethodCatalog (Core ∪ debug cheats) — debug entries are always listed but only callable when the host was started with --enable-debug (AD-7). Cheaper than parsing protocol/openrpc.json when a client just needs the method list.",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/HostMethodsResult"
+        }
+      }
+    },
+    {
       "name": "run/new",
       "summary": "Start a new run. Defaults: Ironclad, seed=1, withNeow=false, ascension=0.",
       "paramStructure": "by-name",
@@ -47,6 +59,18 @@
         "name": "result",
         "schema": {
           "$ref": "#/components/schemas/RunStateResult"
+        }
+      }
+    },
+    {
+      "name": "run/summarize_state",
+      "summary": "Compact human-readable text rendering of the current run state. A few hundred bytes vs. the full RunStateResult — designed for AI assistants and chat clients to poll cheaply between actions. Read-only; describes what is, not what to do. Identical text wherever the wire is consumed (no client-side re-derivation).",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunSummarizeStateResult"
         }
       }
     },
@@ -111,22 +135,26 @@
       }
     },
     {
-      "name": "run/leave_treasure_room",
-      "summary": "Exit the current treasure room and transition back to MapRoom. The chest's offering is exposed in availableTreasureRelics on every snapshot while CurrentRoomType=TreasureRoom (populated by driving TreasureRoom.DoNormalRewards on first read). Params are optional: skip=false (the default, or omitted body) grants the offered relic via RelicCmd.Obtain; skip=true walks past the chest without granting. Either path closes the synchronizer session, runs DoExtraRewardsIfNeeded, and flips the room.",
+      "name": "run/take_treasure",
+      "summary": "Open the current treasure room's chest, grant the offered relic via RelicCmd.Obtain, and transition back to MapRoom. The chest's offering is exposed in availableTreasureRelics on every snapshot while CurrentRoomType=TreasureRoom (populated by driving TreasureRoom.DoNormalRewards on first read). Closes the synchronizer session, runs DoExtraRewardsIfNeeded (act-3 / ascension extras), and flips the room.",
       "paramStructure": "by-name",
-      "params": [
-        {
-          "name": "params",
-          "required": true,
-          "schema": {
-            "$ref": "#/components/schemas/RunLeaveTreasureRoomParams"
-          }
-        }
-      ],
+      "params": [],
       "result": {
         "name": "result",
         "schema": {
-          "$ref": "#/components/schemas/RunLeaveTreasureRoomResult"
+          "$ref": "#/components/schemas/RunTakeTreasureResult"
+        }
+      }
+    },
+    {
+      "name": "run/skip_treasure",
+      "summary": "Walk past the current treasure-room chest without granting the offered relic, then transition back to MapRoom. Same teardown chain as run/take_treasure (synchronizer close, DoExtraRewardsIfNeeded, room flip). Useful for relic-conflict avoidance or modifiers where leaving the slot empty is intentional.",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/RunSkipTreasureResult"
         }
       }
     },
@@ -543,6 +571,27 @@
       "x-debugOnly": true
     },
     {
+      "name": "debug/reveal_act_schedule",
+      "summary": "Test affordance — reveal the current act's pre-rolled schedule (boss / second boss / ancient / normal-encounter list / elite-encounter list / event list) by reading ActModel._rooms.RoomSet. This is seed-deterministic information the engine normally hides from the player; combined with the visited counters it answers \"what comes next\" deterministically. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugRevealActScheduleParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugRevealActScheduleResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
       "name": "debug/start_combat",
       "summary": "Test affordance — force-start a specific combat against the chosen encounter id (e.g. \"SLIMES_NORMAL\"), bypassing map progression. Constructs CombatRoom(EncounterModel.ToMutable(), runState) and drives RunManager.EnterRoom; the engine does not validate act/character compatibility. Returns InvalidParams for unknown ids. Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -562,6 +611,318 @@
         }
       },
       "x-debugOnly": true
+    },
+    {
+      "name": "content/describe_card",
+      "summary": "Describe a single card by its CardId: name, description, cost, rarity, character, target type. Static content (read from ModelDb.AllCards); no run required.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribeCardParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribeCardResult"
+        }
+      }
+    },
+    {
+      "name": "content/describe_relic",
+      "summary": "Describe a single relic by its RelicId: name, description, rarity. Static content (read from ModelDb.AllRelics); no run required.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribeRelicParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribeRelicResult"
+        }
+      }
+    },
+    {
+      "name": "content/describe_potion",
+      "summary": "Describe a single potion by its PotionId: name, description, rarity, target type. Static content; no run required.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribePotionParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribePotionResult"
+        }
+      }
+    },
+    {
+      "name": "content/describe_power",
+      "summary": "Describe a single power (buff/debuff) by its PowerId: name, description, isDebuff flag. Static content; no run required.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribePowerParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribePowerResult"
+        }
+      }
+    },
+    {
+      "name": "content/describe_event",
+      "summary": "Describe an event by its wire id: title and description. Static content (read from ModelDb.AllEvents ∪ AllSharedEvents); option branches roll seed-deterministically at choice time and are NOT surfaced here — use debug/peek_event_outcome (gated) for that.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribeEventParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribeEventResult"
+        }
+      }
+    },
+    {
+      "name": "content/describe_encounter",
+      "summary": "Describe a monster encounter (pack) by its wire id: display name, monster id list, tier (_WEAK / _NORMAL / _ELITE / _BOSS). Static content; specific monster HP is rolled by EncounterModel.GenerateMonstersWithSlots at combat-start and is not part of this answer.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribeEncounterParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribeEncounterResult"
+        }
+      }
+    },
+    {
+      "name": "content/describe_monster",
+      "summary": "Describe a single monster by its MonsterId: display name and base HP range. Static content; per-encounter HP rolls are not surfaced.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribeMonsterParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribeMonsterResult"
+        }
+      }
+    },
+    {
+      "name": "content/describe_affliction",
+      "summary": "Describe a card affliction (negative tag attached to a card) by its AfflictionId.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribeAfflictionParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribeAfflictionResult"
+        }
+      }
+    },
+    {
+      "name": "content/describe_enchantment",
+      "summary": "Describe a card enchantment (positive tag attached to a card) by its EnchantmentId.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribeEnchantmentParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribeEnchantmentResult"
+        }
+      }
+    },
+    {
+      "name": "content/describe_modifier",
+      "summary": "Describe a run modifier (DRAFT, SEALED_DECK, HOARDER, …) by its ModifierId. Modifiers alter starting conditions; pass them to run/new via the modifiers list.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribeModifierParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribeModifierResult"
+        }
+      }
+    },
+    {
+      "name": "content/list_cards",
+      "summary": "List all cards in the static pool, optionally filtered by character / rarity / colorless inclusion. Static content (read from ModelDb.AllCards filtered by character class).",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentListCardsParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentListCardsResult"
+        }
+      }
+    },
+    {
+      "name": "content/list_relics",
+      "summary": "List all relics in the static pool, optionally filtered by rarity.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentListRelicsParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentListRelicsResult"
+        }
+      }
+    },
+    {
+      "name": "content/list_potions",
+      "summary": "List all potions in the static pool, optionally filtered by rarity.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentListPotionsParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentListPotionsResult"
+        }
+      }
+    },
+    {
+      "name": "content/describe_act",
+      "summary": "Per-act content pools (weak, regular, elite, boss, event) and structural counts (NumberOfWeakEncounters, num floors / rooms, elite roll count). Static content — the *pool*, not the rolled answer. For this run's specific schedule see debug/reveal_act_schedule (gated).",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentDescribeActParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentDescribeActResult"
+        }
+      }
+    },
+    {
+      "name": "content/encounter_rules",
+      "summary": "Static rules describing how the engine builds an act's encounter schedule (weak-first pass, elite roll count, no-adjacent-shared-tags constraint). Useful as a one-shot prompt for planning agents.",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentEncounterRulesResult"
+        }
+      }
+    },
+    {
+      "name": "content/unknown_node_odds",
+      "summary": "Base odds distribution for resolving an `Unknown` (`?`) map node into a concrete room type. The runtime conditions on visit history; this is the prior, which is content-knowable. The resolved value is rolled at entry and is NOT surfaced — use debug/peek_unknown_resolution (gated).",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentUnknownNodeOddsParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentUnknownNodeOddsResult"
+        }
+      }
     }
   ],
   "components": {
@@ -709,6 +1070,743 @@
           "hand",
           "enemies",
           "playerPowers"
+        ]
+      },
+      "ContentCardSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "rarity": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "integer"
+          },
+          "character": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "rarity",
+          "cost",
+          "character"
+        ]
+      },
+      "ContentDescribeActParams": {
+        "type": "object",
+        "properties": {
+          "actIndex": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "actIndex"
+        ]
+      },
+      "ContentDescribeActResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "actIndex": {
+            "type": "integer"
+          },
+          "numFloors": {
+            "type": "integer"
+          },
+          "numRooms": {
+            "type": "integer"
+          },
+          "numberOfWeakEncounters": {
+            "type": "integer"
+          },
+          "eliteRollCount": {
+            "type": "integer"
+          },
+          "weakEncounterPool": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "normalEncounterPool": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "elitePool": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bossPool": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "eventPool": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "actIndex",
+          "numFloors",
+          "numRooms",
+          "numberOfWeakEncounters",
+          "eliteRollCount",
+          "weakEncounterPool",
+          "normalEncounterPool",
+          "elitePool",
+          "bossPool",
+          "eventPool"
+        ]
+      },
+      "ContentDescribeAfflictionParams": {
+        "type": "object",
+        "properties": {
+          "afflictionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "afflictionId"
+        ]
+      },
+      "ContentDescribeAfflictionResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "afflictionId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "afflictionId",
+          "displayName",
+          "description"
+        ]
+      },
+      "ContentDescribeCardParams": {
+        "type": "object",
+        "properties": {
+          "cardId": {
+            "type": "string"
+          },
+          "upgradeLevel": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "cardId"
+        ]
+      },
+      "ContentDescribeCardResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "cardId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "integer"
+          },
+          "rarity": {
+            "type": "string"
+          },
+          "character": {
+            "type": "string"
+          },
+          "targetType": {
+            "$ref": "#/components/schemas/TargetType"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "cardId",
+          "displayName",
+          "description",
+          "cost",
+          "rarity",
+          "character",
+          "targetType",
+          "type"
+        ]
+      },
+      "ContentDescribeEnchantmentParams": {
+        "type": "object",
+        "properties": {
+          "enchantmentId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enchantmentId"
+        ]
+      },
+      "ContentDescribeEnchantmentResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "enchantmentId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "enchantmentId",
+          "displayName",
+          "description"
+        ]
+      },
+      "ContentDescribeEncounterParams": {
+        "type": "object",
+        "properties": {
+          "encounterId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "encounterId"
+        ]
+      },
+      "ContentDescribeEncounterResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "encounterId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "monsterIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "encounterId",
+          "displayName",
+          "monsterIds",
+          "tier"
+        ]
+      },
+      "ContentDescribeEventParams": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "ContentDescribeEventResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "eventId",
+          "displayName",
+          "description"
+        ]
+      },
+      "ContentDescribeModifierParams": {
+        "type": "object",
+        "properties": {
+          "modifierId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "modifierId"
+        ]
+      },
+      "ContentDescribeModifierResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "modifierId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "modifierId",
+          "displayName",
+          "description"
+        ]
+      },
+      "ContentDescribeMonsterParams": {
+        "type": "object",
+        "properties": {
+          "monsterId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "monsterId"
+        ]
+      },
+      "ContentDescribeMonsterResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "monsterId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "baseHp": {
+            "type": "integer"
+          },
+          "baseMaxHp": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "monsterId",
+          "displayName",
+          "baseHp",
+          "baseMaxHp"
+        ]
+      },
+      "ContentDescribePotionParams": {
+        "type": "object",
+        "properties": {
+          "potionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "potionId"
+        ]
+      },
+      "ContentDescribePotionResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "potionId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "rarity": {
+            "type": "string"
+          },
+          "targetType": {
+            "$ref": "#/components/schemas/TargetType"
+          }
+        },
+        "required": [
+          "ok",
+          "potionId",
+          "displayName",
+          "description",
+          "rarity",
+          "targetType"
+        ]
+      },
+      "ContentDescribePowerParams": {
+        "type": "object",
+        "properties": {
+          "powerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "powerId"
+        ]
+      },
+      "ContentDescribePowerResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "powerId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "isDebuff": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "powerId",
+          "displayName",
+          "description",
+          "isDebuff"
+        ]
+      },
+      "ContentDescribeRelicParams": {
+        "type": "object",
+        "properties": {
+          "relicId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "relicId"
+        ]
+      },
+      "ContentDescribeRelicResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "relicId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "rarity": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "relicId",
+          "displayName",
+          "description",
+          "rarity"
+        ]
+      },
+      "ContentEncounterRulesResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "weakEncountersFirst": {
+            "type": "boolean"
+          },
+          "eliteRollCount": {
+            "type": "integer"
+          },
+          "noAdjacentSharedTags": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "weakEncountersFirst",
+          "eliteRollCount",
+          "noAdjacentSharedTags",
+          "notes"
+        ]
+      },
+      "ContentListCardsParams": {
+        "type": "object",
+        "properties": {
+          "character": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Character"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rarity": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          },
+          "includeColorless": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "default": null
+          }
+        }
+      },
+      "ContentListCardsResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentCardSummary"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "count",
+          "cards"
+        ]
+      },
+      "ContentListPotionsParams": {
+        "type": "object",
+        "properties": {
+          "rarity": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        }
+      },
+      "ContentListPotionsResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "potions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentPotionSummary"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "count",
+          "potions"
+        ]
+      },
+      "ContentListRelicsParams": {
+        "type": "object",
+        "properties": {
+          "rarity": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        }
+      },
+      "ContentListRelicsResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentRelicSummary"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "count",
+          "relics"
+        ]
+      },
+      "ContentPotionSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "rarity": {
+            "type": "string"
+          },
+          "targetType": {
+            "$ref": "#/components/schemas/TargetType"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "rarity",
+          "targetType"
+        ]
+      },
+      "ContentRelicSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "rarity": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "rarity"
+        ]
+      },
+      "ContentUnknownNodeOddsParams": {
+        "type": "object",
+        "properties": {
+          "actIndex": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          }
+        }
+      },
+      "ContentUnknownNodeOddsResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "actIndex": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "baseOdds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentUnknownNodeOddsRow"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "baseOdds"
+        ]
+      },
+      "ContentUnknownNodeOddsRow": {
+        "type": "object",
+        "properties": {
+          "roomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "weight": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "roomType",
+          "weight"
         ]
       },
       "DebugAfflictCardParams": {
@@ -1025,6 +2123,75 @@
           "cardIds"
         ]
       },
+      "DebugRevealActScheduleParams": {
+        "type": "object"
+      },
+      "DebugRevealActScheduleResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "actIndex": {
+            "type": "integer"
+          },
+          "bossId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "secondBossId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ancientId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "normalEncounterIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "eliteEncounterIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "eventIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "normalEncountersVisited": {
+            "type": "integer"
+          },
+          "eliteEncountersVisited": {
+            "type": "integer"
+          },
+          "eventsVisited": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "actIndex",
+          "normalEncounterIds",
+          "eliteEncounterIds",
+          "eventIds",
+          "normalEncountersVisited",
+          "eliteEncountersVisited",
+          "eventsVisited"
+        ]
+      },
       "DebugSetEnergyParams": {
         "type": "object",
         "properties": {
@@ -1179,10 +2346,7 @@
             "type": "integer"
           },
           "monsterId": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "hp": {
             "type": "integer"
@@ -1211,6 +2375,7 @@
         },
         "required": [
           "index",
+          "monsterId",
           "hp",
           "maxHp",
           "block",
@@ -1371,6 +2536,51 @@
         },
         "required": [
           "was_picked"
+        ]
+      },
+      "HostMethodInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "hasParams": {
+            "type": "boolean"
+          },
+          "isDebugOnly": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "summary",
+          "hasParams",
+          "isDebugOnly"
+        ]
+      },
+      "HostMethodsResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "debugEnabled": {
+            "type": "boolean"
+          },
+          "methods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HostMethodInfo"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "debugEnabled",
+          "methods"
         ]
       },
       "HostPingResult": {
@@ -1651,23 +2861,958 @@
             "type": "boolean"
           },
           "cardId": {
-            "type": [
-              "string",
-              "null"
+            "enum": [
+              "UNKNOWN",
+              "ABRASIVE",
+              "ACCELERANT",
+              "ACCURACY",
+              "ACROBATICS",
+              "ADAPTIVE_STRIKE",
+              "ADRENALINE",
+              "AFTERIMAGE",
+              "AFTERLIFE",
+              "AGGRESSION",
+              "ALCHEMIZE",
+              "ALIGNMENT",
+              "ALL_FOR_ONE",
+              "ANGER",
+              "ANOINTED",
+              "ANTICIPATE",
+              "APOTHEOSIS",
+              "APPARITION",
+              "ARMAMENTS",
+              "ARSENAL",
+              "ASCENDERS_BANE",
+              "ASHEN_STRIKE",
+              "ASSASSINATE",
+              "ASTRAL_PULSE",
+              "AUTOMATION",
+              "BACKFLIP",
+              "BACKSTAB",
+              "BAD_LUCK",
+              "BALL_LIGHTNING",
+              "BANSHEES_CRY",
+              "BARRAGE",
+              "BARRICADE",
+              "BASH",
+              "BATTLE_TRANCE",
+              "BEACON_OF_HOPE",
+              "BEAM_CELL",
+              "BEAT_DOWN",
+              "BEAT_INTO_SHAPE",
+              "BECKON",
+              "BEGONE",
+              "BELIEVE_IN_YOU",
+              "BIASED_COGNITION",
+              "BIG_BANG",
+              "BLACK_HOLE",
+              "BLADE_DANCE",
+              "BLADE_OF_INK",
+              "BLIGHT_STRIKE",
+              "BLOODLETTING",
+              "BLOOD_WALL",
+              "BLUDGEON",
+              "BLUR",
+              "BODYGUARD",
+              "BODY_SLAM",
+              "BOLAS",
+              "BOMBARDMENT",
+              "BONE_SHARDS",
+              "BOOST_AWAY",
+              "BOOT_SEQUENCE",
+              "BORROWED_TIME",
+              "BOUNCING_FLASK",
+              "BRAND",
+              "BREAK",
+              "BREAKTHROUGH",
+              "BRIGHTEST_FLAME",
+              "BUBBLE_BUBBLE",
+              "BUFFER",
+              "BULK_UP",
+              "BULLET_TIME",
+              "BULLY",
+              "BULWARK",
+              "BUNDLE_OF_JOY",
+              "BURN",
+              "BURNING_PACT",
+              "BURST",
+              "BURY",
+              "BYRDONIS_EGG",
+              "BYRD_SWOOP",
+              "CALAMITY",
+              "CALCIFY",
+              "CALCULATED_GAMBLE",
+              "CALL_OF_THE_VOID",
+              "CALTROPS",
+              "CAPACITOR",
+              "CAPTURE_SPIRIT",
+              "CASCADE",
+              "CATASTROPHE",
+              "CELESTIAL_MIGHT",
+              "CHAOS",
+              "CHARGE",
+              "CHARGE_BATTERY",
+              "CHILD_OF_THE_STARS",
+              "CHILL",
+              "CINDER",
+              "CLASH",
+              "CLAW",
+              "CLEANSE",
+              "CLOAK_AND_DAGGER",
+              "CLOAK_OF_STARS",
+              "CLUMSY",
+              "COLD_SNAP",
+              "COLLISION_COURSE",
+              "COLOSSUS",
+              "COMET",
+              "COMPACT",
+              "COMPILE_DRIVER",
+              "CONFLAGRATION",
+              "CONQUEROR",
+              "CONSUMING_SHADOW",
+              "CONVERGENCE",
+              "COOLANT",
+              "COOLHEADED",
+              "COORDINATE",
+              "CORROSIVE_WAVE",
+              "CORRUPTION",
+              "COSMIC_INDIFFERENCE",
+              "COUNTDOWN",
+              "CRASH_LANDING",
+              "CREATIVE_AI",
+              "CRESCENT_SPEAR",
+              "CRIMSON_MANTLE",
+              "CRUELTY",
+              "CRUSH_UNDER",
+              "CURSE_OF_THE_BELL",
+              "DAGGER_SPRAY",
+              "DAGGER_THROW",
+              "DANSE_MACABRE",
+              "DARKNESS",
+              "DARK_EMBRACE",
+              "DARK_SHACKLES",
+              "DASH",
+              "DAZED",
+              "DEADLY_POISON",
+              "DEATHBRINGER",
+              "DEATHS_DOOR",
+              "DEATH_MARCH",
+              "DEBILITATE",
+              "DEBRIS",
+              "DEBT",
+              "DECAY",
+              "DECISIONS_DECISIONS",
+              "DEFEND_DEFECT",
+              "DEFEND_IRONCLAD",
+              "DEFEND_NECROBINDER",
+              "DEFEND_REGENT",
+              "DEFEND_SILENT",
+              "DEFILE",
+              "DEFLECT",
+              "DEFRAGMENT",
+              "DEFY",
+              "DELAY",
+              "DEMESNE",
+              "DEMONIC_SHIELD",
+              "DEMON_FORM",
+              "DEPRECATED_CARD",
+              "DEVASTATE",
+              "DEVOUR_LIFE",
+              "DIRGE",
+              "DISCOVERY",
+              "DISINTEGRATION",
+              "DISMANTLE",
+              "DISTRACTION",
+              "DODGE_AND_ROLL",
+              "DOMINATE",
+              "DOUBLE_ENERGY",
+              "DOUBT",
+              "DRAIN_POWER",
+              "DRAMATIC_ENTRANCE",
+              "DREDGE",
+              "DRUM_OF_BATTLE",
+              "DUALCAST",
+              "DUAL_WIELD",
+              "DYING_STAR",
+              "ECHOING_SLASH",
+              "ECHO_FORM",
+              "EIDOLON",
+              "END_OF_DAYS",
+              "ENERGY_SURGE",
+              "ENFEEBLING_TOUCH",
+              "ENLIGHTENMENT",
+              "ENTHRALLED",
+              "ENTRENCH",
+              "ENTROPY",
+              "ENVENOM",
+              "EQUILIBRIUM",
+              "ERADICATE",
+              "ESCAPE_PLAN",
+              "ETERNAL_ARMOR",
+              "EVIL_EYE",
+              "EXPECT_A_FIGHT",
+              "EXPERTISE",
+              "EXPOSE",
+              "EXTERMINATE",
+              "FALLING_STAR",
+              "FAN_OF_KNIVES",
+              "FASTEN",
+              "FEAR",
+              "FEED",
+              "FEEDING_FRENZY",
+              "FEEL_NO_PAIN",
+              "FERAL",
+              "FETCH",
+              "FIEND_FIRE",
+              "FIGHT_ME",
+              "FIGHT_THROUGH",
+              "FINESSE",
+              "FINISHER",
+              "FISTICUFFS",
+              "FLAK_CANNON",
+              "FLAME_BARRIER",
+              "FLANKING",
+              "FLASH_OF_STEEL",
+              "FLATTEN",
+              "FLECHETTES",
+              "FLICK_FLACK",
+              "FOCUSED_STRIKE",
+              "FOLLOW_THROUGH",
+              "FOLLY",
+              "FOOTWORK",
+              "FORBIDDEN_GRIMOIRE",
+              "FOREGONE_CONCLUSION",
+              "FORGOTTEN_RITUAL",
+              "FRANTIC_ESCAPE",
+              "FRIENDSHIP",
+              "FTL",
+              "FUEL",
+              "FURNACE",
+              "FUSION",
+              "GAMMA_BLAST",
+              "GANG_UP",
+              "GATHER_LIGHT",
+              "GENESIS",
+              "GENETIC_ALGORITHM",
+              "GIANT_ROCK",
+              "GLACIER",
+              "GLASSWORK",
+              "GLIMMER",
+              "GLIMPSE_BEYOND",
+              "GLITTERSTREAM",
+              "GLOW",
+              "GOLD_AXE",
+              "GO_FOR_THE_EYES",
+              "GRAND_FINALE",
+              "GRAVEBLAST",
+              "GRAVE_WARDEN",
+              "GREED",
+              "GUARDS",
+              "GUIDING_STAR",
+              "GUILTY",
+              "GUNK_UP",
+              "HAILSTORM",
+              "HAMMER_TIME",
+              "HAND_OF_GREED",
+              "HAND_TRICK",
+              "HANG",
+              "HAUNT",
+              "HAVOC",
+              "HAZE",
+              "HEADBUTT",
+              "HEAVENLY_DRILL",
+              "HEGEMONY",
+              "HEIRLOOM_HAMMER",
+              "HELIX_DRILL",
+              "HELLO_WORLD",
+              "HELLRAISER",
+              "HEMOKINESIS",
+              "HIDDEN_CACHE",
+              "HIDDEN_DAGGERS",
+              "HIDDEN_GEM",
+              "HIGH_FIVE",
+              "HOLOGRAM",
+              "HOTFIX",
+              "HOWL_FROM_BEYOND",
+              "HUDDLE_UP",
+              "HYPERBEAM",
+              "ICE_LANCE",
+              "IGNITION",
+              "IMPATIENCE",
+              "IMPERVIOUS",
+              "INFECTION",
+              "INFERNAL_BLADE",
+              "INFERNO",
+              "INFINITE_BLADES",
+              "INFLAME",
+              "INJURY",
+              "INTERCEPT",
+              "INVOKE",
+              "IRON_WAVE",
+              "ITERATION",
+              "I_AM_INVINCIBLE",
+              "JACKPOT",
+              "JACK_OF_ALL_TRADES",
+              "JUGGERNAUT",
+              "JUGGLING",
+              "KINGLY_KICK",
+              "KINGLY_PUNCH",
+              "KNIFE_TRAP",
+              "KNOCKDOWN",
+              "KNOCKOUT_BLOW",
+              "KNOW_THY_PLACE",
+              "LANTERN_KEY",
+              "LARGESSE",
+              "LEADING_STRIKE",
+              "LEAP",
+              "LEGION_OF_BONE",
+              "LEG_SWEEP",
+              "LETHALITY",
+              "LIFT",
+              "LIGHTNING_ROD",
+              "LOOP",
+              "LUMINESCE",
+              "LUNAR_BLAST",
+              "MACHINE_LEARNING",
+              "MAD_SCIENCE",
+              "MAKE_IT_SO",
+              "MALAISE",
+              "MANGLE",
+              "MANIFEST_AUTHORITY",
+              "MASTER_OF_STRATEGY",
+              "MASTER_PLANNER",
+              "MAUL",
+              "MAYHEM",
+              "MELANCHOLY",
+              "MEMENTO_MORI",
+              "METAMORPHOSIS",
+              "METEOR_SHOWER",
+              "METEOR_STRIKE",
+              "MIMIC",
+              "MIND_BLAST",
+              "MIND_ROT",
+              "MINION_DIVE_BOMB",
+              "MINION_SACRIFICE",
+              "MINION_STRIKE",
+              "MIRAGE",
+              "MISERY",
+              "MODDED",
+              "MOLTEN_FIST",
+              "MOMENTUM_STRIKE",
+              "MONARCHS_GAZE",
+              "MONOLOGUE",
+              "MULTI_CAST",
+              "MURDER",
+              "NECRO_MASTERY",
+              "NEGATIVE_PULSE",
+              "NEOWS_FURY",
+              "NEUROSURGE",
+              "NEUTRALIZE",
+              "NEUTRON_AEGIS",
+              "NIGHTMARE",
+              "NORMALITY",
+              "NOSTALGIA",
+              "NOT_YET",
+              "NOXIOUS_FUMES",
+              "NO_ESCAPE",
+              "NULL",
+              "OBLIVION",
+              "OFFERING",
+              "OMNISLICE",
+              "ONE_TWO_PUNCH",
+              "ORBIT",
+              "OUTBREAK",
+              "OUTMANEUVER",
+              "OVERCLOCK",
+              "PACTS_END",
+              "PAGESTORM",
+              "PALE_BLUE_DOT",
+              "PANACHE",
+              "PANIC_BUTTON",
+              "PARRY",
+              "PARSE",
+              "PARTICLE_WALL",
+              "PATTER",
+              "PECK",
+              "PERFECTED_STRIKE",
+              "PHANTOM_BLADES",
+              "PHOTON_CUT",
+              "PIERCING_WAIL",
+              "PILLAGE",
+              "PILLAR_OF_CREATION",
+              "PINPOINT",
+              "POISONED_STAB",
+              "POKE",
+              "POMMEL_STRIKE",
+              "POOR_SLEEP",
+              "POUNCE",
+              "PRECISE_CUT",
+              "PREDATOR",
+              "PREPARED",
+              "PREP_TIME",
+              "PRIMAL_FORCE",
+              "PRODUCTION",
+              "PROLONG",
+              "PROPHESIZE",
+              "PROTECTOR",
+              "PROWESS",
+              "PULL_AGGRO",
+              "PULL_FROM_BELOW",
+              "PURITY",
+              "PUTREFY",
+              "PYRE",
+              "QUADCAST",
+              "QUASAR",
+              "RADIATE",
+              "RAGE",
+              "RAINBOW",
+              "RALLY",
+              "RAMPAGE",
+              "RATTLE",
+              "REANIMATE",
+              "REAP",
+              "REAPER_FORM",
+              "REAVE",
+              "REBOOT",
+              "REBOUND",
+              "REFINE_BLADE",
+              "REFLECT",
+              "REFLEX",
+              "REFRACT",
+              "REGRET",
+              "RELAX",
+              "REND",
+              "RESONANCE",
+              "RESTLESSNESS",
+              "RICOCHET",
+              "RIGHT_HAND_HAND",
+              "RIP_AND_TEAR",
+              "ROCKET_PUNCH",
+              "ROLLING_BOULDER",
+              "ROYALTIES",
+              "ROYAL_GAMBLE",
+              "RUPTURE",
+              "SACRIFICE",
+              "SALVO",
+              "SCAVENGE",
+              "SCOURGE",
+              "SCRAPE",
+              "SCRAWL",
+              "SCULPTING_STRIKE",
+              "SEANCE",
+              "SECOND_WIND",
+              "SECRET_TECHNIQUE",
+              "SECRET_WEAPON",
+              "SEEKER_STRIKE",
+              "SEEKING_EDGE",
+              "SENTRY_MODE",
+              "SERPENT_FORM",
+              "SETUP_STRIKE",
+              "SEVEN_STARS",
+              "SEVERANCE",
+              "SHADOWMELD",
+              "SHADOW_SHIELD",
+              "SHADOW_STEP",
+              "SHAME",
+              "SHARED_FATE",
+              "SHATTER",
+              "SHINING_STRIKE",
+              "SHIV",
+              "SHOCKWAVE",
+              "SHROUD",
+              "SHRUG_IT_OFF",
+              "SIC_EM",
+              "SIGNAL_BOOST",
+              "SKEWER",
+              "SKIM",
+              "SLEIGHT_OF_FLESH",
+              "SLICE",
+              "SLIMED",
+              "SLOTH",
+              "SMOKESTACK",
+              "SNAKEBITE",
+              "SNAP",
+              "SNEAKY",
+              "SOLAR_STRIKE",
+              "SOOT",
+              "SOUL",
+              "SOUL_STORM",
+              "SOVEREIGN_BLADE",
+              "SOW",
+              "SPECTRUM_SHIFT",
+              "SPEEDSTER",
+              "SPINNER",
+              "SPIRIT_OF_ASH",
+              "SPITE",
+              "SPLASH",
+              "SPOILS_MAP",
+              "SPOILS_OF_BATTLE",
+              "SPORE_MIND",
+              "SPUR",
+              "SQUASH",
+              "SQUEEZE",
+              "STACK",
+              "STAMPEDE",
+              "STARDUST",
+              "STOKE",
+              "STOMP",
+              "STONE_ARMOR",
+              "STORM",
+              "STORM_OF_STEEL",
+              "STRANGLE",
+              "STRATAGEM",
+              "STRIKE_DEFECT",
+              "STRIKE_IRONCLAD",
+              "STRIKE_NECROBINDER",
+              "STRIKE_REGENT",
+              "STRIKE_SILENT",
+              "SUBROUTINE",
+              "SUCKER_PUNCH",
+              "SUMMON_FORTH",
+              "SUNDER",
+              "SUPERCRITICAL",
+              "SUPERMASSIVE",
+              "SUPPRESS",
+              "SURVIVOR",
+              "SWEEPING_BEAM",
+              "SWEEPING_GAZE",
+              "SWORD_BOOMERANG",
+              "SWORD_SAGE",
+              "SYNCHRONIZE",
+              "SYNTHESIS",
+              "TACTICIAN",
+              "TAG_TEAM",
+              "TANK",
+              "TAUNT",
+              "TEAR_ASUNDER",
+              "TEMPEST",
+              "TERRAFORMING",
+              "TESLA_COIL",
+              "THE_BOMB",
+              "THE_GAMBIT",
+              "THE_HUNT",
+              "THE_SCYTHE",
+              "THE_SEALED_THRONE",
+              "THE_SMITH",
+              "THINKING_AHEAD",
+              "THRASH",
+              "THRUMMING_HATCHET",
+              "THUNDER",
+              "THUNDERCLAP",
+              "TIMES_UP",
+              "TOOLS_OF_THE_TRADE",
+              "TORIC_TOUGHNESS",
+              "TOXIC",
+              "TRACKING",
+              "TRANSFIGURE",
+              "TRASH_TO_TREASURE",
+              "TREMBLE",
+              "TRUE_GRIT",
+              "TURBO",
+              "TWIN_STRIKE",
+              "TYRANNY",
+              "ULTIMATE_DEFEND",
+              "ULTIMATE_STRIKE",
+              "UNDEATH",
+              "UNLEASH",
+              "UNMOVABLE",
+              "UNRELENTING",
+              "UNTOUCHABLE",
+              "UPPERCUT",
+              "UPROAR",
+              "UP_MY_SLEEVE",
+              "VEILPIERCER",
+              "VENERATE",
+              "VICIOUS",
+              "VOID",
+              "VOID_FORM",
+              "VOLLEY",
+              "VOLTAIC",
+              "WASTE_AWAY",
+              "WELL_LAID_PLANS",
+              "WHIRLWIND",
+              "WHISTLE",
+              "WHITE_NOISE",
+              "WISH",
+              "WISP",
+              "WOUND",
+              "WRAITH_FORM",
+              "WRITHE",
+              "WROUGHT_IN_WAR",
+              "ZAP",
+              null
             ],
             "default": null
           },
           "relicId": {
-            "type": [
-              "string",
-              "null"
+            "enum": [
+              "UNKNOWN",
+              "AKABEKO",
+              "ALCHEMICAL_COFFER",
+              "AMETHYST_AUBERGINE",
+              "ANCHOR",
+              "ARCANE_SCROLL",
+              "ARCHAIC_TOOTH",
+              "ART_OF_WAR",
+              "ASTROLABE",
+              "BAG_OF_MARBLES",
+              "BAG_OF_PREPARATION",
+              "BEATING_REMNANT",
+              "BEAUTIFUL_BRACELET",
+              "BELLOWS",
+              "BELT_BUCKLE",
+              "BIG_HAT",
+              "BIG_MUSHROOM",
+              "BIIIG_HUG",
+              "BING_BONG",
+              "BLACK_BLOOD",
+              "BLACK_STAR",
+              "BLESSED_ANTLER",
+              "BLOOD_SOAKED_ROSE",
+              "BLOOD_VIAL",
+              "BONE_FLUTE",
+              "BONE_TEA",
+              "BOOKMARK",
+              "BOOK_OF_FIVE_RINGS",
+              "BOOK_REPAIR_KNIFE",
+              "BOOMING_CONCH",
+              "BOUND_PHYLACTERY",
+              "BOWLER_HAT",
+              "BREAD",
+              "BRILLIANT_SCARF",
+              "BRIMSTONE",
+              "BRONZE_SCALES",
+              "BURNING_BLOOD",
+              "BURNING_STICKS",
+              "BYRDPIP",
+              "CALLING_BELL",
+              "CANDELABRA",
+              "CAPTAINS_WHEEL",
+              "CAULDRON",
+              "CENTENNIAL_PUZZLE",
+              "CHANDELIER",
+              "CHARONS_ASHES",
+              "CHEMICAL_X",
+              "CHOICES_PARADOX",
+              "CHOSEN_CHEESE",
+              "CIRCLET",
+              "CLAWS",
+              "CLOAK_CLASP",
+              "CRACKED_CORE",
+              "CROSSBOW",
+              "CURSED_PEARL",
+              "DARKSTONE_PERIAPT",
+              "DATA_DISK",
+              "DAUGHTER_OF_THE_WIND",
+              "DELICATE_FROND",
+              "DEMON_TONGUE",
+              "DEPRECATED_RELIC",
+              "DIAMOND_DIADEM",
+              "DINGY_RUG",
+              "DISTINGUISHED_CAPE",
+              "DIVINE_DESTINY",
+              "DIVINE_RIGHT",
+              "DOLLYS_MIRROR",
+              "DRAGON_FRUIT",
+              "DREAM_CATCHER",
+              "DRIFTWOOD",
+              "DUSTY_TOME",
+              "ECTOPLASM",
+              "ELECTRIC_SHRYMP",
+              "EMBER_TEA",
+              "EMOTION_CHIP",
+              "EMPTY_CAGE",
+              "ETERNAL_FEATHER",
+              "FAKE_ANCHOR",
+              "FAKE_BLOOD_VIAL",
+              "FAKE_HAPPY_FLOWER",
+              "FAKE_LEES_WAFFLE",
+              "FAKE_MANGO",
+              "FAKE_MERCHANTS_RUG",
+              "FAKE_ORICHALCUM",
+              "FAKE_SNECKO_EYE",
+              "FAKE_STRIKE_DUMMY",
+              "FAKE_VENERABLE_TEA_SET",
+              "FENCING_MANUAL",
+              "FESTIVE_POPPER",
+              "FIDDLE",
+              "FORGOTTEN_SOUL",
+              "FRAGRANT_MUSHROOM",
+              "FRESNEL_LENS",
+              "FROZEN_EGG",
+              "FUNERARY_MASK",
+              "FUR_COAT",
+              "GALACTIC_DUST",
+              "GAMBLING_CHIP",
+              "GAME_PIECE",
+              "GHOST_SEED",
+              "GIRYA",
+              "GLASS_EYE",
+              "GLITTER",
+              "GNARLED_HAMMER",
+              "GOLDEN_COMPASS",
+              "GOLDEN_PEARL",
+              "GOLD_PLATED_CABLES",
+              "GORGET",
+              "GREMLIN_HORN",
+              "HAND_DRILL",
+              "HAPPY_FLOWER",
+              "HEFTY_TABLET",
+              "HELICAL_DART",
+              "HISTORY_COURSE",
+              "HORN_CLEAT",
+              "ICE_CREAM",
+              "INFUSED_CORE",
+              "INTIMIDATING_HELMET",
+              "IRON_CLUB",
+              "IVORY_TILE",
+              "JEWELED_MASK",
+              "JEWELRY_BOX",
+              "JOSS_PAPER",
+              "JUZU_BRACELET",
+              "KIFUDA",
+              "KUNAI",
+              "KUSARIGAMA",
+              "LANTERN",
+              "LARGE_CAPSULE",
+              "LASTING_CANDY",
+              "LAVA_LAMP",
+              "LAVA_ROCK",
+              "LEAD_PAPERWEIGHT",
+              "LEAFY_POULTICE",
+              "LEES_WAFFLE",
+              "LETTER_OPENER",
+              "LIZARD_TAIL",
+              "LOOMING_FRUIT",
+              "LORDS_PARASOL",
+              "LOST_COFFER",
+              "LOST_WISP",
+              "LUCKY_FYSH",
+              "LUNAR_PASTRY",
+              "MANGO",
+              "MASSIVE_SCROLL",
+              "MAW_BANK",
+              "MEAL_TICKET",
+              "MEAT_CLEAVER",
+              "MEAT_ON_THE_BONE",
+              "MEMBERSHIP_CARD",
+              "MERCURY_HOURGLASS",
+              "METRONOME",
+              "MINIATURE_CANNON",
+              "MINIATURE_TENT",
+              "MINI_REGENT",
+              "MOLTEN_EGG",
+              "MR_STRUGGLES",
+              "MUMMIFIED_HAND",
+              "MUSIC_BOX",
+              "MYSTIC_LIGHTER",
+              "NEOWS_BONES",
+              "NEOWS_TALISMAN",
+              "NEOWS_TORMENT",
+              "NEW_LEAF",
+              "NINJA_SCROLL",
+              "NUNCHAKU",
+              "NUTRITIOUS_OYSTER",
+              "NUTRITIOUS_SOUP",
+              "ODDLY_SMOOTH_STONE",
+              "OLD_COIN",
+              "ORANGE_DOUGH",
+              "ORICHALCUM",
+              "ORNAMENTAL_FAN",
+              "ORRERY",
+              "PAELS_BLOOD",
+              "PAELS_CLAW",
+              "PAELS_EYE",
+              "PAELS_FLESH",
+              "PAELS_GROWTH",
+              "PAELS_HORN",
+              "PAELS_LEGION",
+              "PAELS_TEARS",
+              "PAELS_TOOTH",
+              "PAELS_WING",
+              "PANDORAS_BOX",
+              "PANTOGRAPH",
+              "PAPER_KRANE",
+              "PAPER_PHROG",
+              "PARRYING_SHIELD",
+              "PEAR",
+              "PENDULUM",
+              "PEN_NIB",
+              "PERMAFROST",
+              "PETRIFIED_TOAD",
+              "PHIAL_HOLSTER",
+              "PHILOSOPHERS_STONE",
+              "PHYLACTERY_UNBOUND",
+              "PLANISPHERE",
+              "POCKETWATCH",
+              "POLLINOUS_CORE",
+              "POMANDER",
+              "POTION_BELT",
+              "POWER_CELL",
+              "PRAYER_WHEEL",
+              "PRECARIOUS_SHEARS",
+              "PRECISE_SCISSORS",
+              "PRESERVED_FOG",
+              "PRISMATIC_GEM",
+              "PUMPKIN_CANDLE",
+              "PUNCH_DAGGER",
+              "RADIANT_PEARL",
+              "RAINBOW_RING",
+              "RAZOR_TOOTH",
+              "RED_MASK",
+              "RED_SKULL",
+              "REGALITE",
+              "REGAL_PILLOW",
+              "REPTILE_TRINKET",
+              "RINGING_TRIANGLE",
+              "RING_OF_THE_DRAKE",
+              "RING_OF_THE_SNAKE",
+              "RIPPLE_BASIN",
+              "ROYAL_POISON",
+              "ROYAL_STAMP",
+              "RUINED_HELMET",
+              "RUNIC_CAPACITOR",
+              "RUNIC_PYRAMID",
+              "SAI",
+              "SAND_CASTLE",
+              "SCREAMING_FLAGON",
+              "SCROLL_BOXES",
+              "SEAL_OF_GOLD",
+              "SEA_GLASS",
+              "SELF_FORMING_CLAY",
+              "SERE_TALON",
+              "SHOVEL",
+              "SHURIKEN",
+              "SIGNET_RING",
+              "SILVER_CRUCIBLE",
+              "SLING_OF_COURAGE",
+              "SMALL_CAPSULE",
+              "SNECKO_EYE",
+              "SNECKO_SKULL",
+              "SOZU",
+              "SPARKLING_ROUGE",
+              "SPIKED_GAUNTLETS",
+              "STONE_CALENDAR",
+              "STONE_CRACKER",
+              "STONE_HUMIDIFIER",
+              "STORYBOOK",
+              "STRAWBERRY",
+              "STRIKE_DUMMY",
+              "STURDY_CLAMP",
+              "SWORD_OF_JADE",
+              "SWORD_OF_STONE",
+              "SYMBIOTIC_VIRUS",
+              "TANXS_WHISTLE",
+              "TEA_OF_DISCOURTESY",
+              "THE_ABACUS",
+              "THE_BOOT",
+              "THE_COURIER",
+              "THROWING_AXE",
+              "TINGSHA",
+              "TINY_MAILBOX",
+              "TOASTY_MITTENS",
+              "TOOLBOX",
+              "TOUCH_OF_OROBAS",
+              "TOUGH_BANDAGES",
+              "TOXIC_EGG",
+              "TOY_BOX",
+              "TRI_BOOMERANG",
+              "TUNGSTEN_ROD",
+              "TUNING_FORK",
+              "TWISTED_FUNNEL",
+              "UNCEASING_TOP",
+              "UNDYING_SIGIL",
+              "UNSETTLING_LAMP",
+              "VAJRA",
+              "VAMBRACE",
+              "VELVET_CHOKER",
+              "VENERABLE_TEA_SET",
+              "VERY_HOT_COCOA",
+              "VEXING_PUZZLEBOX",
+              "VITRUVIAN_MINION",
+              "WAR_HAMMER",
+              "WAR_PAINT",
+              "WHETSTONE",
+              "WHISPERING_EARRING",
+              "WHITE_BEAST_STATUE",
+              "WHITE_STAR",
+              "WINGED_BOOTS",
+              "WING_CHARM",
+              "WONGOS_MYSTERY_TICKET",
+              "WONGO_CUSTOMER_APPRECIATION_BADGE",
+              "YUMMY_COOKIE",
+              null
             ],
             "default": null
           },
           "potionId": {
-            "type": [
-              "string",
-              "null"
+            "enum": [
+              "UNKNOWN",
+              "ASHWATER",
+              "ATTACK_POTION",
+              "BEETLE_JUICE",
+              "BLESSING_OF_THE_FORGE",
+              "BLOCK_POTION",
+              "BLOOD_POTION",
+              "BONE_BREW",
+              "BOTTLED_POTENTIAL",
+              "CLARITY",
+              "COLORLESS_POTION",
+              "COSMIC_CONCOCTION",
+              "CUNNING_POTION",
+              "CURE_ALL",
+              "DEPRECATED_POTION",
+              "DEXTERITY_POTION",
+              "DISTILLED_CHAOS",
+              "DROPLET_OF_PRECOGNITION",
+              "DUPLICATOR",
+              "ENERGY_POTION",
+              "ENTROPIC_BREW",
+              "ESSENCE_OF_DARKNESS",
+              "EXPLOSIVE_AMPOULE",
+              "FAIRY_IN_A_BOTTLE",
+              "FIRE_POTION",
+              "FLEX_POTION",
+              "FOCUS_POTION",
+              "FORTIFIER",
+              "FOUL_POTION",
+              "FRUIT_JUICE",
+              "FYSH_OIL",
+              "GAMBLERS_BREW",
+              "GHOST_IN_A_JAR",
+              "GIGANTIFICATION_POTION",
+              "GLOWWATER_POTION",
+              "HEART_OF_IRON",
+              "KINGS_COURAGE",
+              "LIQUID_BRONZE",
+              "LIQUID_MEMORIES",
+              "LUCKY_TONIC",
+              "MAZALETHS_GIFT",
+              "OROBIC_ACID",
+              "POISON_POTION",
+              "POTION_OF_BINDING",
+              "POTION_OF_CAPACITY",
+              "POTION_OF_DOOM",
+              "POTION_SHAPED_ROCK",
+              "POT_OF_GHOULS",
+              "POWDERED_DEMISE",
+              "POWER_POTION",
+              "RADIANT_TINCTURE",
+              "REGEN_POTION",
+              "SHACKLING_POTION",
+              "SHIP_IN_A_BOTTLE",
+              "SKILL_POTION",
+              "SNECKO_OIL",
+              "SOLDIERS_STEW",
+              "SPEED_POTION",
+              "STABLE_SERUM",
+              "STAR_POTION",
+              "STRENGTH_POTION",
+              "SWIFT_POTION",
+              "TOUCH_OF_INSANITY",
+              "VULNERABLE_POTION",
+              "WEAK_POTION",
+              null
             ],
             "default": null
           }
@@ -1755,7 +3900,7 @@
             "type": "integer"
           },
           "optionId": {
-            "type": "string"
+            "$ref": "#/components/schemas/RestSiteOptionId"
           },
           "isEnabled": {
             "type": "boolean"
@@ -1765,6 +3910,19 @@
           "index",
           "optionId",
           "isEnabled"
+        ]
+      },
+      "RestSiteOptionId": {
+        "enum": [
+          "UNKNOWN",
+          "HEAL",
+          "SMITH",
+          "DIG",
+          "LIFT",
+          "TOOLBOX",
+          "RECALL",
+          "MEDITATE",
+          "PRAY"
         ]
       },
       "RewardKind": {
@@ -1796,16 +3954,374 @@
             "default": null
           },
           "potionId": {
-            "type": [
-              "string",
-              "null"
+            "enum": [
+              "UNKNOWN",
+              "ASHWATER",
+              "ATTACK_POTION",
+              "BEETLE_JUICE",
+              "BLESSING_OF_THE_FORGE",
+              "BLOCK_POTION",
+              "BLOOD_POTION",
+              "BONE_BREW",
+              "BOTTLED_POTENTIAL",
+              "CLARITY",
+              "COLORLESS_POTION",
+              "COSMIC_CONCOCTION",
+              "CUNNING_POTION",
+              "CURE_ALL",
+              "DEPRECATED_POTION",
+              "DEXTERITY_POTION",
+              "DISTILLED_CHAOS",
+              "DROPLET_OF_PRECOGNITION",
+              "DUPLICATOR",
+              "ENERGY_POTION",
+              "ENTROPIC_BREW",
+              "ESSENCE_OF_DARKNESS",
+              "EXPLOSIVE_AMPOULE",
+              "FAIRY_IN_A_BOTTLE",
+              "FIRE_POTION",
+              "FLEX_POTION",
+              "FOCUS_POTION",
+              "FORTIFIER",
+              "FOUL_POTION",
+              "FRUIT_JUICE",
+              "FYSH_OIL",
+              "GAMBLERS_BREW",
+              "GHOST_IN_A_JAR",
+              "GIGANTIFICATION_POTION",
+              "GLOWWATER_POTION",
+              "HEART_OF_IRON",
+              "KINGS_COURAGE",
+              "LIQUID_BRONZE",
+              "LIQUID_MEMORIES",
+              "LUCKY_TONIC",
+              "MAZALETHS_GIFT",
+              "OROBIC_ACID",
+              "POISON_POTION",
+              "POTION_OF_BINDING",
+              "POTION_OF_CAPACITY",
+              "POTION_OF_DOOM",
+              "POTION_SHAPED_ROCK",
+              "POT_OF_GHOULS",
+              "POWDERED_DEMISE",
+              "POWER_POTION",
+              "RADIANT_TINCTURE",
+              "REGEN_POTION",
+              "SHACKLING_POTION",
+              "SHIP_IN_A_BOTTLE",
+              "SKILL_POTION",
+              "SNECKO_OIL",
+              "SOLDIERS_STEW",
+              "SPEED_POTION",
+              "STABLE_SERUM",
+              "STAR_POTION",
+              "STRENGTH_POTION",
+              "SWIFT_POTION",
+              "TOUCH_OF_INSANITY",
+              "VULNERABLE_POTION",
+              "WEAK_POTION",
+              null
             ],
             "default": null
           },
           "relicId": {
-            "type": [
-              "string",
-              "null"
+            "enum": [
+              "UNKNOWN",
+              "AKABEKO",
+              "ALCHEMICAL_COFFER",
+              "AMETHYST_AUBERGINE",
+              "ANCHOR",
+              "ARCANE_SCROLL",
+              "ARCHAIC_TOOTH",
+              "ART_OF_WAR",
+              "ASTROLABE",
+              "BAG_OF_MARBLES",
+              "BAG_OF_PREPARATION",
+              "BEATING_REMNANT",
+              "BEAUTIFUL_BRACELET",
+              "BELLOWS",
+              "BELT_BUCKLE",
+              "BIG_HAT",
+              "BIG_MUSHROOM",
+              "BIIIG_HUG",
+              "BING_BONG",
+              "BLACK_BLOOD",
+              "BLACK_STAR",
+              "BLESSED_ANTLER",
+              "BLOOD_SOAKED_ROSE",
+              "BLOOD_VIAL",
+              "BONE_FLUTE",
+              "BONE_TEA",
+              "BOOKMARK",
+              "BOOK_OF_FIVE_RINGS",
+              "BOOK_REPAIR_KNIFE",
+              "BOOMING_CONCH",
+              "BOUND_PHYLACTERY",
+              "BOWLER_HAT",
+              "BREAD",
+              "BRILLIANT_SCARF",
+              "BRIMSTONE",
+              "BRONZE_SCALES",
+              "BURNING_BLOOD",
+              "BURNING_STICKS",
+              "BYRDPIP",
+              "CALLING_BELL",
+              "CANDELABRA",
+              "CAPTAINS_WHEEL",
+              "CAULDRON",
+              "CENTENNIAL_PUZZLE",
+              "CHANDELIER",
+              "CHARONS_ASHES",
+              "CHEMICAL_X",
+              "CHOICES_PARADOX",
+              "CHOSEN_CHEESE",
+              "CIRCLET",
+              "CLAWS",
+              "CLOAK_CLASP",
+              "CRACKED_CORE",
+              "CROSSBOW",
+              "CURSED_PEARL",
+              "DARKSTONE_PERIAPT",
+              "DATA_DISK",
+              "DAUGHTER_OF_THE_WIND",
+              "DELICATE_FROND",
+              "DEMON_TONGUE",
+              "DEPRECATED_RELIC",
+              "DIAMOND_DIADEM",
+              "DINGY_RUG",
+              "DISTINGUISHED_CAPE",
+              "DIVINE_DESTINY",
+              "DIVINE_RIGHT",
+              "DOLLYS_MIRROR",
+              "DRAGON_FRUIT",
+              "DREAM_CATCHER",
+              "DRIFTWOOD",
+              "DUSTY_TOME",
+              "ECTOPLASM",
+              "ELECTRIC_SHRYMP",
+              "EMBER_TEA",
+              "EMOTION_CHIP",
+              "EMPTY_CAGE",
+              "ETERNAL_FEATHER",
+              "FAKE_ANCHOR",
+              "FAKE_BLOOD_VIAL",
+              "FAKE_HAPPY_FLOWER",
+              "FAKE_LEES_WAFFLE",
+              "FAKE_MANGO",
+              "FAKE_MERCHANTS_RUG",
+              "FAKE_ORICHALCUM",
+              "FAKE_SNECKO_EYE",
+              "FAKE_STRIKE_DUMMY",
+              "FAKE_VENERABLE_TEA_SET",
+              "FENCING_MANUAL",
+              "FESTIVE_POPPER",
+              "FIDDLE",
+              "FORGOTTEN_SOUL",
+              "FRAGRANT_MUSHROOM",
+              "FRESNEL_LENS",
+              "FROZEN_EGG",
+              "FUNERARY_MASK",
+              "FUR_COAT",
+              "GALACTIC_DUST",
+              "GAMBLING_CHIP",
+              "GAME_PIECE",
+              "GHOST_SEED",
+              "GIRYA",
+              "GLASS_EYE",
+              "GLITTER",
+              "GNARLED_HAMMER",
+              "GOLDEN_COMPASS",
+              "GOLDEN_PEARL",
+              "GOLD_PLATED_CABLES",
+              "GORGET",
+              "GREMLIN_HORN",
+              "HAND_DRILL",
+              "HAPPY_FLOWER",
+              "HEFTY_TABLET",
+              "HELICAL_DART",
+              "HISTORY_COURSE",
+              "HORN_CLEAT",
+              "ICE_CREAM",
+              "INFUSED_CORE",
+              "INTIMIDATING_HELMET",
+              "IRON_CLUB",
+              "IVORY_TILE",
+              "JEWELED_MASK",
+              "JEWELRY_BOX",
+              "JOSS_PAPER",
+              "JUZU_BRACELET",
+              "KIFUDA",
+              "KUNAI",
+              "KUSARIGAMA",
+              "LANTERN",
+              "LARGE_CAPSULE",
+              "LASTING_CANDY",
+              "LAVA_LAMP",
+              "LAVA_ROCK",
+              "LEAD_PAPERWEIGHT",
+              "LEAFY_POULTICE",
+              "LEES_WAFFLE",
+              "LETTER_OPENER",
+              "LIZARD_TAIL",
+              "LOOMING_FRUIT",
+              "LORDS_PARASOL",
+              "LOST_COFFER",
+              "LOST_WISP",
+              "LUCKY_FYSH",
+              "LUNAR_PASTRY",
+              "MANGO",
+              "MASSIVE_SCROLL",
+              "MAW_BANK",
+              "MEAL_TICKET",
+              "MEAT_CLEAVER",
+              "MEAT_ON_THE_BONE",
+              "MEMBERSHIP_CARD",
+              "MERCURY_HOURGLASS",
+              "METRONOME",
+              "MINIATURE_CANNON",
+              "MINIATURE_TENT",
+              "MINI_REGENT",
+              "MOLTEN_EGG",
+              "MR_STRUGGLES",
+              "MUMMIFIED_HAND",
+              "MUSIC_BOX",
+              "MYSTIC_LIGHTER",
+              "NEOWS_BONES",
+              "NEOWS_TALISMAN",
+              "NEOWS_TORMENT",
+              "NEW_LEAF",
+              "NINJA_SCROLL",
+              "NUNCHAKU",
+              "NUTRITIOUS_OYSTER",
+              "NUTRITIOUS_SOUP",
+              "ODDLY_SMOOTH_STONE",
+              "OLD_COIN",
+              "ORANGE_DOUGH",
+              "ORICHALCUM",
+              "ORNAMENTAL_FAN",
+              "ORRERY",
+              "PAELS_BLOOD",
+              "PAELS_CLAW",
+              "PAELS_EYE",
+              "PAELS_FLESH",
+              "PAELS_GROWTH",
+              "PAELS_HORN",
+              "PAELS_LEGION",
+              "PAELS_TEARS",
+              "PAELS_TOOTH",
+              "PAELS_WING",
+              "PANDORAS_BOX",
+              "PANTOGRAPH",
+              "PAPER_KRANE",
+              "PAPER_PHROG",
+              "PARRYING_SHIELD",
+              "PEAR",
+              "PENDULUM",
+              "PEN_NIB",
+              "PERMAFROST",
+              "PETRIFIED_TOAD",
+              "PHIAL_HOLSTER",
+              "PHILOSOPHERS_STONE",
+              "PHYLACTERY_UNBOUND",
+              "PLANISPHERE",
+              "POCKETWATCH",
+              "POLLINOUS_CORE",
+              "POMANDER",
+              "POTION_BELT",
+              "POWER_CELL",
+              "PRAYER_WHEEL",
+              "PRECARIOUS_SHEARS",
+              "PRECISE_SCISSORS",
+              "PRESERVED_FOG",
+              "PRISMATIC_GEM",
+              "PUMPKIN_CANDLE",
+              "PUNCH_DAGGER",
+              "RADIANT_PEARL",
+              "RAINBOW_RING",
+              "RAZOR_TOOTH",
+              "RED_MASK",
+              "RED_SKULL",
+              "REGALITE",
+              "REGAL_PILLOW",
+              "REPTILE_TRINKET",
+              "RINGING_TRIANGLE",
+              "RING_OF_THE_DRAKE",
+              "RING_OF_THE_SNAKE",
+              "RIPPLE_BASIN",
+              "ROYAL_POISON",
+              "ROYAL_STAMP",
+              "RUINED_HELMET",
+              "RUNIC_CAPACITOR",
+              "RUNIC_PYRAMID",
+              "SAI",
+              "SAND_CASTLE",
+              "SCREAMING_FLAGON",
+              "SCROLL_BOXES",
+              "SEAL_OF_GOLD",
+              "SEA_GLASS",
+              "SELF_FORMING_CLAY",
+              "SERE_TALON",
+              "SHOVEL",
+              "SHURIKEN",
+              "SIGNET_RING",
+              "SILVER_CRUCIBLE",
+              "SLING_OF_COURAGE",
+              "SMALL_CAPSULE",
+              "SNECKO_EYE",
+              "SNECKO_SKULL",
+              "SOZU",
+              "SPARKLING_ROUGE",
+              "SPIKED_GAUNTLETS",
+              "STONE_CALENDAR",
+              "STONE_CRACKER",
+              "STONE_HUMIDIFIER",
+              "STORYBOOK",
+              "STRAWBERRY",
+              "STRIKE_DUMMY",
+              "STURDY_CLAMP",
+              "SWORD_OF_JADE",
+              "SWORD_OF_STONE",
+              "SYMBIOTIC_VIRUS",
+              "TANXS_WHISTLE",
+              "TEA_OF_DISCOURTESY",
+              "THE_ABACUS",
+              "THE_BOOT",
+              "THE_COURIER",
+              "THROWING_AXE",
+              "TINGSHA",
+              "TINY_MAILBOX",
+              "TOASTY_MITTENS",
+              "TOOLBOX",
+              "TOUCH_OF_OROBAS",
+              "TOUGH_BANDAGES",
+              "TOXIC_EGG",
+              "TOY_BOX",
+              "TRI_BOOMERANG",
+              "TUNGSTEN_ROD",
+              "TUNING_FORK",
+              "TWISTED_FUNNEL",
+              "UNCEASING_TOP",
+              "UNDYING_SIGIL",
+              "UNSETTLING_LAMP",
+              "VAJRA",
+              "VAMBRACE",
+              "VELVET_CHOKER",
+              "VENERABLE_TEA_SET",
+              "VERY_HOT_COCOA",
+              "VEXING_PUZZLEBOX",
+              "VITRUVIAN_MINION",
+              "WAR_HAMMER",
+              "WAR_PAINT",
+              "WHETSTONE",
+              "WHISPERING_EARRING",
+              "WHITE_BEAST_STATUE",
+              "WHITE_STAR",
+              "WINGED_BOOTS",
+              "WING_CHARM",
+              "WONGOS_MYSTERY_TICKET",
+              "WONGO_CUSTOMER_APPRECIATION_BADGE",
+              "YUMMY_COOKIE",
+              null
             ],
             "default": null
           },
@@ -2363,123 +4879,6 @@
         ]
       },
       "RunLeaveMerchantRoomResult": {
-        "type": "object",
-        "properties": {
-          "ok": {
-            "type": "boolean"
-          },
-          "currentRoomType": {
-            "$ref": "#/components/schemas/RoomType"
-          },
-          "actFloor": {
-            "type": "integer"
-          },
-          "currentActIndex": {
-            "type": "integer"
-          },
-          "isGameOver": {
-            "type": "boolean"
-          },
-          "isVictory": {
-            "type": "boolean"
-          },
-          "isDead": {
-            "type": "boolean"
-          },
-          "hp": {
-            "type": "integer"
-          },
-          "availableMapNodes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MapNode"
-            }
-          },
-          "availableEventOptions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EventOption"
-            }
-          },
-          "availableRestSiteOptions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RestSiteOption"
-            }
-          },
-          "availableMerchantItems": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MerchantItem"
-            }
-          },
-          "availableTreasureRelics": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TreasureRelic"
-            }
-          },
-          "combatState": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CombatState"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "rewardsState": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RewardsState"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "relics": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Relic"
-            }
-          },
-          "ownedPotions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OwnedPotion"
-            }
-          }
-        },
-        "required": [
-          "ok",
-          "currentRoomType",
-          "actFloor",
-          "currentActIndex",
-          "isGameOver",
-          "isVictory",
-          "isDead",
-          "hp",
-          "availableMapNodes",
-          "availableEventOptions",
-          "availableRestSiteOptions",
-          "availableMerchantItems",
-          "availableTreasureRelics",
-          "relics",
-          "ownedPotions"
-        ]
-      },
-      "RunLeaveTreasureRoomParams": {
-        "type": "object",
-        "properties": {
-          "skip": {
-            "type": "boolean",
-            "default": false
-          }
-        }
-      },
-      "RunLeaveTreasureRoomResult": {
         "type": "object",
         "properties": {
           "ok": {
@@ -3642,6 +6041,114 @@
           "ownedPotions"
         ]
       },
+      "RunSkipTreasureResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "currentActIndex": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
+          "combatState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewardsState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "currentRoomType",
+          "actFloor",
+          "currentActIndex",
+          "isGameOver",
+          "isVictory",
+          "isDead",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "availableRestSiteOptions",
+          "availableMerchantItems",
+          "availableTreasureRelics",
+          "relics",
+          "ownedPotions"
+        ]
+      },
       "RunStateResult": {
         "type": "object",
         "properties": {
@@ -3799,6 +6306,129 @@
           "ownedPotions",
           "triggeredSincePrev",
           "triggeredDropped"
+        ]
+      },
+      "RunSummarizeStateResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "summary"
+        ]
+      },
+      "RunTakeTreasureResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "currentRoomType": {
+            "$ref": "#/components/schemas/RoomType"
+          },
+          "actFloor": {
+            "type": "integer"
+          },
+          "currentActIndex": {
+            "type": "integer"
+          },
+          "isGameOver": {
+            "type": "boolean"
+          },
+          "isVictory": {
+            "type": "boolean"
+          },
+          "isDead": {
+            "type": "boolean"
+          },
+          "hp": {
+            "type": "integer"
+          },
+          "availableMapNodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            }
+          },
+          "availableEventOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventOption"
+            }
+          },
+          "availableRestSiteOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestSiteOption"
+            }
+          },
+          "availableMerchantItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantItem"
+            }
+          },
+          "availableTreasureRelics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreasureRelic"
+            }
+          },
+          "combatState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewardsState": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardsState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Relic"
+            }
+          },
+          "ownedPotions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnedPotion"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "currentRoomType",
+          "actFloor",
+          "currentActIndex",
+          "isGameOver",
+          "isVictory",
+          "isDead",
+          "hp",
+          "availableMapNodes",
+          "availableEventOptions",
+          "availableRestSiteOptions",
+          "availableMerchantItems",
+          "availableTreasureRelics",
+          "relics",
+          "ownedPotions"
         ]
       },
       "RunUsePotionParams": {

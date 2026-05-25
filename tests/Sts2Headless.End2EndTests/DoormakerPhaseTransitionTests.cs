@@ -97,7 +97,7 @@ public class DoormakerPhaseTransitionTests
         var boss = state.CombatState?.Enemies.FirstOrDefault();
         Assert.NotNull(boss);
         Assert.True(
-            boss!.Powers.Any(p => p.Id.Contains("HUNGER", StringComparison.OrdinalIgnoreCase)),
+            boss!.Powers.Any(p => p.Id.ToString().Contains("HUNGER", StringComparison.OrdinalIgnoreCase)),
             $"Doormaker should carry HUNGER_POWER (or HUNGER_OF_THE_VOID_POWER) after " +
             $"DramaticOpenMove's phase setup. Observed powers: " +
             $"[{string.Join(",", boss.Powers.Select(p => $"{p.Id}:{p.Amount}"))}]");

@@ -36,6 +36,7 @@ public static class CheatHostMethods
             ["debug/read_deck"] = WireHandlers.Typed<DebugReadDeckParams, DebugReadDeckResult>(_ => DebugReadDeck(bindings, getRun)),
             ["debug/kill_all_enemies"] = WireHandlers.Typed<DebugKillAllEnemiesParams, DebugKillAllEnemiesResult>(_ => DebugKillAllEnemies(bindings, getRun)),
             ["debug/start_combat"] = WireHandlers.Typed<DebugStartCombatParams, DebugStartCombatResult>(p => DebugStartCombat(bindings, getRun, p)),
+            ["debug/reveal_act_schedule"] = WireHandlers.Typed<DebugRevealActScheduleParams, DebugRevealActScheduleResult>(_ => DebugRevealActSchedule(bindings, getRun)),
         };
 
     private static DebugSetHpResult DebugSetHp(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugSetHpParams? @params)
@@ -215,6 +216,30 @@ public static class CheatHostMethods
             // the right code (same pattern as ReplaceDeck's unknown-card path).
             throw new WireException(WireErrorCode.InvalidParams, ex.Message);
         }
+    }
+
+    private static DebugRevealActScheduleResult DebugRevealActSchedule(Sts2Bindings bindings, Func<RunHandle?> getRun)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var snap = bindings.ReadActSchedule(run);
+        var ok = snap.ActIndex >= 0
+            && (snap.BossId is not null
+                || snap.NormalEncounterIds.Count > 0
+                || snap.EliteEncounterIds.Count > 0
+                || snap.EventIds.Count > 0);
+        return new DebugRevealActScheduleResult(
+            Ok: ok,
+            ActIndex: snap.ActIndex,
+            BossId: snap.BossId,
+            SecondBossId: snap.SecondBossId,
+            AncientId: snap.AncientId,
+            NormalEncounterIds: snap.NormalEncounterIds,
+            EliteEncounterIds: snap.EliteEncounterIds,
+            EventIds: snap.EventIds,
+            NormalEncountersVisited: snap.NormalEncountersVisited,
+            EliteEncountersVisited: snap.EliteEncountersVisited,
+            EventsVisited: snap.EventsVisited);
     }
 
     private static DebugGiveRelicResult DebugGiveRelic(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugGiveRelicParams? @params)

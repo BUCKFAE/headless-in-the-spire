@@ -65,7 +65,7 @@ public sealed partial class Sts2Bindings
             {
                 // Soft-fail: leave the cache miss so the next snapshot retries.
                 // The caller sees an empty offering and can still call
-                // run/leave_treasure_room (which has its own grant path).
+                // run/take_treasure (which has its own grant path).
                 return Array.Empty<TreasureRelic>();
             }
 
@@ -81,8 +81,8 @@ public sealed partial class Sts2Bindings
             foreach (var r in cr)
             {
                 if (r is null) continue;
-                var id = _relicModelId is not null ? ReadEntryId(_relicModelId, r) : null;
-                if (id is not null) result.Add(new TreasureRelic(id));
+                var idWire = _relicModelId is not null ? ReadEntryId(_relicModelId, r) : null;
+                if (idWire is not null) result.Add(new TreasureRelic(RelicIdNames.FromWire(idWire)));
             }
         }
         return result;
@@ -126,7 +126,7 @@ public sealed partial class Sts2Bindings
         if (!_treasureRoomType.IsInstanceOfType(room))
         {
             throw new InvalidOperationException(
-                $"run/leave_treasure_room called but current room is {room.GetType().Name}, not TreasureRoom");
+                $"run/take_treasure/skip_treasure called but current room is {room.GetType().Name}, not TreasureRoom");
         }
 
         if (_treasureRoomDoNormalRewards is null

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Content-introspection wire methods (content/*): static game-content queries (cards, relics, powers, potions, events, encounters, per-act pools, rules) plus run-conditioned-but-player-visible queries (this run's act-1 boss preview). Pure reads from sts2.dll's ModelDb — no seed leakage; the matching seed-deterministic reveals live under debug/* (AD-7).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <ProjectReference Include="..\Sts2Headless.Runtime\Sts2Headless.Runtime.csproj" />
+  </ItemGroup>
+
+</Project>

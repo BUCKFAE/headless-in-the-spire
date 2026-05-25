@@ -39,7 +39,8 @@ public sealed partial class Sts2Bindings
         {
             var opt = options[i];
             if (opt is null) continue;
-            var optionId = _restSiteOptionOptionId?.GetValue(opt) as string ?? opt.GetType().Name;
+            var optionIdWire = _restSiteOptionOptionId?.GetValue(opt) as string ?? opt.GetType().Name;
+            var optionId = MapRestSiteOptionId(optionIdWire);
             var isEnabled = _restSiteOptionIsEnabled is not null
                 && (bool)(_restSiteOptionIsEnabled.GetValue(opt) ?? false);
             result.Add(new RestSiteOption(i, optionId, isEnabled));
@@ -109,4 +110,24 @@ public sealed partial class Sts2Bindings
             }
         }
     }
+
+    // Map sts2's stable rest-site option string ("HEAL", "SMITH", …) to
+    // the wire enum. Grow as new options surface — Unknown falls through
+    // so a missing entry still surfaces (with an opaque kind clients
+    // can't act on) rather than getting silently dropped.
+    private static readonly IReadOnlyDictionary<string, RestSiteOptionId> _restSiteOptionIdMap =
+        new Dictionary<string, RestSiteOptionId>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["HEAL"] = RestSiteOptionId.Heal,
+            ["SMITH"] = RestSiteOptionId.Smith,
+            ["DIG"] = RestSiteOptionId.Dig,
+            ["LIFT"] = RestSiteOptionId.Lift,
+            ["TOOLBOX"] = RestSiteOptionId.Toolbox,
+            ["RECALL"] = RestSiteOptionId.Recall,
+            ["MEDITATE"] = RestSiteOptionId.Meditate,
+            ["PRAY"] = RestSiteOptionId.Pray,
+        };
+
+    private static RestSiteOptionId MapRestSiteOptionId(string wire) =>
+        _restSiteOptionIdMap.TryGetValue(wire, out var id) ? id : RestSiteOptionId.Unknown;
 }

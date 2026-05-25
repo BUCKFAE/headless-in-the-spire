@@ -72,13 +72,23 @@ class SelectRestSiteOption:
 
 
 @dataclass(frozen=True, slots=True)
-class LeaveTreasureRoom:
-    """Auto-resolve the treasure room (open the chest, grab the relic, leave).
+class TakeTreasure:
+    """Open the treasure-room chest, grant the offered relic, leave.
 
-    The host exposes treasure as a single no-arg call — there is no
-    pre-open preview, no "skip the chest" option. If we later need to
-    surface a relic choice we'll add a follow-up action; today this is
-    the only legal move once `Phase.treasure` is live.
+    Maps to `run/take_treasure`. Most agents pick this — the offered
+    relic is visible via `available_treasure_relics` and the greedy
+    posture is "always claim". Override with `SkipTreasure` when the
+    offered relic is undesirable.
+    """
+
+
+@dataclass(frozen=True, slots=True)
+class SkipTreasure:
+    """Walk past the chest without granting the offered relic.
+
+    Maps to `run/skip_treasure`. Useful for relic-conflict avoidance,
+    SilverCrucible-style modifiers, or any agent that prefers a known-
+    bad offering over an empty Player.Relics slot.
     """
 
 
@@ -124,7 +134,8 @@ type Action = (
     | SelectReward
     | SkipReward
     | SelectRestSiteOption
-    | LeaveTreasureRoom
+    | TakeTreasure
+    | SkipTreasure
     | LeaveMerchantRoom
     | EnterNextAct
     | ProceedEvent

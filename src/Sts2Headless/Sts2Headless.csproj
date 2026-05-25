@@ -11,6 +11,7 @@
          are internal to that package. -->
     <ProjectReference Include="..\Sts2Headless.Commands\Sts2Headless.Commands.csproj" />
     <ProjectReference Include="..\Sts2Headless.Cheats\Sts2Headless.Cheats.csproj" />
+    <ProjectReference Include="..\Sts2Headless.Content\Sts2Headless.Content.csproj" />
     <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
     <!-- Replay substrate (AD-8): host wires the recorder into run/new
          when STS2_REPLAY_OUT is set, and the manifest is flushed on the

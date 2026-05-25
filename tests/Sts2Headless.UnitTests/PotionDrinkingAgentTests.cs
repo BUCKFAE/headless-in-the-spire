@@ -19,7 +19,7 @@ public class PotionDrinkingAgentTests
             round: 1,
             potions: new[]
             {
-                new OwnedPotion(Index: 0, Id: "BLOCK_POTION", TargetType: TargetType.None, CanUse: true),
+                new OwnedPotion(Index: 0, Id: PotionId.BlockPotion, TargetType: TargetType.None, CanUse: true),
             });
 
         var action = agent.Decide(state);
@@ -37,7 +37,7 @@ public class PotionDrinkingAgentTests
             round: 1,
             potions: new[]
             {
-                new OwnedPotion(Index: 0, Id: "FIRE_POTION", TargetType: TargetType.AnyEnemy, CanUse: true),
+                new OwnedPotion(Index: 0, Id: PotionId.FirePotion, TargetType: TargetType.AnyEnemy, CanUse: true),
             });
 
         var use = Assert.IsType<UsePotion>(agent.Decide(state));
@@ -52,8 +52,8 @@ public class PotionDrinkingAgentTests
             round: 1,
             potions: new[]
             {
-                new OwnedPotion(Index: 0, Id: "BLOCKED_POTION", TargetType: TargetType.None, CanUse: false),
-                new OwnedPotion(Index: 1, Id: "BLOCK_POTION", TargetType: TargetType.None, CanUse: true),
+                new OwnedPotion(Index: 0, Id: PotionId.Unknown, TargetType: TargetType.None, CanUse: false),
+                new OwnedPotion(Index: 1, Id: PotionId.BlockPotion, TargetType: TargetType.None, CanUse: true),
             });
 
         var use = Assert.IsType<UsePotion>(agent.Decide(state));
@@ -81,7 +81,7 @@ public class PotionDrinkingAgentTests
             round: 2,
             potions: new[]
             {
-                new OwnedPotion(Index: 0, Id: "BLOCK_POTION", TargetType: TargetType.None, CanUse: true),
+                new OwnedPotion(Index: 0, Id: PotionId.BlockPotion, TargetType: TargetType.None, CanUse: true),
             });
 
         Assert.IsType<EndTurn>(agent.Decide(state));
@@ -117,7 +117,7 @@ public class PotionDrinkingAgentTests
             Hand: Array.Empty<Card>(),
             Enemies: new[]
             {
-                new Enemy(0, "JAW_WORM", Hp: 40, MaxHp: 40, Block: 0, IntendsAttack: false,
+                new Enemy(0, MonsterIdNames.FromWire("JAW_WORM"), Hp: 40, MaxHp: 40, Block: 0, IntendsAttack: false,
                     Intents: Array.Empty<Intent>(), Powers: Array.Empty<Power>()),
             },
             PlayerPowers: Array.Empty<Power>()),

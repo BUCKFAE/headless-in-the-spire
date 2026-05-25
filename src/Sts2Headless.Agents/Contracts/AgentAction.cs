@@ -32,7 +32,8 @@ public sealed record SelectEventOption(int OptionIndex) : AgentAction;
 public sealed record SelectRestSiteOption(
     int OptionIndex,
     IReadOnlyList<IReadOnlyList<int>>? CardSelectIndices = null) : AgentAction;
-public sealed record LeaveTreasureRoom : AgentAction;
+public sealed record TakeTreasure : AgentAction;
+public sealed record SkipTreasure : AgentAction;
 public sealed record BuyMerchantItem(int ItemIndex) : AgentAction;
 public sealed record LeaveMerchantRoom : AgentAction;
 public sealed record EnterNextAct : AgentAction;

@@ -134,20 +134,17 @@ public class MerchantRoomTests : IClassFixture<HostSubprocess>
             switch (item.Kind)
             {
                 case MerchantKind.Card:
-                    Assert.False(string.IsNullOrEmpty(item.CardId),
-                        $"card item index={item.Index} has empty cardId");
+                    Assert.NotNull(item.CardId);
                     Assert.Null(item.RelicId);
                     Assert.Null(item.PotionId);
                     break;
                 case MerchantKind.Relic:
-                    Assert.False(string.IsNullOrEmpty(item.RelicId),
-                        $"relic item index={item.Index} has empty relicId");
+                    Assert.NotNull(item.RelicId);
                     Assert.Null(item.CardId);
                     Assert.Null(item.PotionId);
                     break;
                 case MerchantKind.Potion:
-                    Assert.False(string.IsNullOrEmpty(item.PotionId),
-                        $"potion item index={item.Index} has empty potionId");
+                    Assert.NotNull(item.PotionId);
                     Assert.Null(item.CardId);
                     Assert.Null(item.RelicId);
                     break;
@@ -216,8 +213,9 @@ public class MerchantRoomTests : IClassFixture<HostSubprocess>
                 break;
             case MerchantKind.Relic:
                 Assert.NotNull(pick.RelicId);
-                Assert.Contains(pick.RelicId, post.Relics.Select(r => r.Id));
-                Assert.DoesNotContain(pick.RelicId, preRelicIds);
+                var pickedRelicId = pick.RelicId!.Value;
+                Assert.Contains(pickedRelicId, post.Relics.Select(r => r.Id));
+                Assert.DoesNotContain(pickedRelicId, preRelicIds);
                 break;
             case MerchantKind.Potion:
                 Assert.NotNull(pick.PotionId);

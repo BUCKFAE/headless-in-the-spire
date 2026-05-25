@@ -71,37 +71,40 @@ public sealed partial class Sts2Bindings
     // we couldn't bind still returns Unknown so the entry stays selectable
     // (the engine's purchase path doesn't care about our wire shape) but
     // the caller can't pretend it knows what it is.
-    private (MerchantKind Kind, string? CardId, string? RelicId, string? PotionId)
+    private (MerchantKind Kind, CardId? CardId, RelicId? RelicId, PotionId? PotionId)
         ClassifyMerchantEntry(object entry)
     {
         if (_merchantCardEntryType is not null && _merchantCardEntryType.IsInstanceOfType(entry))
         {
-            string? cardId = null;
+            CardId? cardId = null;
             if (_merchantCardEntryCreationResult is not null && _cardCreationResultCard is not null)
             {
                 var creation = _merchantCardEntryCreationResult.GetValue(entry);
                 var cardModel = creation is null ? null : _cardCreationResultCard.GetValue(creation);
-                if (cardModel is not null) cardId = ReadEntryId(_cardModelId, cardModel);
+                var wire = cardModel is not null ? ReadEntryId(_cardModelId, cardModel) : null;
+                if (wire is not null) cardId = CardIdNames.FromWire(wire);
             }
             return (MerchantKind.Card, cardId, null, null);
         }
         if (_merchantRelicEntryType is not null && _merchantRelicEntryType.IsInstanceOfType(entry))
         {
-            string? relicId = null;
+            RelicId? relicId = null;
             if (_merchantRelicEntryModel is not null)
             {
                 var model = _merchantRelicEntryModel.GetValue(entry);
-                if (model is not null) relicId = ReadEntryId(_relicModelId, model);
+                var wire = model is not null ? ReadEntryId(_relicModelId, model) : null;
+                if (wire is not null) relicId = RelicIdNames.FromWire(wire);
             }
             return (MerchantKind.Relic, null, relicId, null);
         }
         if (_merchantPotionEntryType is not null && _merchantPotionEntryType.IsInstanceOfType(entry))
         {
-            string? potionId = null;
+            PotionId? potionId = null;
             if (_merchantPotionEntryModel is not null)
             {
                 var model = _merchantPotionEntryModel.GetValue(entry);
-                if (model is not null) potionId = ReadEntryId(_potionModelId, model);
+                var wire = model is not null ? ReadEntryId(_potionModelId, model) : null;
+                if (wire is not null) potionId = PotionIdNames.FromWire(wire);
             }
             return (MerchantKind.Potion, null, null, potionId);
         }

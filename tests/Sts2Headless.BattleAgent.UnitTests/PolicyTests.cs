@@ -140,8 +140,8 @@ public sealed class PolicyTests
     {
         var options = new[]
         {
-            new RestSiteOption(Index: 0, OptionId: "HEAL", IsEnabled: true),
-            new RestSiteOption(Index: 1, OptionId: "SMITH", IsEnabled: true),
+            new RestSiteOption(Index: 0, OptionId: RestSiteOptionId.Heal, IsEnabled: true),
+            new RestSiteOption(Index: 1, OptionId: RestSiteOptionId.Smith, IsEnabled: true),
         };
         var state = NewState(hp: 80, maxHp: 80, restOptions: options,
             currentRoomType: RoomType.RestSiteRoom);
@@ -155,8 +155,8 @@ public sealed class PolicyTests
     {
         var options = new[]
         {
-            new RestSiteOption(Index: 0, OptionId: "HEAL", IsEnabled: true),
-            new RestSiteOption(Index: 1, OptionId: "SMITH", IsEnabled: true),
+            new RestSiteOption(Index: 0, OptionId: RestSiteOptionId.Heal, IsEnabled: true),
+            new RestSiteOption(Index: 1, OptionId: RestSiteOptionId.Smith, IsEnabled: true),
         };
         var state = NewState(hp: 30, maxHp: 80, restOptions: options,
             currentRoomType: RoomType.RestSiteRoom);

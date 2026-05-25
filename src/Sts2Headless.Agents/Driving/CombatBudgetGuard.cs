@@ -156,7 +156,7 @@ public sealed class CombatBudgetGuard
     // fight's no-progress counter.
     private static string EncounterKey(RunStateResult state, CombatState combat) =>
         $"act={state.CurrentActIndex}.{state.ActFloor}|room={state.CurrentRoomType}|" +
-        string.Join(",", combat.Enemies.Select(e => e.MonsterId ?? "?").OrderBy(s => s, StringComparer.Ordinal));
+        string.Join(",", combat.Enemies.Select(e => e.MonsterId.ToString()).OrderBy(s => s, StringComparer.Ordinal));
 
     // What "made progress this round" means: player HP, all enemy HP +
     // block + powers. Ignores energy / hand contents — those reset every

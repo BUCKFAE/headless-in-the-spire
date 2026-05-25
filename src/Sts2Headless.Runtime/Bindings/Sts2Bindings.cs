@@ -874,9 +874,10 @@ public sealed partial class Sts2Bindings
         }
 
         // Treasure-room surface. Soft-bound — a missing piece degrades the
-        // wire to "leave_treasure_room throws" rather than failing
+        // wire to "take_treasure/skip_treasure throws" rather than failing
         // bootstrap. See the field-block comment above LeaveTreasureRoom
-        // for the discovered flow.
+        // (the internal C# helper backing both wire methods) for the
+        // discovered flow.
         Type? treasureRoomType = null;
         MethodInfo? treasureRoomDoNormalRewards = null;
         MethodInfo? treasureRoomDoExtraRewards = null;

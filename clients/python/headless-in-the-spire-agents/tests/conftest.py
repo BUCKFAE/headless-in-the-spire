@@ -16,6 +16,7 @@ from headless_in_the_spire._models import (
     MapNode,
     MapNodeType,
     RestSiteOption,
+    RestSiteOptionId,
     RewardKind,
     RewardOption,
     RewardsState,
@@ -106,7 +107,7 @@ def rest_site_option(
     option_id: str = "HEAL",
     is_enabled: bool = True,
 ) -> RestSiteOption:
-    return RestSiteOption(index=index, option_id=option_id, is_enabled=is_enabled)
+    return RestSiteOption(index=index, option_id=RestSiteOptionId(option_id), is_enabled=is_enabled)
 
 
 def build_snapshot(

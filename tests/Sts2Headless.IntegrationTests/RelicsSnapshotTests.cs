@@ -38,15 +38,19 @@ public class RelicsSnapshotTests : IClassFixture<HostSubprocess>
             "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
 
         Assert.NotEmpty(start.Relics);
+        // RelicId.ToString() returns the PascalCase enum-member name
+        // (BurningBlood) rather than the wire SCREAMING_SNAKE form
+        // ("BURNING_BLOOD"); compare via the enum value when possible
+        // and fall back to substring on the PascalCase form for the
+        // forward-compatibility comment below.
         Assert.True(
-            start.Relics.Any(r => r.Id.Contains("BURNING_BLOOD", StringComparison.OrdinalIgnoreCase)),
-            $"Ironclad starter relic (BURNING_BLOOD) not found in run/new snapshot. " +
+            start.Relics.Any(r => r.Id == RelicId.BurningBlood),
+            $"Ironclad starter relic (BurningBlood / wire BURNING_BLOOD) not found in run/new snapshot. " +
             $"Relics seen: [{string.Join(", ", start.Relics.Select(r => r.Id))}]. " +
-            $"If the starter relic was renamed or replaced, update the substring " +
-            $"match in this test to target the replacement.");
+            $"If the starter relic was renamed or replaced, update this assertion " +
+            $"to target the replacement.");
         Assert.All(start.Relics, r =>
-            Assert.False(string.IsNullOrEmpty(r.Id),
-                "every surfaced relic should carry a non-empty id"));
+            Assert.NotEqual(RelicId.Unknown, r.Id));
     }
 
     [Fact]
@@ -59,7 +63,7 @@ public class RelicsSnapshotTests : IClassFixture<HostSubprocess>
         // run/state to reflect the new bag.
         var start = await _host.SendAsync<RunNewResult>(
             "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
-        var idsBefore = start.Relics.Select(r => r.Id).ToHashSet(StringComparer.Ordinal);
+        var idsBefore = start.Relics.Select(r => r.Id).ToHashSet<RelicId>();
 
         var afterInject = await _host.SendAsync<DebugGiveRelicResult>(
             "debug/give_relic", new DebugGiveRelicParams(RelicId: "LUCKY_FYSH"));
@@ -76,7 +80,7 @@ public class RelicsSnapshotTests : IClassFixture<HostSubprocess>
             .Select(r => r.Id)
             .ToList();
         Assert.True(
-            newIds.Any(id => id.Contains("LUCKY_FYSH", StringComparison.OrdinalIgnoreCase)),
+            newIds.Any(id => id == RelicId.LuckyFysh),
             $"debug/give_relic LUCKY_FYSH should surface a new entry on the next snapshot; " +
             $"before=[{string.Join(",", idsBefore)}], " +
             $"after=[{string.Join(",", afterState.Relics.Select(r => r.Id))}].");
@@ -94,8 +98,8 @@ public class RelicsSnapshotTests : IClassFixture<HostSubprocess>
             "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
         var state = await _host.SendAsync<RunStateResult>("run/state");
 
-        var startIds = start.Relics.Select(r => r.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
-        var stateIds = state.Relics.Select(r => r.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+        var startIds = start.Relics.Select(r => r.Id.ToString()).OrderBy(x => x, StringComparer.Ordinal).ToList();
+        var stateIds = state.Relics.Select(r => r.Id.ToString()).OrderBy(x => x, StringComparer.Ordinal).ToList();
         Assert.Equal(startIds, stateIds);
     }
 }

@@ -54,12 +54,29 @@ from headless_in_the_spire import Client
 from headless_in_the_spire._models import (
     CardSpec,
     Character,
+    ContentDescribeActParams,
+    ContentDescribeAfflictionParams,
+    ContentDescribeCardParams,
+    ContentDescribeEnchantmentParams,
+    ContentDescribeEncounterParams,
+    ContentDescribeEventParams,
+    ContentDescribeModifierParams,
+    ContentDescribeMonsterParams,
+    ContentDescribePotionParams,
+    ContentDescribePowerParams,
+    ContentDescribeRelicParams,
+    ContentListCardsParams,
+    ContentListPotionsParams,
+    ContentListRelicsParams,
+    ContentUnknownNodeOddsParams,
     DebugAfflictCardParams,
     DebugApplyPowerParams,
     DebugEnchantCardParams,
+    DebugGainStarsParams,
     DebugGivePotionParams,
     DebugGiveRelicParams,
     DebugReplaceDeckParams,
+    DebugSetEnergyParams,
     DebugSetHpParams,
     DebugStartCombatParams,
     DebugStartEventParams,
@@ -73,7 +90,6 @@ from headless_in_the_spire._models import (
     RunSkipRewardParams,
     RunUsePotionParams,
 )
-from headless_in_the_spire_mcp.summary import summarize_run_state
 
 # Path conventions copy `headless_in_the_spire.transport`; we don't import its
 # private `_default_command` because the MCP server wants to *append*
@@ -202,6 +218,16 @@ def _register_core_tools(mcp: FastMCP, handle: _HostHandle) -> None:
         return _dump(handle.client().host_ping())
 
     @mcp.tool()
+    def host_methods() -> dict[str, Any]:
+        """List every wire method this host exposes (name, summary,
+        hasParams, isDebugOnly). Cheaper than parsing `protocol/openrpc.json`
+        when a client just needs the method list. Debug-only entries are
+        listed but only callable when the host was started with
+        `--enable-debug`.
+        """
+        return _dump(handle.client().host_methods())
+
+    @mcp.tool()
     def run_new(
         character: Character | None = None,
         seed: int | None = None,
@@ -229,12 +255,23 @@ def _register_core_tools(mcp: FastMCP, handle: _HostHandle) -> None:
         return _dump(handle.client().run_state())
 
     @mcp.tool()
+    def run_summarize_state() -> dict[str, Any]:
+        """Same as `summarize_state` but returns the full
+        `RunSummarizeStateResult` dict (ok + summary). Use when you need
+        to confirm `ok` programmatically; otherwise prefer
+        `summarize_state` for the bare text.
+        """
+        return _dump(handle.client().run_summarize_state())
+
+    @mcp.tool()
     def summarize_state() -> str:
         """Compact, human-readable text summary of the current run state.
         Designed for AI assistants to poll cheaply between actions; use
-        `run_state` when full structural data is needed.
+        `run_state` when full structural data is needed. Delegates to
+        the wire's `run/summarize_state` so every MCP client renders
+        identical text (no client-side re-derivation).
         """
-        return summarize_run_state(handle.client().run_state())
+        return handle.client().run_summarize_state().summary
 
     @mcp.tool()
     def run_select_map_node(col: int, row: int) -> dict[str, Any]:
@@ -275,9 +312,20 @@ def _register_core_tools(mcp: FastMCP, handle: _HostHandle) -> None:
         )
 
     @mcp.tool()
-    def run_leave_treasure_room() -> dict[str, Any]:
-        """Open the chest in a TreasureRoom and proceed."""
-        return _dump(handle.client().run_leave_treasure_room())
+    def run_take_treasure() -> dict[str, Any]:
+        """Open the chest in a TreasureRoom, grant the offered relic, and
+        proceed back to the map. The offered relic is visible in
+        `available_treasure_relics` before deciding.
+        """
+        return _dump(handle.client().run_take_treasure())
+
+    @mcp.tool()
+    def run_skip_treasure() -> dict[str, Any]:
+        """Walk past a TreasureRoom chest without granting the offered
+        relic, then proceed back to the map. Useful when the offering
+        is undesirable.
+        """
+        return _dump(handle.client().run_skip_treasure())
 
     @mcp.tool()
     def run_buy_merchant_item(item_index: int) -> dict[str, Any]:
@@ -389,6 +437,161 @@ def _register_core_tools(mcp: FastMCP, handle: _HostHandle) -> None:
         (STS2_REPLAY_OUT) and the run has actually ended.
         """
         return _dump(handle.client().run_history())
+
+    # ── content/* ────────────────────────────────────────────────────────
+
+    @mcp.tool()
+    def content_describe_card(card_id: str, upgrade_level: int | None = None) -> dict[str, Any]:
+        """Describe a single card by its wire id (e.g. "BASH", "STRIKE_RED").
+        Returns name, description, cost, rarity, character, target type.
+        Static content — no run required.
+        """
+        return _dump(
+            handle.client().content_describe_card(
+                ContentDescribeCardParams(card_id=card_id, upgrade_level=upgrade_level),
+            )
+        )
+
+    @mcp.tool()
+    def content_describe_relic(relic_id: str) -> dict[str, Any]:
+        """Describe a single relic by its wire id. Static content."""
+        return _dump(
+            handle.client().content_describe_relic(
+                ContentDescribeRelicParams(relic_id=relic_id),
+            )
+        )
+
+    @mcp.tool()
+    def content_describe_potion(potion_id: str) -> dict[str, Any]:
+        """Describe a single potion by its wire id. Static content."""
+        return _dump(
+            handle.client().content_describe_potion(
+                ContentDescribePotionParams(potion_id=potion_id),
+            )
+        )
+
+    @mcp.tool()
+    def content_describe_power(power_id: str) -> dict[str, Any]:
+        """Describe a single power (buff/debuff) by its wire id. Static content."""
+        return _dump(
+            handle.client().content_describe_power(
+                ContentDescribePowerParams(power_id=power_id),
+            )
+        )
+
+    @mcp.tool()
+    def content_describe_event(event_id: str) -> dict[str, Any]:
+        """Describe an event by its wire id. Static content; option branches
+        roll seed-deterministically at choice time and aren't surfaced here.
+        """
+        return _dump(
+            handle.client().content_describe_event(
+                ContentDescribeEventParams(event_id=event_id),
+            )
+        )
+
+    @mcp.tool()
+    def content_describe_encounter(encounter_id: str) -> dict[str, Any]:
+        """Describe a monster encounter (pack) by its wire id. Returns the
+        pack composition; per-monster HP rolls happen at combat-start.
+        """
+        return _dump(
+            handle.client().content_describe_encounter(
+                ContentDescribeEncounterParams(encounter_id=encounter_id),
+            )
+        )
+
+    @mcp.tool()
+    def content_describe_monster(monster_id: str) -> dict[str, Any]:
+        """Describe a single monster by its wire id."""
+        return _dump(
+            handle.client().content_describe_monster(
+                ContentDescribeMonsterParams(monster_id=monster_id),
+            )
+        )
+
+    @mcp.tool()
+    def content_describe_affliction(affliction_id: str) -> dict[str, Any]:
+        """Describe a card affliction by its wire id."""
+        return _dump(
+            handle.client().content_describe_affliction(
+                ContentDescribeAfflictionParams(affliction_id=affliction_id),
+            )
+        )
+
+    @mcp.tool()
+    def content_describe_enchantment(enchantment_id: str) -> dict[str, Any]:
+        """Describe a card enchantment by its wire id."""
+        return _dump(
+            handle.client().content_describe_enchantment(
+                ContentDescribeEnchantmentParams(enchantment_id=enchantment_id),
+            )
+        )
+
+    @mcp.tool()
+    def content_describe_modifier(modifier_id: str) -> dict[str, Any]:
+        """Describe a run modifier by its wire id."""
+        return _dump(
+            handle.client().content_describe_modifier(
+                ContentDescribeModifierParams(modifier_id=modifier_id),
+            )
+        )
+
+    @mcp.tool()
+    def content_list_cards(
+        character: str | None = None,
+        rarity: str | None = None,
+        include_colorless: bool | None = None,
+    ) -> dict[str, Any]:
+        """List all cards in the static pool, optionally filtered by character /
+        rarity / colorless inclusion.
+        """
+        params = ContentListCardsParams(
+            character=Character(character) if character else None,
+            rarity=rarity,
+            include_colorless=include_colorless,
+        )
+        return _dump(handle.client().content_list_cards(params))
+
+    @mcp.tool()
+    def content_list_relics(rarity: str | None = None) -> dict[str, Any]:
+        """List all relics in the static pool, optionally filtered by rarity."""
+        return _dump(handle.client().content_list_relics(ContentListRelicsParams(rarity=rarity)))
+
+    @mcp.tool()
+    def content_list_potions(rarity: str | None = None) -> dict[str, Any]:
+        """List all potions in the static pool, optionally filtered by rarity."""
+        return _dump(handle.client().content_list_potions(ContentListPotionsParams(rarity=rarity)))
+
+    @mcp.tool()
+    def content_describe_act(act_index: int) -> dict[str, Any]:
+        """Per-act content pools (weak, regular, elite, boss, event) and
+        structural counts. Static content — the pool, not the rolled answer.
+        For this run's specific schedule see debug/reveal_act_schedule.
+        """
+        return _dump(
+            handle.client().content_describe_act(
+                ContentDescribeActParams(act_index=act_index),
+            )
+        )
+
+    @mcp.tool()
+    def content_encounter_rules() -> dict[str, Any]:
+        """Static rules describing how the engine builds an act's encounter
+        schedule (weak-first, elite roll count, no-adjacent-shared-tags).
+        """
+        return _dump(handle.client().content_encounter_rules())
+
+    @mcp.tool()
+    def content_unknown_node_odds(act_index: int | None = None) -> dict[str, Any]:
+        """Base odds distribution for `?` map nodes. Prior; actual resolved
+        room is rolled at entry (debug/peek_unknown_resolution, gated).
+        """
+        return _dump(
+            handle.client().content_unknown_node_odds(
+                ContentUnknownNodeOddsParams(act_index=act_index),
+            )
+        )
 
 
 def _register_debug_tools(mcp: FastMCP, handle: _HostHandle) -> None:
@@ -535,6 +738,36 @@ def _register_debug_tools(mcp: FastMCP, handle: _HostHandle) -> None:
         corrupts replay fidelity.
         """
         return _dump(handle.client().debug_kill_all_enemies())
+
+    @mcp.tool()
+    def debug_set_energy(
+        energy: int | None = None,
+        max_energy: int | None = None,
+    ) -> dict[str, Any]:
+        """Set the player's current Energy and/or per-run MaxEnergy cap
+        directly. Requires an active combat. Debug only.
+        """
+        return _dump(
+            handle.client().debug_set_energy(
+                DebugSetEnergyParams(energy=energy, max_energy=max_energy),
+            )
+        )
+
+    @mcp.tool()
+    def debug_gain_stars(amount: int) -> dict[str, Any]:
+        """Grant N Stars (Regent's per-combat resource). Requires an active
+        combat. Debug only.
+        """
+        return _dump(handle.client().debug_gain_stars(DebugGainStarsParams(amount=amount)))
+
+    @mcp.tool()
+    def debug_reveal_act_schedule() -> dict[str, Any]:
+        """Reveal the current act's pre-rolled schedule (boss / second boss /
+        ancient / normal-encounter list / elite-encounter list / event list).
+        Seed-deterministic info the engine normally hides; combined with the
+        visited counters this answers "what comes next" exactly. Debug only.
+        """
+        return _dump(handle.client().debug_reveal_act_schedule())
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────

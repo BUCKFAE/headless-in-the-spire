@@ -85,12 +85,12 @@ public static class SimStateBuilder
 
     private static SimEnemy MapEnemy(Enemy e)
     {
-        var strength = ReadPower(e.Powers, "STRENGTH_POWER");
-        var vuln = ReadPower(e.Powers, "VULNERABLE_POWER");
-        var weak = ReadPower(e.Powers, "WEAK_POWER");
-        var slippery = ReadPower(e.Powers, "SLIPPERY_POWER");
-        var plowThreshold = ReadPower(e.Powers, "PLOW_POWER");
-        var artifact = ReadPower(e.Powers, "ARTIFACT_POWER");
+        var strength = ReadPower(e.Powers, PowerId.StrengthPower);
+        var vuln = ReadPower(e.Powers, PowerId.VulnerablePower);
+        var weak = ReadPower(e.Powers, PowerId.WeakPower);
+        var slippery = ReadPower(e.Powers, PowerId.SlipperyPower);
+        var plowThreshold = ReadPower(e.Powers, PowerId.PlowPower);
+        var artifact = ReadPower(e.Powers, PowerId.ArtifactPower);
         var firstIntent = e.Intents.Count > 0 ? e.Intents[0] : null;
         EnemyIntent? intent = firstIntent is null
             ? null
@@ -102,12 +102,12 @@ public static class SimStateBuilder
 
         var other = e.Powers
             .Where(p => !IsKnownEnemyPower(p.Id))
-            .Select(p => new OpaquePower(p.Id, p.Amount))
+            .Select(p => new OpaquePower(p.Id.ToString(), p.Amount))
             .ToArray();
 
         return new SimEnemy(
             Index: e.Index,
-            MonsterId: e.MonsterId,
+            MonsterId: e.MonsterId.ToString(),
             Hp: e.Hp,
             MaxHp: e.MaxHp,
             Block: e.Block,
@@ -124,45 +124,49 @@ public static class SimStateBuilder
     private static PlayerStatus ReadStatus(IReadOnlyList<Power> powers)
     {
         // Map every known power id to a typed field on PlayerStatus.
-        // The id strings here are the engine's stable wire ids — same
-        // convention CardMechanics.EstimateDamage uses ("STRENGTH_POWER"
-        // etc.).
         return new PlayerStatus(
-            Strength:      ReadPower(powers, "STRENGTH_POWER"),
-            Dexterity:     ReadPower(powers, "DEXTERITY_POWER"),
-            Vulnerable:    ReadPower(powers, "VULNERABLE_POWER"),
-            Weak:          ReadPower(powers, "WEAK_POWER"),
-            Frail:         ReadPower(powers, "FRAIL_POWER"),
-            Combust:       ReadPower(powers, "COMBUST_POWER"),
-            Metallicize:   ReadPower(powers, "METALLICIZE_POWER"),
-            PlatedArmor:   ReadPower(powers, "PLATED_ARMOR_POWER"),
-            FeelNoPain:    ReadPower(powers, "FEEL_NO_PAIN_POWER"),
-            DarkEmbrace:   ReadPower(powers, "DARK_EMBRACE_POWER"),
-            FireBreathing: ReadPower(powers, "FIRE_BREATHING_POWER"),
-            Rupture:       ReadPower(powers, "RUPTURE_POWER"),
-            DemonForm:     ReadPower(powers, "DEMON_FORM_POWER"),
-            Rage:          ReadPower(powers, "RAGE_POWER"),
-            Juggernaut:    ReadPower(powers, "JUGGERNAUT_POWER"),
-            Brutality:     ReadPower(powers, "BRUTALITY_POWER"),
-            Evolve:        ReadPower(powers, "EVOLVE_POWER"),
-            Berserk:       ReadPower(powers, "BERSERK_POWER"),
-            Barricade:     ReadPower(powers, "BARRICADE_POWER"),
-            Corruption:    ReadPower(powers, "CORRUPTION_POWER"),
-            Ringing:       ReadPower(powers, "RINGING_POWER"),
-            Thorns:        ReadPower(powers, "THORNS_POWER"));
+            Strength:      ReadPower(powers, PowerId.StrengthPower),
+            Dexterity:     ReadPower(powers, PowerId.DexterityPower),
+            Vulnerable:    ReadPower(powers, PowerId.VulnerablePower),
+            Weak:          ReadPower(powers, PowerId.WeakPower),
+            Frail:         ReadPower(powers, PowerId.FrailPower),
+            // Several STS1 powers (Combust, Metallicize, PlatedArmor,
+            // FireBreathing, Brutality, Evolve) are not in the STS2
+            // PowerId wire enum at the current pin — surface 0 until
+            // they appear (or the enum is regenerated to cover them).
+            Combust:       0,
+            Metallicize:   0,
+            PlatedArmor:   0,
+            FeelNoPain:    ReadPower(powers, PowerId.FeelNoPainPower),
+            DarkEmbrace:   ReadPower(powers, PowerId.DarkEmbracePower),
+            FireBreathing: 0,
+            Rupture:       ReadPower(powers, PowerId.RupturePower),
+            DemonForm:     ReadPower(powers, PowerId.DemonFormPower),
+            Rage:          ReadPower(powers, PowerId.RagePower),
+            Juggernaut:    ReadPower(powers, PowerId.JuggernautPower),
+            Brutality:     0,
+            Evolve:        0,
+            // Berserk is not in the generated PowerId enum (absent from
+            // sts2.dll's content table at the current pin) — leave at 0
+            // until the engine surfaces it through the wire id list.
+            Berserk:       0,
+            Barricade:     ReadPower(powers, PowerId.BarricadePower),
+            Corruption:    ReadPower(powers, PowerId.CorruptionPower),
+            Ringing:       ReadPower(powers, PowerId.RingingPower),
+            Thorns:        ReadPower(powers, PowerId.ThornsPower));
     }
 
-    private static int ReadPower(IReadOnlyList<Power> powers, string id)
+    private static int ReadPower(IReadOnlyList<Power> powers, PowerId id)
     {
         foreach (var p in powers)
             if (p.Id == id) return p.Amount;
         return 0;
     }
 
-    private static bool IsKnownEnemyPower(string id) => id switch
+    private static bool IsKnownEnemyPower(PowerId id) => id switch
     {
-        "STRENGTH_POWER" or "VULNERABLE_POWER" or "WEAK_POWER"
-            or "SLIPPERY_POWER" or "PLOW_POWER" or "ARTIFACT_POWER" => true,
+        PowerId.StrengthPower or PowerId.VulnerablePower or PowerId.WeakPower
+            or PowerId.SlipperyPower or PowerId.PlowPower or PowerId.ArtifactPower => true,
         _ => false,
     };
 }

@@ -87,11 +87,9 @@ public abstract class HeuristicAgent : IAgent
     protected virtual AgentAction DecideRestSite(RunStateResult state)
     {
         var heal = state.AvailableRestSiteOptions.FirstOrDefault(o =>
-            o.IsEnabled
-            && string.Equals(o.OptionId, "HEAL", StringComparison.OrdinalIgnoreCase));
+            o.IsEnabled && o.OptionId == RestSiteOptionId.Heal);
         var smith = state.AvailableRestSiteOptions.FirstOrDefault(o =>
-            o.IsEnabled
-            && string.Equals(o.OptionId, "SMITH", StringComparison.OrdinalIgnoreCase));
+            o.IsEnabled && o.OptionId == RestSiteOptionId.Smith);
 
         var atFullHp = state.Hp >= state.MaxHp;
         if (smith is not null && (atFullHp || heal is null))
@@ -105,8 +103,10 @@ public abstract class HeuristicAgent : IAgent
         return new SelectRestSiteOption(any.Index);
     }
 
-    // Default: claim the chest. No real player decision today.
-    protected virtual AgentAction DecideTreasure(RunStateResult state) => new LeaveTreasureRoom();
+    // Default: claim the chest. No real player decision today — a more
+    // sophisticated agent overrides this to return SkipTreasure when
+    // the offered relic is undesirable.
+    protected virtual AgentAction DecideTreasure(RunStateResult state) => new TakeTreasure();
 
     // Default: leave without buying. The greedy posture is "don't spend
     // gold on speculative purchases"; a smarter agent that values its

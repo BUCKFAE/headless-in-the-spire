@@ -9,9 +9,9 @@ namespace Sts2Headless.IntegrationTests;
 // Coverage for the treasure-room slice of the wire surface. Unlike rest
 // sites or events, a treasure room has no player decision — there's only
 // "open the chest". The wire still requires an explicit ack call
-// (run/leave_treasure_room) because the engine does not auto-transition
-// out on its own: without the call the room sticks at TreasureRoom even
-// though every reward has been granted.
+// (run/take_treasure or run/skip_treasure) because the engine does not
+// auto-transition out on its own: without the call the room sticks at
+// TreasureRoom even though every reward has been granted.
 //
 // Setup uses the GreedyAgent to walk forward until standing on a
 // TreasureRoom. The agent already routes through treasure (treasure
@@ -32,7 +32,7 @@ public class TreasureRoomTests : IClassFixture<HostSubprocess>
     public TreasureRoomTests(HostSubprocess host) => _host = host;
 
     // Drive the agent until it enters a TreasureRoom but stop *before* it
-    // calls run/leave_treasure_room. The stop condition exits when the
+    // calls run/take_treasure. The stop condition exits when the
     // snapshot shows TreasureRoom; the agent's own treasure branch would
     // immediately leave, so we cut it off here.
     //
@@ -98,24 +98,19 @@ public class TreasureRoomTests : IClassFixture<HostSubprocess>
         Assert.NotEmpty(state.AvailableTreasureRelics);
         foreach (var offered in state.AvailableTreasureRelics)
         {
-            Assert.False(string.IsNullOrEmpty(offered.RelicId),
-                "availableTreasureRelics must surface a non-empty relicId");
+            Assert.NotEqual(RelicId.Unknown, offered.RelicId);
         }
     }
 
     [Fact]
-    public async Task LeaveTreasureRoom_GrantsOfferedRelicAndExitsToMap()
+    public async Task TakeTreasure_GrantsOfferedRelicAndExitsToMap()
     {
         var entry = await WalkToTreasureRoom();
         var relicsBefore = entry.Relics.Select(r => r.Id).ToHashSet();
         var offeredIds = entry.AvailableTreasureRelics.Select(r => r.RelicId).ToArray();
         Assert.NotEmpty(offeredIds);
 
-        // Default param shape: explicit {skip=false} mirrors the previous
-        // no-params auto-pick behaviour. The wire still tolerates a null
-        // body — see the back-compat test below.
-        var resp = await _host.SendAsync<RunLeaveTreasureRoomResult>(
-            "run/leave_treasure_room", new RunLeaveTreasureRoomParams(Skip: false));
+        var resp = await _host.SendAsync<RunTakeTreasureResult>("run/take_treasure");
 
         Assert.True(resp.Ok);
         var finalRoom = resp.CurrentRoomType == RoomType.MapRoom
@@ -141,15 +136,14 @@ public class TreasureRoomTests : IClassFixture<HostSubprocess>
     }
 
     [Fact]
-    public async Task LeaveTreasureRoom_Skip_DoesNotGrantRelicAndExitsToMap()
+    public async Task SkipTreasure_DoesNotGrantRelicAndExitsToMap()
     {
         var entry = await WalkToTreasureRoom();
         var relicsBefore = entry.Relics.Select(r => r.Id).ToHashSet();
         var offeredIds = entry.AvailableTreasureRelics.Select(r => r.RelicId).ToArray();
         Assert.NotEmpty(offeredIds);
 
-        var resp = await _host.SendAsync<RunLeaveTreasureRoomResult>(
-            "run/leave_treasure_room", new RunLeaveTreasureRoomParams(Skip: true));
+        var resp = await _host.SendAsync<RunSkipTreasureResult>("run/skip_treasure");
 
         Assert.True(resp.Ok);
         // Same MapRoom transition as the take path — skipping still
@@ -161,7 +155,7 @@ public class TreasureRoomTests : IClassFixture<HostSubprocess>
         Assert.Equal(RoomType.MapRoom, finalRoom);
 
         // Player.Relics must NOT contain any of the offered ids that
-        // weren't already in the bag — that's the contract of skip=true.
+        // weren't already in the bag — that's the contract of skip_treasure.
         var post = await _host.SendAsync<RunStateResult>("run/state");
         var postIds = post.Relics.Select(r => r.Id).ToHashSet();
         foreach (var offeredId in offeredIds)
@@ -171,26 +165,5 @@ public class TreasureRoomTests : IClassFixture<HostSubprocess>
         }
 
         Assert.Empty(post.AvailableTreasureRelics);
-    }
-
-    [Fact]
-    public async Task LeaveTreasureRoom_NullParams_BehavesAsTake()
-    {
-        // Back-compat shape: clients on the older no-params wire still
-        // get the auto-pick behaviour. The handler defaults skip=false
-        // when the body is null. Mirrors WireHandlers.Typed null-tolerant
-        // params deserialisation.
-        var entry = await WalkToTreasureRoom();
-        var relicsBefore = entry.Relics.Count;
-        var offeredIds = entry.AvailableTreasureRelics.Select(r => r.RelicId).ToArray();
-        Assert.NotEmpty(offeredIds);
-
-        var resp = await _host.SendAsync<RunLeaveTreasureRoomResult>(
-            "run/leave_treasure_room");
-
-        Assert.True(resp.Ok);
-        var post = await _host.SendAsync<RunStateResult>("run/state");
-        Assert.True(post.Relics.Count > relicsBefore,
-            "null params must default to take=true (relic granted)");
     }
 }

@@ -514,7 +514,7 @@ public class ScalingCardProbeTests : IClassFixture<HostSubprocess>
         var defendAfter = mid.CombatState!.Hand.First(c => c.Id == CardId.DefendIronclad);
         Assert.Equal(0, defendAfter.Cost);  // Skills now cost 0.
         Assert.Contains(mid.CombatState.PlayerPowers,
-            p => p.Id == "CORRUPTION_POWER" && p.Amount == 1);
+            p => p.Id == PowerId.CorruptionPower && p.Amount == 1);
 
         var midDiscard = mid.CombatState.DiscardPileCount;
         await _host.SendAsync<RunPlayCardResult>(

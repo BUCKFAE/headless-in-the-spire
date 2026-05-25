@@ -348,3 +348,45 @@ public sealed record DebugKillAllEnemiesResult(
     [property: JsonPropertyName("ok")] bool Ok,
     [property: JsonPropertyName("killed")] int Killed,
     [property: JsonPropertyName("combatEnded")] bool CombatEnded);
+
+// ── debug/reveal_act_schedule ────────────────────────────────────────────
+
+// Pre-rolled schedule for the current act — what the engine generated at
+// ActModel.GenerateRooms (`Rng.NextItem` against each pool). Reveals
+// information that's seed-deterministic but normally hidden from the
+// player:
+//   - BossId / SecondBossId / AncientId: the specific encounter/ancient
+//     this run will face on the boss tile / at Neow.
+//   - NormalEncounterIds / EliteEncounterIds / EventIds: the ordered
+//     schedule the engine dequeues from on each node entry. Combined
+//     with NormalEncountersVisited / EliteEncountersVisited / EventsVisited
+//     counters, the caller can predict "the next normal encounter I
+//     pick will be X".
+//
+// Notes:
+//   - Monster slot HP / specifics are NOT pre-rolled — those happen in
+//     EncounterModel.GenerateMonstersWithSlots at combat-start.
+//   - Card rewards and event outcomes are rolled lazily on emission /
+//     choice and aren't part of this schedule.
+//
+// Requires an active run (call run/new first). Returns ok=false with
+// empty lists when no schedule is currently bound (e.g. immediately
+// before the first GenerateRooms call).
+public sealed record DebugRevealActScheduleParams();
+
+public sealed record DebugRevealActScheduleResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("actIndex")] int ActIndex,
+    [property: JsonPropertyName("bossId")] string? BossId,
+    [property: JsonPropertyName("secondBossId")] string? SecondBossId,
+    [property: JsonPropertyName("ancientId")] string? AncientId,
+    [property: JsonPropertyName("normalEncounterIds")] IReadOnlyList<string> NormalEncounterIds,
+    [property: JsonPropertyName("eliteEncounterIds")] IReadOnlyList<string> EliteEncounterIds,
+    [property: JsonPropertyName("eventIds")] IReadOnlyList<string> EventIds,
+    // How many entries of each list the engine has already consumed.
+    // Combined with the lists above, this gives the caller a "what
+    // comes next" answer without further calls.
+    [property: JsonPropertyName("normalEncountersVisited")] int NormalEncountersVisited,
+    [property: JsonPropertyName("eliteEncountersVisited")] int EliteEncountersVisited,
+    [property: JsonPropertyName("eventsVisited")] int EventsVisited);
+

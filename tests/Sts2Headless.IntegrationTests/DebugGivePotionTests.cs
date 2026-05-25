@@ -49,7 +49,8 @@ public class DebugGivePotionTests : IClassFixture<HostSubprocess>
             $"PotionCount should grow from {startingCount}; got {resp.PotionCount}");
 
         var after = await _host.SendAsync<RunStateResult>("run/state");
-        Assert.Contains(after.OwnedPotions, p => string.Equals(p.Id, firstPotion, StringComparison.Ordinal));
+        var firstPotionEnum = PotionIdNames.FromWire(firstPotion);
+        Assert.Contains(after.OwnedPotions, p => p.Id == firstPotionEnum);
     }
 
     [Fact]

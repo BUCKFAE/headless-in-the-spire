@@ -116,10 +116,11 @@ public class CardCatalogProbeTests : IClassFixture<HostSubprocess>
     {
         var obs = await ProbeOne(cardWireId, upgraded: false);
         Assert.True(obs.Played, $"{cardWireId} did not play: {obs.Note}");
+        var expectedPower = PowerIdNames.FromWire(expectedPowerId);
         var preAmount = obs.HandStatePreplay!.PlayerPowers
-            .FirstOrDefault(p => p.Id == expectedPowerId)?.Amount ?? 0;
+            .FirstOrDefault(p => p.Id == expectedPower)?.Amount ?? 0;
         var postAmount = obs.HandStatePostplay!.PlayerPowers
-            .FirstOrDefault(p => p.Id == expectedPowerId)?.Amount ?? 0;
+            .FirstOrDefault(p => p.Id == expectedPower)?.Amount ?? 0;
         Assert.Equal(expectedAmount, postAmount - preAmount);
     }
 
@@ -260,7 +261,7 @@ public class CardCatalogProbeTests : IClassFixture<HostSubprocess>
             var enemyDmg = pre.Enemies.Count > 0 && post.Enemies.Count > 0
                 ? pre.Enemies[0].Hp - post.Enemies[0].Hp
                 : 0;
-            var preNames = new HashSet<string>(pre.PlayerPowers.Select(p => p.Id));
+            var preNames = new HashSet<PowerId>(pre.PlayerPowers.Select(p => p.Id));
             var newPowers = post.PlayerPowers
                 .Where(p => !preNames.Contains(p.Id))
                 .Select(p => $"{p.Id}={p.Amount}")

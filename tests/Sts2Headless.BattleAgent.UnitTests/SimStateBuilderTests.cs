@@ -65,7 +65,7 @@ public sealed class SimStateBuilderTests
     {
         var combat = SampleCombat(playerPowers: new[]
         {
-            new Power("STRENGTH_POWER", 4),
+            new Power(PowerId.StrengthPower, 4),
         });
         var sim = SimStateBuilder.FromWire(combat, 80, 80);
         Assert.Equal(4, sim.Status.Strength);
@@ -76,14 +76,14 @@ public sealed class SimStateBuilderTests
     {
         var combat = SampleCombat(playerPowers: new[]
         {
-            new Power("STRENGTH_POWER", 2),
-            new Power("DEXTERITY_POWER", 1),
-            new Power("VULNERABLE_POWER", 1),
-            new Power("WEAK_POWER", 1),
-            new Power("FRAIL_POWER", 1),
-            new Power("DEMON_FORM_POWER", 3),
-            new Power("RUPTURE_POWER", 2),
-            new Power("BARRICADE_POWER", 1),
+            new Power(PowerId.StrengthPower, 2),
+            new Power(PowerId.DexterityPower, 1),
+            new Power(PowerId.VulnerablePower, 1),
+            new Power(PowerId.WeakPower, 1),
+            new Power(PowerId.FrailPower, 1),
+            new Power(PowerId.DemonFormPower, 3),
+            new Power(PowerId.RupturePower, 2),
+            new Power(PowerId.BarricadePower, 1),
         });
         var sim = SimStateBuilder.FromWire(combat, 80, 80);
         Assert.Equal(2, sim.Status.Strength);
@@ -103,7 +103,7 @@ public sealed class SimStateBuilderTests
         // builder should still produce a usable SimState.
         var combat = SampleCombat(playerPowers: new[]
         {
-            new Power("MYSTERY_FUTURE_POWER", 7),
+            new Power(PowerId.Unknown, 7),
         });
         var sim = SimStateBuilder.FromWire(combat, 80, 80);
         Assert.Equal(0, sim.Status.Strength);
@@ -116,7 +116,7 @@ public sealed class SimStateBuilderTests
         {
             new Enemy(
                 Index: 0,
-                MonsterId: "LOUSE_RED",
+                MonsterId: MonsterIdNames.FromWire("LOUSE_RED"),
                 Hp: 11,
                 MaxHp: 11,
                 Block: 0,
@@ -139,7 +139,7 @@ public sealed class SimStateBuilderTests
         {
             new Enemy(
                 Index: 0,
-                MonsterId: "CULTIST",
+                MonsterId: MonsterIdNames.FromWire("CULTIST"),
                 Hp: 50,
                 MaxHp: 50,
                 Block: 0,
@@ -147,8 +147,8 @@ public sealed class SimStateBuilderTests
                 Intents: Array.Empty<Intent>(),
                 Powers: new[]
                 {
-                    new Power("VULNERABLE_POWER", 3),
-                    new Power("WEAK_POWER", 2),
+                    new Power(PowerId.VulnerablePower, 3),
+                    new Power(PowerId.WeakPower, 2),
                 }),
         });
         var sim = SimStateBuilder.FromWire(combat, 80, 80);

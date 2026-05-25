@@ -130,9 +130,10 @@ public sealed class PotionSweep
             var preUse = await transport.SendAsync<RunStateResult>("run/state");
             DrainTriggers(preUse, potionId, firedHooks);
             var potionIdx = -1;
+            var potionIdEnum = PotionIdNames.FromWire(potionId);
             for (var i = 0; i < preUse.OwnedPotions.Count; i++)
             {
-                if (string.Equals(preUse.OwnedPotions[i].Id, potionId, StringComparison.Ordinal))
+                if (preUse.OwnedPotions[i].Id == potionIdEnum)
                 {
                     potionIdx = i;
                     break;

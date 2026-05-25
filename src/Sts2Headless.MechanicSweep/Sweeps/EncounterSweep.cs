@@ -331,8 +331,8 @@ public sealed class EncounterSweep
             {
                 foreach (var enemy in cs.Enemies)
                 {
-                    if (!string.IsNullOrEmpty(enemy.MonsterId))
-                        monsterIdsSeen.Add(enemy.MonsterId);
+                    if (enemy.MonsterId != MonsterId.Unknown)
+                        monsterIdsSeen.Add(enemy.MonsterId.ToString());
                 }
             }
 

@@ -56,7 +56,7 @@ public sealed class SimAgentTests
             {
                 new Enemy(
                     Index: 0,
-                    MonsterId: "TESTONE_HP_MONSTER",
+                    MonsterId: MonsterIdNames.FromWire("TESTONE_HP_MONSTER"),
                     Hp: 6,
                     MaxHp: 6,
                     Block: 0,
@@ -91,7 +91,7 @@ public sealed class SimAgentTests
             {
                 new Enemy(
                     Index: 0,
-                    MonsterId: "M",
+                    MonsterId: MonsterIdNames.FromWire("M"),
                     Hp: 20,
                     MaxHp: 20,
                     Block: 0,

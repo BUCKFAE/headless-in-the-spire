@@ -28,7 +28,6 @@ from headless_in_the_spire_agents.actions import (
     EndTurn,
     EnterNextAct,
     LeaveMerchantRoom,
-    LeaveTreasureRoom,
     PlayCard,
     ProceedEvent,
     SelectEventOption,
@@ -36,6 +35,8 @@ from headless_in_the_spire_agents.actions import (
     SelectRestSiteOption,
     SelectReward,
     SkipReward,
+    SkipTreasure,
+    TakeTreasure,
 )
 from headless_in_the_spire_agents.agent import Agent
 from headless_in_the_spire_agents.state import GameSnapshot
@@ -122,8 +123,10 @@ def apply_action(client: Client, action: Action) -> GameSnapshot:
             return client.run_select_rest_site_option(
                 RunSelectRestSiteOptionParams(option_index=oi, card_select_indices=hints)
             )
-        case LeaveTreasureRoom():
-            return client.run_leave_treasure_room()
+        case TakeTreasure():
+            return client.run_take_treasure()
+        case SkipTreasure():
+            return client.run_skip_treasure()
         case LeaveMerchantRoom():
             return client.run_leave_merchant_room()
         case EnterNextAct():

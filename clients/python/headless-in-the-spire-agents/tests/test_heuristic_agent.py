@@ -19,13 +19,13 @@ from headless_in_the_spire_agents import (
     EnterNextAct,
     HeuristicAgent,
     LeaveMerchantRoom,
-    LeaveTreasureRoom,
     NoLegalActionError,
     ProceedEvent,
     SelectEventOption,
     SelectMapNode,
     SelectRestSiteOption,
     SelectReward,
+    TakeTreasure,
 )
 
 from headless_in_the_spire._models import RewardsState, RoomType
@@ -120,9 +120,9 @@ def test_default_rest_site_raises_when_nothing_enabled() -> None:
         HeuristicAgent().decide(snap)
 
 
-def test_default_treasure_leaves_room() -> None:
+def test_default_treasure_takes_relic() -> None:
     snap = build_snapshot(room=RoomType.treasure_room)
-    assert HeuristicAgent().decide(snap) == LeaveTreasureRoom()
+    assert HeuristicAgent().decide(snap) == TakeTreasure()
 
 
 def test_default_merchant_leaves_room() -> None:

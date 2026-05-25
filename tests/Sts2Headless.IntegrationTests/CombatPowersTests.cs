@@ -103,8 +103,7 @@ public class CombatPowersTests : IClassFixture<HostSubprocess>
                     $"before=[{string.Join(",", powersBefore.Select(p => $"{p.Id}:{p.Amount}"))}], " +
                     $"after=[{string.Join(",", powersAfter.Select(p => $"{p.Id}:{p.Amount}"))}]");
                 var applied = newlyApplied[0];
-                Assert.False(string.IsNullOrEmpty(applied.Id),
-                    "applied power should carry a non-empty id");
+                Assert.NotEqual(PowerId.Unknown, applied.Id);
                 Assert.True(applied.Amount > 0,
                     $"applied power {applied.Id} should have positive amount, was {applied.Amount}");
                 return;

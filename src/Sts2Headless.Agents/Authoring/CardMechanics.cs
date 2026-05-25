@@ -135,14 +135,14 @@ public static class CardMechanics
 
         var perHit = eff.BlockToDamage ? combat.PlayerBlock : eff.Damage;
         // Strength: +N damage per hit (player Strength only).
-        var strength = combat.PlayerPowers.FirstOrDefault(p => p.Id == "STRENGTH_POWER")?.Amount ?? 0;
+        var strength = combat.PlayerPowers.FirstOrDefault(p => p.Id == PowerId.StrengthPower)?.Amount ?? 0;
         perHit += strength;
         // Weak: player has -25% damage output (the convention is "x * 0.75
         // rounded down"). Headless treats Weak amount as boolean for now.
-        var playerWeak = combat.PlayerPowers.Any(p => p.Id == "WEAK_POWER");
+        var playerWeak = combat.PlayerPowers.Any(p => p.Id == PowerId.WeakPower);
         if (playerWeak) perHit = (int)(perHit * 0.75);
         // Vulnerable on target: +50% damage taken.
-        var targetVuln = target.Powers.Any(p => p.Id == "VULNERABLE_POWER");
+        var targetVuln = target.Powers.Any(p => p.Id == PowerId.VulnerablePower);
         if (targetVuln) perHit = (int)(perHit * 1.5);
         return perHit * eff.Hits;
     }

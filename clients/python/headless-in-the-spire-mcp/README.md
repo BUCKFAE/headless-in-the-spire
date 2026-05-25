@@ -100,13 +100,15 @@ Core (always registered):
 | Tool | Wire method |
 | --- | --- |
 | `host_ping` | `host/ping` |
+| `host_methods` | `host/methods` |
 | `run_new` | `run/new` |
 | `run_state` | `run/state` |
 | `summarize_state` | (compact text view of `run/state`) |
 | `run_select_map_node` | `run/select_map_node` |
 | `run_select_event_option` | `run/select_event_option` |
 | `run_select_rest_site_option` | `run/select_rest_site_option` |
-| `run_leave_treasure_room` | `run/leave_treasure_room` |
+| `run_take_treasure` | `run/take_treasure` |
+| `run_skip_treasure` | `run/skip_treasure` |
 | `run_buy_merchant_item` | `run/buy_merchant_item` |
 | `run_leave_merchant_room` | `run/leave_merchant_room` |
 | `run_end_turn` | `run/end_turn` |

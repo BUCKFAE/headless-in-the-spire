@@ -83,7 +83,7 @@ public class SimAgent : HeuristicAgent
 
         var relics = state.Relics is null || state.Relics.Count == 0
             ? null
-            : state.Relics.Select(r => r.Id).ToArray();
+            : state.Relics.Select(r => r.Id.ToString()).ToArray();
 
         if (combat.Round <= 1 || _lastCombatRound > combat.Round)
             _trackedExhaustPileCount = 0;

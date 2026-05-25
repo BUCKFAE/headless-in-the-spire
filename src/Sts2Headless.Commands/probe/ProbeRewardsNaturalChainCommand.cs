@@ -107,8 +107,8 @@ internal static class ProbeRewardsNaturalChainCommand
             Console.WriteLine($"    [{i}] kind={rewards[i].Kind} canSkip={rewards[i].CanSkip}"
                 + (rewards[i].Kind == RewardKind.Card ? $" cards={rewards[i].Cards?.Count ?? 0}" : "")
                 + (rewards[i].GoldAmount is int g ? $" gold={g}" : "")
-                + (rewards[i].RelicId is string r ? $" relic={r}" : "")
-                + (rewards[i].PotionId is string p ? $" potion={p}" : ""));
+                + (rewards[i].RelicId is RelicId r ? $" relic={r}" : "")
+                + (rewards[i].PotionId is PotionId p ? $" potion={p}" : ""));
 
         // Catalog each reward through the natural chain. Strategy:
         //   - For non-card rewards: SelectRewardAndCatalog (no skip path).

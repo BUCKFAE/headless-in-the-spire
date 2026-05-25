@@ -5,6 +5,7 @@ using System.Text.Json.Schema;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Sts2Headless.Cheats;
+using Sts2Headless.Content;
 using Sts2Headless.Protocol;
 
 namespace Sts2Headless.SchemaExport;
@@ -79,10 +80,12 @@ internal static class OpenRpcEmitter
     {
         var protocolAsm = typeof(MethodCatalog).Assembly;
         var cheatsAsm = typeof(CheatMethodCatalog).Assembly;
-        return protocolAsm.GetTypes().Concat(cheatsAsm.GetTypes())
+        var contentAsm = typeof(ContentMethodCatalog).Assembly;
+        return protocolAsm.GetTypes().Concat(cheatsAsm.GetTypes()).Concat(contentAsm.GetTypes())
             .Where(t => t.IsPublic
                 && (t.Namespace == "Sts2Headless.Protocol.Methods"
-                    || t.Namespace == "Sts2Headless.Cheats")
+                    || t.Namespace == "Sts2Headless.Cheats"
+                    || t.Namespace == "Sts2Headless.Content")
                 && (t.IsEnum || t.IsClass)
                 // Static classes (compiler emits IsAbstract+IsSealed): no
                 // instance members, no wire shape — they're helpers like
@@ -294,7 +297,7 @@ internal static class OpenRpcEmitter
     private static JsonArray BuildMethods()
     {
         var methods = new JsonArray();
-        foreach (var entry in MethodCatalog.Core.Concat(CheatMethodCatalog.All))
+        foreach (var entry in MethodCatalog.Core.Concat(CheatMethodCatalog.All).Concat(ContentMethodCatalog.All))
         {
             var paramsArray = new JsonArray();
             if (entry.ParamsType is not null)

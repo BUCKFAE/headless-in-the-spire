@@ -85,10 +85,9 @@ public sealed class IroncladAgent : SimAgent
         if (action is BuyMerchantItem buy)
         {
             var item = state.AvailableMerchantItems.FirstOrDefault(i => i.Index == buy.ItemIndex);
-            if (item?.Kind == MerchantKind.Card && item.CardId is { } cardIdStr)
+            if (item?.Kind == MerchantKind.Card && item.CardId is { } cardId)
             {
-                var cid = CardIdNames.FromWire(cardIdStr);
-                if (cid != CardId.Unknown) DeckTracker.AddCard(cid);
+                if (cardId != CardId.Unknown) DeckTracker.AddCard(cardId);
             }
         }
         return action;

@@ -45,7 +45,7 @@ public class RestSiteSmithTests : IClassFixture<HostSubprocess>
             agent,
             stopWhen: s => s.CurrentRoomType == RoomType.RestSiteRoom
                             && s.AvailableRestSiteOptions.Any(o => o.IsEnabled
-                                && o.OptionId.Equals("SMITH", StringComparison.OrdinalIgnoreCase)),
+                                && o.OptionId == RestSiteOptionId.Smith),
             ct: cts.Token);
         var entry = outcome.FinalState;
 
@@ -69,7 +69,7 @@ public class RestSiteSmithTests : IClassFixture<HostSubprocess>
         // re-ordering of HEAL vs SMITH).
         var smith = entry.AvailableRestSiteOptions.First(o =>
             o.IsEnabled
-            && o.OptionId.Equals("SMITH", StringComparison.OrdinalIgnoreCase));
+            && o.OptionId == RestSiteOptionId.Smith);
 
         var afterPick = await _host.SendAsync<RunSelectRestSiteOptionResult>(
             "run/select_rest_site_option",

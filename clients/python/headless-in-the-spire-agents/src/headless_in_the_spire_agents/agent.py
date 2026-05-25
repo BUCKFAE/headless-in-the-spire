@@ -17,18 +17,18 @@ by Python tooling.
 
 from typing import ClassVar, Protocol, runtime_checkable
 
-from headless_in_the_spire._models import RewardKind
+from headless_in_the_spire._models import RestSiteOptionId, RewardKind
 from headless_in_the_spire_agents.actions import (
     Action,
     EndTurn,
     EnterNextAct,
     LeaveMerchantRoom,
-    LeaveTreasureRoom,
     ProceedEvent,
     SelectEventOption,
     SelectMapNode,
     SelectRestSiteOption,
     SelectReward,
+    TakeTreasure,
 )
 from headless_in_the_spire_agents.state import GameSnapshot, Phase, current_phase
 
@@ -184,13 +184,13 @@ class HeuristicAgent:
         # default goes a step less smart but stays consistent.
         options = state.available_rest_site_options
         heal = next(
-            (o for o in options if o.is_enabled and o.option_id.upper() == "HEAL"),
+            (o for o in options if o.is_enabled and o.option_id is RestSiteOptionId.heal),
             None,
         )
         if heal is not None:
             return SelectRestSiteOption(option_index=heal.index)
         smith = next(
-            (o for o in options if o.is_enabled and o.option_id.upper() == "SMITH"),
+            (o for o in options if o.is_enabled and o.option_id is RestSiteOptionId.smith),
             None,
         )
         if smith is not None:
@@ -201,7 +201,7 @@ class HeuristicAgent:
         raise NoLegalActionError("rest site with no enabled options", state)
 
     def decide_treasure(self, state: GameSnapshot) -> Action:
-        return LeaveTreasureRoom()
+        return TakeTreasure()
 
     def decide_merchant(self, state: GameSnapshot) -> Action:
         # Default: leave without buying. Mirrors C# HeuristicAgent —

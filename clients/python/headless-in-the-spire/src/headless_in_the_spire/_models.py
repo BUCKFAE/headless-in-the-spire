@@ -43,6 +43,255 @@ class Character(Enum):
     necrobinder = "necrobinder"
 
 
+class ContentCardSummary(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: str
+    display_name: Annotated[str, Field(alias="displayName")]
+    rarity: str
+    cost: int
+    character: str
+
+
+class ContentDescribeActParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    act_index: Annotated[int, Field(alias="actIndex")]
+
+
+class ContentDescribeActResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    act_index: Annotated[int, Field(alias="actIndex")]
+    num_floors: Annotated[int, Field(alias="numFloors")]
+    num_rooms: Annotated[int, Field(alias="numRooms")]
+    number_of_weak_encounters: Annotated[int, Field(alias="numberOfWeakEncounters")]
+    elite_roll_count: Annotated[int, Field(alias="eliteRollCount")]
+    weak_encounter_pool: Annotated[list[str], Field(alias="weakEncounterPool")]
+    normal_encounter_pool: Annotated[list[str], Field(alias="normalEncounterPool")]
+    elite_pool: Annotated[list[str], Field(alias="elitePool")]
+    boss_pool: Annotated[list[str], Field(alias="bossPool")]
+    event_pool: Annotated[list[str], Field(alias="eventPool")]
+
+
+class ContentDescribeAfflictionParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    affliction_id: Annotated[str, Field(alias="afflictionId")]
+
+
+class ContentDescribeAfflictionResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    affliction_id: Annotated[str, Field(alias="afflictionId")]
+    display_name: Annotated[str, Field(alias="displayName")]
+    description: str
+
+
+class ContentDescribeCardParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    card_id: Annotated[str, Field(alias="cardId")]
+    upgrade_level: Annotated[int | None, Field(alias="upgradeLevel")] = None
+
+
+class ContentDescribeEnchantmentParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    enchantment_id: Annotated[str, Field(alias="enchantmentId")]
+
+
+class ContentDescribeEnchantmentResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    enchantment_id: Annotated[str, Field(alias="enchantmentId")]
+    display_name: Annotated[str, Field(alias="displayName")]
+    description: str
+
+
+class ContentDescribeEncounterParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    encounter_id: Annotated[str, Field(alias="encounterId")]
+
+
+class ContentDescribeEncounterResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    encounter_id: Annotated[str, Field(alias="encounterId")]
+    display_name: Annotated[str, Field(alias="displayName")]
+    monster_ids: Annotated[list[str], Field(alias="monsterIds")]
+    tier: str
+
+
+class ContentDescribeEventParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    event_id: Annotated[str, Field(alias="eventId")]
+
+
+class ContentDescribeEventResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    event_id: Annotated[str, Field(alias="eventId")]
+    display_name: Annotated[str, Field(alias="displayName")]
+    description: str
+
+
+class ContentDescribeModifierParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    modifier_id: Annotated[str, Field(alias="modifierId")]
+
+
+class ContentDescribeModifierResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    modifier_id: Annotated[str, Field(alias="modifierId")]
+    display_name: Annotated[str, Field(alias="displayName")]
+    description: str
+
+
+class ContentDescribeMonsterParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    monster_id: Annotated[str, Field(alias="monsterId")]
+
+
+class ContentDescribeMonsterResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    monster_id: Annotated[str, Field(alias="monsterId")]
+    display_name: Annotated[str, Field(alias="displayName")]
+    base_hp: Annotated[int, Field(alias="baseHp")]
+    base_max_hp: Annotated[int, Field(alias="baseMaxHp")]
+
+
+class ContentDescribePotionParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    potion_id: Annotated[str, Field(alias="potionId")]
+
+
+class ContentDescribePowerParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    power_id: Annotated[str, Field(alias="powerId")]
+
+
+class ContentDescribePowerResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    power_id: Annotated[str, Field(alias="powerId")]
+    display_name: Annotated[str, Field(alias="displayName")]
+    description: str
+    is_debuff: Annotated[bool, Field(alias="isDebuff")]
+
+
+class ContentDescribeRelicParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    relic_id: Annotated[str, Field(alias="relicId")]
+
+
+class ContentDescribeRelicResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    relic_id: Annotated[str, Field(alias="relicId")]
+    display_name: Annotated[str, Field(alias="displayName")]
+    description: str
+    rarity: str
+
+
+class ContentEncounterRulesResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    weak_encounters_first: Annotated[bool, Field(alias="weakEncountersFirst")]
+    elite_roll_count: Annotated[int, Field(alias="eliteRollCount")]
+    no_adjacent_shared_tags: Annotated[bool, Field(alias="noAdjacentSharedTags")]
+    notes: str
+
+
+class ContentListCardsParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    character: Character | None = None
+    rarity: str | None = None
+    include_colorless: Annotated[bool | None, Field(alias="includeColorless")] = None
+
+
+class ContentListCardsResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    count: int
+    cards: list[ContentCardSummary]
+
+
+class ContentListPotionsParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    rarity: str | None = None
+
+
+class ContentListRelicsParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    rarity: str | None = None
+
+
+class ContentRelicSummary(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: str
+    display_name: Annotated[str, Field(alias="displayName")]
+    rarity: str
+
+
+class ContentUnknownNodeOddsParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    act_index: Annotated[int | None, Field(alias="actIndex")] = None
+
+
 class DebugAfflictCardParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -197,6 +446,29 @@ class DebugReplaceDeckResult(BaseModel):
     card_ids: Annotated[list[str], Field(alias="cardIds")]
 
 
+class DebugRevealActScheduleParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+
+class DebugRevealActScheduleResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    act_index: Annotated[int, Field(alias="actIndex")]
+    boss_id: Annotated[str | None, Field(alias="bossId")] = None
+    second_boss_id: Annotated[str | None, Field(alias="secondBossId")] = None
+    ancient_id: Annotated[str | None, Field(alias="ancientId")] = None
+    normal_encounter_ids: Annotated[list[str], Field(alias="normalEncounterIds")]
+    elite_encounter_ids: Annotated[list[str], Field(alias="eliteEncounterIds")]
+    event_ids: Annotated[list[str], Field(alias="eventIds")]
+    normal_encounters_visited: Annotated[int, Field(alias="normalEncountersVisited")]
+    elite_encounters_visited: Annotated[int, Field(alias="eliteEncountersVisited")]
+    events_visited: Annotated[int, Field(alias="eventsVisited")]
+
+
 class DebugSetEnergyParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -321,6 +593,25 @@ class HistoryRelicChoice(BaseModel):
     was_picked: bool
 
 
+class HostMethodInfo(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    name: str
+    summary: str
+    has_params: Annotated[bool, Field(alias="hasParams")]
+    is_debug_only: Annotated[bool, Field(alias="isDebugOnly")]
+
+
+class HostMethodsResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    debug_enabled: Annotated[bool, Field(alias="debugEnabled")]
+    methods: list[HostMethodInfo]
+
+
 class HostPingResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -357,6 +648,956 @@ class MapNodeType(Enum):
     boss = "Boss"
 
 
+class CardId(Enum):
+    unknown = "UNKNOWN"
+    abrasive = "ABRASIVE"
+    accelerant = "ACCELERANT"
+    accuracy = "ACCURACY"
+    acrobatics = "ACROBATICS"
+    adaptive_strike = "ADAPTIVE_STRIKE"
+    adrenaline = "ADRENALINE"
+    afterimage = "AFTERIMAGE"
+    afterlife = "AFTERLIFE"
+    aggression = "AGGRESSION"
+    alchemize = "ALCHEMIZE"
+    alignment = "ALIGNMENT"
+    all_for_one = "ALL_FOR_ONE"
+    anger = "ANGER"
+    anointed = "ANOINTED"
+    anticipate = "ANTICIPATE"
+    apotheosis = "APOTHEOSIS"
+    apparition = "APPARITION"
+    armaments = "ARMAMENTS"
+    arsenal = "ARSENAL"
+    ascenders_bane = "ASCENDERS_BANE"
+    ashen_strike = "ASHEN_STRIKE"
+    assassinate = "ASSASSINATE"
+    astral_pulse = "ASTRAL_PULSE"
+    automation = "AUTOMATION"
+    backflip = "BACKFLIP"
+    backstab = "BACKSTAB"
+    bad_luck = "BAD_LUCK"
+    ball_lightning = "BALL_LIGHTNING"
+    banshees_cry = "BANSHEES_CRY"
+    barrage = "BARRAGE"
+    barricade = "BARRICADE"
+    bash = "BASH"
+    battle_trance = "BATTLE_TRANCE"
+    beacon_of_hope = "BEACON_OF_HOPE"
+    beam_cell = "BEAM_CELL"
+    beat_down = "BEAT_DOWN"
+    beat_into_shape = "BEAT_INTO_SHAPE"
+    beckon = "BECKON"
+    begone = "BEGONE"
+    believe_in_you = "BELIEVE_IN_YOU"
+    biased_cognition = "BIASED_COGNITION"
+    big_bang = "BIG_BANG"
+    black_hole = "BLACK_HOLE"
+    blade_dance = "BLADE_DANCE"
+    blade_of_ink = "BLADE_OF_INK"
+    blight_strike = "BLIGHT_STRIKE"
+    bloodletting = "BLOODLETTING"
+    blood_wall = "BLOOD_WALL"
+    bludgeon = "BLUDGEON"
+    blur = "BLUR"
+    bodyguard = "BODYGUARD"
+    body_slam = "BODY_SLAM"
+    bolas = "BOLAS"
+    bombardment = "BOMBARDMENT"
+    bone_shards = "BONE_SHARDS"
+    boost_away = "BOOST_AWAY"
+    boot_sequence = "BOOT_SEQUENCE"
+    borrowed_time = "BORROWED_TIME"
+    bouncing_flask = "BOUNCING_FLASK"
+    brand = "BRAND"
+    break_ = "BREAK"
+    breakthrough = "BREAKTHROUGH"
+    brightest_flame = "BRIGHTEST_FLAME"
+    bubble_bubble = "BUBBLE_BUBBLE"
+    buffer = "BUFFER"
+    bulk_up = "BULK_UP"
+    bullet_time = "BULLET_TIME"
+    bully = "BULLY"
+    bulwark = "BULWARK"
+    bundle_of_joy = "BUNDLE_OF_JOY"
+    burn = "BURN"
+    burning_pact = "BURNING_PACT"
+    burst = "BURST"
+    bury = "BURY"
+    byrdonis_egg = "BYRDONIS_EGG"
+    byrd_swoop = "BYRD_SWOOP"
+    calamity = "CALAMITY"
+    calcify = "CALCIFY"
+    calculated_gamble = "CALCULATED_GAMBLE"
+    call_of_the_void = "CALL_OF_THE_VOID"
+    caltrops = "CALTROPS"
+    capacitor = "CAPACITOR"
+    capture_spirit = "CAPTURE_SPIRIT"
+    cascade = "CASCADE"
+    catastrophe = "CATASTROPHE"
+    celestial_might = "CELESTIAL_MIGHT"
+    chaos = "CHAOS"
+    charge = "CHARGE"
+    charge_battery = "CHARGE_BATTERY"
+    child_of_the_stars = "CHILD_OF_THE_STARS"
+    chill = "CHILL"
+    cinder = "CINDER"
+    clash = "CLASH"
+    claw = "CLAW"
+    cleanse = "CLEANSE"
+    cloak_and_dagger = "CLOAK_AND_DAGGER"
+    cloak_of_stars = "CLOAK_OF_STARS"
+    clumsy = "CLUMSY"
+    cold_snap = "COLD_SNAP"
+    collision_course = "COLLISION_COURSE"
+    colossus = "COLOSSUS"
+    comet = "COMET"
+    compact = "COMPACT"
+    compile_driver = "COMPILE_DRIVER"
+    conflagration = "CONFLAGRATION"
+    conqueror = "CONQUEROR"
+    consuming_shadow = "CONSUMING_SHADOW"
+    convergence = "CONVERGENCE"
+    coolant = "COOLANT"
+    coolheaded = "COOLHEADED"
+    coordinate = "COORDINATE"
+    corrosive_wave = "CORROSIVE_WAVE"
+    corruption = "CORRUPTION"
+    cosmic_indifference = "COSMIC_INDIFFERENCE"
+    countdown = "COUNTDOWN"
+    crash_landing = "CRASH_LANDING"
+    creative_ai = "CREATIVE_AI"
+    crescent_spear = "CRESCENT_SPEAR"
+    crimson_mantle = "CRIMSON_MANTLE"
+    cruelty = "CRUELTY"
+    crush_under = "CRUSH_UNDER"
+    curse_of_the_bell = "CURSE_OF_THE_BELL"
+    dagger_spray = "DAGGER_SPRAY"
+    dagger_throw = "DAGGER_THROW"
+    danse_macabre = "DANSE_MACABRE"
+    darkness = "DARKNESS"
+    dark_embrace = "DARK_EMBRACE"
+    dark_shackles = "DARK_SHACKLES"
+    dash = "DASH"
+    dazed = "DAZED"
+    deadly_poison = "DEADLY_POISON"
+    deathbringer = "DEATHBRINGER"
+    deaths_door = "DEATHS_DOOR"
+    death_march = "DEATH_MARCH"
+    debilitate = "DEBILITATE"
+    debris = "DEBRIS"
+    debt = "DEBT"
+    decay = "DECAY"
+    decisions_decisions = "DECISIONS_DECISIONS"
+    defend_defect = "DEFEND_DEFECT"
+    defend_ironclad = "DEFEND_IRONCLAD"
+    defend_necrobinder = "DEFEND_NECROBINDER"
+    defend_regent = "DEFEND_REGENT"
+    defend_silent = "DEFEND_SILENT"
+    defile = "DEFILE"
+    deflect = "DEFLECT"
+    defragment = "DEFRAGMENT"
+    defy = "DEFY"
+    delay = "DELAY"
+    demesne = "DEMESNE"
+    demonic_shield = "DEMONIC_SHIELD"
+    demon_form = "DEMON_FORM"
+    deprecated_card = "DEPRECATED_CARD"
+    devastate = "DEVASTATE"
+    devour_life = "DEVOUR_LIFE"
+    dirge = "DIRGE"
+    discovery = "DISCOVERY"
+    disintegration = "DISINTEGRATION"
+    dismantle = "DISMANTLE"
+    distraction = "DISTRACTION"
+    dodge_and_roll = "DODGE_AND_ROLL"
+    dominate = "DOMINATE"
+    double_energy = "DOUBLE_ENERGY"
+    doubt = "DOUBT"
+    drain_power = "DRAIN_POWER"
+    dramatic_entrance = "DRAMATIC_ENTRANCE"
+    dredge = "DREDGE"
+    drum_of_battle = "DRUM_OF_BATTLE"
+    dualcast = "DUALCAST"
+    dual_wield = "DUAL_WIELD"
+    dying_star = "DYING_STAR"
+    echoing_slash = "ECHOING_SLASH"
+    echo_form = "ECHO_FORM"
+    eidolon = "EIDOLON"
+    end_of_days = "END_OF_DAYS"
+    energy_surge = "ENERGY_SURGE"
+    enfeebling_touch = "ENFEEBLING_TOUCH"
+    enlightenment = "ENLIGHTENMENT"
+    enthralled = "ENTHRALLED"
+    entrench = "ENTRENCH"
+    entropy = "ENTROPY"
+    envenom = "ENVENOM"
+    equilibrium = "EQUILIBRIUM"
+    eradicate = "ERADICATE"
+    escape_plan = "ESCAPE_PLAN"
+    eternal_armor = "ETERNAL_ARMOR"
+    evil_eye = "EVIL_EYE"
+    expect_a_fight = "EXPECT_A_FIGHT"
+    expertise = "EXPERTISE"
+    expose = "EXPOSE"
+    exterminate = "EXTERMINATE"
+    falling_star = "FALLING_STAR"
+    fan_of_knives = "FAN_OF_KNIVES"
+    fasten = "FASTEN"
+    fear = "FEAR"
+    feed = "FEED"
+    feeding_frenzy = "FEEDING_FRENZY"
+    feel_no_pain = "FEEL_NO_PAIN"
+    feral = "FERAL"
+    fetch = "FETCH"
+    fiend_fire = "FIEND_FIRE"
+    fight_me = "FIGHT_ME"
+    fight_through = "FIGHT_THROUGH"
+    finesse = "FINESSE"
+    finisher = "FINISHER"
+    fisticuffs = "FISTICUFFS"
+    flak_cannon = "FLAK_CANNON"
+    flame_barrier = "FLAME_BARRIER"
+    flanking = "FLANKING"
+    flash_of_steel = "FLASH_OF_STEEL"
+    flatten = "FLATTEN"
+    flechettes = "FLECHETTES"
+    flick_flack = "FLICK_FLACK"
+    focused_strike = "FOCUSED_STRIKE"
+    follow_through = "FOLLOW_THROUGH"
+    folly = "FOLLY"
+    footwork = "FOOTWORK"
+    forbidden_grimoire = "FORBIDDEN_GRIMOIRE"
+    foregone_conclusion = "FOREGONE_CONCLUSION"
+    forgotten_ritual = "FORGOTTEN_RITUAL"
+    frantic_escape = "FRANTIC_ESCAPE"
+    friendship = "FRIENDSHIP"
+    ftl = "FTL"
+    fuel = "FUEL"
+    furnace = "FURNACE"
+    fusion = "FUSION"
+    gamma_blast = "GAMMA_BLAST"
+    gang_up = "GANG_UP"
+    gather_light = "GATHER_LIGHT"
+    genesis = "GENESIS"
+    genetic_algorithm = "GENETIC_ALGORITHM"
+    giant_rock = "GIANT_ROCK"
+    glacier = "GLACIER"
+    glasswork = "GLASSWORK"
+    glimmer = "GLIMMER"
+    glimpse_beyond = "GLIMPSE_BEYOND"
+    glitterstream = "GLITTERSTREAM"
+    glow = "GLOW"
+    gold_axe = "GOLD_AXE"
+    go_for_the_eyes = "GO_FOR_THE_EYES"
+    grand_finale = "GRAND_FINALE"
+    graveblast = "GRAVEBLAST"
+    grave_warden = "GRAVE_WARDEN"
+    greed = "GREED"
+    guards = "GUARDS"
+    guiding_star = "GUIDING_STAR"
+    guilty = "GUILTY"
+    gunk_up = "GUNK_UP"
+    hailstorm = "HAILSTORM"
+    hammer_time = "HAMMER_TIME"
+    hand_of_greed = "HAND_OF_GREED"
+    hand_trick = "HAND_TRICK"
+    hang = "HANG"
+    haunt = "HAUNT"
+    havoc = "HAVOC"
+    haze = "HAZE"
+    headbutt = "HEADBUTT"
+    heavenly_drill = "HEAVENLY_DRILL"
+    hegemony = "HEGEMONY"
+    heirloom_hammer = "HEIRLOOM_HAMMER"
+    helix_drill = "HELIX_DRILL"
+    hello_world = "HELLO_WORLD"
+    hellraiser = "HELLRAISER"
+    hemokinesis = "HEMOKINESIS"
+    hidden_cache = "HIDDEN_CACHE"
+    hidden_daggers = "HIDDEN_DAGGERS"
+    hidden_gem = "HIDDEN_GEM"
+    high_five = "HIGH_FIVE"
+    hologram = "HOLOGRAM"
+    hotfix = "HOTFIX"
+    howl_from_beyond = "HOWL_FROM_BEYOND"
+    huddle_up = "HUDDLE_UP"
+    hyperbeam = "HYPERBEAM"
+    ice_lance = "ICE_LANCE"
+    ignition = "IGNITION"
+    impatience = "IMPATIENCE"
+    impervious = "IMPERVIOUS"
+    infection = "INFECTION"
+    infernal_blade = "INFERNAL_BLADE"
+    inferno = "INFERNO"
+    infinite_blades = "INFINITE_BLADES"
+    inflame = "INFLAME"
+    injury = "INJURY"
+    intercept = "INTERCEPT"
+    invoke = "INVOKE"
+    iron_wave = "IRON_WAVE"
+    iteration = "ITERATION"
+    i_am_invincible = "I_AM_INVINCIBLE"
+    jackpot = "JACKPOT"
+    jack_of_all_trades = "JACK_OF_ALL_TRADES"
+    juggernaut = "JUGGERNAUT"
+    juggling = "JUGGLING"
+    kingly_kick = "KINGLY_KICK"
+    kingly_punch = "KINGLY_PUNCH"
+    knife_trap = "KNIFE_TRAP"
+    knockdown = "KNOCKDOWN"
+    knockout_blow = "KNOCKOUT_BLOW"
+    know_thy_place = "KNOW_THY_PLACE"
+    lantern_key = "LANTERN_KEY"
+    largesse = "LARGESSE"
+    leading_strike = "LEADING_STRIKE"
+    leap = "LEAP"
+    legion_of_bone = "LEGION_OF_BONE"
+    leg_sweep = "LEG_SWEEP"
+    lethality = "LETHALITY"
+    lift = "LIFT"
+    lightning_rod = "LIGHTNING_ROD"
+    loop = "LOOP"
+    luminesce = "LUMINESCE"
+    lunar_blast = "LUNAR_BLAST"
+    machine_learning = "MACHINE_LEARNING"
+    mad_science = "MAD_SCIENCE"
+    make_it_so = "MAKE_IT_SO"
+    malaise = "MALAISE"
+    mangle = "MANGLE"
+    manifest_authority = "MANIFEST_AUTHORITY"
+    master_of_strategy = "MASTER_OF_STRATEGY"
+    master_planner = "MASTER_PLANNER"
+    maul = "MAUL"
+    mayhem = "MAYHEM"
+    melancholy = "MELANCHOLY"
+    memento_mori = "MEMENTO_MORI"
+    metamorphosis = "METAMORPHOSIS"
+    meteor_shower = "METEOR_SHOWER"
+    meteor_strike = "METEOR_STRIKE"
+    mimic = "MIMIC"
+    mind_blast = "MIND_BLAST"
+    mind_rot = "MIND_ROT"
+    minion_dive_bomb = "MINION_DIVE_BOMB"
+    minion_sacrifice = "MINION_SACRIFICE"
+    minion_strike = "MINION_STRIKE"
+    mirage = "MIRAGE"
+    misery = "MISERY"
+    modded = "MODDED"
+    molten_fist = "MOLTEN_FIST"
+    momentum_strike = "MOMENTUM_STRIKE"
+    monarchs_gaze = "MONARCHS_GAZE"
+    monologue = "MONOLOGUE"
+    multi_cast = "MULTI_CAST"
+    murder = "MURDER"
+    necro_mastery = "NECRO_MASTERY"
+    negative_pulse = "NEGATIVE_PULSE"
+    neows_fury = "NEOWS_FURY"
+    neurosurge = "NEUROSURGE"
+    neutralize = "NEUTRALIZE"
+    neutron_aegis = "NEUTRON_AEGIS"
+    nightmare = "NIGHTMARE"
+    normality = "NORMALITY"
+    nostalgia = "NOSTALGIA"
+    not_yet = "NOT_YET"
+    noxious_fumes = "NOXIOUS_FUMES"
+    no_escape = "NO_ESCAPE"
+    null = "NULL"
+    oblivion = "OBLIVION"
+    offering = "OFFERING"
+    omnislice = "OMNISLICE"
+    one_two_punch = "ONE_TWO_PUNCH"
+    orbit = "ORBIT"
+    outbreak = "OUTBREAK"
+    outmaneuver = "OUTMANEUVER"
+    overclock = "OVERCLOCK"
+    pacts_end = "PACTS_END"
+    pagestorm = "PAGESTORM"
+    pale_blue_dot = "PALE_BLUE_DOT"
+    panache = "PANACHE"
+    panic_button = "PANIC_BUTTON"
+    parry = "PARRY"
+    parse = "PARSE"
+    particle_wall = "PARTICLE_WALL"
+    patter = "PATTER"
+    peck = "PECK"
+    perfected_strike = "PERFECTED_STRIKE"
+    phantom_blades = "PHANTOM_BLADES"
+    photon_cut = "PHOTON_CUT"
+    piercing_wail = "PIERCING_WAIL"
+    pillage = "PILLAGE"
+    pillar_of_creation = "PILLAR_OF_CREATION"
+    pinpoint = "PINPOINT"
+    poisoned_stab = "POISONED_STAB"
+    poke = "POKE"
+    pommel_strike = "POMMEL_STRIKE"
+    poor_sleep = "POOR_SLEEP"
+    pounce = "POUNCE"
+    precise_cut = "PRECISE_CUT"
+    predator = "PREDATOR"
+    prepared = "PREPARED"
+    prep_time = "PREP_TIME"
+    primal_force = "PRIMAL_FORCE"
+    production = "PRODUCTION"
+    prolong = "PROLONG"
+    prophesize = "PROPHESIZE"
+    protector = "PROTECTOR"
+    prowess = "PROWESS"
+    pull_aggro = "PULL_AGGRO"
+    pull_from_below = "PULL_FROM_BELOW"
+    purity = "PURITY"
+    putrefy = "PUTREFY"
+    pyre = "PYRE"
+    quadcast = "QUADCAST"
+    quasar = "QUASAR"
+    radiate = "RADIATE"
+    rage = "RAGE"
+    rainbow = "RAINBOW"
+    rally = "RALLY"
+    rampage = "RAMPAGE"
+    rattle = "RATTLE"
+    reanimate = "REANIMATE"
+    reap = "REAP"
+    reaper_form = "REAPER_FORM"
+    reave = "REAVE"
+    reboot = "REBOOT"
+    rebound = "REBOUND"
+    refine_blade = "REFINE_BLADE"
+    reflect = "REFLECT"
+    reflex = "REFLEX"
+    refract = "REFRACT"
+    regret = "REGRET"
+    relax = "RELAX"
+    rend = "REND"
+    resonance = "RESONANCE"
+    restlessness = "RESTLESSNESS"
+    ricochet = "RICOCHET"
+    right_hand_hand = "RIGHT_HAND_HAND"
+    rip_and_tear = "RIP_AND_TEAR"
+    rocket_punch = "ROCKET_PUNCH"
+    rolling_boulder = "ROLLING_BOULDER"
+    royalties = "ROYALTIES"
+    royal_gamble = "ROYAL_GAMBLE"
+    rupture = "RUPTURE"
+    sacrifice = "SACRIFICE"
+    salvo = "SALVO"
+    scavenge = "SCAVENGE"
+    scourge = "SCOURGE"
+    scrape = "SCRAPE"
+    scrawl = "SCRAWL"
+    sculpting_strike = "SCULPTING_STRIKE"
+    seance = "SEANCE"
+    second_wind = "SECOND_WIND"
+    secret_technique = "SECRET_TECHNIQUE"
+    secret_weapon = "SECRET_WEAPON"
+    seeker_strike = "SEEKER_STRIKE"
+    seeking_edge = "SEEKING_EDGE"
+    sentry_mode = "SENTRY_MODE"
+    serpent_form = "SERPENT_FORM"
+    setup_strike = "SETUP_STRIKE"
+    seven_stars = "SEVEN_STARS"
+    severance = "SEVERANCE"
+    shadowmeld = "SHADOWMELD"
+    shadow_shield = "SHADOW_SHIELD"
+    shadow_step = "SHADOW_STEP"
+    shame = "SHAME"
+    shared_fate = "SHARED_FATE"
+    shatter = "SHATTER"
+    shining_strike = "SHINING_STRIKE"
+    shiv = "SHIV"
+    shockwave = "SHOCKWAVE"
+    shroud = "SHROUD"
+    shrug_it_off = "SHRUG_IT_OFF"
+    sic_em = "SIC_EM"
+    signal_boost = "SIGNAL_BOOST"
+    skewer = "SKEWER"
+    skim = "SKIM"
+    sleight_of_flesh = "SLEIGHT_OF_FLESH"
+    slice = "SLICE"
+    slimed = "SLIMED"
+    sloth = "SLOTH"
+    smokestack = "SMOKESTACK"
+    snakebite = "SNAKEBITE"
+    snap = "SNAP"
+    sneaky = "SNEAKY"
+    solar_strike = "SOLAR_STRIKE"
+    soot = "SOOT"
+    soul = "SOUL"
+    soul_storm = "SOUL_STORM"
+    sovereign_blade = "SOVEREIGN_BLADE"
+    sow = "SOW"
+    spectrum_shift = "SPECTRUM_SHIFT"
+    speedster = "SPEEDSTER"
+    spinner = "SPINNER"
+    spirit_of_ash = "SPIRIT_OF_ASH"
+    spite = "SPITE"
+    splash = "SPLASH"
+    spoils_map = "SPOILS_MAP"
+    spoils_of_battle = "SPOILS_OF_BATTLE"
+    spore_mind = "SPORE_MIND"
+    spur = "SPUR"
+    squash = "SQUASH"
+    squeeze = "SQUEEZE"
+    stack = "STACK"
+    stampede = "STAMPEDE"
+    stardust = "STARDUST"
+    stoke = "STOKE"
+    stomp = "STOMP"
+    stone_armor = "STONE_ARMOR"
+    storm = "STORM"
+    storm_of_steel = "STORM_OF_STEEL"
+    strangle = "STRANGLE"
+    stratagem = "STRATAGEM"
+    strike_defect = "STRIKE_DEFECT"
+    strike_ironclad = "STRIKE_IRONCLAD"
+    strike_necrobinder = "STRIKE_NECROBINDER"
+    strike_regent = "STRIKE_REGENT"
+    strike_silent = "STRIKE_SILENT"
+    subroutine = "SUBROUTINE"
+    sucker_punch = "SUCKER_PUNCH"
+    summon_forth = "SUMMON_FORTH"
+    sunder = "SUNDER"
+    supercritical = "SUPERCRITICAL"
+    supermassive = "SUPERMASSIVE"
+    suppress = "SUPPRESS"
+    survivor = "SURVIVOR"
+    sweeping_beam = "SWEEPING_BEAM"
+    sweeping_gaze = "SWEEPING_GAZE"
+    sword_boomerang = "SWORD_BOOMERANG"
+    sword_sage = "SWORD_SAGE"
+    synchronize = "SYNCHRONIZE"
+    synthesis = "SYNTHESIS"
+    tactician = "TACTICIAN"
+    tag_team = "TAG_TEAM"
+    tank = "TANK"
+    taunt = "TAUNT"
+    tear_asunder = "TEAR_ASUNDER"
+    tempest = "TEMPEST"
+    terraforming = "TERRAFORMING"
+    tesla_coil = "TESLA_COIL"
+    the_bomb = "THE_BOMB"
+    the_gambit = "THE_GAMBIT"
+    the_hunt = "THE_HUNT"
+    the_scythe = "THE_SCYTHE"
+    the_sealed_throne = "THE_SEALED_THRONE"
+    the_smith = "THE_SMITH"
+    thinking_ahead = "THINKING_AHEAD"
+    thrash = "THRASH"
+    thrumming_hatchet = "THRUMMING_HATCHET"
+    thunder = "THUNDER"
+    thunderclap = "THUNDERCLAP"
+    times_up = "TIMES_UP"
+    tools_of_the_trade = "TOOLS_OF_THE_TRADE"
+    toric_toughness = "TORIC_TOUGHNESS"
+    toxic = "TOXIC"
+    tracking = "TRACKING"
+    transfigure = "TRANSFIGURE"
+    trash_to_treasure = "TRASH_TO_TREASURE"
+    tremble = "TREMBLE"
+    true_grit = "TRUE_GRIT"
+    turbo = "TURBO"
+    twin_strike = "TWIN_STRIKE"
+    tyranny = "TYRANNY"
+    ultimate_defend = "ULTIMATE_DEFEND"
+    ultimate_strike = "ULTIMATE_STRIKE"
+    undeath = "UNDEATH"
+    unleash = "UNLEASH"
+    unmovable = "UNMOVABLE"
+    unrelenting = "UNRELENTING"
+    untouchable = "UNTOUCHABLE"
+    uppercut = "UPPERCUT"
+    uproar = "UPROAR"
+    up_my_sleeve = "UP_MY_SLEEVE"
+    veilpiercer = "VEILPIERCER"
+    venerate = "VENERATE"
+    vicious = "VICIOUS"
+    void = "VOID"
+    void_form = "VOID_FORM"
+    volley = "VOLLEY"
+    voltaic = "VOLTAIC"
+    waste_away = "WASTE_AWAY"
+    well_laid_plans = "WELL_LAID_PLANS"
+    whirlwind = "WHIRLWIND"
+    whistle = "WHISTLE"
+    white_noise = "WHITE_NOISE"
+    wish = "WISH"
+    wisp = "WISP"
+    wound = "WOUND"
+    wraith_form = "WRAITH_FORM"
+    writhe = "WRITHE"
+    wrought_in_war = "WROUGHT_IN_WAR"
+    zap = "ZAP"
+    none_type_none = None
+
+
+class RelicId(Enum):
+    unknown = "UNKNOWN"
+    akabeko = "AKABEKO"
+    alchemical_coffer = "ALCHEMICAL_COFFER"
+    amethyst_aubergine = "AMETHYST_AUBERGINE"
+    anchor = "ANCHOR"
+    arcane_scroll = "ARCANE_SCROLL"
+    archaic_tooth = "ARCHAIC_TOOTH"
+    art_of_war = "ART_OF_WAR"
+    astrolabe = "ASTROLABE"
+    bag_of_marbles = "BAG_OF_MARBLES"
+    bag_of_preparation = "BAG_OF_PREPARATION"
+    beating_remnant = "BEATING_REMNANT"
+    beautiful_bracelet = "BEAUTIFUL_BRACELET"
+    bellows = "BELLOWS"
+    belt_buckle = "BELT_BUCKLE"
+    big_hat = "BIG_HAT"
+    big_mushroom = "BIG_MUSHROOM"
+    biiig_hug = "BIIIG_HUG"
+    bing_bong = "BING_BONG"
+    black_blood = "BLACK_BLOOD"
+    black_star = "BLACK_STAR"
+    blessed_antler = "BLESSED_ANTLER"
+    blood_soaked_rose = "BLOOD_SOAKED_ROSE"
+    blood_vial = "BLOOD_VIAL"
+    bone_flute = "BONE_FLUTE"
+    bone_tea = "BONE_TEA"
+    bookmark = "BOOKMARK"
+    book_of_five_rings = "BOOK_OF_FIVE_RINGS"
+    book_repair_knife = "BOOK_REPAIR_KNIFE"
+    booming_conch = "BOOMING_CONCH"
+    bound_phylactery = "BOUND_PHYLACTERY"
+    bowler_hat = "BOWLER_HAT"
+    bread = "BREAD"
+    brilliant_scarf = "BRILLIANT_SCARF"
+    brimstone = "BRIMSTONE"
+    bronze_scales = "BRONZE_SCALES"
+    burning_blood = "BURNING_BLOOD"
+    burning_sticks = "BURNING_STICKS"
+    byrdpip = "BYRDPIP"
+    calling_bell = "CALLING_BELL"
+    candelabra = "CANDELABRA"
+    captains_wheel = "CAPTAINS_WHEEL"
+    cauldron = "CAULDRON"
+    centennial_puzzle = "CENTENNIAL_PUZZLE"
+    chandelier = "CHANDELIER"
+    charons_ashes = "CHARONS_ASHES"
+    chemical_x = "CHEMICAL_X"
+    choices_paradox = "CHOICES_PARADOX"
+    chosen_cheese = "CHOSEN_CHEESE"
+    circlet = "CIRCLET"
+    claws = "CLAWS"
+    cloak_clasp = "CLOAK_CLASP"
+    cracked_core = "CRACKED_CORE"
+    crossbow = "CROSSBOW"
+    cursed_pearl = "CURSED_PEARL"
+    darkstone_periapt = "DARKSTONE_PERIAPT"
+    data_disk = "DATA_DISK"
+    daughter_of_the_wind = "DAUGHTER_OF_THE_WIND"
+    delicate_frond = "DELICATE_FROND"
+    demon_tongue = "DEMON_TONGUE"
+    deprecated_relic = "DEPRECATED_RELIC"
+    diamond_diadem = "DIAMOND_DIADEM"
+    dingy_rug = "DINGY_RUG"
+    distinguished_cape = "DISTINGUISHED_CAPE"
+    divine_destiny = "DIVINE_DESTINY"
+    divine_right = "DIVINE_RIGHT"
+    dollys_mirror = "DOLLYS_MIRROR"
+    dragon_fruit = "DRAGON_FRUIT"
+    dream_catcher = "DREAM_CATCHER"
+    driftwood = "DRIFTWOOD"
+    dusty_tome = "DUSTY_TOME"
+    ectoplasm = "ECTOPLASM"
+    electric_shrymp = "ELECTRIC_SHRYMP"
+    ember_tea = "EMBER_TEA"
+    emotion_chip = "EMOTION_CHIP"
+    empty_cage = "EMPTY_CAGE"
+    eternal_feather = "ETERNAL_FEATHER"
+    fake_anchor = "FAKE_ANCHOR"
+    fake_blood_vial = "FAKE_BLOOD_VIAL"
+    fake_happy_flower = "FAKE_HAPPY_FLOWER"
+    fake_lees_waffle = "FAKE_LEES_WAFFLE"
+    fake_mango = "FAKE_MANGO"
+    fake_merchants_rug = "FAKE_MERCHANTS_RUG"
+    fake_orichalcum = "FAKE_ORICHALCUM"
+    fake_snecko_eye = "FAKE_SNECKO_EYE"
+    fake_strike_dummy = "FAKE_STRIKE_DUMMY"
+    fake_venerable_tea_set = "FAKE_VENERABLE_TEA_SET"
+    fencing_manual = "FENCING_MANUAL"
+    festive_popper = "FESTIVE_POPPER"
+    fiddle = "FIDDLE"
+    forgotten_soul = "FORGOTTEN_SOUL"
+    fragrant_mushroom = "FRAGRANT_MUSHROOM"
+    fresnel_lens = "FRESNEL_LENS"
+    frozen_egg = "FROZEN_EGG"
+    funerary_mask = "FUNERARY_MASK"
+    fur_coat = "FUR_COAT"
+    galactic_dust = "GALACTIC_DUST"
+    gambling_chip = "GAMBLING_CHIP"
+    game_piece = "GAME_PIECE"
+    ghost_seed = "GHOST_SEED"
+    girya = "GIRYA"
+    glass_eye = "GLASS_EYE"
+    glitter = "GLITTER"
+    gnarled_hammer = "GNARLED_HAMMER"
+    golden_compass = "GOLDEN_COMPASS"
+    golden_pearl = "GOLDEN_PEARL"
+    gold_plated_cables = "GOLD_PLATED_CABLES"
+    gorget = "GORGET"
+    gremlin_horn = "GREMLIN_HORN"
+    hand_drill = "HAND_DRILL"
+    happy_flower = "HAPPY_FLOWER"
+    hefty_tablet = "HEFTY_TABLET"
+    helical_dart = "HELICAL_DART"
+    history_course = "HISTORY_COURSE"
+    horn_cleat = "HORN_CLEAT"
+    ice_cream = "ICE_CREAM"
+    infused_core = "INFUSED_CORE"
+    intimidating_helmet = "INTIMIDATING_HELMET"
+    iron_club = "IRON_CLUB"
+    ivory_tile = "IVORY_TILE"
+    jeweled_mask = "JEWELED_MASK"
+    jewelry_box = "JEWELRY_BOX"
+    joss_paper = "JOSS_PAPER"
+    juzu_bracelet = "JUZU_BRACELET"
+    kifuda = "KIFUDA"
+    kunai = "KUNAI"
+    kusarigama = "KUSARIGAMA"
+    lantern = "LANTERN"
+    large_capsule = "LARGE_CAPSULE"
+    lasting_candy = "LASTING_CANDY"
+    lava_lamp = "LAVA_LAMP"
+    lava_rock = "LAVA_ROCK"
+    lead_paperweight = "LEAD_PAPERWEIGHT"
+    leafy_poultice = "LEAFY_POULTICE"
+    lees_waffle = "LEES_WAFFLE"
+    letter_opener = "LETTER_OPENER"
+    lizard_tail = "LIZARD_TAIL"
+    looming_fruit = "LOOMING_FRUIT"
+    lords_parasol = "LORDS_PARASOL"
+    lost_coffer = "LOST_COFFER"
+    lost_wisp = "LOST_WISP"
+    lucky_fysh = "LUCKY_FYSH"
+    lunar_pastry = "LUNAR_PASTRY"
+    mango = "MANGO"
+    massive_scroll = "MASSIVE_SCROLL"
+    maw_bank = "MAW_BANK"
+    meal_ticket = "MEAL_TICKET"
+    meat_cleaver = "MEAT_CLEAVER"
+    meat_on_the_bone = "MEAT_ON_THE_BONE"
+    membership_card = "MEMBERSHIP_CARD"
+    mercury_hourglass = "MERCURY_HOURGLASS"
+    metronome = "METRONOME"
+    miniature_cannon = "MINIATURE_CANNON"
+    miniature_tent = "MINIATURE_TENT"
+    mini_regent = "MINI_REGENT"
+    molten_egg = "MOLTEN_EGG"
+    mr_struggles = "MR_STRUGGLES"
+    mummified_hand = "MUMMIFIED_HAND"
+    music_box = "MUSIC_BOX"
+    mystic_lighter = "MYSTIC_LIGHTER"
+    neows_bones = "NEOWS_BONES"
+    neows_talisman = "NEOWS_TALISMAN"
+    neows_torment = "NEOWS_TORMENT"
+    new_leaf = "NEW_LEAF"
+    ninja_scroll = "NINJA_SCROLL"
+    nunchaku = "NUNCHAKU"
+    nutritious_oyster = "NUTRITIOUS_OYSTER"
+    nutritious_soup = "NUTRITIOUS_SOUP"
+    oddly_smooth_stone = "ODDLY_SMOOTH_STONE"
+    old_coin = "OLD_COIN"
+    orange_dough = "ORANGE_DOUGH"
+    orichalcum = "ORICHALCUM"
+    ornamental_fan = "ORNAMENTAL_FAN"
+    orrery = "ORRERY"
+    paels_blood = "PAELS_BLOOD"
+    paels_claw = "PAELS_CLAW"
+    paels_eye = "PAELS_EYE"
+    paels_flesh = "PAELS_FLESH"
+    paels_growth = "PAELS_GROWTH"
+    paels_horn = "PAELS_HORN"
+    paels_legion = "PAELS_LEGION"
+    paels_tears = "PAELS_TEARS"
+    paels_tooth = "PAELS_TOOTH"
+    paels_wing = "PAELS_WING"
+    pandoras_box = "PANDORAS_BOX"
+    pantograph = "PANTOGRAPH"
+    paper_krane = "PAPER_KRANE"
+    paper_phrog = "PAPER_PHROG"
+    parrying_shield = "PARRYING_SHIELD"
+    pear = "PEAR"
+    pendulum = "PENDULUM"
+    pen_nib = "PEN_NIB"
+    permafrost = "PERMAFROST"
+    petrified_toad = "PETRIFIED_TOAD"
+    phial_holster = "PHIAL_HOLSTER"
+    philosophers_stone = "PHILOSOPHERS_STONE"
+    phylactery_unbound = "PHYLACTERY_UNBOUND"
+    planisphere = "PLANISPHERE"
+    pocketwatch = "POCKETWATCH"
+    pollinous_core = "POLLINOUS_CORE"
+    pomander = "POMANDER"
+    potion_belt = "POTION_BELT"
+    power_cell = "POWER_CELL"
+    prayer_wheel = "PRAYER_WHEEL"
+    precarious_shears = "PRECARIOUS_SHEARS"
+    precise_scissors = "PRECISE_SCISSORS"
+    preserved_fog = "PRESERVED_FOG"
+    prismatic_gem = "PRISMATIC_GEM"
+    pumpkin_candle = "PUMPKIN_CANDLE"
+    punch_dagger = "PUNCH_DAGGER"
+    radiant_pearl = "RADIANT_PEARL"
+    rainbow_ring = "RAINBOW_RING"
+    razor_tooth = "RAZOR_TOOTH"
+    red_mask = "RED_MASK"
+    red_skull = "RED_SKULL"
+    regalite = "REGALITE"
+    regal_pillow = "REGAL_PILLOW"
+    reptile_trinket = "REPTILE_TRINKET"
+    ringing_triangle = "RINGING_TRIANGLE"
+    ring_of_the_drake = "RING_OF_THE_DRAKE"
+    ring_of_the_snake = "RING_OF_THE_SNAKE"
+    ripple_basin = "RIPPLE_BASIN"
+    royal_poison = "ROYAL_POISON"
+    royal_stamp = "ROYAL_STAMP"
+    ruined_helmet = "RUINED_HELMET"
+    runic_capacitor = "RUNIC_CAPACITOR"
+    runic_pyramid = "RUNIC_PYRAMID"
+    sai = "SAI"
+    sand_castle = "SAND_CASTLE"
+    screaming_flagon = "SCREAMING_FLAGON"
+    scroll_boxes = "SCROLL_BOXES"
+    seal_of_gold = "SEAL_OF_GOLD"
+    sea_glass = "SEA_GLASS"
+    self_forming_clay = "SELF_FORMING_CLAY"
+    sere_talon = "SERE_TALON"
+    shovel = "SHOVEL"
+    shuriken = "SHURIKEN"
+    signet_ring = "SIGNET_RING"
+    silver_crucible = "SILVER_CRUCIBLE"
+    sling_of_courage = "SLING_OF_COURAGE"
+    small_capsule = "SMALL_CAPSULE"
+    snecko_eye = "SNECKO_EYE"
+    snecko_skull = "SNECKO_SKULL"
+    sozu = "SOZU"
+    sparkling_rouge = "SPARKLING_ROUGE"
+    spiked_gauntlets = "SPIKED_GAUNTLETS"
+    stone_calendar = "STONE_CALENDAR"
+    stone_cracker = "STONE_CRACKER"
+    stone_humidifier = "STONE_HUMIDIFIER"
+    storybook = "STORYBOOK"
+    strawberry = "STRAWBERRY"
+    strike_dummy = "STRIKE_DUMMY"
+    sturdy_clamp = "STURDY_CLAMP"
+    sword_of_jade = "SWORD_OF_JADE"
+    sword_of_stone = "SWORD_OF_STONE"
+    symbiotic_virus = "SYMBIOTIC_VIRUS"
+    tanxs_whistle = "TANXS_WHISTLE"
+    tea_of_discourtesy = "TEA_OF_DISCOURTESY"
+    the_abacus = "THE_ABACUS"
+    the_boot = "THE_BOOT"
+    the_courier = "THE_COURIER"
+    throwing_axe = "THROWING_AXE"
+    tingsha = "TINGSHA"
+    tiny_mailbox = "TINY_MAILBOX"
+    toasty_mittens = "TOASTY_MITTENS"
+    toolbox = "TOOLBOX"
+    touch_of_orobas = "TOUCH_OF_OROBAS"
+    tough_bandages = "TOUGH_BANDAGES"
+    toxic_egg = "TOXIC_EGG"
+    toy_box = "TOY_BOX"
+    tri_boomerang = "TRI_BOOMERANG"
+    tungsten_rod = "TUNGSTEN_ROD"
+    tuning_fork = "TUNING_FORK"
+    twisted_funnel = "TWISTED_FUNNEL"
+    unceasing_top = "UNCEASING_TOP"
+    undying_sigil = "UNDYING_SIGIL"
+    unsettling_lamp = "UNSETTLING_LAMP"
+    vajra = "VAJRA"
+    vambrace = "VAMBRACE"
+    velvet_choker = "VELVET_CHOKER"
+    venerable_tea_set = "VENERABLE_TEA_SET"
+    very_hot_cocoa = "VERY_HOT_COCOA"
+    vexing_puzzlebox = "VEXING_PUZZLEBOX"
+    vitruvian_minion = "VITRUVIAN_MINION"
+    war_hammer = "WAR_HAMMER"
+    war_paint = "WAR_PAINT"
+    whetstone = "WHETSTONE"
+    whispering_earring = "WHISPERING_EARRING"
+    white_beast_statue = "WHITE_BEAST_STATUE"
+    white_star = "WHITE_STAR"
+    winged_boots = "WINGED_BOOTS"
+    wing_charm = "WING_CHARM"
+    wongos_mystery_ticket = "WONGOS_MYSTERY_TICKET"
+    wongo_customer_appreciation_badge = "WONGO_CUSTOMER_APPRECIATION_BADGE"
+    yummy_cookie = "YUMMY_COOKIE"
+    none_type_none = None
+
+
+class PotionId(Enum):
+    unknown = "UNKNOWN"
+    ashwater = "ASHWATER"
+    attack_potion = "ATTACK_POTION"
+    beetle_juice = "BEETLE_JUICE"
+    blessing_of_the_forge = "BLESSING_OF_THE_FORGE"
+    block_potion = "BLOCK_POTION"
+    blood_potion = "BLOOD_POTION"
+    bone_brew = "BONE_BREW"
+    bottled_potential = "BOTTLED_POTENTIAL"
+    clarity = "CLARITY"
+    colorless_potion = "COLORLESS_POTION"
+    cosmic_concoction = "COSMIC_CONCOCTION"
+    cunning_potion = "CUNNING_POTION"
+    cure_all = "CURE_ALL"
+    deprecated_potion = "DEPRECATED_POTION"
+    dexterity_potion = "DEXTERITY_POTION"
+    distilled_chaos = "DISTILLED_CHAOS"
+    droplet_of_precognition = "DROPLET_OF_PRECOGNITION"
+    duplicator = "DUPLICATOR"
+    energy_potion = "ENERGY_POTION"
+    entropic_brew = "ENTROPIC_BREW"
+    essence_of_darkness = "ESSENCE_OF_DARKNESS"
+    explosive_ampoule = "EXPLOSIVE_AMPOULE"
+    fairy_in_a_bottle = "FAIRY_IN_A_BOTTLE"
+    fire_potion = "FIRE_POTION"
+    flex_potion = "FLEX_POTION"
+    focus_potion = "FOCUS_POTION"
+    fortifier = "FORTIFIER"
+    foul_potion = "FOUL_POTION"
+    fruit_juice = "FRUIT_JUICE"
+    fysh_oil = "FYSH_OIL"
+    gamblers_brew = "GAMBLERS_BREW"
+    ghost_in_a_jar = "GHOST_IN_A_JAR"
+    gigantification_potion = "GIGANTIFICATION_POTION"
+    glowwater_potion = "GLOWWATER_POTION"
+    heart_of_iron = "HEART_OF_IRON"
+    kings_courage = "KINGS_COURAGE"
+    liquid_bronze = "LIQUID_BRONZE"
+    liquid_memories = "LIQUID_MEMORIES"
+    lucky_tonic = "LUCKY_TONIC"
+    mazaleths_gift = "MAZALETHS_GIFT"
+    orobic_acid = "OROBIC_ACID"
+    poison_potion = "POISON_POTION"
+    potion_of_binding = "POTION_OF_BINDING"
+    potion_of_capacity = "POTION_OF_CAPACITY"
+    potion_of_doom = "POTION_OF_DOOM"
+    potion_shaped_rock = "POTION_SHAPED_ROCK"
+    pot_of_ghouls = "POT_OF_GHOULS"
+    powdered_demise = "POWDERED_DEMISE"
+    power_potion = "POWER_POTION"
+    radiant_tincture = "RADIANT_TINCTURE"
+    regen_potion = "REGEN_POTION"
+    shackling_potion = "SHACKLING_POTION"
+    ship_in_a_bottle = "SHIP_IN_A_BOTTLE"
+    skill_potion = "SKILL_POTION"
+    snecko_oil = "SNECKO_OIL"
+    soldiers_stew = "SOLDIERS_STEW"
+    speed_potion = "SPEED_POTION"
+    stable_serum = "STABLE_SERUM"
+    star_potion = "STAR_POTION"
+    strength_potion = "STRENGTH_POTION"
+    swift_potion = "SWIFT_POTION"
+    touch_of_insanity = "TOUCH_OF_INSANITY"
+    vulnerable_potion = "VULNERABLE_POTION"
+    weak_potion = "WEAK_POTION"
+    none_type_none = None
+
+
 class MerchantKind(Enum):
     unknown = "unknown"
     card = "card"
@@ -389,13 +1630,16 @@ class Relic(BaseModel):
     id: str
 
 
-class RestSiteOption(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    index: int
-    option_id: Annotated[str, Field(alias="optionId")]
-    is_enabled: Annotated[bool, Field(alias="isEnabled")]
+class RestSiteOptionId(Enum):
+    unknown = "UNKNOWN"
+    heal = "HEAL"
+    smith = "SMITH"
+    dig = "DIG"
+    lift = "LIFT"
+    toolbox = "TOOLBOX"
+    recall = "RECALL"
+    meditate = "MEDITATE"
+    pray = "PRAY"
 
 
 class RewardKind(Enum):
@@ -414,8 +1658,8 @@ class RewardOption(BaseModel):
     kind: RewardKind
     can_skip: Annotated[bool, Field(alias="canSkip")]
     gold_amount: Annotated[int | None, Field(alias="goldAmount")] = None
-    potion_id: Annotated[str | None, Field(alias="potionId")] = None
-    relic_id: Annotated[str | None, Field(alias="relicId")] = None
+    potion_id: Annotated[PotionId | None, Field(alias="potionId")] = None
+    relic_id: Annotated[RelicId | None, Field(alias="relicId")] = None
     cards: list[CardRewardOption] | None = None
 
 
@@ -487,13 +1731,6 @@ class RunHistoryRoomType(Enum):
     treasure = "treasure"
 
 
-class RunLeaveTreasureRoomParams(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    skip: bool | None = False
-
-
 class RunNewParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -556,6 +1793,14 @@ class RunSkipRewardParams(BaseModel):
     reward_index: Annotated[int, Field(alias="rewardIndex")]
 
 
+class RunSummarizeStateResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    summary: str
+
+
 class RunUsePotionParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -607,6 +1852,60 @@ class Card(BaseModel):
     can_play: Annotated[bool, Field(alias="canPlay")]
     target_type: Annotated[TargetType, Field(alias="targetType")]
     upgraded: bool
+
+
+class ContentDescribeCardResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    card_id: Annotated[str, Field(alias="cardId")]
+    display_name: Annotated[str, Field(alias="displayName")]
+    description: str
+    cost: int
+    rarity: str
+    character: str
+    target_type: Annotated[TargetType, Field(alias="targetType")]
+    type: str
+
+
+class ContentDescribePotionResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    potion_id: Annotated[str, Field(alias="potionId")]
+    display_name: Annotated[str, Field(alias="displayName")]
+    description: str
+    rarity: str
+    target_type: Annotated[TargetType, Field(alias="targetType")]
+
+
+class ContentListRelicsResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    count: int
+    relics: list[ContentRelicSummary]
+
+
+class ContentPotionSummary(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: str
+    display_name: Annotated[str, Field(alias="displayName")]
+    rarity: str
+    target_type: Annotated[TargetType, Field(alias="targetType")]
+
+
+class ContentUnknownNodeOddsRow(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    room_type: Annotated[RoomType, Field(alias="roomType")]
+    weight: float
 
 
 class DebugStartEventResult(BaseModel):
@@ -696,9 +1995,9 @@ class MerchantItem(BaseModel):
     cost: int
     is_stocked: Annotated[bool, Field(alias="isStocked")]
     is_affordable: Annotated[bool, Field(alias="isAffordable")]
-    card_id: Annotated[str | None, Field(alias="cardId")] = None
-    relic_id: Annotated[str | None, Field(alias="relicId")] = None
-    potion_id: Annotated[str | None, Field(alias="potionId")] = None
+    card_id: Annotated[CardId | None, Field(alias="cardId")] = None
+    relic_id: Annotated[RelicId | None, Field(alias="relicId")] = None
+    potion_id: Annotated[PotionId | None, Field(alias="potionId")] = None
 
 
 class OwnedPotion(BaseModel):
@@ -711,6 +2010,15 @@ class OwnedPotion(BaseModel):
     can_use: Annotated[bool, Field(alias="canUse")]
 
 
+class RestSiteOption(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    index: int
+    option_id: Annotated[RestSiteOptionId, Field(alias="optionId")]
+    is_enabled: Annotated[bool, Field(alias="isEnabled")]
+
+
 class TriggerEvent(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -720,12 +2028,30 @@ class TriggerEvent(BaseModel):
     hook: str
 
 
+class ContentListPotionsResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    count: int
+    potions: list[ContentPotionSummary]
+
+
+class ContentUnknownNodeOddsResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    act_index: Annotated[int | None, Field(alias="actIndex")] = None
+    base_odds: Annotated[list[ContentUnknownNodeOddsRow], Field(alias="baseOdds")]
+
+
 class Enemy(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     index: int
-    monster_id: Annotated[str | None, Field(alias="monsterId")] = None
+    monster_id: Annotated[str, Field(alias="monsterId")]
     hp: int
     max_hp: Annotated[int, Field(alias="maxHp")]
     block: int
@@ -876,37 +2202,6 @@ class RunEnterNextActResult(BaseModel):
 
 
 class RunLeaveMerchantRoomResult(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    ok: bool
-    current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
-    act_floor: Annotated[int, Field(alias="actFloor")]
-    current_act_index: Annotated[int, Field(alias="currentActIndex")]
-    is_game_over: Annotated[bool, Field(alias="isGameOver")]
-    is_victory: Annotated[bool, Field(alias="isVictory")]
-    is_dead: Annotated[bool, Field(alias="isDead")]
-    hp: int
-    available_map_nodes: Annotated[list[MapNode], Field(alias="availableMapNodes")]
-    available_event_options: Annotated[
-        list[EventOption], Field(alias="availableEventOptions")
-    ]
-    available_rest_site_options: Annotated[
-        list[RestSiteOption], Field(alias="availableRestSiteOptions")
-    ]
-    available_merchant_items: Annotated[
-        list[MerchantItem], Field(alias="availableMerchantItems")
-    ]
-    available_treasure_relics: Annotated[
-        list[TreasureRelic], Field(alias="availableTreasureRelics")
-    ]
-    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
-    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
-    relics: list[Relic]
-    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
-
-
-class RunLeaveTreasureRoomResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
@@ -1192,6 +2487,37 @@ class RunSkipRewardResult(BaseModel):
     owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
+class RunSkipTreasureResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
+    act_floor: Annotated[int, Field(alias="actFloor")]
+    current_act_index: Annotated[int, Field(alias="currentActIndex")]
+    is_game_over: Annotated[bool, Field(alias="isGameOver")]
+    is_victory: Annotated[bool, Field(alias="isVictory")]
+    is_dead: Annotated[bool, Field(alias="isDead")]
+    hp: int
+    available_map_nodes: Annotated[list[MapNode], Field(alias="availableMapNodes")]
+    available_event_options: Annotated[
+        list[EventOption], Field(alias="availableEventOptions")
+    ]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
+
+
 class RunStateResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1234,6 +2560,37 @@ class RunStateResult(BaseModel):
     second_boss_encounter_id: Annotated[
         str | None, Field(alias="secondBossEncounterId")
     ] = None
+
+
+class RunTakeTreasureResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    current_room_type: Annotated[RoomType, Field(alias="currentRoomType")]
+    act_floor: Annotated[int, Field(alias="actFloor")]
+    current_act_index: Annotated[int, Field(alias="currentActIndex")]
+    is_game_over: Annotated[bool, Field(alias="isGameOver")]
+    is_victory: Annotated[bool, Field(alias="isVictory")]
+    is_dead: Annotated[bool, Field(alias="isDead")]
+    hp: int
+    available_map_nodes: Annotated[list[MapNode], Field(alias="availableMapNodes")]
+    available_event_options: Annotated[
+        list[EventOption], Field(alias="availableEventOptions")
+    ]
+    available_rest_site_options: Annotated[
+        list[RestSiteOption], Field(alias="availableRestSiteOptions")
+    ]
+    available_merchant_items: Annotated[
+        list[MerchantItem], Field(alias="availableMerchantItems")
+    ]
+    available_treasure_relics: Annotated[
+        list[TreasureRelic], Field(alias="availableTreasureRelics")
+    ]
+    combat_state: Annotated[CombatState | None, Field(alias="combatState")] = None
+    rewards_state: Annotated[RewardsState | None, Field(alias="rewardsState")] = None
+    relics: list[Relic]
+    owned_potions: Annotated[list[OwnedPotion], Field(alias="ownedPotions")]
 
 
 class RunUsePotionResult(BaseModel):

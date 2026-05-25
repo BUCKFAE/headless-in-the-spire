@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Sts2Headless.Cheats;
+using Sts2Headless.Content;
 using Sts2Headless.Protocol;
 using Sts2Headless.Protocol.Methods;
 using Sts2Headless.Replay;
@@ -21,15 +22,26 @@ public static class HostMethods
 {
     public static IReadOnlyDictionary<string, StdioHost.Handler> Build(string repoRoot, Sts2Bindings bindings, Session session, bool debugEnabled)
     {
+        // Merged catalogue used both by host/methods (the wire-level
+        // discovery surface) and by AssertParity below. Built once here
+        // so every consumer sees the exact same shape.
+        var fullCatalog = MethodCatalog.Core
+            .Concat(CheatMethodCatalog.All)
+            .Concat(ContentMethodCatalog.All)
+            .ToList();
+
         var dict = new Dictionary<string, StdioHost.Handler>
         {
             ["host/ping"] = TypedNoParams(() => Ping(repoRoot)),
+            ["host/methods"] = TypedNoParams(() => Methods(fullCatalog, debugEnabled)),
             ["run/new"] = Typed<RunNewParams, RunNewResult>(p => RunNew(bindings, session, repoRoot, p)),
             ["run/state"] = TypedNoParams(() => RunState(bindings, session)),
+            ["run/summarize_state"] = TypedNoParams(() => RunSummarizeState(bindings, session)),
             ["run/select_map_node"] = Typed<RunSelectMapNodeParams, RunSelectMapNodeResult>(p => RunSelectMapNode(bindings, session, p)),
             ["run/select_event_option"] = Typed<RunSelectEventOptionParams, RunSelectEventOptionResult>(p => RunSelectEventOption(bindings, session, p)),
             ["run/select_rest_site_option"] = Typed<RunSelectRestSiteOptionParams, RunSelectRestSiteOptionResult>(p => RunSelectRestSiteOption(bindings, session, p)),
-            ["run/leave_treasure_room"] = Typed<RunLeaveTreasureRoomParams, RunLeaveTreasureRoomResult>(p => RunLeaveTreasureRoom(bindings, session, p)),
+            ["run/take_treasure"] = TypedNoParams(() => RunTakeTreasure(bindings, session)),
+            ["run/skip_treasure"] = TypedNoParams(() => RunSkipTreasure(bindings, session)),
             ["run/buy_merchant_item"] = Typed<RunBuyMerchantItemParams, RunBuyMerchantItemResult>(p => RunBuyMerchantItem(bindings, session, p)),
             ["run/leave_merchant_room"] = TypedNoParams(() => RunLeaveMerchantRoom(bindings, session)),
             ["run/end_turn"] = TypedNoParams(() => RunEndTurn(bindings, session)),
@@ -58,14 +70,41 @@ public static class HostMethods
         {
             dict[name] = GateDebug(name, debugEnabled, raw => handler(raw));
         }
+        // Content surface (no gate — content/* exposes player-visible
+        // info only; seed-deterministic reveals live under debug/* with
+        // GateDebug above). One ContentReader per host instance reads
+        // ModelDb lazily on first call.
+        foreach (var (name, handler) in ContentHostMethods.Build(bindings))
+        {
+            dict[name] = new StdioHost.Handler(handler.Invoke);
+        }
         // AD-5: catalogue is the source of truth shared with the schema
         // emitter. A method registered here without an entry — or vice
         // versa — fails startup rather than silently drifting the wire
         // from `protocol/openrpc.json`. The merged catalogue is Core +
         // cheats so AssertParity covers the full host surface.
-        var fullCatalog = MethodCatalog.Core.Concat(CheatMethodCatalog.All);
         MethodCatalog.AssertParity(fullCatalog, dict.Keys);
         return dict;
+    }
+
+    // Catalogue-introspection handler. Returns every method the host
+    // knows about — including debug ones — so clients can render menus
+    // / autocomplete / "this method exists but is gated" hints without
+    // having to parse openrpc.json. Debug-only entries are flagged via
+    // isDebugOnly, and the top-level debugEnabled mirrors the host's
+    // --enable-debug flag so a client can tell at a glance whether a
+    // debug entry is actually callable in this session.
+    public static HostMethodsResult Methods(IReadOnlyList<MethodEntry> catalog, bool debugEnabled)
+    {
+        var methods = catalog
+            .OrderBy(e => e.Name, StringComparer.Ordinal)
+            .Select(e => new HostMethodInfo(
+                Name: e.Name,
+                Summary: e.Summary,
+                HasParams: e.ParamsType is not null,
+                IsDebugOnly: e.IsDebugOnly))
+            .ToList();
+        return new HostMethodsResult(Ok: true, DebugEnabled: debugEnabled, Methods: methods);
     }
 
     // AD-7: wrap a debug handler so it refuses to run unless --enable-debug
@@ -236,6 +275,15 @@ public static class HostMethods
             SecondBossEncounterId: s.SecondBossEncounterId);
     }
 
+    private static RunSummarizeStateResult RunSummarizeState(Sts2Bindings bindings, Session session)
+    {
+        // Build the same RunStateResult run/state would surface, then
+        // render it through the shared RunSummary helper so the wire
+        // text is identical to a manual run/state → client-side render.
+        var state = RunState(bindings, session);
+        return new RunSummarizeStateResult(Ok: true, Summary: RunSummary.Render(state));
+    }
+
     private static RunSelectMapNodeResult RunSelectMapNode(Sts2Bindings bindings, Session session, RunSelectMapNodeParams? @params)
     {
         var run = session.Run
@@ -297,17 +345,24 @@ public static class HostMethods
         return bindings.ReadSnapshot(run).ToRunSelectRestSiteOptionResult(args.OptionIndex);
     }
 
-    private static RunLeaveTreasureRoomResult RunLeaveTreasureRoom(Sts2Bindings bindings, Session session, RunLeaveTreasureRoomParams? @params)
+    private static RunTakeTreasureResult RunTakeTreasure(Sts2Bindings bindings, Session session)
     {
         var run = session.Run
             ?? throw new InvalidOperationException("no active run — call run/new first");
 
-        // Default {} params (skip=false) when the caller sends no body.
-        // Keeps the call backward-compatible with the older no-params shape.
-        var skip = @params?.Skip ?? false;
-        bindings.LeaveTreasureRoom(run, skip);
+        bindings.LeaveTreasureRoom(run, skip: false);
 
-        return bindings.ReadSnapshot(run).ToRunLeaveTreasureRoomResult();
+        return bindings.ReadSnapshot(run).ToRunTakeTreasureResult();
+    }
+
+    private static RunSkipTreasureResult RunSkipTreasure(Sts2Bindings bindings, Session session)
+    {
+        var run = session.Run
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+
+        bindings.LeaveTreasureRoom(run, skip: true);
+
+        return bindings.ReadSnapshot(run).ToRunSkipTreasureResult();
     }
 
     private static RunBuyMerchantItemResult RunBuyMerchantItem(Sts2Bindings bindings, Session session, RunBuyMerchantItemParams? @params)

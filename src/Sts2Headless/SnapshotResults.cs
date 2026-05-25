@@ -43,7 +43,17 @@ internal static class SnapshotResults
             CombatState: s.CombatState, RewardsState: s.RewardsState,
             Relics: s.Relics, OwnedPotions: s.OwnedPotions);
 
-    public static RunLeaveTreasureRoomResult ToRunLeaveTreasureRoomResult(this RunSnapshot s) =>
+    public static RunTakeTreasureResult ToRunTakeTreasureResult(this RunSnapshot s) =>
+        new(Ok: true,
+            CurrentRoomType: s.CurrentRoomType, ActFloor: s.ActFloor, CurrentActIndex: s.CurrentActIndex,
+            IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,
+            AvailableMapNodes: s.AvailableMapNodes, AvailableEventOptions: s.AvailableEventOptions,
+            AvailableRestSiteOptions: s.AvailableRestSiteOptions, AvailableMerchantItems: s.AvailableMerchantItems,
+            AvailableTreasureRelics: s.AvailableTreasureRelics,
+            CombatState: s.CombatState, RewardsState: s.RewardsState,
+            Relics: s.Relics, OwnedPotions: s.OwnedPotions);
+
+    public static RunSkipTreasureResult ToRunSkipTreasureResult(this RunSnapshot s) =>
         new(Ok: true,
             CurrentRoomType: s.CurrentRoomType, ActFloor: s.ActFloor, CurrentActIndex: s.CurrentActIndex,
             IsGameOver: s.IsGameOver, IsVictory: s.IsVictory, IsDead: s.IsDead, Hp: s.CurrentHp,

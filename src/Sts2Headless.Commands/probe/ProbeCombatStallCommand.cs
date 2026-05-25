@@ -139,7 +139,7 @@ internal static class ProbeCombatStallCommand
     private static void StepRest(Sts2Bindings bindings, RunHandle handle, RunSnapshot snap)
     {
         var heal = snap.AvailableRestSiteOptions.FirstOrDefault(o =>
-            o.IsEnabled && string.Equals(o.OptionId, "HEAL", StringComparison.OrdinalIgnoreCase));
+            o.IsEnabled && o.OptionId == RestSiteOptionId.Heal);
         if (heal is not null)
             bindings.SelectRestSiteOption(handle, heal.Index);
         else

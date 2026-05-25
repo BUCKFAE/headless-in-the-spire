@@ -48,7 +48,7 @@ public class DebugApplyPowerTests : IClassFixture<HostSubprocess>
         var state = await _host.SendAsync<RunStateResult>("run/state");
         Assert.NotNull(state.CombatState);
         Assert.Contains(state.CombatState!.PlayerPowers,
-            p => string.Equals(p.Id, "STRENGTH_POWER", StringComparison.Ordinal));
+            p => p.Id == PowerId.StrengthPower);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class DebugApplyPowerTests : IClassFixture<HostSubprocess>
         Assert.NotNull(state.CombatState);
         Assert.NotEmpty(state.CombatState!.Enemies);
         Assert.Contains(state.CombatState!.Enemies[0].Powers,
-            p => string.Equals(p.Id, "VULNERABLE_POWER", StringComparison.Ordinal));
+            p => p.Id == PowerId.VulnerablePower);
     }
 
     [Fact]

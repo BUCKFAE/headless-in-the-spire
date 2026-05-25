@@ -96,7 +96,7 @@ public sealed partial class Sts2Bindings
         // Treasure room offering. GetTreasureOffering eagerly drives
         // TreasureRoom.DoNormalRewards on first call per-room, so callers
         // see the chest's relic before deciding whether to take or skip
-        // via run/leave_treasure_room. Idempotent: subsequent snapshots
+        // via run/take_treasure / run/skip_treasure. Idempotent: subsequent snapshots
         // within the same room read the cached synchronizer state without
         // re-invoking DoNormalRewards.
         var availableTreasureRelics = roomType == RoomType.TreasureRoom
@@ -149,7 +149,7 @@ public sealed partial class Sts2Bindings
         return new RewardsState(options);
     }
 
-    private (RewardKind, bool, int?, string?, string?, IReadOnlyList<CardRewardOption>?) ProjectReward(object reward)
+    private (RewardKind, bool, int?, PotionId?, RelicId?, IReadOnlyList<CardRewardOption>?) ProjectReward(object reward)
     {
         if (_cardRewardType is not null && _cardRewardType.IsInstanceOfType(reward))
         {
@@ -167,16 +167,18 @@ public sealed partial class Sts2Bindings
         }
         if (_potionRewardType is not null && _potionRewardType.IsInstanceOfType(reward))
         {
-            var id = _potionRewardPotionId is not null
+            var idWire = _potionRewardPotionId is not null
                 ? ReadEntryId(_potionRewardPotionId, reward) ?? _potionRewardPotionId.GetValue(reward)?.ToString()
                 : null;
+            var id = idWire is not null ? PotionIdNames.FromWire(idWire) : (PotionId?)null;
             return (RewardKind.Potion, false, null, id, null, null);
         }
         if (_relicRewardType is not null && _relicRewardType.IsInstanceOfType(reward))
         {
-            var id = _relicRewardRelicId is not null
+            var idWire = _relicRewardRelicId is not null
                 ? ReadEntryId(_relicRewardRelicId, reward) ?? _relicRewardRelicId.GetValue(reward)?.ToString()
                 : null;
+            var id = idWire is not null ? RelicIdNames.FromWire(idWire) : (RelicId?)null;
             return (RewardKind.Relic, false, null, null, id, null);
         }
         return (RewardKind.Unknown, false, null, null, null, null);
@@ -285,7 +287,10 @@ public sealed partial class Sts2Bindings
             var isAlive = _enemyIsAlive is not null && (bool)_enemyIsAlive.GetValue(enemy)!;
             if (!isAlive) continue;
             var monster = _enemyMonster?.GetValue(enemy);
-            var monsterId = monster is not null ? ReadEntryId(_monsterId, monster) : null;
+            var monsterIdWire = monster is not null ? ReadEntryId(_monsterId, monster) : null;
+            var monsterId = monsterIdWire is not null
+                ? MonsterIdNames.FromWire(monsterIdWire)
+                : MonsterId.Unknown;
             var hp = _enemyCurrentHp is not null ? Convert.ToInt32(_enemyCurrentHp.GetValue(enemy)) : 0;
             var maxHp = _enemyMaxHp is not null ? Convert.ToInt32(_enemyMaxHp.GetValue(enemy)) : 0;
             var block = _enemyBlock is not null ? Convert.ToInt32(_enemyBlock.GetValue(enemy)) : 0;
@@ -347,9 +352,9 @@ public sealed partial class Sts2Bindings
         foreach (var power in enumerable)
         {
             if (power is null) continue;
-            var id = ReadEntryId(_powerId, power) ?? power.GetType().Name;
+            var idWire = ReadEntryId(_powerId, power) ?? power.GetType().Name;
             var amount = _powerAmount is not null ? Convert.ToInt32(_powerAmount.GetValue(power)) : 0;
-            result.Add(new Power(id, amount));
+            result.Add(new Power(PowerIdNames.FromWire(idWire), amount));
         }
         return result;
     }
@@ -369,8 +374,8 @@ public sealed partial class Sts2Bindings
         foreach (var relic in enumerable)
         {
             if (relic is null) continue;
-            var id = ReadEntryId(_relicId, relic) ?? relic.GetType().Name;
-            result.Add(new Relic(id));
+            var idWire = ReadEntryId(_relicId, relic) ?? relic.GetType().Name;
+            result.Add(new Relic(RelicIdNames.FromWire(idWire)));
         }
         return result;
     }
@@ -396,13 +401,13 @@ public sealed partial class Sts2Bindings
         {
             if (potion is null) { idx++; continue; }
             var idProp = potion.GetType().GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
-            var id = (idProp is not null ? ReadEntryId(idProp, potion) : null)
+            var idWire = (idProp is not null ? ReadEntryId(idProp, potion) : null)
                      ?? potion.GetType().Name;  // last-ditch: GetType().Name as before
             var target = _potionTargetType?.GetValue(potion) is { } tt
                 ? ParseEnum<TargetType>(tt)
                 : TargetType.Unknown;
             var canUse = _potionPassesUsabilityCheck?.GetValue(potion) is bool b ? b : true;
-            result.Add(new OwnedPotion(idx, id, target, canUse));
+            result.Add(new OwnedPotion(idx, PotionIdNames.FromWire(idWire), target, canUse));
             idx++;
         }
         return result;

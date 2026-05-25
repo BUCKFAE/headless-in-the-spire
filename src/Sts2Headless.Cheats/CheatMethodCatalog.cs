@@ -88,6 +88,12 @@ public static class CheatMethodCatalog
             Summary: "Test affordance — drop every alive enemy in the current combat to 0 HP by writing the engine's Creature._currentHp backing field, then drain and auto-advance so rewards generate through the normal path. No-op (killed=0) outside combat. Bypasses on-kill listeners. Requires --enable-debug.",
             IsDebugOnly: true),
 
+        new("debug/reveal_act_schedule",
+            ParamsType: typeof(DebugRevealActScheduleParams),
+            ResultType: typeof(DebugRevealActScheduleResult),
+            Summary: "Test affordance — reveal the current act's pre-rolled schedule (boss / second boss / ancient / normal-encounter list / elite-encounter list / event list) by reading ActModel._rooms.RoomSet. This is seed-deterministic information the engine normally hides from the player; combined with the visited counters it answers \"what comes next\" deterministically. Requires --enable-debug.",
+            IsDebugOnly: true),
+
         new("debug/start_combat",
             ParamsType: typeof(DebugStartCombatParams),
             ResultType: typeof(DebugStartCombatResult),

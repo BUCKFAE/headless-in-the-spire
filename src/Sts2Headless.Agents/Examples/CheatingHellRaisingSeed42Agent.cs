@@ -203,39 +203,39 @@ public sealed class CheatingHellRaisingSeed42Agent : HeuristicAgent
         // The wire TargetType currently parses Unknown for potions, so
         // we hard-code targeting per known potion id: self-target potions
         // pass null; damage potions pass primaryTarget.
-        var enemyPotions = new[] { "FIRE_POTION", "POISON_POTION", "ATTACK_POTION",
-            "WEAK_POTION", "VULNERABLE_POTION" };
+        var enemyPotions = new[] { PotionId.FirePotion, PotionId.PoisonPotion, PotionId.AttackPotion,
+            PotionId.WeakPotion, PotionId.VulnerablePotion };
         int? target = enemyPotions.Contains(potion.Id) ? primaryTarget.Index : (int?)null;
 
         switch (potion.Id)
         {
-            case "BLOCK_POTION":
+            case PotionId.BlockPotion:
                 return (unblocked >= 8 && hp <= maxHp / 2, target);
 
-            case "ENERGY_POTION":
+            case PotionId.EnergyPotion:
                 var hasUnaffordable = combat.Hand.Any(c => c.CanPlay && c.Cost > combat.Energy
                                                             && CardMechanics.Get(c.Id).Damage > 0);
                 return (hasUnaffordable && hp > maxHp / 4, target);
 
-            case "REGEN_POTION":
+            case PotionId.RegenPotion:
                 return (hp <= maxHp * 6 / 10 && combat.Round <= 3, target);
 
-            case "BLOOD_POTION":
+            case PotionId.BloodPotion:
                 return (hp < maxHp / 2, target);
 
-            case "STRENGTH_POTION":
-            case "DEXTERITY_POTION":
-            case "FLEX_POTION":
-            case "FOCUS_POTION":
+            case PotionId.StrengthPotion:
+            case PotionId.DexterityPotion:
+            case PotionId.FlexPotion:
+            case PotionId.FocusPotion:
                 return (combat.Round == 1, target);
 
-            case "FIRE_POTION":
-            case "POISON_POTION":
-            case "ATTACK_POTION":
+            case PotionId.FirePotion:
+            case PotionId.PoisonPotion:
+            case PotionId.AttackPotion:
                 return (primaryTarget.Hp <= 25, target);
 
-            case "WEAK_POTION":
-            case "VULNERABLE_POTION":
+            case PotionId.WeakPotion:
+            case PotionId.VulnerablePotion:
                 return (combat.Round == 1, target);
 
             default:
@@ -273,9 +273,9 @@ public sealed class CheatingHellRaisingSeed42Agent : HeuristicAgent
             .OrderByDescending(Threat)
             .ThenBy(e => e.Hp)
             .First();
-        var primaryTargetVuln = primaryTarget.Powers.Any(p => p.Id == "VULNERABLE_POWER");
+        var primaryTargetVuln = primaryTarget.Powers.Any(p => p.Id == PowerId.VulnerablePower);
 
-        var slipperyOnBoard = enemies.Any(e => e.Powers.Any(p => p.Id == "SLIPPERY_POWER"));
+        var slipperyOnBoard = enemies.Any(e => e.Powers.Any(p => p.Id == PowerId.SlipperyPower));
 
         var incoming = CombatHelpers.IncomingDamage(combat);
         var unblocked = Math.Max(0, incoming - combat.PlayerBlock);
@@ -329,7 +329,7 @@ public sealed class CheatingHellRaisingSeed42Agent : HeuristicAgent
         if (slipperyOnBoard)
         {
             var slipperyTarget = enemies
-                .FirstOrDefault(e => e.Powers.Any(p => p.Id == "SLIPPERY_POWER"))
+                .FirstOrDefault(e => e.Powers.Any(p => p.Id == PowerId.SlipperyPower))
                 ?? primaryTarget;
             var drain = hand
                 .Where(c => c.CanPlay && c.Cost <= combat.Energy)

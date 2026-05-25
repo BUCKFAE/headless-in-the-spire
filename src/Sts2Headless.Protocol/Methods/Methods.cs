@@ -169,22 +169,43 @@ public sealed record EventOption(
     [property: JsonPropertyName("isLocked")] bool IsLocked);
 
 // One status effect / buff / debuff on a creature. Id is the game's stable
-// power key (e.g. "STRENGTH", "VULNERABLE"); Amount is the stack count. We
-// don't surface a localized name — clients translate using the id.
+// power key (e.g. PowerId.StrengthPower → "STRENGTH_POWER" on the wire);
+// Amount is the stack count. Unknown surfaces for powers the generated
+// PowerId enum doesn't yet list — never strip them; an Unknown amount=5
+// still tells the agent something is buffed.
 public sealed record Power(
-    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("id")] PowerId Id,
     [property: JsonPropertyName("amount")] int Amount);
 
+// Rest-site option identifiers the engine surfaces today. Wire shape
+// matches sts2's RestSiteOption.OptionId string exactly (uppercase). New
+// relics can introduce new options (Lantern, Toolbox, …); they arrive as
+// `Unknown` and an integration test should grow the enum to cover them.
+//
+// Same discipline as RoomType / MerchantKind: never widen the parser,
+// always grow the enum.
+[JsonConverter(typeof(JsonStringEnumConverter<RestSiteOptionId>))]
+public enum RestSiteOptionId
+{
+    [JsonStringEnumMemberName("UNKNOWN")] Unknown,
+    [JsonStringEnumMemberName("HEAL")] Heal,
+    [JsonStringEnumMemberName("SMITH")] Smith,
+    [JsonStringEnumMemberName("DIG")] Dig,
+    [JsonStringEnumMemberName("LIFT")] Lift,
+    [JsonStringEnumMemberName("TOOLBOX")] Toolbox,
+    [JsonStringEnumMemberName("RECALL")] Recall,
+    [JsonStringEnumMemberName("MEDITATE")] Meditate,
+    [JsonStringEnumMemberName("PRAY")] Pray,
+}
+
 // One choice offered by a rest site. OptionId is the engine's stable
-// identifier ("HEAL", "SMITH", "DIG", …); IsEnabled mirrors the engine's
-// per-option availability (HEAL is disabled at full HP, SMITH at empty deck,
-// etc.). Clients should branch on OptionId for icon/label, on IsEnabled for
-// clickability. Unknown OptionId strings are passed through verbatim — we
-// don't enum the option space yet because new relics can introduce them
-// mid-game (Lantern, Toolbox, …).
+// identifier (Heal, Smith, Dig, …); IsEnabled mirrors the engine's
+// per-option availability (Heal is disabled at full HP, Smith at empty
+// deck, etc.). Clients should branch on OptionId for icon/label, on
+// IsEnabled for clickability.
 public sealed record RestSiteOption(
     [property: JsonPropertyName("index")] int Index,
-    [property: JsonPropertyName("optionId")] string OptionId,
+    [property: JsonPropertyName("optionId")] RestSiteOptionId OptionId,
     [property: JsonPropertyName("isEnabled")] bool IsEnabled);
 
 // Kind of item offered by a merchant room. Wire shape matches the entry's
@@ -221,9 +242,9 @@ public sealed record MerchantItem(
     [property: JsonPropertyName("cost")] int Cost,
     [property: JsonPropertyName("isStocked")] bool IsStocked,
     [property: JsonPropertyName("isAffordable")] bool IsAffordable,
-    [property: JsonPropertyName("cardId")] string? CardId = null,
-    [property: JsonPropertyName("relicId")] string? RelicId = null,
-    [property: JsonPropertyName("potionId")] string? PotionId = null);
+    [property: JsonPropertyName("cardId")] CardId? CardId = null,
+    [property: JsonPropertyName("relicId")] RelicId? RelicId = null,
+    [property: JsonPropertyName("potionId")] PotionId? PotionId = null);
 
 // One relic carried by the player. Id is the game's stable relic key
 // (e.g. "BURNING_BLOOD"); clients translate to a localised name themselves.
@@ -231,7 +252,7 @@ public sealed record MerchantItem(
 // surfaced yet — adding fields here is non-breaking and should be driven
 // by a concrete caller need rather than mirroring the engine's full shape.
 public sealed record Relic(
-    [property: JsonPropertyName("id")] string Id);
+    [property: JsonPropertyName("id")] RelicId Id);
 
 // One relic the current treasure-room chest is offering. RelicId is the
 // engine's canonical wire form (e.g. "GORGET"); empty list when the
@@ -239,9 +260,9 @@ public sealed record Relic(
 // snapshot eagerly populates the offering on first read by driving
 // TreasureRoom.DoNormalRewards reflectively, so callers see the actual
 // relic before deciding whether to take or skip via
-// run/leave_treasure_room.
+// run/take_treasure or run/skip_treasure.
 public sealed record TreasureRelic(
-    [property: JsonPropertyName("relicId")] string RelicId);
+    [property: JsonPropertyName("relicId")] RelicId RelicId);
 
 // One potion in a player's belt slot. Index is the slot position (pass
 // back via run/use_potion.potionIndex); empty slots are omitted entirely
@@ -255,7 +276,7 @@ public sealed record TreasureRelic(
 // run state.
 public sealed record OwnedPotion(
     [property: JsonPropertyName("index")] int Index,
-    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("id")] PotionId Id,
     [property: JsonPropertyName("targetType")] TargetType TargetType,
     [property: JsonPropertyName("canUse")] bool CanUse);
 
@@ -293,7 +314,7 @@ public sealed record Card(
 // per-intent detail.
 public sealed record Enemy(
     [property: JsonPropertyName("index")] int Index,
-    [property: JsonPropertyName("monsterId")] string? MonsterId,
+    [property: JsonPropertyName("monsterId")] MonsterId MonsterId,
     [property: JsonPropertyName("hp")] int Hp,
     [property: JsonPropertyName("maxHp")] int MaxHp,
     [property: JsonPropertyName("block")] int Block,
@@ -341,8 +362,8 @@ public sealed record RewardOption(
     [property: JsonPropertyName("kind")] RewardKind Kind,
     [property: JsonPropertyName("canSkip")] bool CanSkip,
     [property: JsonPropertyName("goldAmount")] int? GoldAmount = null,
-    [property: JsonPropertyName("potionId")] string? PotionId = null,
-    [property: JsonPropertyName("relicId")] string? RelicId = null,
+    [property: JsonPropertyName("potionId")] PotionId? PotionId = null,
+    [property: JsonPropertyName("relicId")] RelicId? RelicId = null,
     [property: JsonPropertyName("cards")] IReadOnlyList<CardRewardOption>? Cards = null);
 
 // Post-combat decision payload. Surfaced on snapshots whenever the engine
@@ -377,6 +398,25 @@ public sealed record HostPingResult(
     [property: JsonPropertyName("ok")] bool Ok,
     [property: JsonPropertyName("gameVersion")] string? GameVersion,
     [property: JsonPropertyName("gameSha256")] string? GameSha256);
+
+// ── host/methods ─────────────────────────────────────────────────────────
+
+// One method entry, mirroring MethodCatalog.MethodEntry but stripped of
+// .NET-only type references so the wire shape is grep-able from this
+// file alone. hasParams=true iff the method accepts a params body
+// (callers can use this to decide whether to send `params: null`).
+// isDebugOnly mirrors AD-7 gating — debug methods are always listed but
+// only callable when the host was started with `--enable-debug`.
+public sealed record HostMethodInfo(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("summary")] string Summary,
+    [property: JsonPropertyName("hasParams")] bool HasParams,
+    [property: JsonPropertyName("isDebugOnly")] bool IsDebugOnly);
+
+public sealed record HostMethodsResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("debugEnabled")] bool DebugEnabled,
+    [property: JsonPropertyName("methods")] IReadOnlyList<HostMethodInfo> Methods);
 
 // ── run/new ──────────────────────────────────────────────────────────────
 
@@ -538,6 +578,21 @@ public sealed record RunStateResult(
     [property: JsonPropertyName("bossEncounterId")] string? BossEncounterId = null,
     [property: JsonPropertyName("secondBossEncounterId")] string? SecondBossEncounterId = null);
 
+// ── run/summarize_state ──────────────────────────────────────────────────
+
+// Compact, human-readable text rendering of the current run state.
+// Returned as a single string field so callers (chat clients, MCP
+// frontends) can show it verbatim without re-deriving from the full
+// RunStateResult shape. Mirrors the Python `summarize_state` helper
+// the MCP server used to compute client-side; promoting it to the
+// wire means every consumer renders it the same way.
+//
+// The summary is read-only — it describes what is, never what the
+// agent should do.
+public sealed record RunSummarizeStateResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("summary")] string Summary);
+
 // ── run/select_map_node ──────────────────────────────────────────────────
 
 public sealed record RunSelectMapNodeParams(
@@ -643,25 +698,44 @@ public sealed record RunSelectRestSiteOptionResult(
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
     [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
-// ── run/leave_treasure_room ──────────────────────────────────────────────
+// ── run/take_treasure / run/skip_treasure ────────────────────────────────
 
 // Drives the treasure-room exit chain. The offering is populated lazily
 // on the first snapshot in which currentRoomType=TreasureRoom (so the
-// caller sees availableTreasureRelics before they decide); this method
-// either grants the offered relic via RelicCmd.Obtain (skip=false, the
-// default) or closes the synchronizer session untouched (skip=true).
-// Either way the chain finishes with DoExtraRewardsIfNeeded (act-3 /
-// ascension extras) and EnterRoom(MapRoom). The returned snapshot
-// reflects the post-leave state.
+// caller sees availableTreasureRelics before they decide); take_treasure
+// grants the offered relic via RelicCmd.Obtain, skip_treasure closes
+// the synchronizer session untouched. Either way the chain finishes
+// with DoExtraRewardsIfNeeded (act-3 / ascension extras) and
+// EnterRoom(MapRoom). The returned snapshot reflects the post-exit
+// state.
 //
-// `skip` is optional and defaults to false (claim the relic). Pass
-// skip=true to walk past the chest — useful for relic-conflict avoidance,
-// SilverCrucible-style "first chest is empty" modifiers, or any agent
-// that prefers a known-bad offering over an empty Player.Relics slot.
-public sealed record RunLeaveTreasureRoomParams(
-    [property: JsonPropertyName("skip")] bool Skip = false);
+// Why two methods instead of `run/leave_treasure_room { skip: bool }`?
+// The old shape made the no-params call ambiguous (does omitting params
+// mean "take" or "skip"?) and forced clients to choose-then-name a
+// boolean. Two verbs read better in MCP tool listings, in agent
+// dispatch tables, and in the openrpc.json the schema-export bakes.
+public sealed record RunTakeTreasureResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
+    [property: JsonPropertyName("actFloor")] int ActFloor,
+    [property: JsonPropertyName("currentActIndex")] int CurrentActIndex,
+    [property: JsonPropertyName("isGameOver")] bool IsGameOver,
+    [property: JsonPropertyName("isVictory")] bool IsVictory,
+    [property: JsonPropertyName("isDead")] bool IsDead,
+    [property: JsonPropertyName("hp")] int Hp,
+    [property: JsonPropertyName("availableMapNodes")] IReadOnlyList<MapNode> AvailableMapNodes,
+    [property: JsonPropertyName("availableEventOptions")] IReadOnlyList<EventOption> AvailableEventOptions,
+    [property: JsonPropertyName("availableRestSiteOptions")] IReadOnlyList<RestSiteOption> AvailableRestSiteOptions,
+    [property: JsonPropertyName("availableMerchantItems")] IReadOnlyList<MerchantItem> AvailableMerchantItems,
+    [property: JsonPropertyName("availableTreasureRelics")] IReadOnlyList<TreasureRelic> AvailableTreasureRelics,
+    [property: JsonPropertyName("combatState")] CombatState? CombatState,
+    [property: JsonPropertyName("rewardsState")] RewardsState? RewardsState,
+    [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
+    [property: JsonPropertyName("ownedPotions")] IReadOnlyList<OwnedPotion> OwnedPotions);
 
-public sealed record RunLeaveTreasureRoomResult(
+// Identical wire shape to RunTakeTreasureResult — kept as a distinct
+// record so dispatch types stay 1:1 with method names.
+public sealed record RunSkipTreasureResult(
     [property: JsonPropertyName("ok")] bool Ok,
     [property: JsonPropertyName("currentRoomType")] RoomType CurrentRoomType,
     [property: JsonPropertyName("actFloor")] int ActFloor,

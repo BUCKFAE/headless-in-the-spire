@@ -19,10 +19,8 @@ public sealed class IroncladRestPolicy : IRestPolicy
         if (options.Count == 0)
             throw new InvalidOperationException("IroncladRestPolicy: no options available");
 
-        var heal = options.FirstOrDefault(o => o.IsEnabled
-            && string.Equals(o.OptionId, "HEAL", StringComparison.OrdinalIgnoreCase));
-        var smith = options.FirstOrDefault(o => o.IsEnabled
-            && string.Equals(o.OptionId, "SMITH", StringComparison.OrdinalIgnoreCase));
+        var heal = options.FirstOrDefault(o => o.IsEnabled && o.OptionId == RestSiteOptionId.Heal);
+        var smith = options.FirstOrDefault(o => o.IsEnabled && o.OptionId == RestSiteOptionId.Smith);
 
         var hpRatio = state.MaxHp <= 0 ? 0.0 : (double)state.Hp / state.MaxHp;
         // Smith path — high HP or no heal available.

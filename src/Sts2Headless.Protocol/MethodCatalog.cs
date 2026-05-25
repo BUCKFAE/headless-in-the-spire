@@ -38,6 +38,11 @@ public static class MethodCatalog
             ResultType: typeof(HostPingResult),
             Summary: "Liveness check. Returns the pinned game version and SHA-256 (AD-3)."),
 
+        new("host/methods",
+            ParamsType: null,
+            ResultType: typeof(HostMethodsResult),
+            Summary: "Enumerate every wire method this host exposes (name, summary, hasParams, isDebugOnly). Mirrors the merged MethodCatalog (Core ∪ debug cheats) — debug entries are always listed but only callable when the host was started with --enable-debug (AD-7). Cheaper than parsing protocol/openrpc.json when a client just needs the method list."),
+
         new("run/new",
             ParamsType: typeof(RunNewParams),
             ResultType: typeof(RunNewResult),
@@ -47,6 +52,11 @@ public static class MethodCatalog
             ParamsType: null,
             ResultType: typeof(RunStateResult),
             Summary: "Read the current run snapshot."),
+
+        new("run/summarize_state",
+            ParamsType: null,
+            ResultType: typeof(RunSummarizeStateResult),
+            Summary: "Compact human-readable text rendering of the current run state. A few hundred bytes vs. the full RunStateResult — designed for AI assistants and chat clients to poll cheaply between actions. Read-only; describes what is, not what to do. Identical text wherever the wire is consumed (no client-side re-derivation)."),
 
         new("run/select_map_node",
             ParamsType: typeof(RunSelectMapNodeParams),
@@ -63,10 +73,15 @@ public static class MethodCatalog
             ResultType: typeof(RunSelectRestSiteOptionResult),
             Summary: "Pick an option on the current rest site (HEAL, SMITH, …). HEAL exits to MapRoom; SMITH triggers an upgrade card-select via CardSelectCmd.FromDeckForUpgrade — pre-queue picks through cardSelectIndices, or the default HeadlessCardSelector picks the first upgradable card. Options empty after a single-pick option; the host force-advances to MapRoom."),
 
-        new("run/leave_treasure_room",
-            ParamsType: typeof(RunLeaveTreasureRoomParams),
-            ResultType: typeof(RunLeaveTreasureRoomResult),
-            Summary: "Exit the current treasure room and transition back to MapRoom. The chest's offering is exposed in availableTreasureRelics on every snapshot while CurrentRoomType=TreasureRoom (populated by driving TreasureRoom.DoNormalRewards on first read). Params are optional: skip=false (the default, or omitted body) grants the offered relic via RelicCmd.Obtain; skip=true walks past the chest without granting. Either path closes the synchronizer session, runs DoExtraRewardsIfNeeded, and flips the room."),
+        new("run/take_treasure",
+            ParamsType: null,
+            ResultType: typeof(RunTakeTreasureResult),
+            Summary: "Open the current treasure room's chest, grant the offered relic via RelicCmd.Obtain, and transition back to MapRoom. The chest's offering is exposed in availableTreasureRelics on every snapshot while CurrentRoomType=TreasureRoom (populated by driving TreasureRoom.DoNormalRewards on first read). Closes the synchronizer session, runs DoExtraRewardsIfNeeded (act-3 / ascension extras), and flips the room."),
+
+        new("run/skip_treasure",
+            ParamsType: null,
+            ResultType: typeof(RunSkipTreasureResult),
+            Summary: "Walk past the current treasure-room chest without granting the offered relic, then transition back to MapRoom. Same teardown chain as run/take_treasure (synchronizer close, DoExtraRewardsIfNeeded, room flip). Useful for relic-conflict avoidance or modifiers where leaving the slot empty is intentional."),
 
         new("run/buy_merchant_item",
             ParamsType: typeof(RunBuyMerchantItemParams),

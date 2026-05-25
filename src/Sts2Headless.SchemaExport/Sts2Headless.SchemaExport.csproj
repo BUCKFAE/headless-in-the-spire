@@ -12,6 +12,9 @@
          merges Core + cheats so protocol/openrpc.json describes the full
          wire surface. -->
     <ProjectReference Include="..\Sts2Headless.Cheats\Sts2Headless.Cheats.csproj" />
+    <!-- Same separation logic for the content/* surface — physically
+         separate project, merged into the emitted schema here. -->
+    <ProjectReference Include="..\Sts2Headless.Content\Sts2Headless.Content.csproj" />
     <!-- GAME_VERSION pin parsing for the schema's version stamp. -->
     <ProjectReference Include="..\Sts2Headless.Utils\Sts2Headless.Utils.csproj" />
   </ItemGroup>

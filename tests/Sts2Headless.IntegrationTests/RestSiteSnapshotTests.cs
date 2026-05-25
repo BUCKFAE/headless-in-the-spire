@@ -59,8 +59,7 @@ public class RestSiteSnapshotTests : IClassFixture<HostSubprocess>
         Assert.Equal(RoomType.RestSiteRoom, state.CurrentRoomType);
         Assert.NotEmpty(state.AvailableRestSiteOptions);
         Assert.All(state.AvailableRestSiteOptions, o =>
-            Assert.False(string.IsNullOrEmpty(o.OptionId),
-                $"every rest-site option must carry a non-empty OptionId; saw index={o.Index} optionId=\"{o.OptionId}\""));
+            Assert.NotEqual(RestSiteOptionId.Unknown, o.OptionId));
         Assert.True(
             state.AvailableRestSiteOptions.Any(o => o.IsEnabled),
             $"reached RestSiteRoom but no options are enabled. Options seen: " +
@@ -76,7 +75,7 @@ public class RestSiteSnapshotTests : IClassFixture<HostSubprocess>
         // Find HEAL by substring so a rename (e.g. "HEAL_FULL") still hits.
         var heal = entry.AvailableRestSiteOptions.FirstOrDefault(o =>
             o.IsEnabled
-            && o.OptionId.Contains("HEAL", StringComparison.OrdinalIgnoreCase));
+            && o.OptionId.ToString().Contains("HEAL", StringComparison.OrdinalIgnoreCase));
         Assert.NotNull(heal);
 
         var hpBefore = entry.Hp;

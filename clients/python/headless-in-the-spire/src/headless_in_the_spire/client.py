@@ -21,12 +21,15 @@ from headless_in_the_spire.transport import Transport
 # side. Adding a method here is a deliberate review step.
 METHOD_NAMES: dict[str, str] = {
     "host/ping": "host_ping",
+    "host/methods": "host_methods",
     "run/new": "run_new",
     "run/state": "run_state",
+    "run/summarize_state": "run_summarize_state",
     "run/select_map_node": "run_select_map_node",
     "run/select_event_option": "run_select_event_option",
     "run/select_rest_site_option": "run_select_rest_site_option",
-    "run/leave_treasure_room": "run_leave_treasure_room",
+    "run/take_treasure": "run_take_treasure",
+    "run/skip_treasure": "run_skip_treasure",
     "run/buy_merchant_item": "run_buy_merchant_item",
     "run/leave_merchant_room": "run_leave_merchant_room",
     "run/end_turn": "run_end_turn",
@@ -37,7 +40,26 @@ METHOD_NAMES: dict[str, str] = {
     "run/enter_next_act": "run_enter_next_act",
     "run/proceed_event": "run_proceed_event",
     "run/history": "run_history",
+    "content/describe_card": "content_describe_card",
+    "content/describe_relic": "content_describe_relic",
+    "content/describe_potion": "content_describe_potion",
+    "content/describe_power": "content_describe_power",
+    "content/describe_event": "content_describe_event",
+    "content/describe_encounter": "content_describe_encounter",
+    "content/describe_monster": "content_describe_monster",
+    "content/describe_affliction": "content_describe_affliction",
+    "content/describe_enchantment": "content_describe_enchantment",
+    "content/describe_modifier": "content_describe_modifier",
+    "content/list_cards": "content_list_cards",
+    "content/list_relics": "content_list_relics",
+    "content/list_potions": "content_list_potions",
+    "content/describe_act": "content_describe_act",
+    "content/encounter_rules": "content_encounter_rules",
+    "content/unknown_node_odds": "content_unknown_node_odds",
+    "debug/gain_stars": "debug_gain_stars",
     "debug/give_relic": "debug_give_relic",
+    "debug/reveal_act_schedule": "debug_reveal_act_schedule",
+    "debug/set_energy": "debug_set_energy",
     "debug/give_potion": "debug_give_potion",
     "debug/start_event": "debug_start_event",
     "debug/apply_power": "debug_apply_power",
@@ -104,6 +126,10 @@ class Client:
         result = self._transport.call("host/ping", None, timeout=timeout)
         return m.HostPingResult.model_validate(result)
 
+    def host_methods(self, *, timeout: float | None = None) -> m.HostMethodsResult:
+        result = self._transport.call("host/methods", None, timeout=timeout)
+        return m.HostMethodsResult.model_validate(result)
+
     def run_new(
         self,
         params: m.RunNewParams | None = None,
@@ -116,6 +142,10 @@ class Client:
     def run_state(self, *, timeout: float | None = None) -> m.RunStateResult:
         result = self._transport.call("run/state", None, timeout=timeout)
         return m.RunStateResult.model_validate(result)
+
+    def run_summarize_state(self, *, timeout: float | None = None) -> m.RunSummarizeStateResult:
+        result = self._transport.call("run/summarize_state", None, timeout=timeout)
+        return m.RunSummarizeStateResult.model_validate(result)
 
     def run_select_map_node(
         self,
@@ -152,11 +182,13 @@ class Client:
         )
         return m.RunSelectRestSiteOptionResult.model_validate(result)
 
-    def run_leave_treasure_room(
-        self, *, timeout: float | None = None
-    ) -> m.RunLeaveTreasureRoomResult:
-        result = self._transport.call("run/leave_treasure_room", None, timeout=timeout)
-        return m.RunLeaveTreasureRoomResult.model_validate(result)
+    def run_take_treasure(self, *, timeout: float | None = None) -> m.RunTakeTreasureResult:
+        result = self._transport.call("run/take_treasure", None, timeout=timeout)
+        return m.RunTakeTreasureResult.model_validate(result)
+
+    def run_skip_treasure(self, *, timeout: float | None = None) -> m.RunSkipTreasureResult:
+        result = self._transport.call("run/skip_treasure", None, timeout=timeout)
+        return m.RunSkipTreasureResult.model_validate(result)
 
     def run_buy_merchant_item(
         self,
@@ -338,3 +370,176 @@ class Client:
     ) -> m.DebugKillAllEnemiesResult:
         result = self._transport.call("debug/kill_all_enemies", None, timeout=timeout)
         return m.DebugKillAllEnemiesResult.model_validate(result)
+
+    def debug_set_energy(
+        self,
+        params: m.DebugSetEnergyParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugSetEnergyResult:
+        result = self._transport.call("debug/set_energy", _dump(params), timeout=timeout)
+        return m.DebugSetEnergyResult.model_validate(result)
+
+    def debug_gain_stars(
+        self,
+        params: m.DebugGainStarsParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugGainStarsResult:
+        result = self._transport.call("debug/gain_stars", _dump(params), timeout=timeout)
+        return m.DebugGainStarsResult.model_validate(result)
+
+    def debug_reveal_act_schedule(
+        self,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugRevealActScheduleResult:
+        result = self._transport.call("debug/reveal_act_schedule", None, timeout=timeout)
+        return m.DebugRevealActScheduleResult.model_validate(result)
+
+    # ── content/* ─────────────────────────────────────────────────────────
+
+    def content_describe_card(
+        self,
+        params: m.ContentDescribeCardParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribeCardResult:
+        result = self._transport.call("content/describe_card", _dump(params), timeout=timeout)
+        return m.ContentDescribeCardResult.model_validate(result)
+
+    def content_describe_relic(
+        self,
+        params: m.ContentDescribeRelicParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribeRelicResult:
+        result = self._transport.call("content/describe_relic", _dump(params), timeout=timeout)
+        return m.ContentDescribeRelicResult.model_validate(result)
+
+    def content_describe_potion(
+        self,
+        params: m.ContentDescribePotionParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribePotionResult:
+        result = self._transport.call("content/describe_potion", _dump(params), timeout=timeout)
+        return m.ContentDescribePotionResult.model_validate(result)
+
+    def content_describe_power(
+        self,
+        params: m.ContentDescribePowerParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribePowerResult:
+        result = self._transport.call("content/describe_power", _dump(params), timeout=timeout)
+        return m.ContentDescribePowerResult.model_validate(result)
+
+    def content_describe_event(
+        self,
+        params: m.ContentDescribeEventParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribeEventResult:
+        result = self._transport.call("content/describe_event", _dump(params), timeout=timeout)
+        return m.ContentDescribeEventResult.model_validate(result)
+
+    def content_describe_encounter(
+        self,
+        params: m.ContentDescribeEncounterParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribeEncounterResult:
+        result = self._transport.call("content/describe_encounter", _dump(params), timeout=timeout)
+        return m.ContentDescribeEncounterResult.model_validate(result)
+
+    def content_describe_monster(
+        self,
+        params: m.ContentDescribeMonsterParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribeMonsterResult:
+        result = self._transport.call("content/describe_monster", _dump(params), timeout=timeout)
+        return m.ContentDescribeMonsterResult.model_validate(result)
+
+    def content_describe_affliction(
+        self,
+        params: m.ContentDescribeAfflictionParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribeAfflictionResult:
+        result = self._transport.call("content/describe_affliction", _dump(params), timeout=timeout)
+        return m.ContentDescribeAfflictionResult.model_validate(result)
+
+    def content_describe_enchantment(
+        self,
+        params: m.ContentDescribeEnchantmentParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribeEnchantmentResult:
+        result = self._transport.call(
+            "content/describe_enchantment", _dump(params), timeout=timeout
+        )
+        return m.ContentDescribeEnchantmentResult.model_validate(result)
+
+    def content_describe_modifier(
+        self,
+        params: m.ContentDescribeModifierParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribeModifierResult:
+        result = self._transport.call("content/describe_modifier", _dump(params), timeout=timeout)
+        return m.ContentDescribeModifierResult.model_validate(result)
+
+    def content_list_cards(
+        self,
+        params: m.ContentListCardsParams | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentListCardsResult:
+        result = self._transport.call("content/list_cards", _dump(params), timeout=timeout)
+        return m.ContentListCardsResult.model_validate(result)
+
+    def content_list_relics(
+        self,
+        params: m.ContentListRelicsParams | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentListRelicsResult:
+        result = self._transport.call("content/list_relics", _dump(params), timeout=timeout)
+        return m.ContentListRelicsResult.model_validate(result)
+
+    def content_list_potions(
+        self,
+        params: m.ContentListPotionsParams | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentListPotionsResult:
+        result = self._transport.call("content/list_potions", _dump(params), timeout=timeout)
+        return m.ContentListPotionsResult.model_validate(result)
+
+    def content_describe_act(
+        self,
+        params: m.ContentDescribeActParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentDescribeActResult:
+        result = self._transport.call("content/describe_act", _dump(params), timeout=timeout)
+        return m.ContentDescribeActResult.model_validate(result)
+
+    def content_encounter_rules(
+        self,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentEncounterRulesResult:
+        result = self._transport.call("content/encounter_rules", None, timeout=timeout)
+        return m.ContentEncounterRulesResult.model_validate(result)
+
+    def content_unknown_node_odds(
+        self,
+        params: m.ContentUnknownNodeOddsParams | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentUnknownNodeOddsResult:
+        result = self._transport.call("content/unknown_node_odds", _dump(params), timeout=timeout)
+        return m.ContentUnknownNodeOddsResult.model_validate(result)
