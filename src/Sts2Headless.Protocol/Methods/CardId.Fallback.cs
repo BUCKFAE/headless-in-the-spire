@@ -61,52 +61,6 @@ public enum CardId
     Taunt,
     BloodWall,
     Infection,
-
-    // Cards referenced by Sts2Headless.BattleAgent.Core / Sts2Headless.BattleAgent
-    // (IroncladCardCatalog + archetype / draft / merchant policies). Listed
-    // here for the same reason as the block above — the no-vendor (CI)
-    // build resolves these symbols against the Fallback. Sourced empirically
-    // by building once with CardId.g.cs absent and collecting the
-    // "does not contain a definition for" errors.
-    Anger,
-    AshenStrike,
-    Barricade,
-    BattleTrance,
-    Bloodletting,
-    Brand,
-    Clash,
-    Corruption,
-    CrimsonMantle,
-    Cruelty,
-    DarkEmbrace,
-    DemonForm,
-    DualWield,
-    Entrench,
-    Feed,
-    FeelNoPain,
-    FiendFire,
-    FlameBarrier,
-    Havoc,
-    Hellraiser,
-    Hemokinesis,
-    Impervious,
-    InfernalBlade,
-    Inferno,
-    Inflame,
-    IronWave,
-    Juggernaut,
-    Offering,
-    PactsEnd,
-    PerfectedStrike,
-    PommelStrike,
-    Rage,
-    Rampage,
-    Rupture,
-    Shockwave,
-    ShrugItOff,
-    Spite,
-    TwinStrike,
-    Whirlwind,
 }
 
 public static class CardIdNames
