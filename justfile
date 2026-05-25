@@ -16,3 +16,6 @@ mod protocol 'scripts/protocol/justfile'
 
 # Tests, lint, typecheck — both C# and Python suites.
 mod validation 'scripts/validation/justfile'
+
+_default:
+    just --list
