@@ -7,6 +7,24 @@ namespace Sts2Headless.Protocol.Methods;
 public enum PotionId
 {
     [JsonStringEnumMemberName("UNKNOWN")] Unknown,
+
+    // Potions referenced by Sts2Headless.Agents
+    // (CheatingHellRaisingSeed42Agent.Examples). Listed here so the
+    // bootstrap build resolves these symbols before PotionId.g.cs
+    // exists; superseded by the generated file on dev machines.
+    AttackPotion,
+    BlockPotion,
+    BloodPotion,
+    DexterityPotion,
+    EnergyPotion,
+    FirePotion,
+    FlexPotion,
+    FocusPotion,
+    PoisonPotion,
+    RegenPotion,
+    StrengthPotion,
+    VulnerablePotion,
+    WeakPotion,
 }
 
 public static class PotionIdNames
