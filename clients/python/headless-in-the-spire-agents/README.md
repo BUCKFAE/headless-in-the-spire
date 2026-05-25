@@ -53,7 +53,7 @@ tests/                    # unit tests of the Python layer (no live host)
 From the repo root:
 
 ```sh
-just test-python   # runs every workspace member's tests
+just validation::test-python   # runs every workspace member's tests
 ```
 
 ## Running the example

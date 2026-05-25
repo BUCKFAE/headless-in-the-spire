@@ -1,7 +1,7 @@
 namespace Sts2Headless.Protocol.Methods;
 
 // Compile-only stub. The real enum + map is emitted by
-// `just generate-content-ids` into the gitignored CardOriginPool.g.cs.
+// `just build::generate-content-ids` into the gitignored CardOriginPool.g.cs.
 // See CardId.Fallback.cs for the full rationale — same pattern.
 public enum CardOriginPool
 {

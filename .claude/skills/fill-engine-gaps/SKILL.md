@@ -39,10 +39,10 @@ combine existing signals:
   `InstrumentationKindParityTest`). These fail when a manifest, sweep
   registry, or hook surface drifts out of sync — read their output first
   before launching detection passes.
-- `src/Sts2Headless.Commands/probe/Probe*Command.cs` — `just probe-natural-chain`,
-  `just probe-rewards-natural-chain`, `just probe-combat-stall`,
-  `just probe-modeldb`, `just probe-method-body`, `just probe-callers`,
-  `just probe-types`. Each surfaces a different class of gap and exits
+- `src/Sts2Headless.Commands/probe/Probe*Command.cs` — `just runner::probe::natural-chain`,
+  `just runner::probe::rewards-natural-chain`, `just runner::probe::combat-stall`,
+  `just runner::probe::modeldb`, `just runner::probe::method-body`, `just runner::probe::callers`,
+  `just runner::probe::types`. Each surfaces a different class of gap and exits
   non-zero when found.
 - `src/Sts2Headless.Agents/Driving/StallDetector.cs` + `CombatBudgetGuard.cs`
   — fingerprint-based hang detector + per-combat step budget, wrapped
@@ -140,12 +140,12 @@ characters, ascensions, modifiers). Output to
 Run a fast pass across every kind:
 
 ```
-just sweep-sample 30        # MECHANIC_SWEEP_SAMPLE=30 across all kinds, ~10–20 min
+just validation::dotnet::sweep::sample 30        # MECHANIC_SWEEP_SAMPLE=30 across all kinds, ~10–20 min
 ```
 
-For a focused re-sweep of one kind: `just sweep-cards` /
-`just sweep-relics` / etc. (full universe, hours). Don't launch
-`just sweep-all` from this skill unless the user asks — that's a
+For a focused re-sweep of one kind: `just validation::dotnet::sweep::cards` /
+`just validation::dotnet::sweep::relics` / etc. (full universe, hours). Don't launch
+`just validation::dotnet::sweep::all` from this skill unless the user asks — that's a
 multi-hour pass meant for `GAME_VERSION` bumps.
 
 Then a subagent parses the reports:
@@ -160,7 +160,7 @@ Then a subagent parses the reports:
     all. Surface the reason from `row.Detail`; if the blocker is a
     missing cheat or wire surface, that's the candidate.
 - Cross-check the universe count against `<Kind>IdNames.AllWireNames` —
-  a mismatch means a stale manifest (`just generate-content-ids` fix).
+  a mismatch means a stale manifest (`just build::generate-content-ids` fix).
 
 Output to `/tmp/fill-engine-gaps-coverage.md`. Cap each section at 30
 items — the goal is a candidate seed, not a full audit.
@@ -179,7 +179,7 @@ those for behavioral truth**. The variant sweep here means:
 - Collect `StallDetectedException`, `CombatBudgetExceededException`, any
   unhandled exception in the agent driver, and "stuck on" room/floor
   fingerprints.
-- For each crash, run `just probe-combat-stall <seed> <floor>` to get
+- For each crash, run `just runner::probe::combat-stall <seed> <floor>` to get
   the engine-internals dump.
 
 Output to `/tmp/fill-engine-gaps-seeds.md`: one entry per failure with
@@ -192,24 +192,24 @@ Note this candidate explicitly — it unlocks future detection passes.
 ### 1e — Probe re-runs (Bash)
 
 ```
-just probe-natural-chain
-just probe-rewards-natural-chain
+just runner::probe::natural-chain
+just runner::probe::rewards-natural-chain
 ```
 Both write to `documentation/research/*-gaps.md` and exit 0 (converged)
 or 2 (gaps found). Diff the regenerated files against `git HEAD`. Each
 new gap is a candidate.
 
-Skip `probe-combat-stall` here — pass 1d invokes it on demand.
+Skip `runner::probe::combat-stall` here — pass 1d invokes it on demand.
 
 ### 1f — ModelDb reflection diff (Bash + Explore subagent)
 
 ```
-just probe-modeldb
+just runner::probe::modeldb
 ```
 Writes `documentation/research/modeldb/*.txt`. Subagent compares:
 
 - ModelDb `AllX` content count vs. `*Id.g.cs` enum count. If ModelDb
-  has more, `just generate-content-ids` is stale.
+  has more, `just build::generate-content-ids` is stale.
 - ModelDb kinds that have NO matching `*Id.g.cs` — wire surface
   candidate (add a new `Foo.g.cs` generator slice).
 
@@ -248,7 +248,7 @@ classify and write next to it:
 - Adding a missing `*Id.g.cs` for a ModelDb kind that has a generator
   template already (look at `GenerateContentIdsCommand.cs` for the
   pattern; new kinds with no template are a BIG CHOICE).
-- Regenerating stale `*Id.g.cs` via `just generate-content-ids` when
+- Regenerating stale `*Id.g.cs` via `just build::generate-content-ids` when
   pass 1f shows the manifest is behind the pin.
 
 ### BIG CHOICE — append to BLOCKED.md, do not implement
@@ -329,7 +329,7 @@ House workflow (see CLAUDE.md):
    src/Sts2Headless.Cheats/CheatHostMethods.cs (debug, must register via
    HostMethods.GateDebug).
 
-4. Run: just regen
+4. Run: just build::regen
    (regenerates protocol/openrpc.json + Python _models.py — pre-commit
     hook will block the commit if you skip this).
 
@@ -348,7 +348,7 @@ House workflow (see CLAUDE.md):
 7. For debug methods: ALSO add a negative test to DebugDisabledTests.cs
    asserting WireErrorCode.DebugMethodDisabled (-32001) without the flag.
 
-8. Run: just test
+8. Run: just validation::test
    Everything must be green before declaring done.
 
 9. Commit with this template (HEREDOC for formatting):
@@ -388,10 +388,10 @@ After the subagent returns:
 
 ```
 git log -1 --stat        # confirm the commit landed
-just test                # full suite green (already done by subagent, double-check)
+just validation::test    # full suite green (already done by subagent, double-check)
 ```
 
-If `just test` fails or the commit looks wrong, revert
+If `just validation::test` fails or the commit looks wrong, revert
 (`git reset --hard HEAD~1`) and either retry with corrected guidance or
 escalate. Do not "fix forward" with a second commit unless the subagent
 specifically failed cleanup.
@@ -404,7 +404,7 @@ Mark the candidate done. Move to the next one. Loop until queue empty.
 
 ## Phase 4 — Wrap up
 
-- Re-run `just test` from a clean shell as a final sanity check.
+- Re-run `just validation::test` from a clean shell as a final sanity check.
 - One-paragraph summary to the user:
   - what landed (commit SHAs, one bullet each)
   - what went to BLOCKED.md (entry titles)
@@ -445,7 +445,7 @@ Mark the candidate done. Move to the next one. Loop until queue empty.
   parser half), 1f (the parser half). Brief with absolute paths and an
   explicit "report under N words" cap.
 - **general-purpose** — full tool access. Use for Phase 3 implementation
-  AND for the `just sweep-sample N` / `just probe-*` Bash steps if you
+  AND for the `just validation::dotnet::sweep::sample N` / `just runner::probe::*` Bash steps if you
   want the multi-minute wait to happen off main context.
 - **Plan** — when a mechanical candidate turns out to be ambiguous
   mid-implementation; spawn Plan to design before editing.

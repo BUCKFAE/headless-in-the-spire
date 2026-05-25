@@ -48,7 +48,7 @@ public class EncounterSweepTests
         {
             _output.WriteLine(
                 "EncounterSweepTests: skipping — set RUN_ENCOUNTER_SWEEP=1 (or RUN_MECHANIC_SWEEP=1) to opt in. "
-                + "Use `just sweep-encounters` for the full pass or `just sweep-sample <N>` for a fast subset.");
+                + "Use `just validation::dotnet::sweep::encounters` for the full pass or `just validation::dotnet::sweep::sample <N>` for a fast subset.");
             return;
         }
 

@@ -12,7 +12,7 @@ namespace Sts2Headless.IntegrationTests.Coverage;
 // disk manifest's {Kind}IdNames.AllWireNames collection. A mismatch means
 // either:
 //
-//   * sts2.dll has been bumped (vendor/) but `just generate-content-ids`
+//   * sts2.dll has been bumped (vendor/) but `just build::generate-content-ids`
 //     wasn't re-run, so the committed enum is stale and downstream code
 //     compiled against a phantom set of ids.
 //   * The generator's enumeration strategy for that kind has drifted (a
@@ -20,7 +20,7 @@ namespace Sts2Headless.IntegrationTests.Coverage;
 //     needs an update to match.
 //
 // Either way the resolution is a deterministic one-command fix:
-//   just generate-content-ids
+//   just build::generate-content-ids
 // followed by a re-run.
 //
 // We never assert specific counts or specific ids — those are facts about
@@ -49,7 +49,7 @@ public class ContentManifestDriftTests : IClassFixture<ContentManifestFixture>
     // Curse / …). Drift here means the generated map is stale relative
     // to ModelDb.AllCardPools — e.g. a new Regent card landed but
     // CardOriginPool.g.cs still claims Unknown. Same one-command fix as
-    // the *Id manifests: `just generate-content-ids`.
+    // the *Id manifests: `just build::generate-content-ids`.
     [Fact]
     public void CardOriginPoolManifest_IsInSyncWithModelDb()
     {
@@ -62,7 +62,7 @@ public class ContentManifestDriftTests : IClassFixture<ContentManifestFixture>
                 diff.Add($"{cardId}: disk={actual} fresh={expected}");
         }
         if (diff.Count > 0)
-            Assert.Fail($"CardOriginPool drift — re-run `just generate-content-ids`. "
+            Assert.Fail($"CardOriginPool drift — re-run `just build::generate-content-ids`. "
                 + $"First {Math.Min(8, diff.Count)} of {diff.Count}: [{string.Join("; ", diff.Take(8))}].");
     }
 
@@ -80,7 +80,7 @@ public class ContentManifestDriftTests : IClassFixture<ContentManifestFixture>
 
         if (inFreshOnly.Count == 0 && inDiskOnly.Count == 0) return;
 
-        var msg = $"{kind}Id manifest drift — re-run `just generate-content-ids`.";
+        var msg = $"{kind}Id manifest drift — re-run `just build::generate-content-ids`.";
         if (inFreshOnly.Count > 0) msg += $" Missing from disk: [{string.Join(", ", inFreshOnly.Take(8))}{(inFreshOnly.Count > 8 ? $" + {inFreshOnly.Count - 8} more" : "")}].";
         if (inDiskOnly.Count > 0)  msg += $" Stale on disk: [{string.Join(", ", inDiskOnly.Take(8))}{(inDiskOnly.Count > 8 ? $" + {inDiskOnly.Count - 8} more" : "")}].";
         Assert.Fail(msg);

@@ -5,7 +5,7 @@ using Sts2Headless.Utils;
 namespace Sts2Headless.SchemaExport;
 
 // Emits protocol/openrpc.json from the typed records in Sts2Headless.Protocol
-// (AD-5). Invoked via `just export-schema`. Reads no sts2 bytes — runs
+// (AD-5). Invoked via `just build::export-schema`. Reads no sts2 bytes — runs
 // without vendor/ — so contributors and CI can regenerate the artefact on
 // any clone.
 //

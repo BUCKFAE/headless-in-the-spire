@@ -15,7 +15,7 @@ namespace Sts2Headless.End2EndTests;
 // more, reaches deeper floors, and how fast does each plan a turn?"
 // with measured data instead of theory.
 //
-// Diagnostic-traited so it doesn't run on `just test` — each row
+// Diagnostic-traited so it doesn't run on `just validation::test` — each row
 // drives a full A0 Ironclad run through the host, which takes 15-30s
 // per (planner, seed) pair.
 public class PlannerComparisonHarness

@@ -7,7 +7,7 @@
 namespace Godot.NativeInterop;
 
 // from: MegaCrit.Sts2.Core uses of StringName.op_Equality(ref godot_string_name, StringName)
-//   — `just list-members Godot.StringName` shows the overload. The struct
+//   — `just runner::probe::list-members Godot.StringName` shows the overload. The struct
 //   exists solely so the StringName ==/!= overloads have a parameter type
 //   to bind. No fields, no comparisons — sts2 never reads contents.
 public partial struct godot_string_name { }

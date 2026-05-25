@@ -11,7 +11,7 @@ namespace Sts2Headless.Commands;
 //
 // Intended use: feed GodotStubs growth. Instead of iterating one
 // MissingMethodException at a time, run e.g.
-//     just list-members Godot.OS
+//     just runner::probe::list-members Godot.OS
 // to learn the complete surface sts2 expects from that type, then add the
 // stubs in one pass. Keeps GodotStubs in sync with what sts2 actually
 // touches; never speculates beyond that.

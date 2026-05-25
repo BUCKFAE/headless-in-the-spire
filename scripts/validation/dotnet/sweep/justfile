@@ -1,0 +1,87 @@
+import '../../../common.just'
+
+# See scripts/setup/justfile for why this `set` is per-module.
+set working-directory := '../../../..'
+
+# ── Mechanic sweeps (per-id smoke matrix) ────────────────────────────────
+# Each sweep drives every id in a kind's manifest through a minimal
+# "exercise this one thing" fixture and classifies the outcome.
+# Crashed / Timeout are failure signals; Played / Unreachable / Unplayable
+# are informational. Reports land in documentation/coverage/sweep-<kind>.{md,json}
+# (gitignored — proprietary content from vendor/sts2.dll).
+#
+# Slow by design — full passes can take hours. Use
+# `just validation::dotnet::sweep::sample <N>` for a fast subset that's
+# comparable across runs (deterministic seed=42).
+
+# Run the full per-CardId smoke sweep (~577 ids, single-card deck +
+# SLIMES_NORMAL fixture, target=0). Crashed → test fails.
+cards:
+    @RUN_CARD_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~CardSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-cards.md"
+
+# Run the full per-RelicId smoke sweep (~294 ids, give_relic + fixed
+# 4-card deck + 2 turns + kill_all_enemies, draining TriggeredSincePrev
+# to distinguish Triggered vs Played). Crashed → test fails.
+relics:
+    @RUN_RELIC_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~RelicSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-relics.md"
+
+# Run the full per-PotionId smoke sweep (~64 ids, give_potion +
+# start_combat(SLIMES_NORMAL) + use_potion + kill_all_enemies, draining
+# TriggeredSincePrev to distinguish Triggered vs Played). Crashed → fail.
+potions:
+    @RUN_POTION_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~PotionSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-potions.md"
+
+# Run the full per-EventId smoke sweep (~66 ids, start_event + iterate
+# options (pick 0 each page) until the event resolves). Catches event-
+# option crashes (historical card-select-screen NRE family). Crashed → fail.
+events:
+    @RUN_EVENT_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~EventSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-events.md"
+
+# Run the full per-EncounterId smoke sweep (~80 ids, start_combat +
+# fixed Strike/Defend deck + 2 turns + kill_all_enemies). Implicitly
+# exercises every monster's intent path. Crashed → test fails.
+encounters:
+    @RUN_ENCOUNTER_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~EncounterSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-encounters.md"
+
+# Run the full per-PowerId smoke sweep (~270 ids, apply_power → 2
+# end_turns → kill_all_enemies). Player-target first, falls back to
+# first enemy on wire-level refusal. Crashed → test fails.
+powers:
+    @RUN_POWER_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~PowerSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-powers.md"
+
+# Run the full per-AfflictionId smoke sweep — afflict_card on the first
+# hand card + 1 end_turn + kill_all_enemies. Crashed → test fails.
+afflictions:
+    @RUN_AFFLICTION_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~AfflictionSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-afflictions.md"
+
+# Run the full per-EnchantmentId smoke sweep — same shape as
+# afflictions, via enchant_card.
+enchantments:
+    @RUN_ENCHANTMENT_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "FullyQualifiedName~EnchantmentSweepTests" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+    @echo ""
+    @echo "report: documentation/coverage/sweep-enchantments.md"
+
+# Run a fast subset of every mechanic sweep — N deterministic-random ids
+# per kind. Good for "did I break the smoke surface" checks before
+# launching a full multi-hour pass.
+sample N="20":
+    @RUN_MECHANIC_SWEEP=1 MECHANIC_SWEEP_SAMPLE={{N}} dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category=MechanicSweep" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1
+
+# Run the umbrella mechanic sweep — every kind, full universe. Hours.
+# Use after a `GAME_VERSION` bump to find every regression in one go.
+all:
+    @RUN_MECHANIC_SWEEP=1 dotnet test tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj {{MSBUILD_MAX_CPU}} --nologo --filter "Category=MechanicSweep" --logger "console;verbosity=detailed" -- xUnit.MaxParallelThreads=1

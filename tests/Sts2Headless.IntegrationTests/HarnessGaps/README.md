@@ -14,7 +14,7 @@ it is **not** a place to pin upstream sts2 bugs — that's a separate convention
 ## How to add a gap test
 
 1. Add `[Fact, Trait("Category", "Gap")]` (or `[Theory, ...]`) to every test.
-   The `Gap` trait is what excludes the test from the default `just test`
+   The `Gap` trait is what excludes the test from the default `just validation::test`
    suite — gap tests are red on purpose, so they should not poison CI.
 2. Write the test as if the gap were already fixed. Assert success, expected
    snapshot shape, etc. The failing call surfaces what's missing.
@@ -25,8 +25,8 @@ it is **not** a place to pin upstream sts2 bugs — that's a separate convention
 ## How to run
 
 ```
-just test-gaps        # runs only Gap-traited tests across every project
-just test             # runs everything EXCEPT Gap-traited tests (green-only)
+just validation::dotnet::test-gaps   # runs only Gap-traited tests across every project
+just validation::test                # runs everything EXCEPT Gap-traited tests (green-only)
 ```
 
 ## Lifecycle

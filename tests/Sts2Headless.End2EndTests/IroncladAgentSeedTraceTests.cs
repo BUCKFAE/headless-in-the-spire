@@ -12,7 +12,7 @@ namespace Sts2Headless.End2EndTests;
 // in the deck, what fights the agent struggled with, what HP it was
 // at when entering bosses.
 //
-// Marked diagnostic so they don't run on `just test`.
+// Marked diagnostic so they don't run on `just validation::test`.
 public class IroncladAgentSeedTraceTests
 {
     [Theory]

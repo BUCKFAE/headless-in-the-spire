@@ -6,7 +6,7 @@ import { locateSampleRunDir, pickRunDirectory } from "./helpers";
 // shifts numeric content fires a loud test, prompting an explicit
 // sample refresh rather than silently shifting the rendered output.
 //
-// If `just record-sample-replay` is re-run with a different walk,
+// If `just runner::record-sample-replay` is re-run with a different walk,
 // expect these to fail and update both the sample and the expected
 // values in lockstep.
 

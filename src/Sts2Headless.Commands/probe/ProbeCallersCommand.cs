@@ -4,7 +4,7 @@ using Sts2Headless.Runtime.Loading;
 
 namespace Sts2Headless.Commands;
 
-// Caller-finder probe — `just probe-callers Method[,Other]`. Loads sts2.dll
+// Caller-finder probe — `just runner::probe::callers Method[,Other]`. Loads sts2.dll
 // and walks every declared method's CIL looking for call/callvirt to a
 // method whose simple name matches one of the supplied patterns. Prints
 // caller FQN -> resolved target signature (including closed generic args

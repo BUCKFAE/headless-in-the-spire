@@ -1,0 +1,44 @@
+import '../common.just'
+
+# just modules default to running with cwd set to the module's own
+# directory. Every recipe in this repo references files relative to
+# the repo root (`dotnet build Sts2Headless.slnx`, `bash scripts/…`),
+# so each module overrides that with a `set working-directory := '<n-up>'`
+# pointing back at the repo root.
+set working-directory := '../..'
+
+# First-run setup: validate STS2 install, copy game DLLs, create uv
+# workspace .venv, install replay-viewer pnpm deps, install git hooks,
+# generate every *Id.g.cs content manifest + Godot stub surface from
+# the local DLL, then build the solution.
+setup: validate-sts2-installation pull-game-libs sync-python sync-viewer install-hooks
+    @just build::generate-content-ids
+    @just build::regen-godot-stubs
+    @just build::build
+
+# Verify STS2_GAME_DIR points at a real STS2 install with the required DLLs.
+validate-sts2-installation:
+    @bash scripts/setup/validate-sts2-installation.sh
+
+# Copy game DLLs from STS2_GAME_DIR into ./vendor (first-run bootstrap; see AD-3).
+pull-game-libs:
+    @bash scripts/setup/pull-game-libs.sh
+
+# Create / refresh the uv workspace .venv at the repo root (Python clients + dev tooling).
+sync-python:
+    @bash scripts/setup/check-uv.sh
+    @uv sync --all-packages
+
+# Install the replay-viewer (tools/replay-viewer) pnpm dependencies from the checked-in lockfile.
+sync-viewer:
+    @bash scripts/setup/check-pnpm.sh
+    @cd tools/replay-viewer && pnpm install --frozen-lockfile
+
+# Install repo git hooks (pre-commit drift guard for openrpc.json + _models.py).
+install-hooks:
+    @bash scripts/setup/install-hooks.sh
+
+# Clone reference projects (currently sts2-cli) into external-tools/.
+clone-external-tools:
+    @mkdir -p external-tools
+    @test -d external-tools/sts2-cli || git clone --depth 1 --single-branch --no-tags https://github.com/wuhao21/sts2-cli.git external-tools/sts2-cli

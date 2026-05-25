@@ -6,7 +6,7 @@
 namespace Godot;
 
 // from: every Godot.OS reference in sts2.dll (27 members), enumerated via
-//   `just list-members Godot.OS`. Defaults are the smallest safe values
+//   `just runner::probe::list-members Godot.OS`. Defaults are the smallest safe values
 //   (empty string/array, false, 0, Error.Ok, empty Dictionary). If any
 //   headless code path needs richer behaviour, override that specific
 //   member; do not add members that --list-members didn't surface.
@@ -57,7 +57,7 @@ public static partial class OS
 public partial class Dictionary { }
 
 // from: every Godot.GD reference in sts2.dll (8 members), enumerated via
-//   `just list-members Godot.GD`. Load<T> returns default (null for ref
+//   `just runner::probe::list-members Godot.GD`. Load<T> returns default (null for ref
 //   types); rand helpers return 0. Print* go to stdout, PushError/PrintErr/
 //   PushWarning go to stderr with a [godot] prefix — real Godot surfaces
 //   these in its log/editor, and silently dropping them masks engine-side

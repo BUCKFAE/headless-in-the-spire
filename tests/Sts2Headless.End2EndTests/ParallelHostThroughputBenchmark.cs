@@ -10,7 +10,7 @@ namespace Sts2Headless.End2EndTests;
 
 // Goal #3 throughput probe: how many full Ironclad runs/sec / runs/day
 // can HostPool drive on this workstation? Traited `Category=Benchmark`
-// so it's excluded from `just test-end2end` (it's slow and the goal is
+// so it's excluded from `just validation::dotnet::test-end2end` (it's slow and the goal is
 // measurement, not a regression gate).
 //
 // Configuration via env vars so the operator can dial it without

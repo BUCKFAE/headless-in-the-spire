@@ -356,7 +356,7 @@ public static class ProvenanceGodotStubsCommand
         sb.AppendLine("# Godot stub provenance");
         sb.AppendLine();
         sb.AppendLine("Per-catalog map of which content entries (cards, monsters, events, …) reach which "
-            + "`Godot.*` members at IL-walk time. Built by `just provenance-godot-stubs`, which walks every "
+            + "`Godot.*` members at IL-walk time. Built by `just runner::probe::godot-stubs-provenance`, which walks every "
             + "concrete catalog subtype's declared methods, follows one extra hop into sts2-internal callees, "
             + "and tallies every `call`/`callvirt`/`newobj` whose target lives in the `Godot` namespace. "
             + "Documentation only — the mandatory stub-coverage check lives in "

@@ -9,7 +9,7 @@ cycle.
 
 | Type | Purpose |
 |---|---|
-| `Paths` | Repo-root location (`LocateRepoRoot`), the gitignored `vendor/` dir (`VendorDir`), and the pinned `sts2.dll` path (`Sts2DllPath`) + the shared "missing — run `just setup`" message. |
+| `Paths` | Repo-root location (`LocateRepoRoot`), the gitignored `vendor/` dir (`VendorDir`), and the pinned `sts2.dll` path (`Sts2DllPath`) + the shared "missing — run `just setup::setup`" message. |
 | `GameVersionPin` | The one parser for the checked-in `GAME_VERSION` pin (AD-3): `Read(repoRoot)` → `(Version, Sha256)`. Host ping, replay headers, and schema export all read the pin through here. |
 | `FileHash` | `Sha256(path)` — lowercase hex, used to cross-check the pin against the actual `vendor/sts2.dll` bytes. |
 | `SetupDir` | `CleanSetupDir(path, deleteContent)` — create-or-reset a directory, mirroring the Python `clean_setup_dir`. |

@@ -25,7 +25,7 @@ namespace Sts2Headless.IntegrationTests;
 //     of the broader generated surface.
 //   * Broad test is mandatory: every Godot.* MemberRef in sts2.dll must
 //     have a matching stub. Was Diagnostic-only when GodotStubs grew on
-//     demand; now mandatory because `just regen-godot-stubs` generates the
+//     demand; now mandatory because `just build::regen-godot-stubs` generates the
 //     full surface from sts2's MemberReference table into
 //     src/GodotStubs/Generated/*.g.cs. A red broad test means the generated
 //     output is out of date — re-run the recipe.
@@ -49,7 +49,7 @@ public class GodotStubsCoverageTests
         Assert.True(
             missing.Count == 0,
             $"GodotStubs is missing {missing.Count} member(s) referenced by sts2.dll. "
-            + "Run `just regen-godot-stubs` to refresh the generated stubs from sts2's MemberReference table.\n"
+            + "Run `just build::regen-godot-stubs` to refresh the generated stubs from sts2's MemberReference table.\n"
             + string.Join('\n', missing.Select(m => "  - " + m)));
     }
 
@@ -76,7 +76,7 @@ public class GodotStubsCoverageTests
         Assert.True(
             missing.Count == 0,
             $"GodotStubs is missing {missing.Count} Godot.* type(s) referenced by sts2.dll — "
-            + "would surface as TypeLoadException on first reach. Run `just regen-godot-stubs`.\n"
+            + "would surface as TypeLoadException on first reach. Run `just build::regen-godot-stubs`.\n"
             + string.Join('\n', missing.Select(t => "  - " + t)));
     }
 
@@ -85,7 +85,7 @@ public class GodotStubsCoverageTests
         var repoRoot = LocateRepoRoot();
         var sts2Path = Path.Combine(repoRoot, "vendor", "sts2.dll");
         Assert.True(File.Exists(sts2Path),
-            $"vendor/sts2.dll not present at {sts2Path} — run `just setup` first.");
+            $"vendor/sts2.dll not present at {sts2Path} — run `just setup::setup` first.");
         var stubPath = Path.Combine(AppContext.BaseDirectory, "GodotSharp.dll");
         Assert.True(File.Exists(stubPath),
             $"GodotSharp.dll not in test bin at {stubPath} — GodotStubs build output missing.");
@@ -123,7 +123,7 @@ public class GodotStubsCoverageTests
         var repoRoot = LocateRepoRoot();
         var sts2Path = Path.Combine(repoRoot, "vendor", "sts2.dll");
         Assert.True(File.Exists(sts2Path),
-            $"vendor/sts2.dll not present at {sts2Path} — run `just setup` first.");
+            $"vendor/sts2.dll not present at {sts2Path} — run `just setup::setup` first.");
 
         var stubPath = Path.Combine(AppContext.BaseDirectory, "GodotSharp.dll");
         Assert.True(File.Exists(stubPath),

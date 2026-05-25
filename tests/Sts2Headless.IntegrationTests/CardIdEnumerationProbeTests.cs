@@ -42,7 +42,7 @@ public class CardIdEnumerationProbeTests
         // we need the model db populated before enumerating.
         var repoRoot = RepoRoot();
         var vendor = Path.Combine(repoRoot, "vendor/sts2.dll");
-        Assert.True(File.Exists(vendor), $"vendor/sts2.dll not present at {vendor} — `just pull-game-libs`.");
+        Assert.True(File.Exists(vendor), $"vendor/sts2.dll not present at {vendor} — `just setup::pull-game-libs`.");
 
         VendorAssemblyResolver.Install(Path.GetDirectoryName(vendor)!);
         var sts2 = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(vendor);

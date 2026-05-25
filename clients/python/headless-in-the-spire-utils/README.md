@@ -23,5 +23,5 @@ tests/         # unit tests; no live host required
 From the repo root:
 
 ```sh
-just test-python
+just validation::test-python
 ```

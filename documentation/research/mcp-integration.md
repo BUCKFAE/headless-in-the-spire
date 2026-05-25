@@ -113,4 +113,4 @@ Mirrors the wire client's posture:
   end-to-end on seed 42 Ironclad. Skipped without `vendor/sts2.dll` and
   `dotnet`, same gate as the wire client's smoke test.
 
-All three run inside `just test-python`.
+All three run inside `just validation::test-python`.

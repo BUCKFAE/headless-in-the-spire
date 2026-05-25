@@ -1,0 +1,54 @@
+import '../common.just'
+
+# See scripts/setup/justfile for why this `set` is per-module.
+set working-directory := '../..'
+
+# Per-axis .NET suites (unit / integration / end2end / gaps / bench)
+# and the per-id MechanicSweep matrix.
+mod dotnet 'dotnet/justfile'
+
+# Run every test suite (C# unit + integration + end2end + Python) plus
+# lint + typecheck, fanned out in parallel after a single build.
+# ~3x faster than `test-sequential` on a 16-core box; per-suite caps
+# via XUNIT_THREADS_INTEGRATION (default 8), XUNIT_THREADS_END2END
+# (default 4), XUNIT_THREADS_UNIT (default 4).
+test:
+    @bash scripts/validation/test-parallel.sh
+
+# Everything `test` runs PLUS the validation steps deliberately excluded
+# from the green-light suite: Category=Gap (born-red, surfaces graduated
+# gaps), the Benchmark throughput probe, and all eight MechanicSweep
+# kinds (CardSweep, RelicSweep, …, EnchantmentSweep). Fan-out is
+# maximally parallel; on a workstation expect peak RAM in the tens of
+# GB and total wall-clock in the hours range (the sweep kinds are
+# slow by design). Expect "failed: gaps-*" output even on a healthy
+# tree — that's the gap suite working as intended.
+test-full:
+    @STS2_TEST_FULL=1 bash scripts/validation/test-parallel.sh
+
+# Same suites as `just validation::test`, but each step runs
+# sequentially with live output. Useful for clean per-suite logs or
+# when the parallel orchestrator is the suspect.
+test-sequential: dotnet::test-unit dotnet::test-integration dotnet::test-end2end test-python lint-python typecheck-python
+
+# Run every Python workspace member's tests via the uv workspace .venv.
+test-python:
+    @bash scripts/setup/check-uv.sh
+    @uv run pytest clients/python/
+
+# Lint Python (ruff check + ruff format --check). Workspace-wide.
+lint-python:
+    @bash scripts/setup/check-uv.sh
+    @uv run ruff check clients/python/
+    @uv run ruff format --check clients/python/
+
+# Auto-fix Python (ruff check --fix + ruff format).
+fix-python:
+    @bash scripts/setup/check-uv.sh
+    @uv run ruff check --fix clients/python/
+    @uv run ruff format clients/python/
+
+# Static type-check Python with pyright (strict mode).
+typecheck-python:
+    @bash scripts/setup/check-uv.sh
+    @uv run pyright

@@ -32,7 +32,7 @@ ones to resolve before writing code.
 > sts2-modding-mcp were *not* adopted), and the "Suggested external
 > clones for `external-tools/`" list at the bottom was *not*
 > materialised — only `sts2-cli/` is checked out. Run with
-> `just dev-viewer`.
+> `just runner::dev-viewer`.
 
 ---
 

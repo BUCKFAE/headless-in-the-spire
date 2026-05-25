@@ -428,7 +428,7 @@ public static partial class ClassDB { }
 //   constants when staging VFX tints. MissingMethodException surfaces inside
 //   the move's async chain and gets swallowed by TaskHelper.LogTaskExceptions,
 //   leaving the enemy turn half-transitioned (the combat-stall pattern).
-//   The set below is the closed surface — `just list-members Godot.Colors`
+//   The set below is the closed surface — `just runner::probe::list-members Godot.Colors`
 //   confirms sts2.dll references exactly these 14 getters and no others.
 //   `GodotStubsCoverageTests.Color_And_Colors_References_From_Sts2_Resolve`
 //   pins the surface so a game-version bump that adds a new named color

@@ -21,7 +21,7 @@ to be encodable as something I can grep or diff.
 The loop I want to run in practice:
 
 1. Make the change.
-2. `just test` — fast tier, under ~30 seconds.
+2. `just validation::test` — fast tier, under ~30 seconds.
 3. Read the **machine-readable summary first** (`target/test-summary.json` or
    equivalent), not the raw log spam. Look at *what* failed and *why*, in
    that order.
@@ -149,7 +149,7 @@ through use:
 
 Concrete asks, prioritised:
 
-1. **A single command** (`just test`) that builds, runs all fast-tier
+1. **A single command** (`just validation::test`) that builds, runs all fast-tier
    tests, and emits both structured machine output and a short human
    summary. Exits non-zero on any failure.
 2. **Structured failure artefacts**: snapshot diff, replay divergence

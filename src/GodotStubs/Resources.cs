@@ -51,7 +51,7 @@ public partial class ENetConnection : GodotObject
     public enum EventType { None = 0 }
 }
 
-// from: SaveManager.InitProfileId — `just list-members Godot.FileAccess`
+// from: SaveManager.InitProfileId — `just runner::probe::list-members Godot.FileAccess`
 //   (17 members). "Empty filesystem" semantics: FileExists/IsOpen false,
 //   sizes 0, reads return empty buffers/strings, writes no-op return true.
 //   Open returns a fresh instance (rather than null) so write paths don't
@@ -84,7 +84,7 @@ public partial class FileAccess : GodotObject
     public static ulong GetModifiedTime(string _) => 0;
 }
 
-// from: SaveManager.InitProfileId(0) — `just list-members Godot.DirAccess`
+// from: SaveManager.InitProfileId(0) — `just runner::probe::list-members Godot.DirAccess`
 //   (15 members). Stubbed as an "empty filesystem": bool false, empty
 //   strings/arrays, Error.Ok on writes (caller proceeds as if mkdir
 //   succeeded), and Open returns a fresh instance so callers don't NPE
@@ -124,7 +124,7 @@ public partial class RichTextEffect : Resource
 // from: MegaCrit.Sts2.Core.HoverTips.HoverTip..ctor — TypeLoadException
 //   when Neow event option generation walks CursedPearl.ExtraHoverTips,
 //   which constructs HoverTips that hold a Texture2D field. We only need
-//   the three members `just list-members Godot.Texture2D` surfaces; no
+//   the three members `just runner::probe::list-members Godot.Texture2D` surfaces; no
 //   real image data is read.
 public partial class Texture2D : Resource
 {

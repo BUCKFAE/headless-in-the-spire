@@ -34,7 +34,7 @@ public class RunJsonEmissionTests
     {
         var repoRoot = Paths.LocateRepoRoot();
         var vendorDir = Path.Combine(repoRoot, "vendor");
-        Assert.True(Directory.Exists(vendorDir), $"vendor/ missing at {vendorDir} — run `just setup`.");
+        Assert.True(Directory.Exists(vendorDir), $"vendor/ missing at {vendorDir} — run `just setup::setup`.");
 
         var samplePath = SampleSaves.RunHistoryFiles().FirstOrDefault();
         if (samplePath is null) return;  // fixture absent — skip

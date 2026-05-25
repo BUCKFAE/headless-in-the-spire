@@ -10,8 +10,8 @@ namespace Sts2Headless.MechanicSweepTests;
 // through CardSweep's "single-card deck + benign combat" fixture and
 // surfaces Crashed / Timeout outcomes as test failures.
 //
-// Opt in with `just sweep-cards` (sets RUN_CARD_SWEEP=1) or
-// `just sweep-sample <N>` (sets MECHANIC_SWEEP_SAMPLE=N for a fast pass
+// Opt in with `just validation::dotnet::sweep::cards` (sets RUN_CARD_SWEEP=1) or
+// `just validation::dotnet::sweep::sample <N>` (sets MECHANIC_SWEEP_SAMPLE=N for a fast pass
 // across every kind). The sweep is off by default — a full run takes
 // ~hours.
 //
@@ -37,7 +37,7 @@ public class CardSweepTests : IClassFixture<HostSubprocess>
         {
             _output.WriteLine(
                 "CardSweepTests: skipping — set RUN_CARD_SWEEP=1 (or RUN_MECHANIC_SWEEP=1) to opt in. "
-                + "Use `just sweep-cards` for the full pass or `just sweep-sample <N>` for a fast subset.");
+                + "Use `just validation::dotnet::sweep::cards` for the full pass or `just validation::dotnet::sweep::sample <N>` for a fast subset.");
             return;
         }
 

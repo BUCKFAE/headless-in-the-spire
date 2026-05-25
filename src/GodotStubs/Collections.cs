@@ -1,6 +1,6 @@
 // from: SaveManager.InitProfileId(0) — TypeLoadException then
 //   MissingMethodException progression. Surface enumerated via
-//   `just list-members 'Godot.Collections.Dictionary\`2'` (4 members).
+//   `just runner::probe::list-members 'Godot.Collections.Dictionary\`2'` (4 members).
 //   Headless paths never observe the contents, so we back the dictionary
 //   with a real in-memory map — TryGetValue returning a default makes
 //   callers behave as if no entries exist.

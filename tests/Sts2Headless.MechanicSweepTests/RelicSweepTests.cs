@@ -33,7 +33,7 @@ public class RelicSweepTests : IClassFixture<HostSubprocess>
         {
             _output.WriteLine(
                 "RelicSweepTests: skipping — set RUN_RELIC_SWEEP=1 (or RUN_MECHANIC_SWEEP=1) to opt in. "
-                + "Use `just sweep-relics` for the full pass or `just sweep-sample <N>` for a fast subset.");
+                + "Use `just validation::dotnet::sweep::relics` for the full pass or `just validation::dotnet::sweep::sample <N>` for a fast subset.");
             return;
         }
 

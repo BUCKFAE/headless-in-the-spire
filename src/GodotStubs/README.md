@@ -42,7 +42,7 @@ purely for the IDE.
 
 Per the project's hard rules, **do not** speculatively mirror the GodotSharp
 surface. Add a stub only when a missing reference forces it, and record the
-caller with a `// from: <type>.<member>` comment. `just list-members <FQN>`
+caller with a `// from: <type>.<member>` comment. `just runner::probe::list-members <FQN>`
 (the `--list-members` command) dumps every member of a type that `sts2.dll`
 references, so you can grow a type in one pass instead of one
 `MissingMethodException` at a time.

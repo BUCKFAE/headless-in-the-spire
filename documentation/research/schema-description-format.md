@@ -171,7 +171,7 @@ The realistic path is hand-rolling on top of .NET 10's
 
 Total: a single file, ~300–400 LOC, plus a unit test asserting
 `rpc.discover` round-trips. The emitter is invoked by a new
-`just export-schema` recipe and writes `protocol/openrpc.json` (checked
+`just build::export-schema` recipe and writes `protocol/openrpc.json` (checked
 in).
 
 ### Gotchas for our specific protocol shapes

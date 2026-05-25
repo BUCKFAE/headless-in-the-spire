@@ -5,7 +5,7 @@ using Sts2Headless.Runtime.Bindings;
 
 namespace Sts2Headless.Commands;
 
-// `just probe-creatures <encounter-id>` — start a run, force-enter the
+// `just runner::probe::creatures <encounter-id>` — start a run, force-enter the
 // combat, then walk every reachable Creature-typed reference inside
 // CombatManager.DebugOnlyGetState() and each spawned enemy. Reports
 // every entity's runtime type, HP, alive-ness, and parentage.

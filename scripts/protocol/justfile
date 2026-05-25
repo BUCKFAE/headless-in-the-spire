@@ -1,0 +1,11 @@
+import '../common.just'
+
+# See scripts/setup/justfile for why this `set` is per-module.
+set working-directory := '../..'
+
+# Serve protocol/openrpc.json with CORS and open it in the hosted
+# OpenRPC Playground (https://playground.open-rpc.org). Re-run
+# `just build::export-schema` and reload the playground tab to refresh.
+# Uses uv-managed Python; no node deps. Ctrl-C to stop.
+docs:
+    @uv run python3 scripts/protocol/serve-open-rpc-docs.py

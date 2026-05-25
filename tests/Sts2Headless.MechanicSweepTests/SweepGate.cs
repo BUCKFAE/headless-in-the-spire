@@ -8,14 +8,14 @@ namespace Sts2Headless.MechanicSweepTests;
 //   * ReadGameVersion()  — surfaces the pinned game version in the report.
 //
 // Why env vars instead of [Skip]: the sweeps run for hours when unrestricted;
-// they should never run by accident from `just test-end2end` or an IDE's
+// they should never run by accident from `just validation::dotnet::test-end2end` or an IDE's
 // "run all tests" green-bar habit. An explicit opt-in via env var is the
 // same lever the old coverage / encounter sweeps used.
 internal static class SweepGate
 {
     // RUN_<KIND>_SWEEP=1 opts in just that kind. RUN_MECHANIC_SWEEP=1
     // opts every sweep in (the umbrella flag). Either is enough; checking
-    // both lets `just sweep-cards` set the narrow flag and `just sweep-all`
+    // both lets `just validation::dotnet::sweep::cards` set the narrow flag and `just validation::dotnet::sweep::all`
     // set the umbrella one.
     public static bool ShouldRun(string kind)
     {

@@ -25,13 +25,13 @@ namespace Sts2Headless.IntegrationTests.Coverage;
 //     namespace (caught first by NewContentKindTests), the generator
 //     was extended, but the runtime patcher wasn't. Adds two lines:
 //     one in HookPatchKinds.cs's All list, one in TriggerKind in
-//     Methods.cs (then `just regen`).
+//     Methods.cs (then `just build::regen`).
 //   * Extra in HookPatchKinds — a hook-patch entry references a kind
 //     no one enumerates ids for. Either drop the entry or extend the
 //     generator's Kinds list with a matching KindSpec.
 //
 // No host subprocess needed — this is a pure static-list parity check,
-// runs in milliseconds, lives in the default `just test-integration`
+// runs in milliseconds, lives in the default `just validation::dotnet::test-integration`
 // run.
 public class InstrumentationKindParityTest
 {
@@ -65,7 +65,7 @@ public class InstrumentationKindParityTest
                 $"  Missing from HookPatchKinds.All: [{string.Join(", ", missing)}]. "
                 + "Append an entry to src/Sts2Headless.Runtime/Hooks/HookPatchKinds.cs "
                 + "AND a matching value to TriggerKind in "
-                + "src/Sts2Headless.Protocol/Methods/Methods.cs (run `just regen` after).");
+                + "src/Sts2Headless.Protocol/Methods/Methods.cs (run `just build::regen` after).");
         if (extra.Count > 0)
             lines.Add(
                 $"  Extra in HookPatchKinds.All: [{string.Join(", ", extra)}]. "

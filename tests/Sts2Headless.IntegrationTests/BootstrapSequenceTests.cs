@@ -6,7 +6,7 @@ using Sts2Headless.Utils;
 namespace Sts2Headless.IntegrationTests;
 
 // Locks in the current end-to-end bootstrap state. Mirrors the output of
-// `just probe-bootstrap` — if the human-eyeballed probe goes green, the
+// `just runner::probe::bootstrap` — if the human-eyeballed probe goes green, the
 // matching assertion here keeps it that way under refactors.
 //
 // Why integration-shaped (loads the real sts2.dll, not mocks): the whole
@@ -27,7 +27,7 @@ public class BootstrapSequenceTests
     {
         var repoRoot = Paths.LocateRepoRoot();
         var vendorDir = Path.Combine(repoRoot, "vendor");
-        Assert.True(Directory.Exists(vendorDir), $"vendor/ missing at {vendorDir} — run `just setup`.");
+        Assert.True(Directory.Exists(vendorDir), $"vendor/ missing at {vendorDir} — run `just setup::setup`.");
 
         VendorAssemblyResolver.Install(vendorDir);
 
@@ -103,7 +103,7 @@ public class BootstrapSequenceTests
     {
         var repoRoot = Paths.LocateRepoRoot();
         var vendorDir = Path.Combine(repoRoot, "vendor");
-        Assert.True(Directory.Exists(vendorDir), $"vendor/ missing at {vendorDir} — run `just setup`.");
+        Assert.True(Directory.Exists(vendorDir), $"vendor/ missing at {vendorDir} — run `just setup::setup`.");
 
         VendorAssemblyResolver.Install(vendorDir);
         var preamble = RuntimeBootstrap.Run(vendorDir);

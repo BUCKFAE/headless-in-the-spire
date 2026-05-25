@@ -29,7 +29,7 @@ namespace Sts2Headless.UnitTests;
 //     they're derived from.
 //
 // Detecting "sts2 shipped a new card we should consider":
-//   * Run `just generate-content-ids` after bumping the game pin
+//   * Run `just build::generate-content-ids` after bumping the game pin
 //     (GAME_VERSION).
 //   * The generator prints the card count; compare to your local
 //     memory or to a private notebook (not a committed file).

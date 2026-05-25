@@ -28,7 +28,7 @@ public class EnchantmentSweepTests : IClassFixture<HostSubprocess>
         {
             _output.WriteLine(
                 "EnchantmentSweepTests: skipping — set RUN_ENCHANTMENT_SWEEP=1 (or RUN_MECHANIC_SWEEP=1) to opt in. "
-                + "Use `just sweep-enchantments` for the full pass.");
+                + "Use `just validation::dotnet::sweep::enchantments` for the full pass.");
             return;
         }
 

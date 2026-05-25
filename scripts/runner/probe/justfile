@@ -1,0 +1,104 @@
+import '../../common.just'
+
+# See scripts/setup/justfile for why this `set` is per-module.
+set working-directory := '../../..'
+
+# Load vendor/sts2.dll and report missing GodotStubs surface (diagnostic).
+inspect-sts2:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --inspect-sts2
+
+# Install sync context + Harmony hang-patches against vendor/sts2.dll (diagnostic).
+init:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-init
+
+# init + walk sts2's bootstrap chain (TestMode→ModelDb→Player smoke).
+bootstrap:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-bootstrap
+
+# bootstrap + walk RunState→RunManager→EnterAct chain; dumps post-boot state.
+run-state:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-run-state
+
+# Drive the natural enemy-turn chain (NetIds = 1uL, no fallback) and
+# write the gap catalog to documentation/research/.
+natural-chain:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-natural-chain
+
+# Drive the natural reward-claim chain (no try/catch around
+# CardPileCmd.Add / OnSelectWrapper / OnSkipped) and dump gaps.
+rewards-natural-chain:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-rewards-natural-chain
+
+# Walk a seed until the first stalled combat, then dump engine state (diagnostic).
+combat-stall seed="1" floor="15":
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-combat-stall --seed {{seed}} --floor {{floor}}
+
+# List every type whose name matches one of the substrings, with its
+# declared methods (e.g. `just runner::probe::types Doormaker,SwapPhase`).
+# Shows generic-method args and async state-machine targets when
+# present — useful for picking a Harmony-patchable surface.
+types patterns:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-types {{patterns}}
+
+# Scan every method in sts2.dll for call/callvirt sites that match a
+# method name (e.g. `just runner::probe::callers SwapPhasePower`).
+# Prints caller → closed-instantiation pairs — the way to find
+# Harmony-patchable closed forms of an open-generic target.
+callers patterns:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-callers {{patterns}}
+
+# List every member of <fqn> that sts2.dll references
+# (e.g. `just runner::probe::list-members Godot.OS`).
+list-members fqn:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --list-members {{fqn}}
+
+# Map every content-catalog entry (cards, monsters, events, …) to the
+# Godot.* members its declared methods reach. Writes
+# documentation/coverage/godot-stub-provenance.md — documentation, not
+# a coverage gate.
+godot-stubs-provenance:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --provenance-godot-stubs
+
+# Dump ModelDb's content inventory (one txt per AllX property + a
+# summary) into documentation/research/modeldb/ — gitignored,
+# proprietary content. Diagnostic; not required for builds.
+modeldb:
+    @just build::build-generator
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-modeldb
+
+# Dump a single method body's IL — referenced by hand-written Harmony
+# patch comments to make the IL-inspection workflow runnable.
+method-body *args:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-method-body {{args}}
+
+# Inspect an encounter (start a run, force-enter, dump state).
+encounter *args:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-encounter {{args}}
+
+# Enumerate creatures (accepts filter args).
+creatures *args:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-creatures {{args}}
+
+# Enter a merchant room and dump shop state.
+merchant *args:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-merchant {{args}}
+
+# Trace listener / trigger dispatch.
+listener-dispatch *args:
+    @just build::build
+    @dotnet run --project src/Sts2Headless/Sts2Headless.csproj --no-build -- --probe-listener-dispatch {{args}}

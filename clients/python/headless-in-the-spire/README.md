@@ -30,11 +30,11 @@ with Client.spawn() as c:
 From the repo root:
 
 ```sh
-just setup       # if you haven't yet — also handles game-DLL bootstrap
-just test-python # run this package's tests via uv
+just setup::setup        # if you haven't yet — also handles game-DLL bootstrap
+just validation::test-python  # run this package's tests via uv
 ```
 
-`just setup` runs `uv sync --all-packages`, which creates `.venv` at the
+`just setup::setup` runs `uv sync --all-packages`, which creates `.venv` at the
 repo root and installs every workspace member editable plus the shared dev
 group. Don't bring your own `pip`/`virtualenv` — uv tracks all state.
 
@@ -43,7 +43,7 @@ group. Don't bring your own `pip`/`virtualenv` — uv tracks all state.
 After `protocol/openrpc.json` changes, from the repo root:
 
 ```sh
-just generate-python
+just build::generate-python
 ```
 
 That executes `scripts/generate_models.py` via `uv run`, which wraps

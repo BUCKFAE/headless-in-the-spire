@@ -4,7 +4,7 @@ tool surface, verify a result.
 Skipped when neither a prebuilt host binary nor a buildable .NET project
 plus a populated `vendor/sts2.dll` is available — same gate as the wire
 client's smoke test. Keeps this file unit-suite-friendly while still
-letting devs verify the slice end-to-end via `just test-python`.
+letting devs verify the slice end-to-end via `just validation::test-python`.
 
 We deliberately do **not** spawn the MCP server as a subprocess and speak
 MCP over stdio: that adds a layer (the MCP wire) on top of the layer we

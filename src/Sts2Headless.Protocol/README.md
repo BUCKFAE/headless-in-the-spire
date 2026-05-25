@@ -23,14 +23,14 @@ else references this project.
   `JsonStringEnumConverter` and an `Unknown` sentinel. Grow the enum when an
   integration test surfaces a new value rather than widening the parse.
 - **Generated content-id enums.** `{Kind}Id.g.cs` (CardId, RelicId, MonsterId,
-  …) are emitted by `just generate-content-ids` from the proprietary
+  …) are emitted by `just build::generate-content-ids` from the proprietary
   `vendor/sts2.dll` and are **gitignored** — never committed (AD-3). Each has a
   committed `{Kind}Id.Fallback.cs` stub so the project compiles on a fresh
   clone *before* the generator has run; a conditional `<Compile Remove>` in the
   `.csproj` swaps the stub out once the generated file exists.
 
 > If a downstream project fails to build with `'CardId' does not contain a
-> definition for '…'`, the generated enums are missing — run `just setup` (or
-> `just generate-content-ids`), don't edit the fallback to match.
+> definition for '…'`, the generated enums are missing — run `just setup::setup` (or
+> `just build::generate-content-ids`), don't edit the fallback to match.
 
 See `documentation/requirements/02-architecture-decisions.md` (AD-2, AD-5).

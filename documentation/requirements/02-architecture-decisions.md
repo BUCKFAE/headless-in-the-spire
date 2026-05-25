@@ -170,7 +170,7 @@ Bump workflow:
 1. Update `vendor/sts2.dll` and `GAME_VERSION`.
 2. Run the reflection-manifest diff (stage 1 above) → fix any reported
    breakages in core.
-3. `just test` (fast tier) → must pass.
+3. `just validation::test` (fast tier) → must pass.
 4. Re-record every scenario and replay snapshot under
    `snapshots/<new-version>/`. Diff is reviewed by a human and compared
    against published patch notes:
@@ -206,7 +206,7 @@ Bump workflow:
 **Context**
 
 `sts2.dll` is proprietary and gitignored (AD-3). Everything in `vendor/` is
-populated at first-run by `just setup` from the user's Steam install. The
+populated at first-run by `just setup::setup` from the user's Steam install. The
 host needs to call into sts2 (instantiate `Player`, register `ModelDb`
 subtypes, find `Cmd.Wait` for a Harmony patch, etc.). Two ways to do that:
 
@@ -365,8 +365,8 @@ pinned to **3.13** via `.python-version` (uv downloads a managed CPython
 if the host lacks one), and `requires-python = ">=3.13"` is mirrored in
 both the workspace root and each member. A single `.venv/` at the repo
 root serves every member; `uv.lock` is committed for reproducible
-installs. `just setup` runs `uv sync --all-packages`; `just generate-python`
-and `just test-python` go through `uv run`. We pick uv over pip/poetry/pipx
+installs. `just setup::setup` runs `uv sync --all-packages`; `just build::generate-python`
+and `just validation::test-python` go through `uv run`. We pick uv over pip/poetry/pipx
 because (a) it manages the Python toolchain itself, removing a class of
 "works on my machine" failures; (b) workspace support is first-class, so
 the agents package can drop in next to the wire client without bespoke
@@ -572,7 +572,7 @@ boundary; enabling another method behind it is no additional risk).
   (`DebugDisabledTests.NonDebugMethod_StillWorks_WithoutEnableDebugFlag`)
   exist to catch.
 - We accept the small ergonomic cost of one CLI flag for every
-  development / CI invocation — `just test-integration` passes it via
+  development / CI invocation — `just validation::dotnet::test-integration` passes it via
   the fixture; manual `dotnet run` invocations against the host must add
   it. The cost is a one-time learning hit for new contributors and
   measurably zero for automation.

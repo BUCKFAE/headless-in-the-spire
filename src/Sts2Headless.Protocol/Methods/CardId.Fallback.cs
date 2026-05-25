@@ -3,14 +3,14 @@ using System.Text.Json.Serialization;
 namespace Sts2Headless.Protocol.Methods;
 
 // Compile-only stub for the CardId enum + CardIdNames lookup. The real
-// 577-value enum is emitted by `just generate-content-ids` into the
+// 577-value enum is emitted by `just build::generate-content-ids` into the
 // gitignored CardId.g.cs (sourced from the proprietary vendor/sts2.dll
 // — never committed to the repo). This file exists so:
 //
 //   1. The Protocol project compiles on a fresh clone *before* the
 //      generator has run (e.g. so the generator itself, which lives
 //      under Sts2Headless and depends on this project, can be built).
-//   2. `just setup` can chain: validate sts2 install → pull DLLs →
+//   2. `just setup::setup` can chain: validate sts2 install → pull DLLs →
 //      build the solution (compiling with this stub) → run the
 //      generator → final build picks up CardId.g.cs.
 //   3. CI (which never has vendor/sts2.dll) can compile downstream

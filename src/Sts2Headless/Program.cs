@@ -102,7 +102,7 @@ if (Directory.Exists(vendorDir))
 }
 else
 {
-    Console.Error.WriteLine($"  vendor/ missing — run `just setup`.");
+    Console.Error.WriteLine($"  vendor/ missing — run `just setup::setup`.");
     return 1;
 }
 

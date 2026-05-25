@@ -4,7 +4,7 @@ using Xunit;
 namespace Sts2Headless.UnitTests;
 
 // Pins the sample-saves fixture locator. If the fixture isn't present
-// (CI without vendor/, fresh clone before `just pull-game-libs`), every
+// (CI without vendor/, fresh clone before `just setup::pull-game-libs`), every
 // assertion degrades to a skip — the locator is supposed to return null
 // gracefully, not throw. If the fixture IS present, we assert a stable
 // shape so a rename or accidental wipe of vendor/sample-saves/ surfaces

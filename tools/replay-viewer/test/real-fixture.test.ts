@@ -7,7 +7,7 @@ import { summarizeEvent } from "../src/core/summary";
 // End-to-end smoke against whatever sits in vendor/replays/. The
 // recording substrate writes manifest.json + per-combat *.mcr +
 // *.mcr.timeline.json under `<root>/<game-version>/<run-id>/`. If the
-// repo has the seed-42 sample bundled (`just record-replay-sample`),
+// repo has the seed-42 sample bundled (`just runner::record-sample-replay`),
 // we round-trip each timeline.json through the parser and ensure
 // summarizeEvent doesn't throw on anything in the wild.
 //

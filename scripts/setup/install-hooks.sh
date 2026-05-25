@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 src_dir="$repo_root/scripts/git-hooks"
 dst_dir="$repo_root/.git/hooks"
 

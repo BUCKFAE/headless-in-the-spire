@@ -25,7 +25,7 @@ _(Run modifiers wire param graduated 2026-05-18 — `IReadOnlyList<ModifierId>? 
 
 _(Coverage universe filter graduated 2026-05-18 — `IsEngineExcluded(string id)` in `CoverageAggregator` filters `DEPRECATED_*`, `FAKE_*`, `MOCK_*`, `*_DUMMY`, `*_ATTACK_MOVE_MONSTER`, plus `ONE_HP_MONSTER` / `TEN_HP_MONSTER` / `TEST_SUBJECT` / `ARCHITECT` literals out of the universe and the missing list. Markdown report now shows `universe (reachable): X (of Y manifest; Z engine-excluded)` so the trim stays visible.)_
 
-_(Diagnostic-test trait case mismatch graduated 2026-05-18 — renamed `[Trait("category", "diagnostic")]` → `[Trait("Category", "Diagnostic")]` across 23 sites and updated `just test-integration` / `just test-end2end` to filter `Category!=Gap&Category!=Diagnostic`. CoverageSweep got the same casing treatment.)_
+_(Diagnostic-test trait case mismatch graduated 2026-05-18 — renamed `[Trait("category", "diagnostic")]` → `[Trait("Category", "Diagnostic")]` across 23 sites and updated `just validation::dotnet::test-integration` / `just validation::dotnet::test-end2end` to filter `Category!=Gap&Category!=Diagnostic`. CoverageSweep got the same casing treatment.)_
 
 _(SMITH rest-site card-pick entry graduated 2026-05-18 — implemented in commit 83514c3; the SMITH summary was refreshed in commit efc86af.)_
 

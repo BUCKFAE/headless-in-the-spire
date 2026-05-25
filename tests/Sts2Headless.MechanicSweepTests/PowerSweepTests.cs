@@ -33,7 +33,7 @@ public class PowerSweepTests : IClassFixture<HostSubprocess>
         {
             _output.WriteLine(
                 "PowerSweepTests: skipping — set RUN_POWER_SWEEP=1 (or RUN_MECHANIC_SWEEP=1) to opt in. "
-                + "Use `just sweep-powers` for the full pass or `just sweep-sample <N>` for a fast subset.");
+                + "Use `just validation::dotnet::sweep::powers` for the full pass or `just validation::dotnet::sweep::sample <N>` for a fast subset.");
             return;
         }
 

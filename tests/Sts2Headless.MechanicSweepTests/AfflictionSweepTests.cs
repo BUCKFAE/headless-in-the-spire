@@ -28,7 +28,7 @@ public class AfflictionSweepTests : IClassFixture<HostSubprocess>
         {
             _output.WriteLine(
                 "AfflictionSweepTests: skipping — set RUN_AFFLICTION_SWEEP=1 (or RUN_MECHANIC_SWEEP=1) to opt in. "
-                + "Use `just sweep-afflictions` for the full pass.");
+                + "Use `just validation::dotnet::sweep::afflictions` for the full pass.");
             return;
         }
 

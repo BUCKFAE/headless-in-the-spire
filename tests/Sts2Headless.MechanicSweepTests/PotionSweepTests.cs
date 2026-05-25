@@ -33,7 +33,7 @@ public class PotionSweepTests : IClassFixture<HostSubprocess>
         {
             _output.WriteLine(
                 "PotionSweepTests: skipping — set RUN_POTION_SWEEP=1 (or RUN_MECHANIC_SWEEP=1) to opt in. "
-                + "Use `just sweep-potions` for the full pass or `just sweep-sample <N>` for a fast subset.");
+                + "Use `just validation::dotnet::sweep::potions` for the full pass or `just validation::dotnet::sweep::sample <N>` for a fast subset.");
             return;
         }
 

@@ -136,13 +136,13 @@ judgment calls — let the user decide.
 Per CLAUDE.md:
 - AD-4 (no compile-time sts2 reference) — confirm
   `tests/Sts2Headless.UnitTests/Ad4InvariantTests.cs` (or wherever it lives
-  now) still exists and `just test` passes it.
+  now) still exists and `just validation::test` passes it.
 - Bootstrap walk — confirm
   `tests/Sts2Headless.IntegrationTests/BootstrapSequenceTests.cs` exists.
 - Vendor DLL hash matches `GAME_VERSION` (read the file, don't auto-bump).
 
 Snapshot drift (each is a locked-in audit file that quietly grows stale
-across engine bumps — `just test` catches NEW drift but not entries
+across engine bumps — `just validation::test` catches NEW drift but not entries
 that *should now be removed*):
 
 - `src/Sts2Headless.MechanicSweep/SweepKnownIssues.cs` — every row is a
@@ -160,7 +160,7 @@ that *should now be removed*):
   across many commits is a hint that fixes have stalled.
 - `tests/Sts2Headless.IntegrationTests/Coverage/known-abstract-model-hooks.txt`
   — `AbstractModel` listener-method snapshot. Regenerate via
-  `just regen-hook-snapshot` after a deliberate sts2 listener change.
+  `just build::regen-hook-snapshot` after a deliberate sts2 listener change.
   Surface the file's last-modified date vs. the `GAME_VERSION` bump
   date; a pin newer than the snapshot is a flag.
 
@@ -185,6 +185,6 @@ during the run are the deliverable; the summary is the index.
 - Hand-edit snapshot files (Pass 8: `SweepKnownIssues.cs`,
   `s_expectedDoormakerShape`, `known-abstract-model-hooks.txt`) — these
   are owned by their workflow (re-sweep, per-monster patch fix,
-  `just regen-hook-snapshot`); cleanup only reports staleness.
+  `just build::regen-hook-snapshot`); cleanup only reports staleness.
 - Archive BLOCKED.md entries (Pass 1) — surface candidates, let the user
   move them.

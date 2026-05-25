@@ -105,7 +105,7 @@ The fix bundles three classes of change:
    The diagnostic probe that walks a seed in-process, drives the
    agent's logic via the bindings, and on the first stalled combat
    dumps engine state plus a short list of "WaitX"/"YieldX" methods in
-   sts2.dll. Run via `just probe-combat-stall <seed> [floor]`. This is
+   sts2.dll. Run via `just runner::probe::combat-stall <seed> [floor]`. This is
    the tool to reach for whenever a new combat-stall regression
    surfaces — `Method not found:` in the stderr names the next stub
    gap.

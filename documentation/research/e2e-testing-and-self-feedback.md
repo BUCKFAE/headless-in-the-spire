@@ -133,7 +133,7 @@ Concretely:
 
 ### A single entry point
 
-A top-level `just test` / `make test` / `dotnet test` that:
+A top-level `just validation::test` / `make test` / `dotnet test` that:
 
 - Builds the C# host and any binding shims.
 - Runs all four layers of tests above.
@@ -165,7 +165,7 @@ Claude can't reliably install `sts2.dll` itself (licensing). Options:
    actionable errors ("missing `sts2.dll v0.103.2` at `vendor/...`; run
    `scripts/extract-from-steam`").
 
-Either way, the contract for Claude is: **call `just test`; if the environment
+Either way, the contract for Claude is: **call `just validation::test`; if the environment
 isn't set up, the error message tells you what to do.** No silent skips of
 suites that need the game DLL.
 
@@ -175,7 +175,7 @@ The strongest tool for verifying a refactor preserved behaviour is to run the
 entire golden-replay corpus and report any divergence. When Claude makes a
 change to combat or state serialisation, the loop is:
 
-1. `just test` (fast tier) — green.
+1. `just validation::test` (fast tier) — green.
 2. Replay corpus (heavy tier) — green or "diverged at replay X turn Y,
    expected `<A>`, got `<B>`".
 
@@ -204,7 +204,7 @@ just as much as runtime correctness does.
    port).
 2. **Build the headless host skeleton** following `sts2-cli`'s `GodotStubs`
    pattern, with the action/state schemas described above.
-3. **Stand up the test runner**: `just test` with the four-layer pyramid wired
+3. **Stand up the test runner**: `just validation::test` with the four-layer pyramid wired
    up, even if each layer starts with a single trivial test.
 4. **Bake in the determinism canary**: every run of the suite runs one
    representative scenario twice and compares.

@@ -21,7 +21,7 @@ public class OpenRpcSchemaTests
         var repoRoot = Paths.LocateRepoRoot();
         var openrpcPath = Path.Combine(repoRoot, "protocol", "openrpc.json");
         Assert.True(File.Exists(openrpcPath),
-            $"protocol/openrpc.json not found at {openrpcPath} — run `just export-schema`.");
+            $"protocol/openrpc.json not found at {openrpcPath} — run `just build::export-schema`.");
 
         var openrpcNode = JsonNode.Parse(File.ReadAllText(openrpcPath))
             ?? throw new InvalidDataException("protocol/openrpc.json parsed to null");

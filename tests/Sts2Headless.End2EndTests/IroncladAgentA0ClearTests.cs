@@ -18,7 +18,7 @@ namespace Sts2Headless.End2EndTests;
 // All measurements run via WinRateHarness on a HostPool. Workers reuse
 // their host subprocesses across seeds, paying the sts2.dll bootstrap
 // cost once each instead of once per seed (which is what the old serial
-// loop did). Diagnostic-traited so they don't run on `just test`.
+// loop did). Diagnostic-traited so they don't run on `just validation::test`.
 public class IroncladAgentA0ClearTests
 {
     private readonly ITestOutputHelper _output;

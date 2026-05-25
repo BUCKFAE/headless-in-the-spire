@@ -7,7 +7,7 @@ namespace Sts2Headless.UnitTests;
 // One-shot diagnostic that loads sts2.dll and dumps every Intent-related
 // type's members to /tmp/intent-types.txt. Used to design the intent
 // damage/hits/block binding gap. Marked diagnostic so it stays out of
-// the normal `just test` run.
+// the normal `just validation::test` run.
 public class IntentProbeTests
 {
     [Fact]

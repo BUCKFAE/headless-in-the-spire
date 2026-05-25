@@ -25,7 +25,7 @@ namespace Sts2Headless.End2EndTests;
 //   * Win rate (10 seeds, diagnostic-traited): the actual measurement.
 //     Threshold set conservatively at first; raised as the agent gains
 //     better drafts / smarter rest decisions / etc. Marked diagnostic so
-//     it doesn't block `just test` while the agent is still being tuned.
+//     it doesn't block `just validation::test` while the agent is still being tuned.
 public class IroncladAgentA0Tests
 {
     private const int WinFloorThreshold = 18; // first floor of Act 2 (post-A1-boss)

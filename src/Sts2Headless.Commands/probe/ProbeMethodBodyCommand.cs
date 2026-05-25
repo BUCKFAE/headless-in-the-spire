@@ -4,7 +4,7 @@ using Sts2Headless.Runtime.Loading;
 
 namespace Sts2Headless.Commands;
 
-// `just probe-method-body <Type.FullName> <MethodName>` — dump a single
+// `just runner::probe::method-body <Type.FullName> <MethodName>` — dump a single
 // method's full CIL using HarmonyLib's PatchProcessor, with operands
 // resolved to readable shapes (method FQN+generic-args, field owner+name,
 // strings, type names). Async state machines are auto-followed: if the

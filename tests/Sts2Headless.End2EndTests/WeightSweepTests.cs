@@ -8,7 +8,7 @@ namespace Sts2Headless.End2EndTests;
 // Quick sweep harness for autonomous tuning. Each [Fact] is one
 // HeuristicWeights variant measured against the 50-seed corpus and
 // written to /tmp/ironclad-a0-clear/sweep-<name>.md. Marked Diagnostic
-// so they stay out of `just test`.
+// so they stay out of `just validation::test`.
 public class WeightSweepTests
 {
     private readonly ITestOutputHelper _output;

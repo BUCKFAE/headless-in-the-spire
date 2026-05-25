@@ -8,7 +8,7 @@ browsers block client-side fetches of local files from a remote SPA. So
 we run a tiny stdlib HTTP server with `Access-Control-Allow-Origin: *`
 and pass the localhost URL as `?schemaUrl=...`.
 
-Re-running `just export-schema` regenerates protocol/openrpc.json in
+Re-running `just build::export-schema` regenerates protocol/openrpc.json in
 place; reload the playground tab to pick up the new shape.
 """
 
@@ -21,7 +21,7 @@ import urllib.parse
 import webbrowser
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PROTOCOL_DIR = REPO_ROOT / "protocol"
 SPEC = PROTOCOL_DIR / "openrpc.json"
 DEFAULT_PORT = 5179
@@ -42,7 +42,7 @@ class CorsHandler(http.server.SimpleHTTPRequestHandler):
 
 def main() -> int:
     if not SPEC.exists():
-        print(f"error: {SPEC} not found. Run `just export-schema` first.", file=sys.stderr)
+        print(f"error: {SPEC} not found. Run `just build::export-schema` first.", file=sys.stderr)
         return 1
 
     port = int(os.environ.get("PORT", str(DEFAULT_PORT)))

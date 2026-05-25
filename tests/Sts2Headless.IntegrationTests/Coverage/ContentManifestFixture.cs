@@ -29,7 +29,7 @@ public sealed class ContentManifestFixture
         if (!File.Exists(sts2Dll))
         {
             throw new InvalidOperationException(
-                $"vendor/sts2.dll not present at {sts2Dll} — run `just setup` first. " +
+                $"vendor/sts2.dll not present at {sts2Dll} — run `just setup::setup` first. " +
                 "Coverage tests cannot run without the pinned game DLL.");
         }
 

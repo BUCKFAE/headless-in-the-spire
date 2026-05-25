@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Sts2Headless.Protocol.Methods;
 
-// Compile-only stub. The real enum is emitted by `just generate-content-ids`
+// Compile-only stub. The real enum is emitted by `just build::generate-content-ids`
 // into the gitignored AfflictionId.g.cs. See CardId.Fallback.cs for the
 // full rationale — same pattern, one stub per kind.
 [OpaqueWireString]

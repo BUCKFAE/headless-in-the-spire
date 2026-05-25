@@ -6,7 +6,7 @@ using Sts2Headless.Runtime.Bindings;
 
 namespace Sts2Headless.Commands;
 
-// `just probe-encounter <encounter-id>` — start a run, force-enter the
+// `just runner::probe::encounter <encounter-id>` — start a run, force-enter the
 // given combat via the same engine path debug/start_combat uses, dump
 // the spawned monsters' real runtime types (their FQN, not just the
 // MonsterId enum), then play the first hand card with target=enemy[0].

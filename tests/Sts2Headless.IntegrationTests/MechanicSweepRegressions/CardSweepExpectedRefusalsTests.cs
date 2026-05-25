@@ -53,7 +53,7 @@ public class CardSweepExpectedRefusalsTests
         Assert.True(stale.Count == 0,
             $"SweepKnownIssues.CardExpectedRefusals has stale ids: "
             + $"[{string.Join(", ", stale)}]. "
-            + "Either re-run `just generate-content-ids` (the id was renamed) "
+            + "Either re-run `just build::generate-content-ids` (the id was renamed) "
             + "or remove the row (the card was deleted).");
     }
 

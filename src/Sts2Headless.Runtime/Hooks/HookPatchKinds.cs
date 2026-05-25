@@ -15,7 +15,7 @@ namespace Sts2Headless.Runtime.Hooks;
 // place makes InstrumentationKindParityTest a one-line comparison
 // against GenerateContentIdsCommand.Kinds — drift in either direction is
 // loud. New kinds: append one entry here + one TriggerKind value in
-// Methods.cs, run `just regen`.
+// Methods.cs, run `just build::regen`.
 //
 // What the patcher does per kind:
 //   Card  — passive listener side (AfterTurnEnd / BeforeCombatStart etc.

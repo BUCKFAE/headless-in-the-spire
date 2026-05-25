@@ -8,8 +8,8 @@ OpenAPI parser walk it. Wire `$ref`s already point at
 
 Invoked via the just recipe:
 
-    just generate-python              # regenerate _models.py
-    just generate-python -- --check   # CI / pre-commit drift detection
+    just build::generate-python              # regenerate _models.py
+    just build::generate-python -- --check   # CI / pre-commit drift detection
 
 Paths are anchored at the repo root, located by walking up to `GAME_VERSION`.
 """
@@ -130,7 +130,7 @@ def main() -> int:
             if generated != committed:
                 sys.stderr.write(
                     "headless_in_the_spire/_models.py is out of date — run "
-                    "`just generate-python`.\n"
+                    "`just build::generate-python`.\n"
                 )
                 return 1
             return 0

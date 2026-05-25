@@ -55,8 +55,10 @@ What lives here:
   (`BeatGameOnSeed42Tests.cs`).
 - Anything that spans **a player journey**, not a single wire call.
 
-Per-test cost: tens of seconds. Runs in `just test` for now; may move to a
-`just test-slow` tier if inner-loop wall time gets uncomfortable. **A red
+Per-test cost: tens of seconds. Runs in `just validation::test` for now; may move
+into the `just validation::test-full` tier (which already pulls in gaps,
+benchmarks, and every MechanicSweep) if inner-loop wall time gets
+uncomfortable. **A red
 test here is usually a regression in *the stitching* — combat→reward→map
 transitions, multi-call invariants, or determinism.**
 
@@ -117,12 +119,14 @@ costs us nothing because AD-2 preserved the option.
 ## Running the suite
 
 ```
-just test              # all C# axes + Python parity + Python typecheck/lint
-just test-unit         # C# unit tests only (no vendor/sts2.dll required)
-just test-integration  # C# integration tests (single-slice scenarios)
-just test-end2end      # C# end-to-end tests (multi-room arcs / replays)
-just test-python       # Python parity tests only
-just test-sequential   # all axes, sequential (live logs per suite)
+just validation::test                    # all C# axes + Python parity + Python typecheck/lint
+just validation::dotnet::test-unit       # C# unit tests only (no vendor/sts2.dll required)
+just validation::dotnet::test-integration  # C# integration tests (single-slice scenarios)
+just validation::dotnet::test-end2end    # C# end-to-end tests (multi-room arcs / replays)
+just validation::test-python             # Python parity tests only
+just validation::test-sequential         # all axes, sequential (live logs per suite)
 ```
 
-(Recipes are in the `justfile`; `just --list` enumerates the current set.)
+(The root `justfile` is a thin orchestrator; recipes live in
+`scripts/<module>/justfile` modules and shared variables live in
+`scripts/common.just`. `just --list` enumerates the current set.)

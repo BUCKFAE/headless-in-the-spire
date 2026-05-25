@@ -108,7 +108,7 @@ public class CardSweepCharacterAwarenessTests : IClassFixture<HostSubprocess>
         Assert.True(missing.Count == 0,
             $"CardOriginPool missing {missing.Count} ids: "
             + $"[{string.Join(", ", missing.Take(8))}{(missing.Count > 8 ? ", ..." : "")}]. "
-            + "Re-run `just generate-content-ids`.");
+            + "Re-run `just build::generate-content-ids`.");
     }
 
     private static string ToPascalCase(string snake)

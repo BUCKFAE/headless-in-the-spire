@@ -26,7 +26,7 @@ public static class BootstrapSequence
     // and end-to-end agent runs never look at that field, so they pay
     // the cost for nothing. Set STS2_INSTRUMENT_HOOKS=1 to opt in — the
     // MechanicSweepTests assembly initializer flips this automatically,
-    // so `just sweep-*` keeps the instrumentation it depends on.
+    // so `just validation::dotnet::sweep::*` keeps the instrumentation it depends on.
     public const string InstrumentHooksEnvVar = "STS2_INSTRUMENT_HOOKS";
 
     public sealed record StepOutcome(string Label, bool Ok, string? Detail);

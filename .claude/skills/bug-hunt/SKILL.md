@@ -56,15 +56,15 @@ Pick one or more based on the suspected category:
 
 | Symptom shape                                         | Probe                                                       |
 | ----------------------------------------------------- | ----------------------------------------------------------- |
-| Hang / "snapshot identical forever" / stall           | `just probe-combat-stall <seed> <floor>`                    |
-| Reward chain (claim/skip silent, missing cards/relics)| `just probe-rewards-natural-chain`                          |
-| Enemy turn / monster move NREs                        | `just probe-natural-chain`                                  |
-| Content missing on wire (card/relic/power id Unknown) | `just probe-modeldb` + diff against `*Id.g.cs`              |
-| Bootstrap / load failure / vendor resolution          | `just probe-bootstrap` → `just probe-run-state`             |
-| GodotStubs missing method                             | `just list-members <Godot.Type>` for the named type         |
-| Single-id crash (card/relic/power/event/…) under sweep| `just sweep-<kind>` (or `MECHANIC_SWEEP_FOCUS_IDS=ID1,ID2 dotnet test --filter Category=MechanicSweep`) and read `documentation/coverage/sweep-<kind>.{md,json}` |
-| Harmony patch target: find closed instantiation       | `just probe-callers <MethodName>`                           |
-| Harmony patch target: find/inspect a type's methods   | `just probe-types <substring>`                              |
+| Hang / "snapshot identical forever" / stall           | `just runner::probe::combat-stall <seed> <floor>`           |
+| Reward chain (claim/skip silent, missing cards/relics)| `just runner::probe::rewards-natural-chain`                 |
+| Enemy turn / monster move NREs                        | `just runner::probe::natural-chain`                         |
+| Content missing on wire (card/relic/power id Unknown) | `just runner::probe::modeldb` + diff against `*Id.g.cs`     |
+| Bootstrap / load failure / vendor resolution          | `just runner::probe::bootstrap` → `just runner::probe::run-state` |
+| GodotStubs missing method                             | `just runner::probe::list-members <Godot.Type>` for the named type |
+| Single-id crash (card/relic/power/event/…) under sweep| `just validation::dotnet::sweep::<kind>` (or `MECHANIC_SWEEP_FOCUS_IDS=ID1,ID2 dotnet test --filter Category=MechanicSweep`) and read `documentation/coverage/sweep-<kind>.{md,json}` |
+| Harmony patch target: find closed instantiation       | `just runner::probe::callers <MethodName>`                  |
+| Harmony patch target: find/inspect a type's methods   | `just runner::probe::types <substring>`                     |
 | Harmony patch leaf-helper hunt (which helpers does this move body actually call?) | `dotnet run --project src/Sts2Headless -- --probe-method-body <Type.FullName> <MethodName>` |
 
 Run the relevant probe. If it exits non-zero or writes to
@@ -174,10 +174,10 @@ forever as documentation of why this regression matters.
 ### Confirm it's red
 
 ```
-just test-integration --filter "FullyQualifiedName~<NewTest>"
+just validation::dotnet::test-integration --filter "FullyQualifiedName~<NewTest>"
 ```
 
-(Or the corresponding `test-unit` / `test-end2end` filter.) The failure mode
+(Or the corresponding `validation::dotnet::test-unit` / `validation::dotnet::test-end2end` filter.) The failure mode
 must match the bug description from Phase 0 — same exception type, same
 wrong value, same hang. If it fails for a *different* reason, the repro is
 wrong; iterate.
@@ -220,7 +220,7 @@ Process:
 2. **Walk the catalog.** If a `MethodCatalog` entry mishandles its summary's
    guarantee, read every nearby entry for the same shape.
 3. **Sweep delta.** For an id-shaped bug (a single card/relic/power/event
-   crashing), run the matching `just sweep-<kind>` (or, faster, a focused
+   crashing), run the matching `just validation::dotnet::sweep::<kind>` (or, faster, a focused
    pass: `MECHANIC_SWEEP_FOCUS_IDS=<sibling-candidate-ids> dotnet test
    --filter Category=MechanicSweep`) and read
    `documentation/coverage/sweep-<kind>.{md,json}` — Crashed rows that
@@ -272,14 +272,14 @@ the house workflow (see `/fill-engine-gaps` Phase 3 for the canonical version):
   `s_expectedDoormakerShape` (add the lines you stripped, or remove
   lines you no longer strip).
 
-Run `just regen` after any change to `Methods.cs` — the pre-commit hook
+Run `just build::regen` after any change to `Methods.cs` — the pre-commit hook
 will block otherwise.
 
 ### Step 3 — Confirm green + no regressions
 
 ```
-just test-integration --filter "FullyQualifiedName~<TheRedTest>"   # was red, is now green
-just test                                                          # full suite, no regressions
+just validation::dotnet::test-integration --filter "FullyQualifiedName~<TheRedTest>"   # was red, is now green
+just validation::test                                                                  # full suite, no regressions
 ```
 
 If any other test goes red, **stop**. Don't patch the regression by

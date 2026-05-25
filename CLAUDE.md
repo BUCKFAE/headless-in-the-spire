@@ -35,9 +35,10 @@ for testing, AI experimentation, and replay recording.
   string and SHA-256 of the pinned `sts2.dll`; see AD-3 for the bump workflow.
 - **Do not auto-bump the game version.** Hash mismatches are an error, not a
   cue to update the pin. The bump is a deliberate, human-reviewed workflow.
-- **GodotStubs is generated from sts2.dll.** `just regen-godot-stubs` walks
-  sts2.dll's MemberReference table and emits the full stub surface into
-  `src/GodotStubs/Generated/*.g.cs` (gitignored — included in `just setup`).
+- **GodotStubs is generated from sts2.dll.** `just build::regen-godot-stubs`
+  walks sts2.dll's MemberReference table and emits the full stub surface
+  into `src/GodotStubs/Generated/*.g.cs` (gitignored — included in
+  `just setup::setup`).
   Every existing stub type is `partial` so generated members merge in
   cleanly. Hand-written stubs in the non-`Generated/` files exist only for
   members that need real bodies (e.g. `Color.Black`, `Tween` lifecycle,
@@ -91,12 +92,17 @@ required variable is `STS2_GAME_DIR` — the directory containing the local
 it downloads its own managed CPython per `.python-version`.
 
 ```
-just setup    # validate STS2 install, copy DLLs to vendor/, create uv .venv
-just build    # compile the C# solution
-just test     # C# unit + integration + Python suites
+just setup::setup       # validate STS2 install, copy DLLs to vendor/, create uv .venv
+just build::build       # compile the C# solution
+just validation::test   # C# unit + integration + Python suites
 ```
 
-`just --list` shows everything; recipes are in `justfile`.
+The root `justfile` is a thin orchestrator — every recipe lives in a
+submodule under `scripts/<module>/justfile`, and shared variables
+(`BUILD_CORES`, `MSBUILD_MAX_CPU`, `XUNIT_THREADS`) live in `common.just`
+at the repo root, which each module `import`s. `just --list` shows the
+top-level modules; `just --list <mod>` drills in (e.g.
+`just --list validation::dotnet`).
 
 ### Python toolchain
 
@@ -121,7 +127,7 @@ just test     # C# unit + integration + Python suites
 Directory.Build.props          shared csproj settings (net10.0, nullable, etc.)
 src/
   Sts2Headless/                exe — entry + NDJSON stdio dispatch loop
-                                     (`just stdio`). CLI/probe commands live
+                                     (`just runner::stdio`). CLI/probe commands live
                                      in Sts2Headless.Commands.
   Sts2Headless.Commands/       lib — CLI subcommands: probe-* (probe-natural-
                                      chain, probe-modeldb, probe-combat-stall,
@@ -161,7 +167,7 @@ src/
                                      crashes; SweepRegistry tracks Implemented
                                      vs Planned kinds.
   Sts2Headless.SchemaExport/   exe — emits protocol/openrpc.json from Protocol
-                                     records (AD-5). Run via `just export-schema`.
+                                     records (AD-5). Run via `just build::export-schema`.
   Sts2Headless.Utils/          lib — pure, dependency-free leaf: repo/vendor
                                      Paths, the GAME_VERSION pin parser, file
                                      hashing, setup-dir helpers. No project
@@ -182,8 +188,8 @@ tests/
                                      MECHANIC_SWEEP_SAMPLE=N,
                                      MECHANIC_SWEEP_FOCUS_IDS=a,b,c). Off
                                      by default — full passes take hours.
-                                     Drive via `just sweep-<kind>` or
-                                     `just sweep-sample N`.
+                                     Drive via `just validation::dotnet::sweep::<kind>` or
+                                     `just validation::dotnet::sweep::sample N`.
   Sts2Headless.TestSupport/    lib (not a test project) — shared test helpers
                                      (TempDir). No test SDK, no project refs.
 Sts2Headless.slnx              solution at repo root
@@ -191,12 +197,12 @@ scripts/                       bootstrap shell scripts (bash)
 tools/
   replay-viewer/               TypeScript/Vite frontend that renders .mcr +
                                  .run replays straight from vendor/replays/.
-                                 Run via `just dev-viewer` (HMR-enabled).
+                                 Run via `just runner::dev-viewer` (HMR-enabled).
                                  Standalone; reads no engine bytes — replays
                                  are wire-shape JSON + the engine's own
                                  binary .mcr files.
 protocol/openrpc.json          generated wire-protocol schema (AD-5)
-vendor/                        game DLLs (gitignored; populated by `just pull-game-libs`)
+vendor/                        game DLLs (gitignored; populated by `just setup::pull-game-libs`)
 GAME_VERSION                   pinned version string + SHA-256 of vendor/sts2.dll
 pyproject.toml                 uv workspace root (no installable package itself)
 uv.lock                        resolved Python deps — committed for reproducibility
@@ -239,7 +245,7 @@ clients/python/
   `tests/Sts2Headless.UnitTests/Ad4InvariantTests.cs`; the bootstrap walk
   is locked in by
   `tests/Sts2Headless.IntegrationTests/BootstrapSequenceTests.cs`. Run via
-  `just test`.
+  `just validation::test`.
 - New `just` recipes get a one-line doc comment that fits in `just --list`
   output. Multi-line comments are clipped.
 - Don't reference `external-tools/` in code — it's a research clone of
@@ -250,7 +256,7 @@ clients/python/
 
 - **Every function and every parameter is type-annotated.** No untyped
   signatures, including private helpers and tests. Pyright runs in strict
-  mode (`just typecheck-python`); ruff's `ANN` ruleset catches missing
+  mode (`just validation::typecheck-python`); ruff's `ANN` ruleset catches missing
   annotations before pyright does. Return-type annotations on
   `def test_xxx()` are exempted via ruff's per-file-ignores — pytest gives
   us the return-type contract for free.
@@ -261,7 +267,7 @@ clients/python/
   `typing.get_type_hints()`. Self-references go through `typing.Self`;
   genuine forward refs use a `TYPE_CHECKING`-gated import. The generator
   passes `--disable-future-imports` so even regenerated DTOs stay clean.
-- **Lint + format + typecheck before commit.** `just lint-python` (ruff
-  check + format --check), `just typecheck-python` (pyright strict),
-  `just test-python` (pytest). The `just test` umbrella runs all three
-  plus the C# suites.
+- **Lint + format + typecheck before commit.** `just validation::lint-python`
+  (ruff check + format --check), `just validation::typecheck-python`
+  (pyright strict), `just validation::test-python` (pytest). The
+  `just validation::test` umbrella runs all three plus the C# suites.

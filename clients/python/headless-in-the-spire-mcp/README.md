@@ -27,7 +27,7 @@ This package is a member of the repo-root [uv workspace](../../../pyproject.toml
 From the repo root:
 
 ```sh
-just setup       # if you haven't yet — also handles game-DLL bootstrap
+just setup::setup        # if you haven't yet — also handles game-DLL bootstrap
 uv sync          # picks up this package as a new workspace member
 ```
 
@@ -144,7 +144,7 @@ down via FastMCP's lifespan callback when the MCP server exits.
 ## Running tests
 
 ```sh
-just test-python  # includes this package's tests
+just validation::test-python  # includes this package's tests
 ```
 
 The smoke test requires a built host + populated `vendor/sts2.dll` and is

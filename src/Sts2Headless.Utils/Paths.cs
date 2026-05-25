@@ -7,12 +7,12 @@ namespace Sts2Headless.Utils;
 public static class Paths
 {
     // The pinned game assembly's filename. Never check this DLL in (it's
-    // proprietary) — it lives under vendor/, populated by `just setup`.
+    // proprietary) — it lives under vendor/, populated by `just setup::setup`.
     public const string Sts2DllName = "sts2.dll";
 
     // The standard operator-facing message when vendor/sts2.dll is absent.
     // Shared so every command prints the same actionable hint.
-    public const string Sts2DllMissingMessage = "vendor/sts2.dll missing — run `just setup`.";
+    public const string Sts2DllMissingMessage = "vendor/sts2.dll missing — run `just setup::setup`.";
 
     // Walk up from `from` (defaulting to the running assembly's directory)
     // until a directory containing GAME_VERSION or justfile is found — that's

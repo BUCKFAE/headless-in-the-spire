@@ -3,7 +3,7 @@ using Sts2Headless.Runtime.Loading;
 
 namespace Sts2Headless.Commands;
 
-// Type/method inspection probe — `just probe-types MonsterName,OtherName`.
+// Type/method inspection probe — `just runner::probe::types MonsterName,OtherName`.
 // Loads sts2.dll, finds every type whose simple or full name contains any
 // of the supplied substrings (case-insensitive), and prints its FQN plus
 // every declared Task-returning method. Used when planning a new monster

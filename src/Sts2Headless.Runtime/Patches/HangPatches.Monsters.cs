@@ -99,7 +99,7 @@ public static partial class HangPatches
     // ── Encounter-sweep wave ────────────────────────────────────────────
     //
     // The blob below patches the ten monsters surfaced by
-    // EveryEncounterSmokeTests (`just sweep-encounters`). All match the
+    // EveryEncounterSmokeTests (`just validation::dotnet::sweep::encounters`). All match the
     // existing CeremonialBeast / SoulNexus / TestSubject shape — Task-
     // returning bodies NRE on UI/VFX state in headless. The per-monster
     // wrapper exists for the narrative comment, not for behaviour; the
@@ -121,7 +121,7 @@ public static partial class HangPatches
     // never got applied. Boss combat then "deadlocked" at sentinel HP
     // until CombatBudgetGuard tripped at round 81.
     //
-    // IL inspection (`just probe-method-body Doormaker DramaticOpenMove`)
+    // IL inspection (`just runner::probe::method-body Doormaker DramaticOpenMove`)
     // showed each move actually does:
     //   * gameplay state mutations (CreatureCmd.SetMaxAndCurrentHp,
     //     PowerCmd.Apply/Remove, DamageCmd.Attack, set_IsPortalOpen,

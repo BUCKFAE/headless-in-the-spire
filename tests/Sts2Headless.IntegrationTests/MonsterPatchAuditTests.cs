@@ -106,7 +106,7 @@ public class MonsterPatchAuditTests
     {
         var repoRoot = Paths.LocateRepoRoot();
         var vendorDir = Path.Combine(repoRoot, "vendor");
-        Assert.True(Directory.Exists(vendorDir), $"vendor/ missing at {vendorDir} — run `just setup`.");
+        Assert.True(Directory.Exists(vendorDir), $"vendor/ missing at {vendorDir} — run `just setup::setup`.");
 
         VendorAssemblyResolver.Install(vendorDir);
         var preamble = RuntimeBootstrap.Run(vendorDir);
