@@ -16,7 +16,7 @@ public class BossDiscoveryProbe
     [Trait("Category", "Diagnostic")]
     public async Task EnumerateAct1Bosses_AcrossCorpus()
     {
-        var bossesBySeed = new Dictionary<ulong, string?>();
+        var bossesBySeed = new Dictionary<ulong, EncounterId?>();
         for (ulong seed = 1; seed <= 50; seed++)
         {
             await using var host = new HostSubprocess();
@@ -29,12 +29,12 @@ public class BossDiscoveryProbe
 
         _output.WriteLine("Seed → Act 1 boss:");
         foreach (var kv in bossesBySeed.OrderBy(kv => kv.Key))
-            _output.WriteLine($"  {kv.Key}: {kv.Value ?? "<null>"}");
+            _output.WriteLine($"  {kv.Key}: {kv.Value?.ToString() ?? "<null>"}");
 
         _output.WriteLine("");
         _output.WriteLine("Boss frequency:");
         var counts = bossesBySeed.Values
-            .GroupBy(b => b ?? "<null>")
+            .GroupBy(b => b?.ToString() ?? "<null>")
             .Select(g => (Boss: g.Key, Count: g.Count()))
             .OrderByDescending(t => t.Count);
         foreach (var (boss, count) in counts)

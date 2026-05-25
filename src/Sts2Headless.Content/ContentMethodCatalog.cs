@@ -102,5 +102,15 @@ public static class ContentMethodCatalog
             ParamsType: typeof(ContentUnknownNodeOddsParams),
             ResultType: typeof(ContentUnknownNodeOddsResult),
             Summary: "Base odds distribution for resolving an `Unknown` (`?`) map node into a concrete room type. The runtime conditions on visit history; this is the prior, which is content-knowable. The resolved value is rolled at entry and is NOT surfaced — use debug/peek_unknown_resolution (gated)."),
+
+        new("content/list_events_for_act",
+            ParamsType: typeof(ContentListEventsForActParams),
+            ResultType: typeof(ContentListEventsForActResult),
+            Summary: "Per-act event *pool*: the union of the act's AllEvents and ModelDb.AllSharedEvents (events draftable in every act). This is the pool the engine draws from in ActModel.GenerateRooms, NOT the rolled sequence — for the latter use debug/reveal_act_schedule (gated). Narrower than content/describe_act when callers only need events."),
+
+        new("content/list_encounters_for_act",
+            ParamsType: typeof(ContentListEncountersForActParams),
+            ResultType: typeof(ContentListEncountersForActResult),
+            Summary: "Per-act encounter *pool*, optionally filtered to one tier (weak / normal / elite / boss). Tier is inferred from the source ActModel property (AllWeakEncounters / AllRegularEncounters / AllEliteEncounters / AllBossEncounters), not from id-suffix parsing. This is the pool, NOT the rolled sequence — for the latter use debug/reveal_act_schedule (gated)."),
     };
 }

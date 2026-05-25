@@ -244,6 +244,14 @@ class ContentEncounterRulesResult(BaseModel):
     notes: str
 
 
+class ContentEventForActSummary(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: str
+    display_name: Annotated[str, Field(alias="displayName")]
+
+
 class ContentListCardsParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -260,6 +268,22 @@ class ContentListCardsResult(BaseModel):
     ok: bool
     count: int
     cards: list[ContentCardSummary]
+
+
+class ContentListEventsForActParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    act_index: Annotated[int, Field(alias="actIndex")]
+
+
+class ContentListEventsForActResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    act_index: Annotated[int, Field(alias="actIndex")]
+    events: list[ContentEventForActSummary]
 
 
 class ContentListPotionsParams(BaseModel):
@@ -415,6 +439,56 @@ class DebugKillAllEnemiesResult(BaseModel):
     combat_ended: Annotated[bool, Field(alias="combatEnded")]
 
 
+class DebugPeekCardEntry(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: str
+    cost: int
+    rarity: str
+
+
+class DebugPeekCardRewardParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    encounter_id: Annotated[str | None, Field(alias="encounterId")] = None
+
+
+class DebugPeekCardRewardResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    encounter_id: Annotated[str, Field(alias="encounterId")]
+    cards: list[DebugPeekCardEntry]
+    notes: str
+
+
+class DebugPeekEventOutcomeParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    event_id: Annotated[str, Field(alias="eventId")]
+    option_index: Annotated[int, Field(alias="optionIndex")]
+
+
+class DebugPeekEventOutcomeResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    event_id: Annotated[str, Field(alias="eventId")]
+    option_index: Annotated[int, Field(alias="optionIndex")]
+    hp_delta: Annotated[int, Field(alias="hpDelta")]
+    gold_delta: Annotated[int, Field(alias="goldDelta")]
+    relics_gained: Annotated[list[str], Field(alias="relicsGained")]
+    relics_lost: Annotated[list[str], Field(alias="relicsLost")]
+    cards_added: Annotated[list[str], Field(alias="cardsAdded")]
+    cards_removed: Annotated[list[str], Field(alias="cardsRemoved")]
+    notes: str
+
+
 class DebugReadDeckParams(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -467,6 +541,12 @@ class DebugRevealActScheduleResult(BaseModel):
     normal_encounters_visited: Annotated[int, Field(alias="normalEncountersVisited")]
     elite_encounters_visited: Annotated[int, Field(alias="eliteEncountersVisited")]
     events_visited: Annotated[int, Field(alias="eventsVisited")]
+
+
+class DebugRevealMapLayoutParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
 
 
 class DebugSetEnergyParams(BaseModel):
@@ -526,6 +606,14 @@ class DebugStartEventParams(BaseModel):
         populate_by_name=True,
     )
     event_id: Annotated[str, Field(alias="eventId")]
+
+
+class EncounterTier(Enum):
+    unknown = "unknown"
+    weak = "weak"
+    normal = "normal"
+    elite = "elite"
+    boss = "boss"
 
 
 class EventOption(BaseModel):
@@ -635,6 +723,14 @@ class IntentKind(Enum):
     attack_buff = "AttackBuff"
     attack_debuff = "AttackDebuff"
     strong_debuff = "StrongDebuff"
+
+
+class MapNodeEdge(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    col: int
+    row: int
 
 
 class MapNodeType(Enum):
@@ -1793,6 +1889,176 @@ class RunSkipRewardParams(BaseModel):
     reward_index: Annotated[int, Field(alias="rewardIndex")]
 
 
+class BossEncounterId(Enum):
+    unknown = "UNKNOWN"
+    axebots_normal = "AXEBOTS_NORMAL"
+    bowlbugs_normal = "BOWLBUGS_NORMAL"
+    bowlbugs_weak = "BOWLBUGS_WEAK"
+    bygone_effigy_elite = "BYGONE_EFFIGY_ELITE"
+    byrdonis_elite = "BYRDONIS_ELITE"
+    ceremonial_beast_boss = "CEREMONIAL_BEAST_BOSS"
+    chompers_normal = "CHOMPERS_NORMAL"
+    construct_menagerie_normal = "CONSTRUCT_MENAGERIE_NORMAL"
+    corpse_slugs_normal = "CORPSE_SLUGS_NORMAL"
+    corpse_slugs_weak = "CORPSE_SLUGS_WEAK"
+    cubex_construct_normal = "CUBEX_CONSTRUCT_NORMAL"
+    cultists_normal = "CULTISTS_NORMAL"
+    decimillipede_elite = "DECIMILLIPEDE_ELITE"
+    devoted_sculptor_weak = "DEVOTED_SCULPTOR_WEAK"
+    doormaker_boss = "DOORMAKER_BOSS"
+    entomancer_elite = "ENTOMANCER_ELITE"
+    exoskeletons_normal = "EXOSKELETONS_NORMAL"
+    exoskeletons_weak = "EXOSKELETONS_WEAK"
+    fabricator_normal = "FABRICATOR_NORMAL"
+    flyconid_normal = "FLYCONID_NORMAL"
+    fogmog_normal = "FOGMOG_NORMAL"
+    fossil_stalker_normal = "FOSSIL_STALKER_NORMAL"
+    frog_knight_normal = "FROG_KNIGHT_NORMAL"
+    fuzzy_wurm_crawler_weak = "FUZZY_WURM_CRAWLER_WEAK"
+    globe_head_normal = "GLOBE_HEAD_NORMAL"
+    gremlin_merc_normal = "GREMLIN_MERC_NORMAL"
+    haunted_ship_normal = "HAUNTED_SHIP_NORMAL"
+    hunter_killer_normal = "HUNTER_KILLER_NORMAL"
+    infested_prisms_elite = "INFESTED_PRISMS_ELITE"
+    inklets_normal = "INKLETS_NORMAL"
+    kaiser_crab_boss = "KAISER_CRAB_BOSS"
+    knights_elite = "KNIGHTS_ELITE"
+    knowledge_demon_boss = "KNOWLEDGE_DEMON_BOSS"
+    lagavulin_matriarch_boss = "LAGAVULIN_MATRIARCH_BOSS"
+    living_fog_normal = "LIVING_FOG_NORMAL"
+    louse_progenitor_normal = "LOUSE_PROGENITOR_NORMAL"
+    mawler_normal = "MAWLER_NORMAL"
+    mecha_knight_elite = "MECHA_KNIGHT_ELITE"
+    mytes_normal = "MYTES_NORMAL"
+    nibbits_normal = "NIBBITS_NORMAL"
+    nibbits_weak = "NIBBITS_WEAK"
+    overgrowth_crawlers = "OVERGROWTH_CRAWLERS"
+    ovicopter_normal = "OVICOPTER_NORMAL"
+    owl_magistrate_normal = "OWL_MAGISTRATE_NORMAL"
+    phantasmal_gardeners_elite = "PHANTASMAL_GARDENERS_ELITE"
+    phrog_parasite_elite = "PHROG_PARASITE_ELITE"
+    punch_construct_normal = "PUNCH_CONSTRUCT_NORMAL"
+    queen_boss = "QUEEN_BOSS"
+    ruby_raiders_normal = "RUBY_RAIDERS_NORMAL"
+    scrolls_of_biting_normal = "SCROLLS_OF_BITING_NORMAL"
+    scrolls_of_biting_weak = "SCROLLS_OF_BITING_WEAK"
+    seapunk_normal = "SEAPUNK_NORMAL"
+    seapunk_weak = "SEAPUNK_WEAK"
+    sewer_clam_normal = "SEWER_CLAM_NORMAL"
+    shrinker_beetle_weak = "SHRINKER_BEETLE_WEAK"
+    skulking_colony_elite = "SKULKING_COLONY_ELITE"
+    slimed_berserker_normal = "SLIMED_BERSERKER_NORMAL"
+    slimes_normal = "SLIMES_NORMAL"
+    slimes_weak = "SLIMES_WEAK"
+    slithering_strangler_normal = "SLITHERING_STRANGLER_NORMAL"
+    sludge_spinner_weak = "SLUDGE_SPINNER_WEAK"
+    slumbering_beetle_normal = "SLUMBERING_BEETLE_NORMAL"
+    snapping_jaxfruit_normal = "SNAPPING_JAXFRUIT_NORMAL"
+    soul_fysh_boss = "SOUL_FYSH_BOSS"
+    soul_nexus_elite = "SOUL_NEXUS_ELITE"
+    spiny_toad_normal = "SPINY_TOAD_NORMAL"
+    terror_eel_elite = "TERROR_EEL_ELITE"
+    test_subject_boss = "TEST_SUBJECT_BOSS"
+    the_insatiable_boss = "THE_INSATIABLE_BOSS"
+    the_kin_boss = "THE_KIN_BOSS"
+    the_lost_and_forgotten_normal = "THE_LOST_AND_FORGOTTEN_NORMAL"
+    the_obscura_normal = "THE_OBSCURA_NORMAL"
+    thieving_hopper_weak = "THIEVING_HOPPER_WEAK"
+    toadpoles_weak = "TOADPOLES_WEAK"
+    tunneler_weak = "TUNNELER_WEAK"
+    turret_operator_weak = "TURRET_OPERATOR_WEAK"
+    two_tailed_rats_normal = "TWO_TAILED_RATS_NORMAL"
+    vantom_boss = "VANTOM_BOSS"
+    vine_shambler_normal = "VINE_SHAMBLER_NORMAL"
+    waterfall_giant_boss = "WATERFALL_GIANT_BOSS"
+    none_type_none = None
+
+
+class SecondBossEncounterId(Enum):
+    unknown = "UNKNOWN"
+    axebots_normal = "AXEBOTS_NORMAL"
+    bowlbugs_normal = "BOWLBUGS_NORMAL"
+    bowlbugs_weak = "BOWLBUGS_WEAK"
+    bygone_effigy_elite = "BYGONE_EFFIGY_ELITE"
+    byrdonis_elite = "BYRDONIS_ELITE"
+    ceremonial_beast_boss = "CEREMONIAL_BEAST_BOSS"
+    chompers_normal = "CHOMPERS_NORMAL"
+    construct_menagerie_normal = "CONSTRUCT_MENAGERIE_NORMAL"
+    corpse_slugs_normal = "CORPSE_SLUGS_NORMAL"
+    corpse_slugs_weak = "CORPSE_SLUGS_WEAK"
+    cubex_construct_normal = "CUBEX_CONSTRUCT_NORMAL"
+    cultists_normal = "CULTISTS_NORMAL"
+    decimillipede_elite = "DECIMILLIPEDE_ELITE"
+    devoted_sculptor_weak = "DEVOTED_SCULPTOR_WEAK"
+    doormaker_boss = "DOORMAKER_BOSS"
+    entomancer_elite = "ENTOMANCER_ELITE"
+    exoskeletons_normal = "EXOSKELETONS_NORMAL"
+    exoskeletons_weak = "EXOSKELETONS_WEAK"
+    fabricator_normal = "FABRICATOR_NORMAL"
+    flyconid_normal = "FLYCONID_NORMAL"
+    fogmog_normal = "FOGMOG_NORMAL"
+    fossil_stalker_normal = "FOSSIL_STALKER_NORMAL"
+    frog_knight_normal = "FROG_KNIGHT_NORMAL"
+    fuzzy_wurm_crawler_weak = "FUZZY_WURM_CRAWLER_WEAK"
+    globe_head_normal = "GLOBE_HEAD_NORMAL"
+    gremlin_merc_normal = "GREMLIN_MERC_NORMAL"
+    haunted_ship_normal = "HAUNTED_SHIP_NORMAL"
+    hunter_killer_normal = "HUNTER_KILLER_NORMAL"
+    infested_prisms_elite = "INFESTED_PRISMS_ELITE"
+    inklets_normal = "INKLETS_NORMAL"
+    kaiser_crab_boss = "KAISER_CRAB_BOSS"
+    knights_elite = "KNIGHTS_ELITE"
+    knowledge_demon_boss = "KNOWLEDGE_DEMON_BOSS"
+    lagavulin_matriarch_boss = "LAGAVULIN_MATRIARCH_BOSS"
+    living_fog_normal = "LIVING_FOG_NORMAL"
+    louse_progenitor_normal = "LOUSE_PROGENITOR_NORMAL"
+    mawler_normal = "MAWLER_NORMAL"
+    mecha_knight_elite = "MECHA_KNIGHT_ELITE"
+    mytes_normal = "MYTES_NORMAL"
+    nibbits_normal = "NIBBITS_NORMAL"
+    nibbits_weak = "NIBBITS_WEAK"
+    overgrowth_crawlers = "OVERGROWTH_CRAWLERS"
+    ovicopter_normal = "OVICOPTER_NORMAL"
+    owl_magistrate_normal = "OWL_MAGISTRATE_NORMAL"
+    phantasmal_gardeners_elite = "PHANTASMAL_GARDENERS_ELITE"
+    phrog_parasite_elite = "PHROG_PARASITE_ELITE"
+    punch_construct_normal = "PUNCH_CONSTRUCT_NORMAL"
+    queen_boss = "QUEEN_BOSS"
+    ruby_raiders_normal = "RUBY_RAIDERS_NORMAL"
+    scrolls_of_biting_normal = "SCROLLS_OF_BITING_NORMAL"
+    scrolls_of_biting_weak = "SCROLLS_OF_BITING_WEAK"
+    seapunk_normal = "SEAPUNK_NORMAL"
+    seapunk_weak = "SEAPUNK_WEAK"
+    sewer_clam_normal = "SEWER_CLAM_NORMAL"
+    shrinker_beetle_weak = "SHRINKER_BEETLE_WEAK"
+    skulking_colony_elite = "SKULKING_COLONY_ELITE"
+    slimed_berserker_normal = "SLIMED_BERSERKER_NORMAL"
+    slimes_normal = "SLIMES_NORMAL"
+    slimes_weak = "SLIMES_WEAK"
+    slithering_strangler_normal = "SLITHERING_STRANGLER_NORMAL"
+    sludge_spinner_weak = "SLUDGE_SPINNER_WEAK"
+    slumbering_beetle_normal = "SLUMBERING_BEETLE_NORMAL"
+    snapping_jaxfruit_normal = "SNAPPING_JAXFRUIT_NORMAL"
+    soul_fysh_boss = "SOUL_FYSH_BOSS"
+    soul_nexus_elite = "SOUL_NEXUS_ELITE"
+    spiny_toad_normal = "SPINY_TOAD_NORMAL"
+    terror_eel_elite = "TERROR_EEL_ELITE"
+    test_subject_boss = "TEST_SUBJECT_BOSS"
+    the_insatiable_boss = "THE_INSATIABLE_BOSS"
+    the_kin_boss = "THE_KIN_BOSS"
+    the_lost_and_forgotten_normal = "THE_LOST_AND_FORGOTTEN_NORMAL"
+    the_obscura_normal = "THE_OBSCURA_NORMAL"
+    thieving_hopper_weak = "THIEVING_HOPPER_WEAK"
+    toadpoles_weak = "TOADPOLES_WEAK"
+    tunneler_weak = "TUNNELER_WEAK"
+    turret_operator_weak = "TURRET_OPERATOR_WEAK"
+    two_tailed_rats_normal = "TWO_TAILED_RATS_NORMAL"
+    vantom_boss = "VANTOM_BOSS"
+    vine_shambler_normal = "VINE_SHAMBLER_NORMAL"
+    waterfall_giant_boss = "WATERFALL_GIANT_BOSS"
+    none_type_none = None
+
+
 class RunSummarizeStateResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1881,6 +2147,33 @@ class ContentDescribePotionResult(BaseModel):
     target_type: Annotated[TargetType, Field(alias="targetType")]
 
 
+class ContentEncounterForActSummary(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: str
+    display_name: Annotated[str, Field(alias="displayName")]
+    tier: EncounterTier
+    monster_ids: Annotated[list[str], Field(alias="monsterIds")]
+
+
+class ContentListEncountersForActParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    act_index: Annotated[int, Field(alias="actIndex")]
+    tier: EncounterTier | None = None
+
+
+class ContentListEncountersForActResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    act_index: Annotated[int, Field(alias="actIndex")]
+    encounters: list[ContentEncounterForActSummary]
+
+
 class ContentListRelicsResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1906,6 +2199,16 @@ class ContentUnknownNodeOddsRow(BaseModel):
     )
     room_type: Annotated[RoomType, Field(alias="roomType")]
     weight: float
+
+
+class DebugRevealMapPoint(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    col: int
+    row: int
+    type: MapNodeType
+    children: list[MapNodeEdge]
 
 
 class DebugStartEventResult(BaseModel):
@@ -2044,6 +2347,15 @@ class ContentUnknownNodeOddsResult(BaseModel):
     ok: bool
     act_index: Annotated[int | None, Field(alias="actIndex")] = None
     base_odds: Annotated[list[ContentUnknownNodeOddsRow], Field(alias="baseOdds")]
+
+
+class DebugRevealMapLayoutResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ok: bool
+    act_index: Annotated[int, Field(alias="actIndex")]
+    points: list[DebugRevealMapPoint]
 
 
 class Enemy(BaseModel):
@@ -2556,9 +2868,11 @@ class RunStateResult(BaseModel):
         list[TriggerEvent], Field(alias="triggeredSincePrev")
     ]
     triggered_dropped: Annotated[int, Field(alias="triggeredDropped")]
-    boss_encounter_id: Annotated[str | None, Field(alias="bossEncounterId")] = None
+    boss_encounter_id: Annotated[
+        BossEncounterId | None, Field(alias="bossEncounterId")
+    ] = None
     second_boss_encounter_id: Annotated[
-        str | None, Field(alias="secondBossEncounterId")
+        SecondBossEncounterId | None, Field(alias="secondBossEncounterId")
     ] = None
 
 

@@ -28,16 +28,16 @@ public static class BossDraftBias
 {
     public sealed record Bias(int Delta, string Reason);
 
-    public static Bias? Get(string? bossEncounterId, CardId card)
+    public static Bias? Get(EncounterId? bossEncounterId, CardId card)
     {
         if (bossEncounterId is null) return null;
-        return Map.TryGetValue(bossEncounterId, out var inner)
+        return Map.TryGetValue(bossEncounterId.Value, out var inner)
             && inner.TryGetValue(card, out var bias)
             ? bias
             : null;
     }
 
-    public static int DeltaFor(string? bossEncounterId, CardId card)
+    public static int DeltaFor(EncounterId? bossEncounterId, CardId card)
         => Get(bossEncounterId, card)?.Delta ?? 0;
 
     // CEREMONIAL_BEAST_BOSS: 252 HP single target, ramping Strength,
@@ -52,14 +52,14 @@ public static class BossDraftBias
     // THE_KIN_BOSS: Priest 190 + 2 Followers ~58. Hellraiser's
     // random-target auto-Strike spreads damage across 3 targets when
     // you need focus on Priest.
-    private static readonly Dictionary<string, Dictionary<CardId, Bias>> Map = new()
+    private static readonly Dictionary<EncounterId, Dictionary<CardId, Bias>> Map = new()
     {
-        ["CEREMONIAL_BEAST_BOSS"] = new()
+        [EncounterId.CeremonialBeastBoss] = new()
         {
             // No trap cards. Block-only is a *strategic* trap but no
             // individual card is a hard counter-pick here.
         },
-        ["VANTOM_BOSS"] = new()
+        [EncounterId.VantomBoss] = new()
         {
             // Now that Slippery is modelled in the combat sim
             // (CombatModel.DealSingleTargetDamage caps Slippery-hit
@@ -82,7 +82,7 @@ public static class BossDraftBias
             [CardId.Rupture]     = new(-6,  "Str only matters post-Slippery"),
             [CardId.Bludgeon]    = new(-8,  "32 dmg → 1 HP on Slippery; only fine post-strip"),
         },
-        ["THE_KIN_BOSS"] = new()
+        [EncounterId.TheKinBoss] = new()
         {
             [CardId.Hellraiser]  = new(-12, "random targeting spreads damage across 3 targets"),
             [CardId.Spite]       = new(-8,  "burns single-target burst while Followers scale"),

@@ -74,7 +74,7 @@ public static class HostMethods
         // info only; seed-deterministic reveals live under debug/* with
         // GateDebug above). One ContentReader per host instance reads
         // ModelDb lazily on first call.
-        foreach (var (name, handler) in ContentHostMethods.Build(bindings))
+        foreach (var (name, handler) in ContentHostMethods.Build(bindings, () => session.Run))
         {
             dict[name] = new StdioHost.Handler(handler.Invoke);
         }

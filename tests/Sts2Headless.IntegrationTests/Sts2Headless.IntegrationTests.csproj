@@ -34,6 +34,11 @@
          the debug/* surface. Off the Agents project's reference graph so
          agents physically cannot reach cheats. -->
     <ProjectReference Include="..\..\src\Sts2Headless.Cheats\Sts2Headless.Cheats.csproj" />
+    <!-- Content DTOs for tests that exercise the content/* surface. Same
+         isolation posture as Cheats — kept off the core Agents reference
+         graph so a driver that only references Protocol can't reach
+         the content reader by accident. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.Content\Sts2Headless.Content.csproj" />
     <!-- Agents is used as a test driver to set up multi-room state (e.g.
          "walk forward until standing on a rest site"). Per AD-6 the agent
          is the canonical greedy driver — integration tests reuse it rather

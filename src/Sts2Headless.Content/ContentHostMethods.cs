@@ -16,7 +16,8 @@ namespace Sts2Headless.Content;
 // bindings handle and read its `.Sts2` assembly to seed the reader.
 public static class ContentHostMethods
 {
-    public static IReadOnlyDictionary<string, Func<JsonNode?, JsonNode?>> Build(Sts2Bindings bindings)
+    public static IReadOnlyDictionary<string, Func<JsonNode?, JsonNode?>> Build(
+        Sts2Bindings bindings, Func<RunHandle?> getRun)
     {
         var reader = new ContentReader(bindings.Sts2);
 
@@ -49,11 +50,15 @@ public static class ContentHostMethods
             ["content/list_potions"] = WireHandlers.Typed<ContentListPotionsParams, ContentListPotionsResult>(
                 p => ListPotions(reader, p)),
             ["content/describe_act"] = WireHandlers.Typed<ContentDescribeActParams, ContentDescribeActResult>(
-                p => DescribeAct(reader, p)),
+                p => DescribeAct(reader, getRun, p)),
             ["content/encounter_rules"] = WireHandlers.Typed<JsonNode, ContentEncounterRulesResult>(
                 _ => EncounterRules()),
             ["content/unknown_node_odds"] = WireHandlers.Typed<ContentUnknownNodeOddsParams, ContentUnknownNodeOddsResult>(
-                p => UnknownNodeOdds(reader, p)),
+                p => UnknownNodeOdds(reader, getRun, p)),
+            ["content/list_events_for_act"] = WireHandlers.Typed<ContentListEventsForActParams, ContentListEventsForActResult>(
+                p => ListEventsForAct(reader, getRun, p)),
+            ["content/list_encounters_for_act"] = WireHandlers.Typed<ContentListEncountersForActParams, ContentListEncountersForActResult>(
+                p => ListEncountersForAct(reader, getRun, p)),
         };
     }
 
@@ -276,10 +281,15 @@ public static class ContentHostMethods
         return new ContentListPotionsResult(Ok: true, Count: summaries.Count, Potions: summaries);
     }
 
-    private static ContentDescribeActResult DescribeAct(ContentReader reader, ContentDescribeActParams? p)
+    private static ContentDescribeActResult DescribeAct(ContentReader reader, Func<RunHandle?> getRun, ContentDescribeActParams? p)
     {
         var actIndex = p?.ActIndex ?? 0;
-        var act = reader.FindAct(actIndex);
+        // ActModel instances live on the live RunState — there is no
+        // ModelDb.AllActs collection at the current pin. We can only
+        // describe an act when the host has an active run *and* the
+        // caller asked for the current act index. Out-of-range requests
+        // (and pre-run hosts) drop through to the empty/ok=false result.
+        var act = reader.FindAct(actIndex, getRun());
         if (act is null)
         {
             return new ContentDescribeActResult(
@@ -325,15 +335,35 @@ public static class ContentHostMethods
             "but the specific monster slot HP / intent rolls happen at combat-start " +
             "(EncounterModel.GenerateMonstersWithSlots) and are not part of the schedule.");
 
-    private static ContentUnknownNodeOddsResult UnknownNodeOdds(ContentReader reader, ContentUnknownNodeOddsParams? p)
+    private static ContentUnknownNodeOddsResult UnknownNodeOdds(ContentReader reader, Func<RunHandle?> getRun, ContentUnknownNodeOddsParams? p)
     {
-        // UnknownMapPointOdds isn't trivially reachable without an active
-        // run (the runtime instance lives inside ActModel/MapGenerator).
-        // Surface the canonical priors from the wuhao21/sts2-cli research
-        // notes — these are content-knowable from the engine's
-        // SetBaseOdds defaults. A future iteration can bind directly when
-        // we resolve `UnknownMapPointOdds` cleanly from ModelDb.
         var actIndex = p?.ActIndex;
+
+        // Preferred path: read the live RunState's
+        // `Odds.UnknownMapPoint._baseOdds` directly. The engine populates
+        // it from `UnknownMapPointOdds.SetBaseOdds` (DeadlyEvents and
+        // future modifiers may also mutate it post-run-start), so this
+        // reflects whatever priors are currently in effect, not just the
+        // shipped defaults.
+        var handle = getRun();
+        if (handle is not null)
+        {
+            var live = reader.ReadUnknownNodeOdds(handle);
+            if (live is { Count: > 0 })
+            {
+                var rows = live
+                    .Select(t => new ContentUnknownNodeOddsRow(t.RoomType, t.Weight))
+                    .ToList();
+                return new ContentUnknownNodeOddsResult(Ok: true, ActIndex: actIndex, BaseOdds: rows);
+            }
+        }
+
+        // Fallback: a host without an active run still answers usefully
+        // by surfacing the documented base distribution from the
+        // wuhao21/sts2-cli research notes. These match the engine's
+        // shipped `SetBaseOdds` defaults at the current pin (heavy on
+        // events, light on combat). Run-time modifiers can move them —
+        // a caller that needs the *actual* priors should run/new first.
         var odds = new[]
         {
             new ContentUnknownNodeOddsRow(RoomType.CombatRoom, 0.10),
@@ -343,6 +373,94 @@ public static class ContentHostMethods
             new ContentUnknownNodeOddsRow(RoomType.RestSiteRoom, 0.13),
         };
         return new ContentUnknownNodeOddsResult(Ok: true, ActIndex: actIndex, BaseOdds: odds);
+    }
+
+    private static ContentListEventsForActResult ListEventsForAct(ContentReader reader, Func<RunHandle?> getRun, ContentListEventsForActParams? p)
+    {
+        var actIndex = p?.ActIndex ?? 0;
+        var act = reader.FindAct(actIndex, getRun());
+        if (act is null)
+        {
+            return new ContentListEventsForActResult(
+                Ok: false,
+                ActIndex: actIndex,
+                Events: Array.Empty<ContentEventForActSummary>());
+        }
+
+        // Per-act event ids from ActModel.AllEvents, plus the shared event
+        // pool from ModelDb.AllSharedEvents (which the engine draws from in
+        // every act in GenerateRooms).
+        var actEventIds = reader.ReadIdList(act, "AllEvents");
+        var sharedEventIds = reader.AllSharedEvents
+            .Select(reader.ReadEntryId)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Select(id => id!)
+            .ToList();
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var events = new List<ContentEventForActSummary>();
+        foreach (var id in actEventIds.Concat(sharedEventIds))
+        {
+            if (string.IsNullOrEmpty(id) || !seen.Add(id)) continue;
+            var model = reader.FindEvent(id);
+            events.Add(new ContentEventForActSummary(
+                Id: id,
+                DisplayName: FirstNonEmpty(reader.ReadString(model, "DisplayName"), reader.ReadString(model, "Name"), id)));
+        }
+
+        return new ContentListEventsForActResult(
+            Ok: true,
+            ActIndex: actIndex,
+            Events: events);
+    }
+
+    private static ContentListEncountersForActResult ListEncountersForAct(ContentReader reader, Func<RunHandle?> getRun, ContentListEncountersForActParams? p)
+    {
+        var actIndex = p?.ActIndex ?? 0;
+        var tierFilter = p?.Tier;
+        var act = reader.FindAct(actIndex, getRun());
+        if (act is null)
+        {
+            return new ContentListEncountersForActResult(
+                Ok: false,
+                ActIndex: actIndex,
+                Encounters: Array.Empty<ContentEncounterForActSummary>());
+        }
+
+        // (sourceProp, tier) tuples — tier is inferred from which property
+        // the encounter came from, not from id suffix parsing.
+        var pools = new (string Prop, EncounterTier Tier)[]
+        {
+            ("AllWeakEncounters", EncounterTier.Weak),
+            ("AllRegularEncounters", EncounterTier.Normal),
+            ("AllEliteEncounters", EncounterTier.Elite),
+            ("AllBossEncounters", EncounterTier.Boss),
+        };
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var encounters = new List<ContentEncounterForActSummary>();
+        foreach (var (prop, tier) in pools)
+        {
+            if (tierFilter is not null && tierFilter != EncounterTier.Unknown && tier != tierFilter)
+                continue;
+            foreach (var id in reader.ReadIdList(act, prop))
+            {
+                if (string.IsNullOrEmpty(id) || !seen.Add(id)) continue;
+                var model = reader.FindEncounter(id);
+                var monsterWireIds = reader.ReadEncounterMonsterIds(model);
+                var monsterIds = monsterWireIds.Select(MonsterIdNames.FromWire).ToList();
+                encounters.Add(new ContentEncounterForActSummary(
+                    Id: id,
+                    DisplayName: FirstNonEmpty(reader.ReadString(model, "DisplayName"), reader.ReadString(model, "Name"), id),
+                    Tier: tier,
+                    MonsterIds: monsterIds));
+            }
+        }
+
+        return new ContentListEncountersForActResult(
+            Ok: true,
+            ActIndex: actIndex,
+            Encounters: encounters);
     }
 
     // ── helpers ───────────────────────────────────────────────────────

@@ -54,11 +54,16 @@ METHOD_NAMES: dict[str, str] = {
     "content/list_relics": "content_list_relics",
     "content/list_potions": "content_list_potions",
     "content/describe_act": "content_describe_act",
+    "content/list_events_for_act": "content_list_events_for_act",
+    "content/list_encounters_for_act": "content_list_encounters_for_act",
     "content/encounter_rules": "content_encounter_rules",
     "content/unknown_node_odds": "content_unknown_node_odds",
     "debug/gain_stars": "debug_gain_stars",
     "debug/give_relic": "debug_give_relic",
     "debug/reveal_act_schedule": "debug_reveal_act_schedule",
+    "debug/reveal_map_layout": "debug_reveal_map_layout",
+    "debug/peek_card_reward": "debug_peek_card_reward",
+    "debug/peek_event_outcome": "debug_peek_event_outcome",
     "debug/set_energy": "debug_set_energy",
     "debug/give_potion": "debug_give_potion",
     "debug/start_event": "debug_start_event",
@@ -397,6 +402,32 @@ class Client:
         result = self._transport.call("debug/reveal_act_schedule", None, timeout=timeout)
         return m.DebugRevealActScheduleResult.model_validate(result)
 
+    def debug_reveal_map_layout(
+        self,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugRevealMapLayoutResult:
+        result = self._transport.call("debug/reveal_map_layout", None, timeout=timeout)
+        return m.DebugRevealMapLayoutResult.model_validate(result)
+
+    def debug_peek_card_reward(
+        self,
+        params: m.DebugPeekCardRewardParams | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugPeekCardRewardResult:
+        result = self._transport.call("debug/peek_card_reward", _dump(params), timeout=timeout)
+        return m.DebugPeekCardRewardResult.model_validate(result)
+
+    def debug_peek_event_outcome(
+        self,
+        params: m.DebugPeekEventOutcomeParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.DebugPeekEventOutcomeResult:
+        result = self._transport.call("debug/peek_event_outcome", _dump(params), timeout=timeout)
+        return m.DebugPeekEventOutcomeResult.model_validate(result)
+
     # ── content/* ─────────────────────────────────────────────────────────
 
     def content_describe_card(
@@ -543,3 +574,23 @@ class Client:
     ) -> m.ContentUnknownNodeOddsResult:
         result = self._transport.call("content/unknown_node_odds", _dump(params), timeout=timeout)
         return m.ContentUnknownNodeOddsResult.model_validate(result)
+
+    def content_list_events_for_act(
+        self,
+        params: m.ContentListEventsForActParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentListEventsForActResult:
+        result = self._transport.call("content/list_events_for_act", _dump(params), timeout=timeout)
+        return m.ContentListEventsForActResult.model_validate(result)
+
+    def content_list_encounters_for_act(
+        self,
+        params: m.ContentListEncountersForActParams,
+        *,
+        timeout: float | None = None,
+    ) -> m.ContentListEncountersForActResult:
+        result = self._transport.call(
+            "content/list_encounters_for_act", _dump(params), timeout=timeout
+        )
+        return m.ContentListEncountersForActResult.model_validate(result)

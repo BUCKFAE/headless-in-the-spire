@@ -93,18 +93,25 @@ public sealed record PlayerStatus(
     // drawn this turn the model expects ~2.5 strikes auto-played for
     // ~15 dmg/turn. A Pommel-Strike-loop deck multiplies this.
     int Hellraiser = 0,
-    int Metallicize = 0,        // gain N block at end of turn
-    int PlatedArmor = 0,        // gain N block at end of turn; decays 1 on attack damage taken
-    int FeelNoPain = 0,         // gain N block when a card is exhausted
-    int DarkEmbrace = 0,        // draw N when a card is exhausted
-    int FireBreathing = 0,      // deal N damage to ALL when a status/curse is drawn or exhausted
-    int Rupture = 0,            // gain N Strength when player loses HP from a card
-    int DemonForm = 0,          // gain N Strength at start of every turn
+    // Powers below this line are STS1 mechanics that don't exist on
+    // sts2.dll's wire enum at the current pin (confirmed against
+    // documentation/research/modeldb/modeldb-AllPowers.txt) — Metallicize,
+    // PlatedArmor, FireBreathing, Brutality, Evolve, Berserk. Kept on
+    // PlayerStatus as zero-valued placeholders so the evaluator + planner
+    // don't churn on the rename; SimStateBuilder always emits 0. Promote
+    // to typed reads when a content drop adds them.
+    int Metallicize = 0,
+    int PlatedArmor = 0,
+    int FeelNoPain = 0,         // gain N block when a card is exhausted (exists on wire)
+    int DarkEmbrace = 0,        // draw N when a card is exhausted (exists on wire)
+    int FireBreathing = 0,
+    int Rupture = 0,            // gain N Strength when player loses HP from a card (exists on wire)
+    int DemonForm = 0,          // gain N Strength at start of every turn (exists on wire)
     int Rage = 0,               // gain N block per attack played this turn (resets each turn)
-    int Juggernaut = 0,         // deal N damage to a random enemy whenever block is gained
-    int Brutality = 0,          // lose N HP and draw N at start of every turn
-    int Evolve = 0,             // draw N whenever a status card is drawn
-    int Berserk = 0,            // +N max energy at the cost of 2 Vulnerable
+    int Juggernaut = 0,         // deal N damage to a random enemy whenever block is gained (exists on wire)
+    int Brutality = 0,
+    int Evolve = 0,
+    int Berserk = 0,
     int Barricade = 0,          // block persists across turns when > 0 (Barricade = 1)
     // Corruption power: while > 0, Skills cost 0 and exhaust on play.
     // Tracked as int (stacks additively like any wire power) but treated

@@ -94,10 +94,28 @@ public static class CheatMethodCatalog
             Summary: "Test affordance — reveal the current act's pre-rolled schedule (boss / second boss / ancient / normal-encounter list / elite-encounter list / event list) by reading ActModel._rooms.RoomSet. This is seed-deterministic information the engine normally hides from the player; combined with the visited counters it answers \"what comes next\" deterministically. Requires --enable-debug.",
             IsDebugOnly: true),
 
+        new("debug/reveal_map_layout",
+            ParamsType: typeof(DebugRevealMapLayoutParams),
+            ResultType: typeof(DebugRevealMapLayoutResult),
+            Summary: "Test affordance — reveal the entire pre-rolled map layout for the current act by walking RunState.Act.Map via ActMap.GetAllMapPoints(). Emits every (col, row, type) point plus its outgoing edges to the next row. Type carries the engine's resolved PointType at generation time; Unknown nodes stay Unknown (their runtime room is rolled lazily on first entry via UnknownMapPointOdds.Roll, which needs visit history). Seed-deterministic information normally hidden from the player. Requires --enable-debug.",
+            IsDebugOnly: true),
+
         new("debug/start_combat",
             ParamsType: typeof(DebugStartCombatParams),
             ResultType: typeof(DebugStartCombatResult),
             Summary: "Test affordance — force-start a specific combat against the chosen encounter id (e.g. \"SLIMES_NORMAL\"), bypassing map progression. Constructs CombatRoom(EncounterModel.ToMutable(), runState) and drives RunManager.EnterRoom; the engine does not validate act/character compatibility. Returns InvalidParams for unknown ids. Requires --enable-debug.",
+            IsDebugOnly: true),
+
+        new("debug/peek_card_reward",
+            ParamsType: typeof(DebugPeekCardRewardParams),
+            ResultType: typeof(DebugPeekCardRewardResult),
+            Summary: "Test affordance — peek the card-reward candidate POOL for a combat. SCOPED FALLBACK: returns CardCreationOptions.ForRoom(player, CombatRoom).GetPossibleCards (the engine's filtered candidate set), not a randomly-rolled 3-card triplet — full simulation needs a SerializableRunState clone/restore that isn't wired yet. Read-only; no engine state is mutated. `encounterId` is informational (auto-filled from the schedule's next-pending normal encounter when omitted). `notes` carries the fidelity disclosure. Requires --enable-debug.",
+            IsDebugOnly: true),
+
+        new("debug/peek_event_outcome",
+            ParamsType: typeof(DebugPeekEventOutcomeParams),
+            ResultType: typeof(DebugPeekEventOutcomeResult),
+            Summary: "Test affordance — peek the side effects of picking option N on an event. STUBBED: full outcome simulation requires a SerializableRunState clone/restore round-trip that isn't wired yet, so deltas are always 0 and diff lists empty in this slice. The method confirms `eventId` resolves via ModelDb and best-effort surfaces the canonical option count (when the event exposes one declaratively); `notes` carries the fidelity disclosure. Read-only — no engine state is mutated. Requires --enable-debug.",
             IsDebugOnly: true),
     };
 }

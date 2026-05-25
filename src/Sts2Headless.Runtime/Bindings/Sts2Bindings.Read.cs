@@ -127,7 +127,9 @@ public sealed partial class Sts2Bindings
         // callers index against a dense list.
         var ownedPotions = ReadOwnedPotions(handle);
 
-        var (bossId, secondBossId) = ReadActBosses(handle);
+        var (bossWireId, secondBossWireId) = ReadActBosses(handle);
+        EncounterId? bossId = bossWireId is not null ? EncounterIdNames.FromWire(bossWireId) : null;
+        EncounterId? secondBossId = secondBossWireId is not null ? EncounterIdNames.FromWire(secondBossWireId) : null;
         return new RunSnapshot(currentHp, maxHp, gold, deckSize, roomType, actFloor, currentActIndex, isGameOver, isVictory, isDead, availableNodes, availableEventOptions, availableRestSiteOptions, availableMerchantItems, availableTreasureRelics, combatState, rewardsState, relics, ownedPotions, bossId, secondBossId);
     }
 

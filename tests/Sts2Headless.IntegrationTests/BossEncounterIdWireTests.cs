@@ -26,11 +26,9 @@ public class BossEncounterIdWireTests
             new RunNewParams(Character: Character.Ironclad, Seed: 1uL, Ascension: 0));
         var state = await host.SendAsync<RunStateResult>("run/state");
         Assert.NotNull(state.BossEncounterId);
-        Assert.False(string.IsNullOrWhiteSpace(state.BossEncounterId));
-        // Convention: encounter ids are SCREAMING_SNAKE_CASE uppercase
-        // strings ("DOORMAKER_BOSS", "BYRDONIS_NEST", ...). Catching a
-        // future engine change to mixed-case or kebab-case here.
-        Assert.Equal(state.BossEncounterId, state.BossEncounterId.ToUpperInvariant());
+        // The wire enum has an Unknown sentinel — pin that the engine
+        // actually surfaced a known encounter, not a fallback.
+        Assert.NotEqual(EncounterId.Unknown, state.BossEncounterId);
     }
 
     [Theory]
@@ -39,7 +37,7 @@ public class BossEncounterIdWireTests
     public async Task BossEncounterId_Deterministic(ulong seed)
     {
         // Same seed twice → same boss id.
-        string? firstBoss = null;
+        EncounterId? firstBoss = null;
         for (var run = 0; run < 2; run++)
         {
             await using var host = new HostSubprocess();

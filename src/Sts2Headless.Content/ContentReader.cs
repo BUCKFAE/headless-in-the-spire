@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Reflection;
 using Sts2Headless.Protocol.Methods;
+using Sts2Headless.Runtime.Bindings;
 
 namespace Sts2Headless.Content;
 
@@ -113,23 +114,143 @@ internal sealed class ContentReader
     public IReadOnlyList<object> AllActs => _allActs.Value;
 
     // Pick the act instance whose `ActIndex` (0-based) matches. Returns
-    // null when the index is out of range or the AllActs collection
-    // wasn't resolvable. The 0-based axis is the wire's convention; sts2
-    // stores Act 1 at index 0.
-    public object? FindAct(int actIndex)
+    // null when the index is out of range or no source resolves it. The
+    // 0-based axis is the wire's convention; sts2 stores Act 1 at index 0.
+    //
+    // Source preference:
+    //   1. `ModelDb.AllActs` — if the engine ever surfaces acts as a
+    //      ModelDb collection. At the current pin this is empty: sts2
+    //      has only a single `ActModel` type and instances live on the
+    //      live `RunState`, not in the model catalogue. The walk stays
+    //      here as a forward-compatibility hook.
+    //   2. The live `RunState.Act` reachable through the supplied
+    //      `RunHandle`. Only the *current* act is reachable this way;
+    //      callers asking for arbitrary act indices outside that one
+    //      get null with a clear "no such act in catalogue" outcome.
+    public object? FindAct(int actIndex, RunHandle? handle = null)
     {
         if (actIndex < 0) return null;
+
+        // Source 1: static ModelDb.AllActs (empty at the current pin —
+        // kept for future-compat).
         var list = _allActs.Value;
         if (actIndex < list.Count) return list[actIndex];
-        // Fallback: scan for an ActIndex property that matches. Some
-        // engine variants order AllActs differently than the index axis
-        // — name match keeps us honest either way.
         foreach (var act in list)
         {
             var idx = ReadInt(act, "ActIndex") ?? ReadInt(act, "Index");
             if (idx == actIndex) return act;
         }
+
+        // Source 2: the live RunState's current ActModel. Only matches
+        // when the caller's requested actIndex is the *current* act.
+        // The current act number lives on RunState.CurrentActIndex —
+        // the ActModel itself doesn't carry an Index property at the
+        // current pin (single concrete ActModel class; per-act variation
+        // is on the instance's data fields, not its CLR type).
+        if (handle is not null)
+        {
+            var act = ReadRunStateAct(handle);
+            if (act is not null)
+            {
+                var currentIdx = ReadCurrentActIndex(handle);
+                if (currentIdx == actIndex) return act;
+            }
+        }
+
         return null;
+    }
+
+    private static int? ReadCurrentActIndex(RunHandle handle)
+    {
+        try
+        {
+            var runState = handle.RunState;
+            var prop = runState.GetType().GetProperty(
+                "CurrentActIndex",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (prop?.GetValue(runState) is int n) return n;
+        }
+        catch
+        {
+            // swallow — content methods soft-fail rather than poison the wire.
+        }
+        return null;
+    }
+
+    // ── runtime-only reads ────────────────────────────────────────────
+
+    // Pull `RunState.Act` off the handle by reflection. Mirrors the
+    // pattern Sts2Bindings.Reveal uses (`_runStateAct?.GetValue(...)`);
+    // we don't share the cached PropertyInfo because ContentReader is
+    // not coupled to the Sts2Bindings field surface. Soft-fail on any
+    // reflection hiccup — content methods must never break the host.
+    private object? ReadRunStateAct(RunHandle handle)
+    {
+        try
+        {
+            var runState = handle.RunState;
+            var prop = runState.GetType().GetProperty(
+                "Act",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            return prop?.GetValue(runState);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // Read the per-run unknown-node base odds out of
+    // `RunState.Odds.UnknownMapPoint._baseOdds : Dictionary<RoomType, float>`.
+    // Returns null when the runtime instance isn't reachable (no active
+    // run, reflection mismatch, …) so callers can fall back to the
+    // documented static priors.
+    //
+    // The dictionary keys are the engine's own `MegaCrit.Sts2.Core.Rooms.RoomType`
+    // enum, whose member names line up with our wire `RoomType` enum
+    // (MapRoom, EventRoom, CombatRoom, RestSiteRoom, MerchantRoom,
+    // TreasureRoom, …). We parse via `Enum.TryParse<RoomType>(name,
+    // ignoreCase: true)` so a future rename / new variant degrades to
+    // RoomType.Unknown (and is filtered out) rather than throwing.
+    public IReadOnlyList<(RoomType RoomType, double Weight)>? ReadUnknownNodeOdds(RunHandle handle)
+    {
+        try
+        {
+            var runState = handle.RunState;
+            var oddsProp = runState.GetType().GetProperty(
+                "Odds", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            var oddsSet = oddsProp?.GetValue(runState);
+            if (oddsSet is null) return null;
+
+            var ump = oddsSet.GetType().GetProperty(
+                "UnknownMapPoint", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(oddsSet);
+            if (ump is null) return null;
+
+            var baseField = ump.GetType().GetField(
+                "_baseOdds", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (baseField?.GetValue(ump) is not IDictionary dict) return null;
+
+            var rows = new List<(RoomType, double)>();
+            foreach (DictionaryEntry entry in dict)
+            {
+                if (entry.Key is null) continue;
+                var name = entry.Key.ToString();
+                if (string.IsNullOrEmpty(name)) continue;
+                if (!Enum.TryParse<RoomType>(name, ignoreCase: true, out var rt)
+                    || rt == RoomType.Unknown)
+                {
+                    continue;
+                }
+                var weight = entry.Value is null ? 0.0 : Convert.ToDouble(entry.Value);
+                rows.Add((rt, weight));
+            }
+            return rows.Count == 0 ? null : rows;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     // ── id-to-wire conversion ─────────────────────────────────────────

@@ -37,6 +37,9 @@ public static class CheatHostMethods
             ["debug/kill_all_enemies"] = WireHandlers.Typed<DebugKillAllEnemiesParams, DebugKillAllEnemiesResult>(_ => DebugKillAllEnemies(bindings, getRun)),
             ["debug/start_combat"] = WireHandlers.Typed<DebugStartCombatParams, DebugStartCombatResult>(p => DebugStartCombat(bindings, getRun, p)),
             ["debug/reveal_act_schedule"] = WireHandlers.Typed<DebugRevealActScheduleParams, DebugRevealActScheduleResult>(_ => DebugRevealActSchedule(bindings, getRun)),
+            ["debug/reveal_map_layout"] = WireHandlers.Typed<DebugRevealMapLayoutParams, DebugRevealMapLayoutResult>(_ => DebugRevealMapLayout(bindings, getRun)),
+            ["debug/peek_card_reward"] = WireHandlers.Typed<DebugPeekCardRewardParams, DebugPeekCardRewardResult>(p => DebugPeekCardReward(bindings, getRun, p)),
+            ["debug/peek_event_outcome"] = WireHandlers.Typed<DebugPeekEventOutcomeParams, DebugPeekEventOutcomeResult>(p => DebugPeekEventOutcome(bindings, getRun, p)),
         };
 
     private static DebugSetHpResult DebugSetHp(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugSetHpParams? @params)
@@ -242,6 +245,31 @@ public static class CheatHostMethods
             EventsVisited: snap.EventsVisited);
     }
 
+    private static DebugRevealMapLayoutResult DebugRevealMapLayout(Sts2Bindings bindings, Func<RunHandle?> getRun)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var snap = bindings.ReadMapLayout(run);
+        // Ok mirrors reveal_act_schedule: true when the engine surfaced a
+        // bound map for the current act. ActIndex == -1 (no Act yet) or an
+        // empty point list both flip Ok=false so callers can branch
+        // cheaply.
+        var ok = snap.ActIndex >= 0 && snap.Points.Count > 0;
+        var points = snap.Points
+            .Select(p => new DebugRevealMapPoint(
+                Col: p.Col,
+                Row: p.Row,
+                Type: p.Type,
+                Children: p.Children
+                    .Select(c => new MapNodeEdge(c.Col, c.Row))
+                    .ToList()))
+            .ToList();
+        return new DebugRevealMapLayoutResult(
+            Ok: ok,
+            ActIndex: snap.ActIndex,
+            Points: points);
+    }
+
     private static DebugGiveRelicResult DebugGiveRelic(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugGiveRelicParams? @params)
     {
         var run = getRun()
@@ -390,6 +418,52 @@ public static class CheatHostMethods
         {
             throw new WireException(WireErrorCode.InvalidParams, ex.Message);
         }
+    }
+
+    private static DebugPeekCardRewardResult DebugPeekCardReward(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugPeekCardRewardParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        // Params are optional — null is equivalent to {encounterId: null}.
+        var encounterId = @params?.EncounterId;
+
+        var snap = bindings.PeekCardReward(run, encounterId);
+        var cards = snap.Cards
+            .Select(c => new DebugPeekCardEntry(c.CardId, c.Cost, c.Rarity))
+            .ToList();
+        return new DebugPeekCardRewardResult(
+            Ok: snap.Ok,
+            EncounterId: snap.EncounterId,
+            Cards: cards,
+            Notes: snap.Notes);
+    }
+
+    private static DebugPeekEventOutcomeResult DebugPeekEventOutcome(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugPeekEventOutcomeParams? @params)
+    {
+        var run = getRun()
+            ?? throw new InvalidOperationException("no active run — call run/new first");
+        var args = @params
+            ?? throw new WireException(WireErrorCode.InvalidParams,
+                "debug/peek_event_outcome requires params {eventId, optionIndex}");
+        if (string.IsNullOrWhiteSpace(args.EventId))
+            throw new WireException(WireErrorCode.InvalidParams,
+                "debug/peek_event_outcome eventId must be non-empty");
+        if (args.OptionIndex < 0)
+            throw new WireException(WireErrorCode.InvalidParams,
+                $"debug/peek_event_outcome optionIndex must be >= 0 (got {args.OptionIndex})");
+
+        var snap = bindings.PeekEventOutcome(run, args.EventId, args.OptionIndex);
+        return new DebugPeekEventOutcomeResult(
+            Ok: snap.Ok,
+            EventId: snap.EventId,
+            OptionIndex: snap.OptionIndex,
+            HpDelta: snap.HpDelta,
+            GoldDelta: snap.GoldDelta,
+            RelicsGained: snap.RelicsGained,
+            RelicsLost: snap.RelicsLost,
+            CardsAdded: snap.CardsAdded,
+            CardsRemoved: snap.CardsRemoved,
+            Notes: snap.Notes);
     }
 
     private static DebugGivePotionResult DebugGivePotion(Sts2Bindings bindings, Func<RunHandle?> getRun, DebugGivePotionParams? @params)

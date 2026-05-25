@@ -98,27 +98,25 @@ public sealed class IroncladMerchantPolicy : IMerchantPolicy
     // BossDraftBias (research-act1-bosses.md §5). Only cards that are
     // *strict* counters for the boss — every entry here is also at
     // A or B tier in the general draft policy, so we're not pulling
-    // garbage just because the boss is bad news. bossId is still the
-    // wire-shape string (RunStateResult.BossEncounterId hasn't migrated
-    // to a typed enum yet); cardId is the typed CardId.
-    private static bool IsBossCounter(string bossId, CardId cardId) => bossId switch
+    // garbage just because the boss is bad news.
+    private static bool IsBossCounter(EncounterId bossId, CardId cardId) => bossId switch
     {
         // Beast: Strength + Vulnerable cluster. 252-HP HP race.
-        "CEREMONIAL_BEAST_BOSS" => cardId switch
+        EncounterId.CeremonialBeastBoss => cardId switch
         {
             CardId.Inflame or CardId.Tremble or CardId.Bash or CardId.Bully
                 or CardId.Dismantle or CardId.DemonForm => true,
             _ => false,
         },
         // Vantom: multi-hit clears 9 Slippery. Whirlwind > all.
-        "VANTOM_BOSS" => cardId switch
+        EncounterId.VantomBoss => cardId switch
         {
             CardId.Whirlwind or CardId.TwinStrike or CardId.PommelStrike
                 or CardId.Anger or CardId.Hellraiser or CardId.SwordBoomerang => true,
             _ => false,
         },
         // Kin: AoE or single-target rush on Priest with Vuln.
-        "THE_KIN_BOSS" => cardId switch
+        EncounterId.TheKinBoss => cardId switch
         {
             CardId.Whirlwind or CardId.Inferno or CardId.PactsEnd
                 or CardId.Tremble or CardId.Inflame or CardId.Corruption => true,

@@ -592,6 +592,27 @@
       "x-debugOnly": true
     },
     {
+      "name": "debug/reveal_map_layout",
+      "summary": "Test affordance — reveal the entire pre-rolled map layout for the current act by walking RunState.Act.Map via ActMap.GetAllMapPoints(). Emits every (col, row, type) point plus its outgoing edges to the next row. Type carries the engine's resolved PointType at generation time; Unknown nodes stay Unknown (their runtime room is rolled lazily on first entry via UnknownMapPointOdds.Roll, which needs visit history). Seed-deterministic information normally hidden from the player. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugRevealMapLayoutParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugRevealMapLayoutResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
       "name": "debug/start_combat",
       "summary": "Test affordance — force-start a specific combat against the chosen encounter id (e.g. \"SLIMES_NORMAL\"), bypassing map progression. Constructs CombatRoom(EncounterModel.ToMutable(), runState) and drives RunManager.EnterRoom; the engine does not validate act/character compatibility. Returns InvalidParams for unknown ids. Requires --enable-debug.",
       "paramStructure": "by-name",
@@ -608,6 +629,48 @@
         "name": "result",
         "schema": {
           "$ref": "#/components/schemas/DebugStartCombatResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
+      "name": "debug/peek_card_reward",
+      "summary": "Test affordance — peek the card-reward candidate POOL for a combat. SCOPED FALLBACK: returns CardCreationOptions.ForRoom(player, CombatRoom).GetPossibleCards (the engine's filtered candidate set), not a randomly-rolled 3-card triplet — full simulation needs a SerializableRunState clone/restore that isn't wired yet. Read-only; no engine state is mutated. `encounterId` is informational (auto-filled from the schedule's next-pending normal encounter when omitted). `notes` carries the fidelity disclosure. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugPeekCardRewardParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugPeekCardRewardResult"
+        }
+      },
+      "x-debugOnly": true
+    },
+    {
+      "name": "debug/peek_event_outcome",
+      "summary": "Test affordance — peek the side effects of picking option N on an event. STUBBED: full outcome simulation requires a SerializableRunState clone/restore round-trip that isn't wired yet, so deltas are always 0 and diff lists empty in this slice. The method confirms `eventId` resolves via ModelDb and best-effort surfaces the canonical option count (when the event exposes one declaratively); `notes` carries the fidelity disclosure. Read-only — no engine state is mutated. Requires --enable-debug.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DebugPeekEventOutcomeParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DebugPeekEventOutcomeResult"
         }
       },
       "x-debugOnly": true
@@ -921,6 +984,46 @@
         "name": "result",
         "schema": {
           "$ref": "#/components/schemas/ContentUnknownNodeOddsResult"
+        }
+      }
+    },
+    {
+      "name": "content/list_events_for_act",
+      "summary": "Per-act event *pool*: the union of the act's AllEvents and ModelDb.AllSharedEvents (events draftable in every act). This is the pool the engine draws from in ActModel.GenerateRooms, NOT the rolled sequence — for the latter use debug/reveal_act_schedule (gated). Narrower than content/describe_act when callers only need events.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentListEventsForActParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentListEventsForActResult"
+        }
+      }
+    },
+    {
+      "name": "content/list_encounters_for_act",
+      "summary": "Per-act encounter *pool*, optionally filtered to one tier (weak / normal / elite / boss). Tier is inferred from the source ActModel property (AllWeakEncounters / AllRegularEncounters / AllEliteEncounters / AllBossEncounters), not from id-suffix parsing. This is the pool, NOT the rolled sequence — for the latter use debug/reveal_act_schedule (gated).",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "params",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ContentListEncountersForActParams"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ContentListEncountersForActResult"
         }
       }
     }
@@ -1570,6 +1673,32 @@
           "rarity"
         ]
       },
+      "ContentEncounterForActSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/EncounterTier"
+          },
+          "monsterIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "tier",
+          "monsterIds"
+        ]
+      },
       "ContentEncounterRulesResult": {
         "type": "object",
         "properties": {
@@ -1595,6 +1724,21 @@
           "eliteRollCount",
           "noAdjacentSharedTags",
           "notes"
+        ]
+      },
+      "ContentEventForActSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "displayName"
         ]
       },
       "ContentListCardsParams": {
@@ -1646,6 +1790,82 @@
           "ok",
           "count",
           "cards"
+        ]
+      },
+      "ContentListEncountersForActParams": {
+        "type": "object",
+        "properties": {
+          "actIndex": {
+            "type": "integer"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EncounterTier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "actIndex"
+        ]
+      },
+      "ContentListEncountersForActResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "actIndex": {
+            "type": "integer"
+          },
+          "encounters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentEncounterForActSummary"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "actIndex",
+          "encounters"
+        ]
+      },
+      "ContentListEventsForActParams": {
+        "type": "object",
+        "properties": {
+          "actIndex": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "actIndex"
+        ]
+      },
+      "ContentListEventsForActResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "actIndex": {
+            "type": "integer"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentEventForActSummary"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "actIndex",
+          "events"
         ]
       },
       "ContentListPotionsParams": {
@@ -2062,6 +2282,137 @@
           "combatEnded"
         ]
       },
+      "DebugPeekCardEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "integer"
+          },
+          "rarity": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "cost",
+          "rarity"
+        ]
+      },
+      "DebugPeekCardRewardParams": {
+        "type": "object",
+        "properties": {
+          "encounterId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        }
+      },
+      "DebugPeekCardRewardResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "encounterId": {
+            "type": "string"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DebugPeekCardEntry"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "encounterId",
+          "cards",
+          "notes"
+        ]
+      },
+      "DebugPeekEventOutcomeParams": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "optionIndex": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "eventId",
+          "optionIndex"
+        ]
+      },
+      "DebugPeekEventOutcomeResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "optionIndex": {
+            "type": "integer"
+          },
+          "hpDelta": {
+            "type": "integer"
+          },
+          "goldDelta": {
+            "type": "integer"
+          },
+          "relicsGained": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "relicsLost": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cardsAdded": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cardsRemoved": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "eventId",
+          "optionIndex",
+          "hpDelta",
+          "goldDelta",
+          "relicsGained",
+          "relicsLost",
+          "cardsAdded",
+          "cardsRemoved",
+          "notes"
+        ]
+      },
       "DebugReadDeckParams": {
         "type": "object"
       },
@@ -2190,6 +2541,57 @@
           "normalEncountersVisited",
           "eliteEncountersVisited",
           "eventsVisited"
+        ]
+      },
+      "DebugRevealMapLayoutParams": {
+        "type": "object"
+      },
+      "DebugRevealMapLayoutResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "actIndex": {
+            "type": "integer"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DebugRevealMapPoint"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "actIndex",
+          "points"
+        ]
+      },
+      "DebugRevealMapPoint": {
+        "type": "object",
+        "properties": {
+          "col": {
+            "type": "integer"
+          },
+          "row": {
+            "type": "integer"
+          },
+          "type": {
+            "$ref": "#/components/schemas/MapNodeType"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapNodeEdge"
+            }
+          }
+        },
+        "required": [
+          "col",
+          "row",
+          "type",
+          "children"
         ]
       },
       "DebugSetEnergyParams": {
@@ -2337,6 +2739,15 @@
           "eventId",
           "currentRoomType",
           "optionsCount"
+        ]
+      },
+      "EncounterTier": {
+        "enum": [
+          "unknown",
+          "weak",
+          "normal",
+          "elite",
+          "boss"
         ]
       },
       "Enemy": {
@@ -2669,6 +3080,21 @@
           "col",
           "row",
           "type"
+        ]
+      },
+      "MapNodeEdge": {
+        "type": "object",
+        "properties": {
+          "col": {
+            "type": "integer"
+          },
+          "row": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "col",
+          "row"
         ]
       },
       "MapNodeType": {
@@ -6270,16 +6696,176 @@
             "type": "integer"
           },
           "bossEncounterId": {
-            "type": [
-              "string",
-              "null"
+            "enum": [
+              "UNKNOWN",
+              "AXEBOTS_NORMAL",
+              "BOWLBUGS_NORMAL",
+              "BOWLBUGS_WEAK",
+              "BYGONE_EFFIGY_ELITE",
+              "BYRDONIS_ELITE",
+              "CEREMONIAL_BEAST_BOSS",
+              "CHOMPERS_NORMAL",
+              "CONSTRUCT_MENAGERIE_NORMAL",
+              "CORPSE_SLUGS_NORMAL",
+              "CORPSE_SLUGS_WEAK",
+              "CUBEX_CONSTRUCT_NORMAL",
+              "CULTISTS_NORMAL",
+              "DECIMILLIPEDE_ELITE",
+              "DEVOTED_SCULPTOR_WEAK",
+              "DOORMAKER_BOSS",
+              "ENTOMANCER_ELITE",
+              "EXOSKELETONS_NORMAL",
+              "EXOSKELETONS_WEAK",
+              "FABRICATOR_NORMAL",
+              "FLYCONID_NORMAL",
+              "FOGMOG_NORMAL",
+              "FOSSIL_STALKER_NORMAL",
+              "FROG_KNIGHT_NORMAL",
+              "FUZZY_WURM_CRAWLER_WEAK",
+              "GLOBE_HEAD_NORMAL",
+              "GREMLIN_MERC_NORMAL",
+              "HAUNTED_SHIP_NORMAL",
+              "HUNTER_KILLER_NORMAL",
+              "INFESTED_PRISMS_ELITE",
+              "INKLETS_NORMAL",
+              "KAISER_CRAB_BOSS",
+              "KNIGHTS_ELITE",
+              "KNOWLEDGE_DEMON_BOSS",
+              "LAGAVULIN_MATRIARCH_BOSS",
+              "LIVING_FOG_NORMAL",
+              "LOUSE_PROGENITOR_NORMAL",
+              "MAWLER_NORMAL",
+              "MECHA_KNIGHT_ELITE",
+              "MYTES_NORMAL",
+              "NIBBITS_NORMAL",
+              "NIBBITS_WEAK",
+              "OVERGROWTH_CRAWLERS",
+              "OVICOPTER_NORMAL",
+              "OWL_MAGISTRATE_NORMAL",
+              "PHANTASMAL_GARDENERS_ELITE",
+              "PHROG_PARASITE_ELITE",
+              "PUNCH_CONSTRUCT_NORMAL",
+              "QUEEN_BOSS",
+              "RUBY_RAIDERS_NORMAL",
+              "SCROLLS_OF_BITING_NORMAL",
+              "SCROLLS_OF_BITING_WEAK",
+              "SEAPUNK_NORMAL",
+              "SEAPUNK_WEAK",
+              "SEWER_CLAM_NORMAL",
+              "SHRINKER_BEETLE_WEAK",
+              "SKULKING_COLONY_ELITE",
+              "SLIMED_BERSERKER_NORMAL",
+              "SLIMES_NORMAL",
+              "SLIMES_WEAK",
+              "SLITHERING_STRANGLER_NORMAL",
+              "SLUDGE_SPINNER_WEAK",
+              "SLUMBERING_BEETLE_NORMAL",
+              "SNAPPING_JAXFRUIT_NORMAL",
+              "SOUL_FYSH_BOSS",
+              "SOUL_NEXUS_ELITE",
+              "SPINY_TOAD_NORMAL",
+              "TERROR_EEL_ELITE",
+              "TEST_SUBJECT_BOSS",
+              "THE_INSATIABLE_BOSS",
+              "THE_KIN_BOSS",
+              "THE_LOST_AND_FORGOTTEN_NORMAL",
+              "THE_OBSCURA_NORMAL",
+              "THIEVING_HOPPER_WEAK",
+              "TOADPOLES_WEAK",
+              "TUNNELER_WEAK",
+              "TURRET_OPERATOR_WEAK",
+              "TWO_TAILED_RATS_NORMAL",
+              "VANTOM_BOSS",
+              "VINE_SHAMBLER_NORMAL",
+              "WATERFALL_GIANT_BOSS",
+              null
             ],
             "default": null
           },
           "secondBossEncounterId": {
-            "type": [
-              "string",
-              "null"
+            "enum": [
+              "UNKNOWN",
+              "AXEBOTS_NORMAL",
+              "BOWLBUGS_NORMAL",
+              "BOWLBUGS_WEAK",
+              "BYGONE_EFFIGY_ELITE",
+              "BYRDONIS_ELITE",
+              "CEREMONIAL_BEAST_BOSS",
+              "CHOMPERS_NORMAL",
+              "CONSTRUCT_MENAGERIE_NORMAL",
+              "CORPSE_SLUGS_NORMAL",
+              "CORPSE_SLUGS_WEAK",
+              "CUBEX_CONSTRUCT_NORMAL",
+              "CULTISTS_NORMAL",
+              "DECIMILLIPEDE_ELITE",
+              "DEVOTED_SCULPTOR_WEAK",
+              "DOORMAKER_BOSS",
+              "ENTOMANCER_ELITE",
+              "EXOSKELETONS_NORMAL",
+              "EXOSKELETONS_WEAK",
+              "FABRICATOR_NORMAL",
+              "FLYCONID_NORMAL",
+              "FOGMOG_NORMAL",
+              "FOSSIL_STALKER_NORMAL",
+              "FROG_KNIGHT_NORMAL",
+              "FUZZY_WURM_CRAWLER_WEAK",
+              "GLOBE_HEAD_NORMAL",
+              "GREMLIN_MERC_NORMAL",
+              "HAUNTED_SHIP_NORMAL",
+              "HUNTER_KILLER_NORMAL",
+              "INFESTED_PRISMS_ELITE",
+              "INKLETS_NORMAL",
+              "KAISER_CRAB_BOSS",
+              "KNIGHTS_ELITE",
+              "KNOWLEDGE_DEMON_BOSS",
+              "LAGAVULIN_MATRIARCH_BOSS",
+              "LIVING_FOG_NORMAL",
+              "LOUSE_PROGENITOR_NORMAL",
+              "MAWLER_NORMAL",
+              "MECHA_KNIGHT_ELITE",
+              "MYTES_NORMAL",
+              "NIBBITS_NORMAL",
+              "NIBBITS_WEAK",
+              "OVERGROWTH_CRAWLERS",
+              "OVICOPTER_NORMAL",
+              "OWL_MAGISTRATE_NORMAL",
+              "PHANTASMAL_GARDENERS_ELITE",
+              "PHROG_PARASITE_ELITE",
+              "PUNCH_CONSTRUCT_NORMAL",
+              "QUEEN_BOSS",
+              "RUBY_RAIDERS_NORMAL",
+              "SCROLLS_OF_BITING_NORMAL",
+              "SCROLLS_OF_BITING_WEAK",
+              "SEAPUNK_NORMAL",
+              "SEAPUNK_WEAK",
+              "SEWER_CLAM_NORMAL",
+              "SHRINKER_BEETLE_WEAK",
+              "SKULKING_COLONY_ELITE",
+              "SLIMED_BERSERKER_NORMAL",
+              "SLIMES_NORMAL",
+              "SLIMES_WEAK",
+              "SLITHERING_STRANGLER_NORMAL",
+              "SLUDGE_SPINNER_WEAK",
+              "SLUMBERING_BEETLE_NORMAL",
+              "SNAPPING_JAXFRUIT_NORMAL",
+              "SOUL_FYSH_BOSS",
+              "SOUL_NEXUS_ELITE",
+              "SPINY_TOAD_NORMAL",
+              "TERROR_EEL_ELITE",
+              "TEST_SUBJECT_BOSS",
+              "THE_INSATIABLE_BOSS",
+              "THE_KIN_BOSS",
+              "THE_LOST_AND_FORGOTTEN_NORMAL",
+              "THE_OBSCURA_NORMAL",
+              "THIEVING_HOPPER_WEAK",
+              "TOADPOLES_WEAK",
+              "TUNNELER_WEAK",
+              "TURRET_OPERATOR_WEAK",
+              "TWO_TAILED_RATS_NORMAL",
+              "VANTOM_BOSS",
+              "VINE_SHAMBLER_NORMAL",
+              "WATERFALL_GIANT_BOSS",
+              null
             ],
             "default": null
           }

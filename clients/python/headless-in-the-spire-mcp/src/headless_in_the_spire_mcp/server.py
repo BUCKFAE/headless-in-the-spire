@@ -66,6 +66,8 @@ from headless_in_the_spire._models import (
     ContentDescribePowerParams,
     ContentDescribeRelicParams,
     ContentListCardsParams,
+    ContentListEncountersForActParams,
+    ContentListEventsForActParams,
     ContentListPotionsParams,
     ContentListRelicsParams,
     ContentUnknownNodeOddsParams,
@@ -593,6 +595,35 @@ def _register_core_tools(mcp: FastMCP, handle: _HostHandle) -> None:
             )
         )
 
+    @mcp.tool()
+    def content_list_events_for_act(act_index: int) -> dict[str, Any]:
+        """Per-act event pool (events draftable in this act, union of the
+        act's AllEvents and ModelDb.AllSharedEvents). Static content;
+        for the rolled sequence see debug/reveal_act_schedule.
+        """
+        return _dump(
+            handle.client().content_list_events_for_act(
+                ContentListEventsForActParams(act_index=act_index),
+            )
+        )
+
+    @mcp.tool()
+    def content_list_encounters_for_act(
+        act_index: int,
+        tier: str | None = None,
+    ) -> dict[str, Any]:
+        """Per-act encounter pool, optionally filtered to one tier
+        ("weak" | "normal" | "elite" | "boss"). Static content; for the
+        rolled sequence see debug/reveal_act_schedule.
+        """
+        from headless_in_the_spire._models import EncounterTier
+
+        params = ContentListEncountersForActParams(
+            act_index=act_index,
+            tier=EncounterTier(tier) if tier else None,
+        )
+        return _dump(handle.client().content_list_encounters_for_act(params))
+
 
 def _register_debug_tools(mcp: FastMCP, handle: _HostHandle) -> None:
     """Debug methods (AD-7). Only registered when `enable_debug=True`. The
@@ -768,6 +799,46 @@ def _register_debug_tools(mcp: FastMCP, handle: _HostHandle) -> None:
         visited counters this answers "what comes next" exactly. Debug only.
         """
         return _dump(handle.client().debug_reveal_act_schedule())
+
+    @mcp.tool()
+    def debug_reveal_map_layout() -> dict[str, Any]:
+        """Reveal the full pre-rolled map layout for the current act
+        (every (col, row, type) point + outgoing edges). Unknown nodes
+        stay Unknown — their runtime room is rolled lazily on first
+        entry via UnknownMapPointOdds.Roll which needs visit history.
+        Seed-deterministic info normally hidden from the player. Debug
+        only.
+        """
+        return _dump(handle.client().debug_reveal_map_layout())
+
+    @mcp.tool()
+    def debug_peek_card_reward(encounter_id: str | None = None) -> dict[str, Any]:
+        """Peek at the post-combat card-reward *pool* (not the rolled
+        triplet) without committing state. Returns every card the engine
+        would consider, keyed off (player, room=CombatRoom). Debug only.
+        """
+        from headless_in_the_spire._models import DebugPeekCardRewardParams
+
+        return _dump(
+            handle.client().debug_peek_card_reward(
+                DebugPeekCardRewardParams(encounter_id=encounter_id),
+            )
+        )
+
+    @mcp.tool()
+    def debug_peek_event_outcome(event_id: str, option_index: int) -> dict[str, Any]:
+        """Peek at the outcome of choosing an event option. Currently
+        scoped to existence-check + diagnostic notes (clone-and-forward
+        infrastructure not implemented yet). Returns ok=false with a
+        notes string describing the limitation. Debug only.
+        """
+        from headless_in_the_spire._models import DebugPeekEventOutcomeParams
+
+        return _dump(
+            handle.client().debug_peek_event_outcome(
+                DebugPeekEventOutcomeParams(event_id=event_id, option_index=option_index),
+            )
+        )
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────

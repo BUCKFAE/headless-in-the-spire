@@ -255,3 +255,57 @@ public sealed record ContentUnknownNodeOddsResult(
     [property: JsonPropertyName("ok")] bool Ok,
     [property: JsonPropertyName("actIndex")] int? ActIndex,
     [property: JsonPropertyName("baseOdds")] IReadOnlyList<ContentUnknownNodeOddsRow> BaseOdds);
+
+// ── content/list_events_for_act ──────────────────────────────────────────
+
+// Per-act event pool: the union of the act's `AllEvents` (act-specific
+// events) and `ModelDb.AllSharedEvents` (events that can show up in every
+// act — the engine draws from this combined pool in
+// ActModel.GenerateRooms). This is the *pool*, not the rolled sequence —
+// for the actual schedule used by this run see debug/reveal_act_schedule.
+public sealed record ContentListEventsForActParams(
+    [property: JsonPropertyName("actIndex")] int ActIndex);
+
+public sealed record ContentEventForActSummary(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("displayName")] string DisplayName);
+
+public sealed record ContentListEventsForActResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("actIndex")] int ActIndex,
+    [property: JsonPropertyName("events")] IReadOnlyList<ContentEventForActSummary> Events);
+
+// ── content/list_encounters_for_act ──────────────────────────────────────
+
+// Encounter tier — which act-level pool the encounter came from. Inferred
+// from the source ActModel property (AllWeakEncounters / AllRegularEncounters
+// / AllEliteEncounters / AllBossEncounters), not from id suffix parsing.
+[JsonConverter(typeof(JsonStringEnumConverter<EncounterTier>))]
+public enum EncounterTier
+{
+    [JsonStringEnumMemberName("unknown")] Unknown = 0,
+    [JsonStringEnumMemberName("weak")] Weak,
+    [JsonStringEnumMemberName("normal")] Normal,
+    [JsonStringEnumMemberName("elite")] Elite,
+    [JsonStringEnumMemberName("boss")] Boss,
+}
+
+// Per-act encounter pool, optionally filtered by tier. This is the *pool*,
+// not the rolled-for-this-run sequence — for the latter use
+// debug/reveal_act_schedule.
+public sealed record ContentListEncountersForActParams(
+    [property: JsonPropertyName("actIndex")] int ActIndex,
+    // Optional tier filter. Null = include all four pools (weak, normal,
+    // elite, boss).
+    [property: JsonPropertyName("tier")] EncounterTier? Tier = null);
+
+public sealed record ContentEncounterForActSummary(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("displayName")] string DisplayName,
+    [property: JsonPropertyName("tier")] EncounterTier Tier,
+    [property: JsonPropertyName("monsterIds")] IReadOnlyList<MonsterId> MonsterIds);
+
+public sealed record ContentListEncountersForActResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("actIndex")] int ActIndex,
+    [property: JsonPropertyName("encounters")] IReadOnlyList<ContentEncounterForActSummary> Encounters);

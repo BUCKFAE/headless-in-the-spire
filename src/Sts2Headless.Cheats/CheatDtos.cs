@@ -390,3 +390,106 @@ public sealed record DebugRevealActScheduleResult(
     [property: JsonPropertyName("eliteEncountersVisited")] int EliteEncountersVisited,
     [property: JsonPropertyName("eventsVisited")] int EventsVisited);
 
+// ── debug/reveal_map_layout ──────────────────────────────────────────────
+
+// Reveal the *entire* pre-rolled map layout for the current act, with
+// the engine's resolved PointType for every node — including those the
+// player still sees as `?` on the in-game map. The natural
+// `availableMapNodes` field on RunStateResult only exposes the *current
+// row's reachable children* and leaves Unknown nodes as Unknown; this
+// debug method walks every point in every row of `RunState.Act.Map` via
+// the engine's `ActMap.GetAllMapPoints()` enumerator and emits each node
+// along with its outgoing edges into the next row.
+//
+// Caveat — Unknown nodes:
+//   The engine assigns Type=Unknown at generation time and lazily rolls
+//   the actual room type on first entry via
+//   `RunManager.RollRoomTypeFor → UnknownMapPointOdds.Roll(history,
+//   runState)`. That roll depends on the visit-history context, so the
+//   resolved outcome is *not* knowable at layout-reveal time. Callers
+//   reading `Type == Unknown` should treat it as "engine hasn't picked
+//   yet"; the prior odds live in `UnknownMapPointOdds` and aren't
+//   currently surfaced through this method (a future enhancement could
+//   emit them alongside).
+//
+// Same posture as `debug/reveal_act_schedule`: gated by --enable-debug
+// because it leaks seed-deterministic information the player can't see
+// (rows beyond their current position, plus the resolved type of any
+// pre-assigned Treasure / Merchant / RestSite nodes).
+public sealed record MapNodeEdge(
+    [property: JsonPropertyName("col")] int Col,
+    [property: JsonPropertyName("row")] int Row);
+
+public sealed record DebugRevealMapPoint(
+    [property: JsonPropertyName("col")] int Col,
+    [property: JsonPropertyName("row")] int Row,
+    [property: JsonPropertyName("type")] MapNodeType Type,
+    // Outgoing edges from this point to the next row. Empty for boss /
+    // terminal nodes. Used by clients to render or walk the map without
+    // a second GetPoint round-trip per node.
+    [property: JsonPropertyName("children")] IReadOnlyList<MapNodeEdge> Children);
+
+public sealed record DebugRevealMapLayoutParams();
+
+public sealed record DebugRevealMapLayoutResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    // -1 when no map is bound (pre-EnterAct / between acts). In that case
+    // Points is empty so the wire stays shape-stable.
+    [property: JsonPropertyName("actIndex")] int ActIndex,
+    [property: JsonPropertyName("points")] IReadOnlyList<DebugRevealMapPoint> Points);
+
+// ── debug/peek_card_reward ───────────────────────────────────────────────
+
+// Simulation-based peek at what card-reward triplet a victory in the
+// specified encounter would offer. SCOPE NOTE: full simulation requires a
+// SerializableRunState clone/restore round-trip; that infrastructure isn't
+// wired in this slice. The peek currently returns the candidate POOL
+// (CardCreationOptions.ForRoom(player, CombatRoom).GetPossibleCards) — the
+// engine's filtered candidate set that real rewards sample from. This
+// over-shares relative to a real triplet roll (callers see every legal
+// card, not the 3 the engine would pick), but is fully read-only — no
+// engine state is mutated. `encounterId` is informational only; when
+// omitted, the host fills it from the schedule's next-pending normal
+// encounter (when available). Notes carries the fidelity disclosure so
+// callers can branch on shape.
+public sealed record DebugPeekCardRewardParams(
+    [property: JsonPropertyName("encounterId")] string? EncounterId = null);
+
+public sealed record DebugPeekCardEntry(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("cost")] int Cost,
+    [property: JsonPropertyName("rarity")] string Rarity);
+
+public sealed record DebugPeekCardRewardResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("encounterId")] string EncounterId,
+    [property: JsonPropertyName("cards")] IReadOnlyList<DebugPeekCardEntry> Cards,
+    // Fidelity disclosure: documents whether the result is the full
+    // simulation, the pool fallback, or a hard soft-fail. Callers MUST
+    // read this to know what they're getting.
+    [property: JsonPropertyName("notes")] string Notes);
+
+// ── debug/peek_event_outcome ─────────────────────────────────────────────
+
+// Simulation-based peek at the side effects of picking option N on event
+// `eventId`. SCOPE NOTE: full outcome simulation requires the same
+// SerializableRunState clone/restore round-trip as peek_card_reward.
+// Until that lands, this method only confirms the event id resolves and
+// (best-effort) reports the canonical option count, leaving all deltas
+// zero and diff lists empty. `notes` carries the fidelity disclosure.
+public sealed record DebugPeekEventOutcomeParams(
+    [property: JsonPropertyName("eventId")] string EventId,
+    [property: JsonPropertyName("optionIndex")] int OptionIndex);
+
+public sealed record DebugPeekEventOutcomeResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("eventId")] string EventId,
+    [property: JsonPropertyName("optionIndex")] int OptionIndex,
+    [property: JsonPropertyName("hpDelta")] int HpDelta,
+    [property: JsonPropertyName("goldDelta")] int GoldDelta,
+    [property: JsonPropertyName("relicsGained")] IReadOnlyList<string> RelicsGained,
+    [property: JsonPropertyName("relicsLost")] IReadOnlyList<string> RelicsLost,
+    [property: JsonPropertyName("cardsAdded")] IReadOnlyList<string> CardsAdded,
+    [property: JsonPropertyName("cardsRemoved")] IReadOnlyList<string> CardsRemoved,
+    [property: JsonPropertyName("notes")] string Notes);
+

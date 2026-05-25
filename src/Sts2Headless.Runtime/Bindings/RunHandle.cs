@@ -74,5 +74,5 @@ public sealed record RunSnapshot(
     // Act-level boss preview. RunState.Act.BossEncounter.Id.Entry.
     // Null before the first act map is generated. Read once per
     // snapshot — no cost to populate.
-    string? BossEncounterId = null,
-    string? SecondBossEncounterId = null);
+    EncounterId? BossEncounterId = null,
+    EncounterId? SecondBossEncounterId = null);

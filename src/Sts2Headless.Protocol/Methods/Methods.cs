@@ -575,8 +575,8 @@ public sealed record RunStateResult(
     // that have a Second Boss (Act 3 in STS2). Both fields are null
     // before the first act map generates (pre-Neow / mid-transition).
     [property: JsonPropertyName("triggeredDropped")] long TriggeredDropped,
-    [property: JsonPropertyName("bossEncounterId")] string? BossEncounterId = null,
-    [property: JsonPropertyName("secondBossEncounterId")] string? SecondBossEncounterId = null);
+    [property: JsonPropertyName("bossEncounterId")] EncounterId? BossEncounterId = null,
+    [property: JsonPropertyName("secondBossEncounterId")] EncounterId? SecondBossEncounterId = null);
 
 // ── run/summarize_state ──────────────────────────────────────────────────
 
