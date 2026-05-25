@@ -28,6 +28,21 @@ AI experimentation, and replay tooling.
   card / relic / event / potion / power / encounter / affliction /
   enchantment id through a minimal fixture.
 
+### Roadmap
+
+- Extend existing wire protocol with more detailed info, like the remaining elite pool for current map
+- Better overview of available wire / agent features
+- Tooling to better compare performance of different agents across languages
+- Support for `Kotlin` and `Rust`
+- Improved battle simulator
+- CLI runner allowing you to play sts2 when you again accidentally deleted your desktop on linux
+- Improved coverage reports, ensure all code paths are covered by tests that fail loudly when the dll changes.
+- Create a proper CI runner that has the proprietary sts2 dlls.
+
+#### Replays & Controlling the actual game
+The current replay viewer is very crude. I think that sooner or later someone (or Megacrit) will develop a sophisticated replay viewer.
+Once a community-established solution for this (and controlling the actual game) is available, I will integrate it.
+
 ## Current State
 This project is in *very active, very early* development. Expect breaking changes hourly.
 
