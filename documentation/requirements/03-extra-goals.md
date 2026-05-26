@@ -5,6 +5,15 @@
 
 ## Testing Speed
 - The Integration / End2End Tests should run in parallel, they are already taking quite some time
+- **Status (2026-05-26): shipped.** Both `Sts2Headless.IntegrationTests`
+  and `Sts2Headless.End2EndTests` set `parallelizeTestCollections: true`
+  in `xunit.runner.json`, and `HostPool` (`src/Sts2Headless.Agents/Hosting/HostPool.cs`)
+  multiplexes host subprocesses across collections — see
+  `tests/Sts2Headless.End2EndTests/ParallelHostPoolTests.cs` for the
+  contract. `scripts/validation/test-parallel.sh` runs the unit /
+  integration / e2e / Python suites concurrently. `MechanicSweepTests`
+  is the deliberate exception (`parallelizeTestCollections: false`)
+  because sweeps share a single host with auto-recovery.
 
 ## Replays / Rendering
 - This repo should allow to generate and view replays
