@@ -5,7 +5,8 @@ feature that drives many agents through many seeds in parallel, collects
 results, records replays, and (eventually) publishes leaderboards. It is
 deliberately scoped to behaviour and contracts. The *how* — concrete C# /
 Python project layouts, the exact agent-subprocess wire dialect, the CI
-plumbing — will land in a follow-up ADR once this scope is agreed.
+plumbing — is pinned in
+AD-9 in [02-architecture-decisions.md](./02-architecture-decisions.md).
 
 Where this document records concrete defaults (timeouts, character set,
 ascension, parallelism cap, scoring function), they are baselines exposed
@@ -584,29 +585,36 @@ covered above, the following are decided:
 8. **The agent adapter dialect is specified in the implementation ADR,
    not here.** This document commits to *having* one; the exact method
    names, payload shapes, error codes, and OpenRPC sibling schema land
-   in AD-9.
+   in AD-9 in [02-architecture-decisions.md](./02-architecture-decisions.md).
 
-## Once-resolved decisions (one-liners pointing at the future ADR)
+## Resolved by AD-9
 
-For symmetry with the AD chain, when AD-9 (or whichever number lands)
-is written, it will resolve at minimum:
+AD-9 in [02-architecture-decisions.md](./02-architecture-decisions.md)
+pins the *how* this document deferred:
 
-- The agent adapter dialect: exact `agent/*` method names, schemas,
-  error codes.
-- The `EvaluationHarnessConfig` schema (field names, types,
-  defaults).
+- The agent adapter dialect — `agent/init`, `agent/decide`,
+  `agent/teardown`, and the agent-side error code range
+  (-32200..-32299).
+- The `EvaluationHarnessConfig` schema, `HarnessBudgets` defaults
+  (per-decision 30s, per-cell 10min, max-steps 4000), and the auto
+  worker cap (⌊cores/2⌋).
 - The `IScoringFunction` interface shape and the default
-  implementation.
-- The agent manifest schema.
-- The seed bank file format.
-- The `summary.json` + `runs.jsonl` + `cell.json` schemas.
-- Concrete library defaults for per-decision timeout, per-cell
-  wall-clock cap, and worker cap (data-driven against the existing
-  `BeatGameOnSeed42Tests` wall-clock and `IroncladAgent` p99
-  decision time).
-- The C# project boundary between `src/Sts2Headless.Eval/` and
-  `src/Sts2Headless.Agents/`.
-- The Python leaderboard package boundary.
-- The CI workflows and gh-pages layout.
+  `LexSortScoring(WinRate desc, MeanFloor desc, MedianWallClock asc)`.
+- The `AgentManifest` + `BundledAgent` abstract-class hierarchy
+  (with `CreateAgent()` for hand-written agent construction) and
+  the `BuiltinAgents` registry.
+- The seed bank JSON file format (committed under
+  `documentation/eval/seeds/<bank>.json`).
+- The `summary.json` + `runs.jsonl` + `cell.json` schemas and the
+  `CellTerminus` closed set.
+- C# project layout: new `src/Sts2Headless.Eval/`,
+  `src/Sts2Headless.Eval.Manifests/`,
+  `src/Sts2Headless.AgentRunner/`,
+  `tests/Sts2Headless.EvalTests/`, and example exes under
+  `examples/Eval{Smoke,Reference,Deep}/`.
+- Python leaderboard package boundary:
+  `clients/python/headless-in-the-spire-leaderboard/`.
+- CI workflows and gh-pages layout (PR-gated smoke on self-hosted
+  runner, nightly reference, manual-dispatch deep).
 
-This document is the *what*. Those are the *how*.
+This document is the *what*; AD-9 is the *how*.

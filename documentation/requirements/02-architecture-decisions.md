@@ -777,3 +777,855 @@ first, spike option C2" recommendation is explicit: that note assumed
 we'd be choosing between authoring NDJSON or building a viewer; we are
 doing neither now. The recording substrate goes first; viewing is a
 downstream mod, not a viewer we build.
+
+---
+
+## AD-9 — Evaluation harness: project layout, wire dialect, and config shape
+
+**Status**: Accepted (2026-05-26)
+
+**Context**
+
+[04-evaluation-harness.md](./04-evaluation-harness.md) is
+the *what* — FR-1..FR-12, NFR-1..NFR-4, the language split (C#
+orchestrator + Python leaderboard), and the eight resolved foundational
+choices. It deliberately deferred *how* to a follow-up ADR. Between the
+spec landing and this ADR being written, the call-site ergonomics were
+validated through a four-document design-by-example exercise under
+`documentation/evaluation-harness/` (an eval Program.cs in four
+variants, the AgentManifest hierarchy, the result-tree shape). Nothing
+in that folder builds; the goal was to feel the call site before
+committing to the bytes. Outcomes from that exercise that this ADR
+incorporates verbatim:
+
+- **No JSON manifest files for agents.** Every agent is a typed C#
+  class — either a `BundledAgent` subclass (for in-repo agents,
+  spawned through a shared AgentRunner exe) or an `AgentManifest`
+  subclass (for everything else). The "smart enum" `BuiltinAgents`
+  static class is the registry; adding an agent is one line plus a
+  manifest class.
+- **`BundledAgent.CreateAgent()` is hand-written**, not generic
+  `where TAgent : IAgent, new()`. The non-trivial constructors on
+  `IroncladAgent` (five injected policies) and the future RL-backed
+  agents need a hand-wiring hook; this also unlocks "variants of the
+  same agent class" as separate ranked rows on the leaderboard
+  (`IroncladManifest` vs `IroncladConservativeManifest`).
+- **The agent dialect is the mirror of the host dialect over stdio.**
+  Same NDJSON-over-stdio envelope as AD-2; same JSON-RPC reserved
+  codes; same `MethodCatalog` discipline; same AssertParity check at
+  startup. Stateful by FR-2: one process per cell, kept alive across
+  all `agent/decide` calls for the cell so a planner can cache.
+- **Defaults are tuned data-first against existing measurements**, not
+  invented from scratch. `AgentDriver.DefaultMaxSteps = 4000` and
+  `StallDetector.DefaultMaxIdentical = 8` carry over verbatim;
+  `ParallelHostThroughputBenchmark` and `BeatGameOnSeed42Tests` are
+  the calibration anchors for per-cell wall-clock and worker cap.
+- **Replay capture rides AD-8 unchanged.** The harness sets
+  `STS2_REPLAY_OUT` and `STS2_REPLAY_AGENT` per cell before spawning
+  the host; everything under `cells/<agent>/<seed>/` other than
+  `cell.json` is the engine's own writers. The harness owns the four
+  top-level files (`config.json`, `summary.{md,json}`, `runs.jsonl`)
+  plus `cell.json` per cell, and nothing else.
+
+The decisions below pin the surfaces this work needs in order to
+implement; they do not introduce any concept the spec doesn't already
+promise.
+
+**Decision**
+
+### Project boundaries
+
+Three new C# projects and one Python workspace member. Each justified
+by a real boundary, not speculative tidiness:
+
+- **`src/Sts2Headless.Eval/`** — the orchestrator library.
+  `EvaluationHarness.RunAsync(config)`, the `AgentManifest` /
+  `BundledAgent` base classes, the `IScoringFunction` interface and
+  default `LexSortScoring`, the `EvaluationHarnessConfig` record,
+  `HarnessBudgets`, `OutputLayout`, `SeedBank` / `SeedBanks`,
+  `CellResult`, `AgentAggregates`, `AgentRanking`, `CellTerminus`, the
+  agent-dialect DTOs (`AgentInitParams` / `AgentInitResult` /
+  `AgentDecideParams` / `AgentDecideResult` / `AgentTeardownResult`)
+  and `AgentMethodCatalog`. References `Sts2Headless.Agents`
+  (for `HostPool`, `AgentDriver`, `IAgent`, `ITransport`, `AgentAction`,
+  `StallDetector`), `Sts2Headless.Protocol` (for `RunStateResult`,
+  `Character`, `ModifierId`, `MethodEntry`, `WireErrorCode`,
+  `MethodCatalog.AssertParity`), and `Sts2Headless.Replay` (for
+  `ReplayLayout` constants and `ReplayManifest` field shapes).
+- **`src/Sts2Headless.Eval.Manifests/`** — concrete `BundledAgent`
+  subclasses (`GreedyManifest`, `IroncladManifest`,
+  `IroncladConservativeManifest`, `RandomManifest`, `AttackManifest`,
+  `BlockManifest`, `EagerEliteManifest`) and the `BuiltinAgents`
+  static registry. Lives in its own assembly because the
+  `Sts2Headless.AgentRunner` exe needs to resolve manifest types by
+  FQN at startup *without* dragging in `Sts2Headless.Eval`'s
+  orchestrator surface (`HostPool`, `EvaluationHarness`, etc.) —
+  manifests are tiny, the orchestrator is not. References
+  `Sts2Headless.Eval` (for the base classes) and whichever agent
+  libraries the manifests wrap (`Sts2Headless.Agents`,
+  `Sts2Headless.BattleAgent`).
+- **`src/Sts2Headless.AgentRunner/`** — exe. Generic stdio agent host:
+  takes `--manifest <FQN>` on the command line, reflects the
+  parameterless constructor on the manifest type, calls
+  `manifest.CreateAgent()` to materialise the `IAgent`, and runs the
+  `agent/init` → `agent/decide`\* → `agent/teardown` loop against
+  stdin / stdout. References `Sts2Headless.Eval` (for the dialect
+  DTOs and `AgentMethodCatalog`) and `Sts2Headless.Eval.Manifests`
+  (so the FQNs in `BundledAgent.Command` are resolvable). Does **not**
+  reference `Sts2Headless.Runtime` or any sts2-touching code — it
+  speaks the agent dialect, not the host dialect, and never loads
+  `sts2.dll`. This is what keeps the runner lightweight, fast to
+  spawn, and runnable on a workstation without a Steam install (only
+  the *host* needs `vendor/sts2.dll`; an agent process just needs
+  the wire DTOs).
+- **`tests/Sts2Headless.EvalTests/`** — xUnit. End-to-end smoke
+  scenarios: a 2-agent × 3-seed matrix completes in < 60s and emits
+  the full `config.json` + `summary.{md,json}` + `runs.jsonl` +
+  per-cell directory; an intentionally-crashing test agent surfaces
+  as `terminus: AgentCrash` without taking down sibling cells; a
+  scoring-function plug-in replaces the default ranking;
+  `cells/<agent>/<seed>/cell.json` round-trips through serialisation.
+  Lives under `tests/` next to the other xUnit projects, gated on the
+  same `[Trait("Category", "Integration")]` discipline so it's
+  included in `just validation::test` only when `vendor/sts2.dll` is
+  present.
+
+Examples (the user-facing console exes that call
+`EvaluationHarness.RunAsync`) land in a new top-level **`examples/`**
+folder, also added to `Sts2Headless.slnx`:
+
+- `examples/EvalSmoke/` — the 5-seed × Greedy minimal eval.
+- `examples/EvalReference/` — the 50-seed × in-repo agents eval.
+- `examples/EvalDeep/` — the 500-seed × everyone-opted-in eval,
+  plus a sample custom `WeightedScoring : IScoringFunction`.
+
+`examples/` is added to the solution but kept separate from
+`src/` so it doesn't pollute `dotnet pack` outputs; the convention
+matches `tests/` (tested against, not shipped).
+
+Python side, exactly one new workspace member:
+
+- **`clients/python/headless-in-the-spire-leaderboard/`** — reads
+  `summary.json` + `runs.jsonl`, renders plots (matplotlib /
+  plotly), generates a static HTML site (jinja2), publishes to
+  gh-pages. Depends on `headless-in-the-spire` (the wire client,
+  transitively for the `Character` / `ModifierId` enum
+  serialisations) and on `headless-in-the-spire-utils`. Independent
+  release cadence from the wire client. **Does not** depend on
+  `headless-in-the-spire-agents` — the leaderboard is downstream of
+  the eval JSON, not of the agent surface, and the agents package
+  pulls in numpy / RL deps that the leaderboard does not need.
+
+### `AgentManifest` hierarchy — canonical contract
+
+The sketches' shape is adopted verbatim. Reproduced here so the AD is
+self-contained and a future reader doesn't need to chase the
+documentation/evaluation-harness sketches:
+
+```csharp
+// src/Sts2Headless.Eval/Agents/AgentManifest.cs
+namespace Sts2Headless.Eval;
+
+public abstract class AgentManifest
+{
+    // Required.
+    public abstract string Name    { get; }
+    public abstract string Version { get; }
+    public abstract IReadOnlyList<string> Command { get; }
+
+    // Optional with sensible defaults.
+    public virtual string?  Language    => null;       // "csharp" | "python" | …
+    public virtual string?  Cwd         => null;       // null ⇒ repo root
+    public virtual string?  Description => null;
+    public virtual IReadOnlyDictionary<string, string>? Env => null;
+
+    public virtual IReadOnlyList<Character>   SupportedCharacters => [Character.Ironclad];
+    public virtual IReadOnlyList<int>         SupportedAscensions => [0];
+    public virtual IReadOnlyList<ModifierId>? SupportedModifiers  => null;
+
+    // Per-agent budget overrides. null ⇒ inherit EvaluationHarnessConfig.Budgets.
+    public virtual HarnessBudgets? Budgets => null;
+}
+
+public abstract class BundledAgent : AgentManifest
+{
+    // Called by Sts2Headless.AgentRunner after it resolves this
+    // manifest type by --manifest <FQN>. Hand-wired so agents with
+    // non-trivial constructors (IroncladAgent's five policies, future
+    // RL-backed weights) compose explicitly; no new() constraint, no
+    // DI container, no reflection on the agent's parameter list.
+    public abstract IAgent CreateAgent();
+
+    public sealed override string Language => "csharp-bundled";
+
+    public sealed override IReadOnlyList<string> Command =>
+    [
+        "dotnet", "run",
+        "--project", "src/Sts2Headless.AgentRunner",
+        "--no-build", "--",
+        "--manifest", GetType().FullName!,
+    ];
+}
+```
+
+A `BundledAgent`'s subclass:
+
+```csharp
+public sealed class IroncladConservativeManifest : BundledAgent
+{
+    public override string Name    => "ironclad-conservative";
+    public override string Version => "0.5.1";
+    public override IAgent CreateAgent() =>
+        new IroncladAgent(
+            draftPolicy:    new BossAwareDraftPolicy(),
+            pathPolicy:     new ElitePreferringPathPolicy(),
+            restPolicy:     new HpThresholdRestPolicy(threshold: 0.7),
+            eventPolicy:    new GreedyEventPolicy(),
+            merchantPolicy: new BudgetMerchantPolicy());
+}
+```
+
+Abstract class rather than interface: virtual properties give bundled
+authors near-zero boilerplate; `sealed override` on `BundledAgent`'s
+`Command` + `Language` prevents an accidental rewrite from breaking
+the AgentRunner contract; the class form lets us add `[Description]`
+or metadata attributes later without a breaking change. Default-method
+interfaces could approximate this in C# 8+, but the readability of
+`virtual` properties wins on hover and in diffs.
+
+### Agent dialect — wire bytes
+
+The harness owns *both* ends of every cell's wire: it talks to the
+host (existing AD-2 dialect) over one stdio pair and to the agent
+(this AD's dialect) over a sibling stdio pair. Both share the
+JSON-RPC envelope from AD-2; only the method namespace and DTOs differ.
+
+Method catalogue, declared once in `Sts2Headless.Eval` and asserted at
+both the harness *and* the AgentRunner sides via
+`MethodCatalog.AssertParity` so a drift between catalogue and dispatch
+fails startup:
+
+```csharp
+// src/Sts2Headless.Eval/Protocol/AgentMethodCatalog.cs
+namespace Sts2Headless.Eval;
+
+public static class AgentMethodCatalog
+{
+    public static IReadOnlyList<MethodEntry> All { get; } =
+    [
+        new("agent/init",
+            ParamsType: typeof(AgentInitParams),
+            ResultType: typeof(AgentInitResult),
+            Summary: "Initialize the agent for one cell. Sent exactly once, before any agent/decide."),
+
+        new("agent/decide",
+            ParamsType: typeof(AgentDecideParams),
+            ResultType: typeof(AgentDecideResult),
+            Summary: "Decide one action against the current snapshot. Sent once per host step."),
+
+        new("agent/teardown",
+            ParamsType: null,
+            ResultType: typeof(AgentTeardownResult),
+            Summary: "Drain caches, flush logs, exit cleanly. Final wire call before SIGTERM."),
+    ];
+}
+
+public sealed record AgentInitParams(
+    string GameVersion,
+    string Sts2DllSha256,
+    Character Character,
+    ulong Seed,
+    int Ascension,
+    IReadOnlyList<ModifierId> Modifiers,
+    HarnessBudgets Budgets,
+    string EvalId);
+
+public sealed record AgentInitResult(
+    string Name,
+    string Version,
+    string? Notes = null);
+
+public sealed record AgentDecideParams(
+    RunStateResult Snapshot);
+
+public sealed record AgentDecideResult(
+    AgentAction Action,
+    string? Notes = null);
+
+public sealed record AgentTeardownResult(
+    bool Ok,
+    string? Reason = null);
+```
+
+Sequence (one cell):
+
+```text
+[harness → agent]  {"id":1,"method":"agent/init","params":{ … }}
+[harness ← agent]  {"id":1,"result":{"name":"my-agent","version":"0.1.0"}}
+[harness → agent]  {"id":2,"method":"agent/decide","params":{"snapshot":{ … }}}
+[harness ← agent]  {"id":2,"result":{"action":{"kind":"PlayCard","cardIndex":3,"targetIndex":0}}}
+…
+[harness → agent]  {"id":N,"method":"agent/teardown"}
+[harness ← agent]  {"id":N,"result":{"ok":true}}
+```
+
+Error codes — agent-side server-defined range is **-32200..-32299**,
+deliberately distinct from the host's -32000..-32099 (AD-7's
+`DebugMethodDisabled = -32001`) so a log line is unambiguously
+classifiable by code prefix. Three named codes for v1:
+
+| Code | Constant | When |
+| --- | --- | --- |
+| -32200 | `AgentDeclinedToInit` | Agent emitted an error envelope on `agent/init` instead of an `AgentInitResult` — typically "I don't support this character / ascension / modifier combination." The harness records the cell with `terminus: HarnessError` rather than `AgentCrash` because the agent exited cleanly with a typed refusal. |
+| -32201 | `AgentDecisionRefused` | Agent emitted an error envelope on `agent/decide` it doesn't know how to handle. The harness records the cell with `terminus: AgentCrash` and the error payload in `runs.jsonl`. |
+| -32202 | `AgentSnapshotInvalid` | Agent received a snapshot that fails its own validation (missing fields after a wire bump it hadn't been re-generated against). Tagged separately from `AgentDecisionRefused` so a cross-version regression is visible as a category. |
+
+JSON-RPC reserved codes (`ParseError` -32700, `InvalidRequest` -32600,
+`MethodNotFound` -32601, `InvalidParams` -32602, `InternalError`
+-32603) carry their standard meanings; an agent returning
+`InternalError` from `agent/decide` lands in `runs.jsonl` as
+`terminus: AgentCrash` with the wrapped exception. A stdout EOF mid-request
+is also `AgentCrash` (detected the same way `HostProcess.SendAsync`
+detects host crashes today: empty `ReadLineAsync` result).
+
+The harness records the *first* hard error per cell; subsequent
+errors from the same cell are not collected (the cell is already
+attributed). Sibling cells run unaffected (FR-9).
+
+`AgentAction` is `Sts2Headless.Agents.Contracts.AgentAction` — the
+existing closed union of `PlayCard`, `EndTurn`, `UsePotion`,
+`SelectMapNode`, `SelectEventOption`, `SelectRestSiteOption`,
+`TakeTreasure`, `SkipTreasure`, `BuyMerchantItem`,
+`LeaveMerchantRoom`, `EnterNextAct`, `ProceedEvent`,
+`SelectReward`, `SkipReward`, and `StopRun`. The polymorphic
+serialisation already established in the protocol (sealed union with
+`kind` discriminator via `JsonDerivedType`) covers it.
+`StopRun` from an agent is received by the harness, treated as a
+voluntary cell exit, and recorded as `terminus: Abandoned` — the
+existing `AgentDriver.PlayRunAsync` semantics carry over.
+
+Per-decision soft budget enforcement: the harness's
+`AgentTransport.SendAsync<AgentDecideResult>` wraps the underlying
+read with `CancellationTokenSource(Budgets.PerDecision)`. A timeout
+fails the cell with `terminus: Timeout`, not `AgentCrash` — the agent
+is alive but unresponsive within the contracted window. The harness
+then SIGTERMs the agent, waits 2s, and SIGKILLs if still up.
+
+OpenRPC export (AD-5): a sibling artefact `protocol/agent-openrpc.json`
+is generated by extending `Sts2Headless.SchemaExport` to walk
+`AgentMethodCatalog.All` alongside `MethodCatalog.Core`. The file is
+checked in, validated against `open-rpc/meta-schema` in CI, and is
+the input source for any future non-C# / non-Python adapter (Rust,
+Kotlin, …) author who wants typed bindings instead of hand-rolled
+NDJSON.
+
+### `EvaluationHarnessConfig` — schema and defaults
+
+```csharp
+// src/Sts2Headless.Eval/EvaluationHarnessConfig.cs
+namespace Sts2Headless.Eval;
+
+public sealed record EvaluationHarnessConfig
+{
+    // Required matrix axes.
+    public required IReadOnlyList<AgentManifest> Agents { get; init; }
+    public required SeedBank                     Seeds  { get; init; }
+
+    // Defaulted matrix axes.
+    public IReadOnlyList<Character>  Characters { get; init; } = [Character.Ironclad];
+    public IReadOnlyList<int>        Ascensions { get; init; } = [0];
+    public IReadOnlyList<ModifierId> Modifiers  { get; init; } = [];
+
+    // Per-cell budgets. Per-manifest Budgets win when non-null.
+    public HarnessBudgets Budgets { get; init; } = HarnessBudgets.Default;
+
+    // Parallelism. null ⇒ auto: min(matrixSize, max(1, Environment.ProcessorCount / 2)).
+    public int? Workers { get; init; } = null;
+
+    // Pluggable scoring. Default is LexSortScoring.
+    public IScoringFunction Scoring { get; init; } = ScoringFunctions.Default;
+
+    // Output layout. EvalIdGenerator default: utc-timestamp.
+    public OutputLayout Output { get; init; } = OutputLayout.Default;
+
+    // FR-11 (deferred to v2 in spec; field exists so v2 can fill it in).
+    public bool EnableDeterminismCanary { get; init; } = false;
+
+    // FR-12 (deferred to v2; same rationale).
+    public bool CaptureAgentNotes { get; init; } = false;
+}
+
+public sealed record HarnessBudgets(
+    TimeSpan PerDecision,
+    TimeSpan PerCell,
+    int      MaxSteps)
+{
+    public static HarnessBudgets Default { get; } =
+        new(PerDecision: TimeSpan.FromSeconds(30),
+            PerCell:     TimeSpan.FromMinutes(10),
+            MaxSteps:    AgentDriver.DefaultMaxSteps);  // 4000
+}
+
+public sealed record OutputLayout(
+    string         EvalRoot,
+    Func<DateTimeOffset, string> EvalIdGenerator)
+{
+    public static OutputLayout Default { get; } =
+        new(EvalRoot: "replays/eval-harness",
+            EvalIdGenerator: t => t.UtcDateTime.ToString("yyyy-MM-ddTHH-mm-ssZ"));
+}
+```
+
+Default calibration notes:
+
+- **`PerDecision = 30s`** is generous for the existing in-repo agents
+  (`GreedyAgent` decides in microseconds; `IroncladAgent`'s MCTS-style
+  combat planner runs in tens to hundreds of milliseconds in the
+  current `BeatGameOnSeed42Tests`). 30s leaves headroom for external
+  agents to do real planning. Callers tighten to 5s for fast agents
+  and loosen to minutes for MCTS-heavy ones via per-manifest
+  `Budgets`.
+- **`PerCell = 10 min`** is calibrated against
+  `BeatGameOnSeed42Tests`'s 30-min cancellation budget (which covers
+  the full Architect-terminus path with mid-run cheats firing on
+  every decision — i.e. the hardest case in the suite). A real
+  Greedy-Ironclad-A0 run terminates well inside 5 min on the existing
+  hardware per `ParallelHostThroughputBenchmark`. 10 min is the
+  conservative line under which a `Timeout` is genuinely "this agent
+  isn't making progress."
+- **`MaxSteps = 4000`** mirrors `AgentDriver.DefaultMaxSteps`. Already
+  the value the in-repo driver uses; choosing the same number for
+  the harness means the driver's step cap and the harness's step cap
+  trip simultaneously rather than the harness adding an extra
+  guard-rail nobody asked for.
+- **`Workers = ⌊cores/2⌋`** keeps the resident-set budget honest:
+  each cell holds two processes (host + agent), the host alone is
+  hundreds of MB of `sts2.dll`-loaded heap, and the workstations the
+  team uses range from 8 to 32 cores. The full-throttle
+  `Workers = cores` mode is one explicit override away — we don't
+  default to it because most users running an eval don't want their
+  IDE to swap.
+
+The harness has no implicit globals; *every* knob is on
+`EvaluationHarnessConfig`. There is no env-var path that changes
+harness behaviour. (Env vars are still used to talk to the host:
+`STS2_REPLAY_OUT` and `STS2_REPLAY_AGENT` per cell, per AD-8. Those
+are an implementation detail; they're set by the harness from
+`config.Output`, never read by user code.)
+
+### Seed bank file format
+
+JSON, one bank per file, committed under
+`documentation/eval/seeds/<bank>.json`:
+
+```json
+{
+  "name":             "reference",
+  "version":          "1",
+  "createdAt":        "2026-05-14",
+  "gameVersion":      "v0.103.2",
+  "generationMethod": "first 50 seeds where Ironclad A0 has at least one Neow choice with a boss relic",
+  "seeds":            [1, 2, 3, 5, 8, 13, 21, 34, 42, ...]
+}
+```
+
+- **`seeds`** is a JSON array of numbers. Wire-side the protocol uses
+  `Seed: ulong`; STS2 seeds typically fit in JSON `number` exactly
+  (`Number.MAX_SAFE_INTEGER = 2^53 - 1`). Seeds above 2^53 are valid
+  on the wire but lose precision in JSON; we accept this for v1 and
+  add a parser warning at load time. A future schema bump can switch
+  to string-encoded numbers if STS2 starts publishing seeds in the
+  uint64 high range.
+- **`version`** is a string (not an int) so a bank can carry a
+  semver-ish identifier (`"1.1"` after additive append). Seeds may be
+  *appended* but not removed or reordered, so a result from yesterday
+  remains comparable to a result from today on the same bank. A
+  material content change (remove / reorder / replace) is a new bank
+  with a new name, not a silent edit.
+- **Loader behaviour**: `SeedBanks.Smoke`, `SeedBanks.Reference`,
+  `SeedBanks.Deep` are `public static readonly SeedBank` fields on
+  `Sts2Headless.Eval.SeedBanks` that lazily read the corresponding
+  JSON. `SeedBanks.FromFile(string path)` and
+  `SeedBanks.Inline(IEnumerable<ulong> seeds, string? name = null)`
+  cover ad-hoc use; the latter carries `version = "inline"` and is
+  refused by the `summary.json` "this is a reproducible eval" emitter
+  (the reproducibility claim degrades when the bank itself isn't on
+  disk).
+- **`gameVersion`** ties a bank to the pin it was generated against
+  (FR-10). Running a bank against a mismatched `GAME_VERSION` is
+  allowed (you may want to regression-test a pin bump on the same
+  seeds) but `runs.jsonl` records the *eval's* `gameVersion`, not the
+  bank's, so cross-version aggregation refuses to mix.
+
+### `IScoringFunction` and the default
+
+```csharp
+// src/Sts2Headless.Eval/Scoring/IScoringFunction.cs
+namespace Sts2Headless.Eval.Scoring;
+
+public interface IScoringFunction
+{
+    string Name    { get; }
+    string Version { get; }
+    IReadOnlyList<AgentRanking> Rank(IReadOnlyList<CellResult> cells);
+}
+
+public sealed record AgentRanking(
+    int             Rank,
+    AgentIdentity   Agent,
+    double          Score,
+    AgentAggregates Aggregates);
+
+// Default. Lex-sort: correctness first, depth second, efficiency as
+// tiebreak. Reflects the conventional STS reasoning: a 60% win-rate
+// agent that occasionally crashes is worse than a 60% win-rate agent
+// that doesn't; once that's equal, an agent that loses on floor 47 is
+// better than an agent that loses on floor 12; once that's also
+// equal, prefer the cheaper one.
+public sealed class LexSortScoring : IScoringFunction
+{
+    public string Name    => "lex-sort";
+    public string Version => "1.0";
+
+    public IReadOnlyList<AgentRanking> Rank(IReadOnlyList<CellResult> cells) =>
+        cells
+            .GroupBy(c => c.Agent.Name)
+            .Select(g =>
+            {
+                var aggs = AgentAggregates.From(g);
+                return new AgentRanking(
+                    Rank: 0,                          // assigned post-sort
+                    Agent: g.First().Agent,
+                    Score: aggs.WinRate,              // displayed; ties broken below
+                    Aggregates: aggs);
+            })
+            .OrderByDescending(r => r.Aggregates.WinRate)
+            .ThenByDescending(r => r.Aggregates.MeanFloor)
+            .ThenBy(r => r.Aggregates.MedianWallClockMs)
+            .Select((r, i) => r with { Rank = i + 1 })
+            .ToList();
+}
+
+public static class ScoringFunctions
+{
+    public static IScoringFunction Default { get; } = new LexSortScoring();
+}
+```
+
+`AgentAggregates.From(IEnumerable<CellResult>)` is a static helper —
+computes the per-agent rollups (`Wins`, `WinRate`, `MeanFloor`,
+`P25Floor` / `P50Floor` / `P75Floor`, `EngineCrashes`, `HostCrashes`,
+`AgentCrashes`, `Timeouts`, `MedianWallClockMs`, `PeakRssMbP95`).
+Custom scoring functions consume aggregates; they don't recompute
+them.
+
+Every emitted leaderboard (`summary.md` / `summary.json`) records the
+scoring function's `Name` + `Version`. Two leaderboards with the same
+agents but different scoring functions are not silently comparable;
+the file says which is which.
+
+### Output schemas
+
+The harness owns four top-level files per eval plus one per cell.
+Schemas pinned below; concrete examples in the design-by-example
+sketches under
+[../evaluation-harness/03-results.md](../evaluation-harness/03-results.md).
+
+**`config.json`** — full serialised `EvaluationHarnessConfig`,
+including each `AgentManifest`'s `manifestType` (FQN) for traceability
+and the harness's own metadata block (`harnessVersion`, `gameVersion`,
+`sts2DllSha256`). Re-feeding a `config.json` into a future
+`EvaluationHarness.RunAsync` is the canonical reproducer; manifest
+FQNs that no longer resolve on the classpath fail loudly with a typed
+error rather than silently substituting (FR-10).
+
+**`runs.jsonl`** — one JSON object per line, append-only, written
+incrementally as each cell finishes. Each line is a `CellResult`
+record:
+
+```csharp
+public sealed record CellResult(
+    string           EvalId,
+    AgentIdentity    Agent,                // {Name, Version, Language, ManifestType}
+    ulong            Seed,
+    Character        Character,
+    int              Ascension,
+    IReadOnlyList<ModifierId> Modifiers,
+    CellTerminus     Terminus,
+    int              FloorReached,
+    int              FinalHp,
+    int              MaxHp,
+    int              Gold,
+    int              DeckSize,
+    int              RelicCount,
+    int              CombatCount,
+    int              EliteCount,
+    int              BossCount,
+    int              TurnsInCombat,
+    int              Steps,
+    long             WallClockMs,
+    int?             PeakRssMb,            // best-effort
+    int?             AgentPeakRssMb,       // best-effort
+    long?            CpuTimeMs,            // best-effort
+    string           ReplayPath,           // relative to eval root, e.g. "cells/greedy/42"
+    string           GameVersion,
+    string           Sts2DllSha256,
+    ScoringMetrics   Scoring,              // {Score: double}
+    WireErrorPayload? Error = null);        // populated when Terminus ∈ {EngineCrash, HostCrash, AgentCrash, HarnessError}
+
+public sealed record AgentIdentity(string Name, string Version, string Language, string ManifestType);
+public sealed record ScoringMetrics(double Score);
+public sealed record WireErrorPayload(int Code, string Message, string? Stack = null);
+```
+
+**`summary.json`** — the per-eval rollup:
+
+```csharp
+public sealed record EvaluationSummary(
+    string                       EvalId,
+    string                       GameVersion,
+    string                       Sts2DllSha256,
+    SeedBankReference            SeedBank,         // {Name, Version, Count}
+    IReadOnlyList<Character>     Characters,
+    IReadOnlyList<int>           Ascensions,
+    IReadOnlyList<ModifierId>    Modifiers,
+    ScoringFunctionReference     Scoring,          // {Name, Version}
+    long                         ElapsedMs,
+    int                          CellCount,
+    int                          Workers,
+    IReadOnlyList<AgentRanking>  Ranking,
+    IReadOnlyList<CellResult>    NotableCells);    // auto-populated with crashes
+```
+
+**`summary.md`** — human-readable mirror of `summary.json`, formatted
+to feel sibling-shaped with `documentation/coverage/sweep-*.md`
+(same header, same table style). Always deterministic-ordered so
+diffs across runs only reflect content changes.
+
+**`cells/<agent>/<seed>/cell.json`** — denormalised forward index
+from the AD-8 cell directory back to its row in `runs.jsonl`. The
+shape is a strict subset of `CellResult` (no resource accounting, no
+error payload — those live in `runs.jsonl`). The point is that a
+tool walking `cells/` can read each cell's `cell.json` without
+joining against `runs.jsonl` first.
+
+NFR-1 (output is the API): adding fields is allowed; removing or
+renaming is a breaking change with the same OpenRPC-style discipline
+the wire protocol takes (AD-5).
+
+### `CellTerminus` — closed set
+
+```csharp
+public enum CellTerminus
+{
+    Victory,        // agent beat the Act 3 boss (per sts2-game-facts.md)
+    Death,          // agent died in combat
+    Abandoned,      // agent emitted StopRun mid-game
+    Stalled,        // StallDetector tripped
+    MaxSteps,       // Budgets.MaxSteps cap reached
+    Timeout,        // Budgets.PerCell wall-clock cap expired
+    EngineCrash,    // host returned a wire error
+    HostCrash,      // host process died (stdout EOF before response)
+    AgentCrash,     // agent process died (stdout EOF before response)
+    HarnessError,   // orchestrator-side failure
+}
+```
+
+The first six are *results*; the cell ran cleanly and the agent (or
+game state, in the case of MaxSteps) determined the outcome. The
+three `*Crash` variants are *attribution* — somebody crashed; the row
+records who. `HarnessError` is the only one that flips the harness's
+own exit code; all others return zero (NFR-4: "a CI gate that fires
+on agent crashes is hostile to development on the harness itself").
+
+`Stalled` distinguishes from `Timeout`: the former trips on
+fingerprint repetition (`StallDetector` already wired through
+`AgentDriver.PlayRunAsync`), the latter on wall-clock. The
+`StallDetectedException` from the existing driver bubbles up
+as `terminus: Stalled` with the captured fingerprint in
+`runs.jsonl`'s `Error.Message`.
+
+### Exit code semantics
+
+`Sts2Headless.Eval.EvaluationHarness.RunAsync` returns an
+`EvaluationReport`. The example programs end with:
+
+```csharp
+return report.HasHarnessError ? 1 : 0;
+```
+
+`HasHarnessError` is true iff *any* cell has `Terminus =
+HarnessError` (the harness itself failed to set up or finalise the
+cell). A matrix where every cell finishes — including all the
+`*Crash` outcomes — exits zero. This is what makes the harness
+useful in CI: PR-gated smoke evals fail on harness regressions, not
+on agent crashes (which are real signal but not "the harness is
+broken").
+
+### Just recipes and CLI shape
+
+A new `scripts/eval/justfile`, imported from the root justfile,
+follows the existing per-module convention:
+
+```just
+# scripts/eval/justfile
+import '../common.just'
+set working-directory := '../..'
+
+# Smoke eval — 5 seeds × Greedy on Ironclad A0. Fast inner-loop check.
+smoke:
+    @just build::build
+    @dotnet run --project examples/EvalSmoke --no-build
+
+# Reference eval — 50 committed seeds × in-repo agents on Ironclad A0.
+reference:
+    @just build::build
+    @dotnet run --project examples/EvalReference --no-build
+
+# Deep eval — full 500-seed bank against everyone opted in. Multi-hour.
+# Pass `--` then extra flags to forward them to the program.
+deep *args:
+    @just build::build
+    @dotnet run --project examples/EvalDeep --no-build -- {{args}}
+```
+
+Top-level invocations: `just eval::smoke`, `just eval::reference`,
+`just eval::deep`. No new CLI flags on `Sts2Headless` itself — the
+host stays a stdio server (AD-2), nothing else.
+
+The example programs are normal `dotnet` exes; nothing in the
+harness library reads `args[]` directly. If a caller wants to drive
+the matrix from a checked-in `config.json`, they write a
+`Program.cs` that reads the file via
+`EvaluationReportIo.LoadConfig(path)` and passes the resulting
+record to `EvaluationHarness.RunAsync`. JSON-driven invocation is
+deliberately one user-line away rather than baked into the harness.
+
+### CI shape
+
+Three GitHub Actions workflows, all targeting the existing
+self-hosted runner with a populated `vendor/sts2.dll` (per AD-3 /
+the runbook at `documentation/runbooks/vendor-mirror-setup.md`):
+
+- **`.github/workflows/eval-smoke.yml`** — `on: [pull_request]`,
+  `runs-on: [self-hosted]`. Runs `just eval::smoke`, diffs the
+  resulting `summary.json` against the most recent `main` published
+  artefact, posts a delta comment on the PR. Budget ≲ 5 min. Fails
+  the PR on `HarnessError` (per the exit code), passes on agent
+  crashes (they're signal, not a gate).
+- **`.github/workflows/eval-reference.yml`** — `on: schedule (nightly
+  03:00 UTC)` plus `workflow_dispatch`. Runs `just eval::reference`,
+  publishes the eval directory (`replays/eval-harness/<eval-id>/`) to
+  the `gh-pages` branch at `nightly/<eval-id>/`, regenerates the
+  leaderboard index at `gh-pages/index.html` from the
+  `headless-in-the-spire-leaderboard` Python package. Budget ≲ 1 h.
+- **`.github/workflows/eval-deep.yml`** — `on: workflow_dispatch`
+  only. Runs `just eval::deep`, publishes to `gh-pages/deep/<eval-id>/`,
+  regenerates a separate `deep/index.html`. Operator-triggered;
+  multi-hour.
+
+gh-pages layout:
+
+```
+gh-pages/
+├── index.html                      # leaderboard rendered from latest nightly
+├── nightly/
+│   ├── 2026-05-26T03-00-00Z/       # one dir per nightly eval
+│   │   ├── summary.md
+│   │   ├── summary.json
+│   │   ├── runs.jsonl
+│   │   ├── config.json
+│   │   └── cells/                  # included for evidence-linking only — .mcr files referenced but not redistributed
+│   ├── 2026-05-27T03-00-00Z/
+│   └── …
+└── deep/
+    ├── index.html
+    └── 2026-06-01T12-00-00Z/
+```
+
+`cells/` directories on gh-pages include `cell.json` and AD-8's
+`manifest.json` + `run.json` for evidence-linking, but **not** the
+`.mcr` binaries — those derive from `vendor/sts2.dll` (proprietary
+posture per AD-8) and stay on the self-hosted runner. The HTML
+leaderboard links to the runner's local artefacts for the
+maintainer-side investigation flow; published replays sufficient for
+a public viewer wait on the downstream Godot replay-viewer mod (also
+per AD-8).
+
+**Consequences**
+
+- Four new C# projects land in the solution (`Sts2Headless.Eval`,
+  `Sts2Headless.Eval.Manifests`, `Sts2Headless.AgentRunner`,
+  `Sts2Headless.EvalTests`), plus three example console exes
+  under `examples/`. The `Sts2Headless.AgentRunner` exe is the only
+  one that links against the `Sts2Headless.Eval.Manifests` assembly;
+  the orchestrator library and the example programs reference
+  `Sts2Headless.Eval` only — manifests reach the orchestrator as
+  `AgentManifest` references constructed by the user's
+  `Program.cs`, not via assembly scanning.
+- `HostPool`, `AgentDriver`, `StallDetector`, and the AD-8 recording
+  substrate are reused unchanged. The harness is a *consumer* of the
+  existing plumbing, not a replacement; FR-1..FR-12 demand zero new
+  primitives in `Sts2Headless.Agents` or `Sts2Headless.Replay`.
+- The agent dialect being a mirror of the host dialect keeps the
+  cognitive load flat: anyone who's written against the host wire
+  already knows the envelope, the polymorphic `AgentAction`
+  serialisation, the `WireErrorCode` conventions. The OpenRPC export
+  for the agent dialect is a small extension to
+  `Sts2Headless.SchemaExport`, not a parallel pipeline.
+- Library defaults are *starting values*. Operators tune them per
+  manifest (`AgentManifest.Budgets`) or per eval
+  (`EvaluationHarnessConfig.Budgets`); the harness never has a
+  hard-coded knob a caller can't override. When the seed-42 wall-clock
+  or the `IroncladAgent` p99 decision time changes meaningfully,
+  these defaults get re-calibrated in a follow-up — the structure
+  doesn't change.
+- Adding a new in-repo agent is mechanical: one agent class, one
+  `BundledAgent` subclass, one line in `BuiltinAgents`. An accidental
+  typo anywhere along that chain is a compile error. Adding an
+  external agent is one class (the manifest) and one `new …()` at the
+  config call site. No JSON files to maintain, no path lookups, no
+  string-typed factory.
+- Variants of the same agent class (different policy stacks, different
+  hyperparameters) are first-class leaderboard entries by writing
+  another `BundledAgent` subclass with a distinct `Name` and a
+  custom `CreateAgent()`. This is the long-term answer to "how do we
+  compare policy stacks?" — naming is the author's responsibility;
+  the harness only sees `AgentManifest` instances.
+- Crash isolation is structural: the agent is a separate OS process,
+  and per-cell host + agent subprocess pairs are the only resources
+  that cross the cell boundary. The orchestrator process surviving
+  a cell crash is a function of `Process.Start` + `await`-on-stdout,
+  not new framework code.
+- The Python leaderboard package is the only consumer of
+  `summary.json` and `runs.jsonl` shipped in this repo. Anyone else
+  who wants a renderer reads the same JSON; the schema is the
+  contract (NFR-1). The Python package has no path back into the C#
+  harness — it's strictly downstream, and AD-6 still applies (Python
+  cannot author canonical eval scenarios; it only renders the JSON
+  the C# harness emits).
+- AD-3 cross-version posture inherits unchanged: a `gameVersion`
+  bump invalidates a `.mcr`, which invalidates a cell's replay
+  re-execution, which invalidates the determinism canary (FR-11) on
+  that cell. The aggregate layer refuses to mix versions; the
+  bank-version + game-version pair is what makes a published result
+  re-runnable.
+- AD-7 inherits unchanged: `Sts2Headless.AgentRunner` never sets
+  `--enable-debug` on the host it talks to (the harness owns host
+  spawn, not the agent), and `HostPool` already enforces the
+  production-host invariant (see `HostProcess.Start` — debug is
+  deliberately not exposed as a knob). A diagnostic eval that wants
+  debug methods has to swap `HostPool` for the test-only
+  `HostSubprocess` fixture, which the harness library does not link
+  against.
+- FR-11 (determinism canary) and FR-12 (per-decision notes) ship
+  with the field-level surface in place (`EnableDeterminismCanary`,
+  `CaptureAgentNotes` on `EvaluationHarnessConfig`;
+  `AgentDecideResult.Notes` on the wire) but no orchestrator
+  implementation. A v2 PR fills them in without a wire bump.
+- The CI shape is a starting point: PR smoke on every PR, nightly
+  reference on a schedule, manual deep on workflow_dispatch. If the
+  smoke run turns out to be cost-prohibitive even on the self-hosted
+  runner, we narrow it to "only run when files under `src/` or
+  `tests/Sts2Headless.EvalTests/` change" — that change is a
+  workflow tweak, not an architecture revision.
