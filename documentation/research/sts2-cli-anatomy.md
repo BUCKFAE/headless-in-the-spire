@@ -1,7 +1,9 @@
 # Anatomy of `wuhao21/sts2-cli`
 
-Snapshot date: 2026-05-13. Source pinned at `external-tools/sts2-cli/`
-(latest `main` at clone time).
+Snapshot date: 2026-05-24 (refreshed in commit `fb989b8` after the process
+pool and other "we could reuse this pattern" pieces shipped). Source pinned
+at `external-tools/sts2-cli/` (latest `main` at original 2026-05-13 clone
+time).
 
 This document records *how* sts2-cli actually works under the hood, what is
 load-bearing about its approach, and what lessons we should and should not
