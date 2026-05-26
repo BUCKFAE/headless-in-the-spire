@@ -59,7 +59,7 @@ public sealed class HostSubprocess : IAsyncDisposable
         // deliberately omits it to pin the gate from the other side.
         psi.ArgumentList.Add("--enable-debug");
         // AD-8: recording is on by default in the host (lands in
-        // vendor/replays/...). Generic integration tests don't want
+        // replays/manual/...). Generic integration tests don't want
         // to pollute the repo on every run, so this fixture opts out
         // explicitly. RecordingHost (the counterpart) DOES set
         // STS2_REPLAY_OUT to a tmp path when it wants the artifacts.

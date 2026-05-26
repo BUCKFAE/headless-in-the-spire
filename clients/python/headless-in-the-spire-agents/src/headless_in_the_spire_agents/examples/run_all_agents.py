@@ -173,11 +173,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--out",
         type=Path,
-        default=Path("vendor/replays"),
+        default=Path("replays/manual"),
         help=(
-            "Replay root (default: vendor/replays — the same canonical root "
-            "the viewer reads). All agents land here; the manifest's "
-            "header.agent field carries the agent identity."
+            "Replay root (default: replays/manual — the canonical bucket "
+            "for ad-hoc / record-all output, mirrored on the C# side by "
+            "ReplayLayout.DefaultRootRelative). All agents land here; the "
+            "manifest's header.agent field carries the agent identity."
         ),
     )
     parser.add_argument(

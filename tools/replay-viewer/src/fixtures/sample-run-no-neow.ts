@@ -1,5 +1,5 @@
 // Fixture mirroring the shape of the real bundled sample
-// (vendor/replays/sample/v0.103.2/...) — no "ancient" entry because
+// (replays/sample/v0.103.2/...) — no "ancient" entry because
 // the recording was started with withNeow=false. The first
 // map_point_history entry is the first real combat at engine ActFloor=2
 // (Neow at engine ActFloor=1 is skipped, but the floor counter still

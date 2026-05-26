@@ -4,20 +4,22 @@ import { join } from "node:path";
 import { parseManifest, parseTimeline } from "../src/core/parse";
 import { summarizeEvent } from "../src/core/summary";
 
-// End-to-end smoke against whatever sits in vendor/replays/. The
-// recording substrate writes manifest.json + per-combat *.mcr +
+// End-to-end smoke against whatever sits in replays/. The recording
+// substrate writes manifest.json + per-combat *.mcr +
 // *.mcr.timeline.json under `<root>/<game-version>/<run-id>/`. If the
 // repo has the seed-42 sample bundled (`just runner::record-sample-replay`),
 // we round-trip each timeline.json through the parser and ensure
-// summarizeEvent doesn't throw on anything in the wild.
+// summarizeEvent doesn't throw on anything in the wild. The walk picks
+// up every bucket under replays/ (manual, sample, eval-harness, …) —
+// more recordings ⇒ broader coverage, automatically.
 //
 // Skipped silently if no recordings are present — running the viewer's
 // tests must not require having driven a real run yet.
 
-const REPLAYS_ROOT = join(__dirname, "..", "..", "..", "vendor", "replays");
+const REPLAYS_ROOT = join(__dirname, "..", "..", "..", "replays");
 
 describe("real-world timeline.json round-trip", () => {
-  it("parses every timeline.json under vendor/replays and summarises every event", () => {
+  it("parses every timeline.json under replays/ and summarises every event", () => {
     if (!existsSync(REPLAYS_ROOT)) return;
     const timelinePaths = walkForTimelines(REPLAYS_ROOT);
     if (timelinePaths.length === 0) return;
@@ -53,7 +55,7 @@ describe("real-world timeline.json round-trip", () => {
     if (sawChecksums) expect(sawStateBlock).toBe(true);
   });
 
-  it("parses every manifest.json under vendor/replays", () => {
+  it("parses every manifest.json under replays/", () => {
     if (!existsSync(REPLAYS_ROOT)) return;
     const manifestPaths = walkForManifests(REPLAYS_ROOT);
     if (manifestPaths.length === 0) return;

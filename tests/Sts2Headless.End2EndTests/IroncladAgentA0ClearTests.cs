@@ -118,7 +118,7 @@ public class IroncladAgentA0ClearTests
         var workers = Math.Clamp(Environment.ProcessorCount / 2, 2, 8);
 
         // Replay output lives in /tmp so a full sweep doesn't fill
-        // vendor/replays. Cleaned up by the TempDir.
+        // replays/manual. Cleaned up by the TempDir.
         using var tmp = new TempDir("sts2-a0-clear");
 
         // Cap total wall in case of pathological cases. Per-seed timeout

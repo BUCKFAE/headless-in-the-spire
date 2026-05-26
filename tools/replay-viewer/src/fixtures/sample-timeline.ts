@@ -10,7 +10,7 @@
 // `initial_run` is `{}` to keep the fixture small — the viewer treats
 // initial_run as opaque (typed `unknown`) and doesn't validate it.
 // Tests that need real engine state should run against a recorded
-// timeline.json under vendor/replays/.
+// timeline.json under replays/.
 
 export const SAMPLE_TIMELINE_RAW = {
   schema_version: 1,

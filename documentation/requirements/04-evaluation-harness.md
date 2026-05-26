@@ -292,8 +292,8 @@ Replays are automatic and addressable.
   output lands under `<eval-root>/<eval-id>/cells/<agent>/<seed>/...`.
 - **Default `eval-root`**: `replays/eval-harness/` at the repo root.
   The top-level `replays/` directory is gitignored. Distinct from
-  AD-8's default `vendor/replays/` (which is the bucket for ad-hoc /
-  `record-all`-style runs) — keeping eval output in its own tree
+  AD-8's default `replays/manual/` (which is the bucket for ad-hoc /
+  `record-all`-style runs) — keeping eval output in its own bucket
   prevents an eval-id from ever colliding with a manual recording and
   makes the eval tree safe to `rm -rf` without touching anything else.
 - `<eval-id>` is wall-clock timestamp at eval start (sortable,
@@ -433,7 +433,7 @@ hand-managed batch. The harness owns batching internally.
 - Reports land at `replays/eval-harness/<eval-id>/`. The top-level
   `replays/` directory is gitignored (the per-cell replay subdirs
   under it carry game bytes derived from `vendor/sts2.dll`, same
-  proprietary-derivative posture AD-8 takes for `vendor/replays/`).
+  proprietary-derivative posture AD-8 takes for `replays/manual/`).
 - The harness obeys AD-7: the host it spawns runs *without*
   `--enable-debug` by default. An eval with `--enable-debug` is a
   diagnostic affordance, never the leaderboard pipeline.
@@ -576,7 +576,7 @@ covered above, the following are decided:
    config's ascension-set field.
 6. **Output tree is `replays/eval-harness/<eval-id>/`** at the repo
    root; the top-level `replays/` directory is gitignored. Distinct
-   from AD-8's `vendor/replays/` (ad-hoc / `record-all` bucket) so the
+   from AD-8's `replays/manual/` (ad-hoc / `record-all` bucket) so the
    eval tree is safe to wipe in isolation.
 7. **MVP cut: FR-1 through FR-10.** FR-11 (determinism canary) and
    FR-12 (notes / annotations on decisions) slip to v2. They are

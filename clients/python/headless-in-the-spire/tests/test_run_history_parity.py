@@ -2,16 +2,19 @@
 
 The C# `RunHistoryDocumentTests` validate parsing on the C# side
 (`vendor/sample-saves/`). This test mirrors that posture on the Python
-side: walk every `.run` file under `vendor/replays/`, parse via the
-generated pydantic model, assert it doesn't raise and that the load-
-bearing fields populate.
+side: walk every `.run` file under `replays/`, parse via the generated
+pydantic model, assert it doesn't raise and that the load-bearing
+fields populate.
 
 The schema-export pipeline has a few sharp edges around this record
 (AD-8 makes it snake_case, the game also writes one field — `TextKey` —
 in PascalCase). Both broke the Python side silently before
 2026-05-19; this test is the regression net.
 
-Skipped when no replays present (CI / fresh clones).
+Skipped when no replays present (CI / fresh clones). The corpus is
+whatever rglob picks up under `replays/`, which includes the
+`manual/`, `sample/`, and `eval-harness/` buckets — the corpus
+grows the more you exercise the recorder, on purpose.
 """
 
 from pathlib import Path
@@ -30,7 +33,7 @@ def _repo_root() -> Path:
 
 
 def _run_json_files() -> list[Path]:
-    root = _repo_root() / "vendor" / "replays"
+    root = _repo_root() / "replays"
     if not root.is_dir():
         return []
     return sorted(root.rglob("run.json"))
@@ -39,7 +42,7 @@ def _run_json_files() -> list[Path]:
 _RUN_JSONS = _run_json_files()
 
 
-@pytest.mark.skipif(not _RUN_JSONS, reason="no vendor/replays/**/run.json present")
+@pytest.mark.skipif(not _RUN_JSONS, reason="no replays/**/run.json present")
 @pytest.mark.parametrize("path", _RUN_JSONS, ids=lambda p: str(p.relative_to(_repo_root())))
 def test_run_history_document_parses(path: Path) -> None:
     """A real game-written `.run` must round-trip through the generated
@@ -54,7 +57,7 @@ def test_run_history_document_parses(path: Path) -> None:
     assert doc.build_id, "build_id must be non-empty"
 
 
-@pytest.mark.skipif(not _RUN_JSONS, reason="no vendor/replays/**/run.json present")
+@pytest.mark.skipif(not _RUN_JSONS, reason="no replays/**/run.json present")
 def test_history_choice_entry_text_key_populates() -> None:
     """Specific regression: `HistoryChoiceEntry.TextKey` is the one field in
     the History tree the game writes as PascalCase inside an otherwise

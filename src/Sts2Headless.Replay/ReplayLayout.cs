@@ -36,10 +36,24 @@ public static class ReplayLayout
     public const string RunsIndexFileName = "runs.json";
     public const string CombatsDirectoryName = "combats";
 
-    // Default repo-relative root. Under vendor/ because the bytes are
-    // game-derived (proprietary derivative posture, same as vendor/sts2.dll);
-    // gitignored via the existing /vendor rule.
-    public const string DefaultRootRelative = "vendor/replays";
+    // Default repo-relative root. The whole `replays/` tree is gitignored
+    // at the repo root, and we keep buckets one level down so the
+    // categories don't collide:
+    //
+    //   * replays/manual/        — this default; ad-hoc one-off runs,
+    //                              `just runner::stdio` recordings, MCP
+    //                              sessions, `record-all` / `record-sample`
+    //                              outputs. Anyone running the host
+    //                              without an explicit `STS2_REPLAY_OUT`
+    //                              lands here.
+    //   * replays/sample/        — the canonical demo data the
+    //                              replay-viewer test fixtures point at.
+    //                              Produced by `just runner::record-sample-replay`.
+    //   * replays/eval-harness/  — `Sts2Headless.Eval` output; never
+    //                              shares a directory with manual runs
+    //                              so `rm -rf replays/eval-harness`
+    //                              is safe.
+    public const string DefaultRootRelative = "replays/manual";
 
     // Sentinel values that, when set in STS2_REPLAY_OUT, mean "do not
     // record." Matched case-insensitively. Anything else is interpreted
@@ -87,7 +101,7 @@ public static class ReplayLayout
     // Decides where (if anywhere) the recorder should write, given the
     // raw STS2_REPLAY_OUT value and the repo root.
     //
-    //   * null / empty                     → default to <repoRoot>/vendor/replays
+    //   * null / empty                     → default to <repoRoot>/replays/manual
     //   * "off" / "disabled" / "none" / …  → disabled (returns null)
     //   * anything else                    → that path verbatim
     //

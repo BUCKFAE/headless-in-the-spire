@@ -2,15 +2,20 @@ import path from "node:path";
 import fs from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 
-// Resolves to <repo>/vendor/replays. The viewer lives at
+// Resolves to <repo>/replays. The viewer lives at
 // `<repo>/tools/replay-viewer`, so two parents up.
-const REPLAYS_ROOT = path.resolve(__dirname, "../../vendor/replays");
+const REPLAYS_ROOT = path.resolve(__dirname, "../../replays");
 
-// Tiny dev-server middleware that exposes `vendor/replays/` at `/replays/`
+// Tiny dev-server middleware that exposes `<repo>/replays/` at `/replays/`
 // (read-only). The viewer fetches `/replays/runs.json` on load and then
 // pulls per-run artifacts under `/replays/<rel-path>/`. A static build
 // (`vite build`) doesn't include this mount — that mode falls back to
 // the file-picker UI.
+//
+// The single `<repo>/replays/` tree holds every replay bucket: ad-hoc
+// runs under `manual/`, the `record-sample-replay` demo under `sample/`,
+// and the eval harness's matrix output under `eval-harness/<eval-id>/`.
+// The viewer walks `<root>/runs.json` and then per-bucket subtrees.
 function replaysFileMount(): Plugin {
   return {
     name: "sts2-replays-mount",
@@ -58,14 +63,14 @@ function replaysFileMount(): Plugin {
 // Static build. The viewer is asset-free at v1 and loads replay data
 // either via the in-page file picker (still works in any deployment) or
 // — when run under `vite dev` — by fetching `/replays/...` paths the
-// dev plugin above serves out of `<repo>/vendor/replays/`.
+// dev plugin above serves out of `<repo>/replays/`.
 export default defineConfig({
   root: ".",
   plugins: [replaysFileMount()],
   server: {
     fs: {
       // Allow the dev server to read files outside `tools/replay-viewer/`.
-      // Needed because vendor/replays sits at the repo root.
+      // Needed because `replays/` sits at the repo root.
       allow: [path.resolve(__dirname, "../.."), __dirname],
     },
   },

@@ -705,7 +705,7 @@ Concretely:
 - **Persistence layout** mirrors AD-3 `snapshots/<game-version>/`:
 
   ```
-  vendor/replays/<game-version>/<run-id>/
+  replays/<bucket>/<game-version>/<run-id>/
       manifest.json                     (authored by us)
       run.json                          (game's RunHistory writer)
       combats/
@@ -714,9 +714,14 @@ Concretely:
           …
   ```
 
-  Under `vendor/` per the proprietary-derivative posture (the bytes
-  derive from `vendor/sts2.dll`). Gitignored by default. Tests opt into
-  a `--replay-out=<path>` for fixture-controlled locations.
+  Single gitignored root (`replays/`), one bucket per kind:
+  `replays/manual/` is the default (`ReplayLayout.DefaultRootRelative`)
+  for ad-hoc / MCP / `record-all` runs; `replays/sample/` is the demo
+  data `just runner::record-sample-replay` produces and the
+  replay-viewer's tests point at; `replays/eval-harness/<eval-id>/` is
+  the orchestrator (AD-9) output. Bytes derive from `vendor/sts2.dll`
+  so the whole tree is gitignored. Tests opt into a `--replay-out=<path>`
+  (or `STS2_REPLAY_OUT=<path>`) for fixture-controlled locations.
 
 - **Cross-version posture matches AD-3.** A `.mcr` recorded against
   v0.103.2 may not be re-executed against v0.103.3 — the retail

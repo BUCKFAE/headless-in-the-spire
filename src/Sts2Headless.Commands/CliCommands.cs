@@ -54,7 +54,7 @@ public static class CliCommands
         new(["--probe-listener-dispatch"], "Probe: trace listener/trigger dispatch.",
             ctx => ProbeListenerDispatchCommand.Run(ctx.VendorDir, ctx.RepoRoot)),
         new(["--rebuild-replay-index"],
-            "Rebuild <root>/runs.json from manifests (default root: vendor/replays). Doesn't load sts2.dll.",
+            "Rebuild <root>/runs.json from manifests (default root: replays/manual). Doesn't load sts2.dll.",
             RebuildReplayIndex),
         // `--list-members <FQN>`: dump every member of <FQN> that sts2.dll
         // references. Used to grow GodotStubs accurately without speculation.

@@ -3,10 +3,11 @@ namespace Sts2Headless.Eval;
 // Where eval output lands and how the per-eval directory is named.
 //
 // EvalRoot defaults to `replays/eval-harness/` at the repo root. The
-// top-level `replays/` directory is gitignored — distinct from AD-8's
-// default `vendor/replays/` (the ad-hoc / record-all bucket) so an
-// eval-id can't collide with a manual recording and the eval tree is
-// safe to `rm -rf` without touching anything else.
+// top-level `replays/` directory is gitignored, and we keep this
+// bucket one level down so it never shares a directory with AD-8's
+// default `replays/manual/` (the ad-hoc / `record-all` bucket). That
+// means an eval-id can't collide with a manual recording and the eval
+// tree is safe to `rm -rf` without touching anything else.
 //
 // EvalIdGenerator defaults to a UTC timestamp ("2026-05-26T19-32-04Z"):
 // sortable, collision-free across humans on different machines, no

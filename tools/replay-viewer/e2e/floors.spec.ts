@@ -10,7 +10,7 @@ import { SAMPLE_TIMELINE_RAW } from "../src/fixtures/sample-timeline";
 // using the same TS fixtures the unit tests build against. This lets
 // the e2e suite exercise the full-run floor view (items 3, 5, 6, 7
 // from the user redesign) without depending on the bundled sample's
-// shape — the bundled sample under vendor/replays/ has no run.json
+// shape — the bundled sample under replays/sample/ has no run.json
 // today because the act-1-boss recording test stops before
 // RunManager.OnEnded fires.
 //

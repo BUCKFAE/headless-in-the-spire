@@ -65,10 +65,14 @@ for testing, AI experimentation, and replay recording.
   `.mcr` files and per-run `.run` JSON are written verbatim through the
   engine's own writers (CombatReplayWriter / SaveManager.SaveRun) — never
   hand-roll a parallel replay format. New replay code goes in
-  `src/Sts2Headless.Replay/` and lands under `vendor/replays/` (gitignored;
-  proprietary content). The pinned `modelIdHash` makes replays
-  game-version-specific; expect `.mcr` files to invalidate on a
-  `GAME_VERSION` bump.
+  `src/Sts2Headless.Replay/` and lands under `replays/` (gitignored;
+  proprietary content). The tree is bucketed one level deep so categories
+  don't collide: `replays/manual/` (ad-hoc default, set as
+  `ReplayLayout.DefaultRootRelative`), `replays/sample/`
+  (`just runner::record-sample-replay` demo data the viewer's tests
+  point at), `replays/eval-harness/<eval-id>/` (orchestrator output).
+  The pinned `modelIdHash` makes replays game-version-specific; expect
+  `.mcr` files to invalidate on a `GAME_VERSION` bump.
 - **C# is the source of behavioral truth (AD-6).** Drivers, agents,
   scenarios, fixtures, replay corpora, and regression tests are authored in
   C# — `src/Sts2Headless.Agents/` for drivers / agents,
@@ -196,7 +200,8 @@ Sts2Headless.slnx              solution at repo root
 scripts/                       bootstrap shell scripts (bash)
 tools/
   replay-viewer/               TypeScript/Vite frontend that renders .mcr +
-                                 .run replays straight from vendor/replays/.
+                                 .run replays straight from replays/ (any
+                                 bucket: manual, sample, eval-harness/…).
                                  Run via `just runner::dev-viewer` (HMR-enabled).
                                  Standalone; reads no engine bytes — replays
                                  are wire-shape JSON + the engine's own

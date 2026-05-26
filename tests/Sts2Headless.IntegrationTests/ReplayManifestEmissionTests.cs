@@ -71,7 +71,7 @@ public class ReplayManifestEmissionTests
     public async Task HostSubprocess_With_OptOut_Produces_No_Files()
     {
         // Recording is on-by-default at the host level (lands in
-        // vendor/replays/). The HostSubprocess test fixture sets
+        // replays/manual/). The HostSubprocess test fixture sets
         // STS2_REPLAY_OUT=off so generic integration tests don't
         // pollute the repo. This test locks in that opt-out: when the
         // sentinel is set, no replay files are written anywhere.
@@ -79,7 +79,7 @@ public class ReplayManifestEmissionTests
         // Detection: snapshot-diff. A wall-clock window
         // (File.GetCreationTimeUtc > now-30s) was tried first but proved
         // brittle — local dev activity (probe-combat-stall, ad-hoc
-        // record-* recipes) seeds vendor/replays/ with recent files, and
+        // record-* recipes) seeds replays/manual/ with recent files, and
         // the assertion then fired on files this test never touched. The
         // diff makes the invariant precise: only paths created BETWEEN
         // the pre-host snapshot and the post-host snapshot count.

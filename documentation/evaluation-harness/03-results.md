@@ -33,7 +33,7 @@ Properties:
 
 - `replays/` is gitignored at the repo root. The bytes under it derive
   from `vendor/sts2.dll`, same proprietary-derivative posture AD-8 takes
-  for `vendor/replays/`.
+  for `replays/manual/`.
 - Everything under `cells/<agent>/<seed>/` except `cell.json` is the
   game engine's own writers (AD-8). The harness owns only `cell.json`,
   the four root-level files, and the `cells/` skeleton.
