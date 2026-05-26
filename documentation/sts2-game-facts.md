@@ -12,10 +12,13 @@ same commit that bumps `GAME_VERSION`.
 
 ## Run flow
 
-- **Neow at the start of every run.** Always offers a choice of one of
-  three relics. There is no STS1-style "four blessings" menu — it's a
-  flat relic pick. Any agent/test that drives a fresh run must handle
-  this choice as the first interactive step.
+- **Neow is opt-in on `run/new`.** When opted into via `withNeow=true`,
+  Neow offers a choice of one of three relics (no STS1-style "four
+  blessings" menu — it's a flat relic pick). The wire default is
+  `withNeow=false`, which lands the player straight at MapRoom with
+  `StartedWithNeow=false`; agents/tests that need a fresh-run Neow
+  pick as the first interactive step must opt in explicitly. See
+  `RunLifecycleTests.cs` for both default-and-opt-in coverage.
 - **Architect is not a fightable boss (in the current beta).** After you
   beat the Act 3 boss, the very next room is a scripted Architect
   encounter that kills you. There is no Heart-style 4th-act fight to win
