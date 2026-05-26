@@ -51,7 +51,7 @@ private, encrypted GitHub mirror — set up once with
 [documentation/runbooks/vendor-mirror-setup.md](documentation/runbooks/vendor-mirror-setup.md).
 
 ## Current State
-This project is in *very active, very early* development. Expect breaking changes hourly.
+This project is in *very active, early* development. Expect breaking changes.
 
 ## Acknowledgements and AI Notice
 This repository heavily used [https://github.com/wuhao21/sts2-cli](https://github.com/wuhao21/sts2-cli) as reference point. 
