@@ -43,7 +43,8 @@ Python wins on cost; nothing in the ADs argues against it. The official
 
 ## Tool surface
 
-One MCP tool per `MethodCatalog` core entry (17 today) plus `summarize_state`,
+One MCP tool per `MethodCatalog` core entry (39 today: host/*, run/*, and
+the content/* describe / list / rules surface) plus `summarize_state`,
 which renders the current `RunStateResult` as compact text. Three reasons:
 
 1. **AD-6.** A 1:1 mirror keeps the wire protocol the single authoritative
