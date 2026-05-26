@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -82,26 +83,61 @@ public static class EvaluationReportIo
         sb.AppendLine($"Workers: {s.Workers}");
         sb.AppendLine();
 
-        sb.AppendLine("| # | Agent | Version | Wins | Win% | Mean floor | p25 floor | Engine⚠ | Agent⚠ | Host⚠ | Timeout | Median wall |");
-        sb.AppendLine("|---|-------|---------|-----:|-----:|-----------:|----------:|--------:|-------:|------:|--------:|------------:|");
+        var leaderboard = new MarkdownTable()
+            .AddColumns(
+                ("#",            MarkdownAlign.Right),
+                ("Agent",        MarkdownAlign.Left),
+                ("Version",      MarkdownAlign.Left),
+                ("Wins",         MarkdownAlign.Right),
+                ("Win%",         MarkdownAlign.Right),
+                ("Mean floor",   MarkdownAlign.Right),
+                ("p25 floor",    MarkdownAlign.Right),
+                ("Engine⚠",      MarkdownAlign.Right),
+                ("Agent⚠",       MarkdownAlign.Right),
+                ("Host⚠",        MarkdownAlign.Right),
+                ("Timeout",      MarkdownAlign.Right),
+                ("Median wall",  MarkdownAlign.Right));
         foreach (var r in s.Ranking)
         {
             var a = r.Aggregates;
-            sb.AppendLine($"| {r.Rank} | `{r.Agent.Name}` | {r.Agent.Version} | {a.Wins}/{a.Cells} | {(a.WinRate * 100):0.#}% | {a.MeanFloor:0.#} | {a.P25Floor} | {a.EngineCrashes} | {a.AgentCrashes} | {a.HostCrashes} | {a.Timeouts} | {FormatMs(a.MedianWallClockMs)} |");
+            leaderboard.AddRow(
+                r.Rank.ToString(CultureInfo.InvariantCulture),
+                $"`{r.Agent.Name}`",
+                r.Agent.Version,
+                $"{a.Wins}/{a.Cells}",
+                $"{(a.WinRate * 100).ToString("0.#", CultureInfo.InvariantCulture)}%",
+                a.MeanFloor.ToString("0.#", CultureInfo.InvariantCulture),
+                a.P25Floor.ToString(CultureInfo.InvariantCulture),
+                a.EngineCrashes.ToString(CultureInfo.InvariantCulture),
+                a.AgentCrashes.ToString(CultureInfo.InvariantCulture),
+                a.HostCrashes.ToString(CultureInfo.InvariantCulture),
+                a.Timeouts.ToString(CultureInfo.InvariantCulture),
+                FormatMs(a.MedianWallClockMs));
         }
-        sb.AppendLine();
+        leaderboard.RenderTo(sb);
 
         if (s.NotableCells.Count > 0)
         {
+            sb.AppendLine();
             sb.AppendLine("## Notable cells");
             sb.AppendLine();
-            sb.AppendLine("| Agent | Seed | Terminus | Floor | Replay |");
-            sb.AppendLine("|-------|------|----------|------:|--------|");
+            var notable = new MarkdownTable()
+                .AddColumns(
+                    ("Agent",     MarkdownAlign.Left),
+                    ("Seed",      MarkdownAlign.Right),
+                    ("Terminus",  MarkdownAlign.Left),
+                    ("Floor",     MarkdownAlign.Right),
+                    ("Replay",    MarkdownAlign.Left));
             foreach (var nc in s.NotableCells)
             {
-                sb.AppendLine($"| `{nc.Agent}` | {nc.Seed} | {nc.Terminus} | {nc.Floor} | [{nc.ReplayPath}/]({nc.ReplayPath}/) |");
+                notable.AddRow(
+                    $"`{nc.Agent}`",
+                    nc.Seed.ToString(CultureInfo.InvariantCulture),
+                    nc.Terminus.ToString(),
+                    nc.Floor.ToString(CultureInfo.InvariantCulture),
+                    $"[{nc.ReplayPath}/]({nc.ReplayPath}/)");
             }
-            sb.AppendLine();
+            notable.RenderTo(sb);
         }
         return sb.ToString();
     }
