@@ -43,13 +43,6 @@ AI experimentation, and replay tooling.
 The current replay viewer is very crude. I think that sooner or later someone (or Megacrit) will develop a sophisticated replay viewer.
 Once a community-established solution for this (and controlling the actual game) is available, I will integrate it.
 
-## CI without a local Steam install
-
-CI and ephemeral containers fetch the proprietary game DLLs from a
-private, encrypted GitHub mirror — set up once with
-`just setup::init-vendor`. See
-[documentation/runbooks/vendor-mirror-setup.md](documentation/runbooks/vendor-mirror-setup.md).
-
 ## Current State
 This project is in *very active, early* development. Expect breaking changes.
 
