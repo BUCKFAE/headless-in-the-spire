@@ -2,13 +2,17 @@ import { parseRunsIndex, type ReplayRunIndex, type ReplayRunIndexEntry } from ".
 import { ingestFiles, type Session } from "./session";
 
 // HTTP source for replay artifacts. The Vite dev server (and a future
-// static deploy) mounts `<repo>/vendor/replays/` at `/replays/` — see
+// static deploy) mounts `<repo>/replays/` at `/replays/` — see
 // vite.config.ts. This module wraps the fetches so callers don't have
 // to know the URL layout.
 //
-// `runs.json` lives at `/replays/runs.json`; each run's artifacts live
-// under `/replays/<rel_path>/` where `rel_path` is the value stamped
-// into the index entry (e.g. `v0.103.2/1715200000-deadbeef-12345`).
+// `runs.json` lives at `/replays/runs.json` — synthesised by the dev
+// middleware from every per-bucket `runs.json` under `replays/`
+// (`replays/manual/runs.json`, `replays/eval-harness/<id>/cells/.../runs.json`,
+// …). Each entry's `rel_path` is bucket-prefixed so a follow-up fetch
+// of `/replays/<rel_path>/manifest.json` resolves against the right
+// subtree (`manual/v0.103.2/<run-id>`,
+// `eval-harness/<id>/cells/greedy/s42/v0.103.2/<run-id>`, …).
 //
 // All fetches are no-store: the viewer is meant to reflect the disk
 // state right now (you just recorded a run and want to see it), not a

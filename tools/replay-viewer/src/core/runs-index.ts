@@ -3,6 +3,14 @@
 // Bumping the C# CurrentVersion is meant to surface here as either a
 // compile error (when the viewer is rebuilt) or a parse error at load
 // time.
+//
+// At the viewer's `/replays/runs.json` URL, this shape is synthesised
+// on-the-fly by the Vite dev middleware from every per-bucket /
+// per-cell `runs.json` under `replays/` (see vite.config.ts). Each
+// entry's `rel_path` is bucket-prefixed (e.g.
+// `manual/v0.103.2/<run-id>`,
+// `eval-harness/<id>/cells/greedy/s42/v0.103.2/<run-id>`) so
+// `loadRunByRelPath` resolves against the right subtree.
 
 import type { ReplayRunOutcome } from "./types";
 
