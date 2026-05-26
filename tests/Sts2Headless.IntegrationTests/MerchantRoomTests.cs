@@ -42,8 +42,7 @@ public class MerchantRoomTests : IClassFixture<HostSubprocess>
     // rooms via debug/set_hp so the agent doesn't starve.
     private async Task<RunStateResult> WalkToMerchantEntry()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 13uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 13uL);
 
         var transport = new HostSubprocessAgentTransport(_host);
         var agent = new GreedyAgent();

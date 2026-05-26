@@ -30,8 +30,7 @@ public class CombatCardSelectionTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task Headbutt_PlaysToCompletion_AndMovesDiscardCardToDrawTop()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 1uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 1uL);
 
         // Deck: one Headbutt + four Strikes. The Strikes get played first
         // (or piled into discard) so Headbutt's discard-pick prompt has
@@ -84,8 +83,7 @@ public class CombatCardSelectionTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task Armaments_PlaysToCompletion_WithoutHostError()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 1uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 1uL);
 
         await _host.SendAsync<DebugReplaceDeckResult>(
             "debug/replace_deck",
@@ -122,8 +120,7 @@ public class CombatCardSelectionTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task BurningPact_PlaysToCompletion_AndDrawsTwoCards()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 1uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 1uL);
 
         // Burning Pact discards 1 and draws 2 — need draw-pile cards left
         // for the draw to land. Pin a 7-card deck so 5 land in hand at turn
@@ -172,8 +169,7 @@ public class CombatCardSelectionTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task Headbutt_WithExplicitCardSelectIndices_PicksTheGivenCard()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 1uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 1uL);
 
         // Pin a deck where the discard pile, after a setup play, holds two
         // distinguishable cards (Strike + Defend). Headbutt then picks via

@@ -152,8 +152,7 @@ public class CardCatalogProbeTests : IClassFixture<HostSubprocess>
         // Fresh run on every probe so we don't leak state between cards.
         // The shared HostSubprocess fixture is fine: run/new resets the
         // session.
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         // Deck: target card + 4 Defends. Hand draws 5 → all 5 in hand.
         var deck = new List<(string, int)>

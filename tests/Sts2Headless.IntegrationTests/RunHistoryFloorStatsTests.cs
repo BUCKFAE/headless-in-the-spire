@@ -27,8 +27,7 @@ public class RunHistoryFloorStatsTests
         using var tempReplays = new TempDir("sts2-replays");
         await using var host = RecordingHost.Start(tempReplays.Path);
 
-        await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
-        var snap = await host.SendAsync<RunStateResult>("run/state");
+        var snap = await RunFixtures.StartFreshRunAtMap(host, seed: 42uL);
         var monsterNode = snap.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
         var entered = await host.SendAsync<RunSelectMapNodeResult>(
             "run/select_map_node", new RunSelectMapNodeParams(Col: monsterNode.Col, Row: monsterNode.Row));
@@ -85,10 +84,18 @@ public class RunHistoryFloorStatsTests
         var act1 = mapPointHistory[0]!.AsArray();
         Assert.NotEmpty(act1);
 
-        // First map_point_history entry corresponds to the combat we
-        // just won. Its player_stats[0] must carry real HP / max_hp /
-        // gold — not the 0/0/0 the TestMode gate would leave behind.
-        var firstEntry = act1[0]!.AsObject();
+        // First map_point_history entry is the Neow ("ancient") room —
+        // every run begins there. The first *combat* entry is the next
+        // one; its player_stats[0] must carry real HP / max_hp / gold —
+        // not the 0/0/0 the TestMode gate would leave behind.
+        var firstCombatIdx = 0;
+        for (var i = 0; i < act1.Count; i++)
+        {
+            var entry = act1[i]!.AsObject();
+            var mapPointType = (string?)entry["map_point_type"];
+            if (mapPointType != "ancient") { firstCombatIdx = i; break; }
+        }
+        var firstEntry = act1[firstCombatIdx]!.AsObject();
         var playerStats = firstEntry["player_stats"]!.AsArray()[0]!.AsObject();
 
         var maxHp = (int)playerStats["max_hp"]!;
@@ -123,4 +130,5 @@ public class RunHistoryFloorStatsTests
         var pickedCount = cardChoices.Count(c => (bool)c!["was_picked"]!);
         Assert.Equal(1, pickedCount);
     }
+
 }

@@ -14,7 +14,7 @@ public class CombatSelectRewardTests
         // that card grows the deck by one. Pin the deck-size delta to 1 so a
         // future regression that double-adds (or silently drops) is caught.
         await using var host = new HostSubprocess();
-        await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(host, seed: 42uL);
 
         // Capture deck size while still on the map (combat enters mutate it
         // through draw piles, not the source deck — but we want the canonical

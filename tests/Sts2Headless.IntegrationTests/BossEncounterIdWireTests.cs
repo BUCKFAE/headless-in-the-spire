@@ -21,10 +21,8 @@ public class BossEncounterIdWireTests
     public async Task BossEncounterId_PopulatedAtRunStart_Ironclad()
     {
         await using var host = new HostSubprocess();
-        await host.SendAsync<RunNewResult>(
-            "run/new",
-            new RunNewParams(Character: Character.Ironclad, Seed: 1uL, Ascension: 0));
-        var state = await host.SendAsync<RunStateResult>("run/state");
+        var state = await RunFixtures.StartFreshRunAtMap(
+            host, character: Character.Ironclad, seed: 1uL, ascension: 0);
         Assert.NotNull(state.BossEncounterId);
         // The wire enum has an Unknown sentinel — pin that the engine
         // actually surfaced a known encounter, not a fallback.
@@ -41,10 +39,8 @@ public class BossEncounterIdWireTests
         for (var run = 0; run < 2; run++)
         {
             await using var host = new HostSubprocess();
-            await host.SendAsync<RunNewResult>(
-                "run/new",
-                new RunNewParams(Character: Character.Ironclad, Seed: seed, Ascension: 0));
-            var state = await host.SendAsync<RunStateResult>("run/state");
+            var state = await RunFixtures.StartFreshRunAtMap(
+                host, character: Character.Ironclad, seed: seed, ascension: 0);
             if (run == 0) firstBoss = state.BossEncounterId;
             else Assert.Equal(firstBoss, state.BossEncounterId);
         }

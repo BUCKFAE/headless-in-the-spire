@@ -21,7 +21,7 @@ public class CombatFightTests
         // MapRoom on the next snapshot.
         await using var host = new HostSubprocess();
 
-        var start = await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(host, seed: 42uL);
         var monsterNode = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
         var snap = await host.SendAsync<RunSelectMapNodeResult>(
             "run/select_map_node", new RunSelectMapNodeParams(Col: monsterNode.Col, Row: monsterNode.Row));

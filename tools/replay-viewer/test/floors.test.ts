@@ -271,15 +271,17 @@ describe("combatTimelineForFloor: matches by combat ordinal, not floor number", 
 
 // ── Failing-bug coverage: floor numbering matches engine ActFloor ──────
 //
-// The map_point_history doesn't include Neow when the run was started
-// with withNeow=false, but the engine's floor counter still includes
-// it (Neow is engine floor 1). So the first map-point-history entry is
-// engine floor 2, not floor 1. The viewer's `floor` field on each row
-// must surface the engine's ActFloor, otherwise the floor labels don't
-// match the in-game UI and don't match the manifest's combat floors.
+// Every current STS2 run starts with Neow, so a fresh run.json carries
+// an "ancient" entry as the first map_point_history record (engine
+// floor 1). Legacy recordings produced before Neow became mandatory
+// could omit that entry, but the engine's floor counter still includes
+// it — so the first map-point-history entry is engine floor 2, not
+// floor 1. The viewer's `floor` field on each row must surface the
+// engine's ActFloor, otherwise the floor labels don't match the
+// in-game UI and don't match the manifest's combat floors.
 
 describe("materialiseFloors: floor numbering matches engine ActFloor", () => {
-  it("starts at floor 2 when there's no ancient (Neow) entry", () => {
+  it("falls back to floor 2 for legacy recordings without an ancient (Neow) entry", () => {
     const rows = materialiseFloors(parseRunHistory(SAMPLE_RUN_NO_NEOW_RAW));
     expect(rows[0]!.floor).toBe(2);
     expect(rows[1]!.floor).toBe(3);

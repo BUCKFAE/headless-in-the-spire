@@ -34,8 +34,8 @@ public class RelicsSnapshotTests : IClassFixture<HostSubprocess>
         // StartRun before run/new returns. The first snapshot must
         // already carry it; otherwise a client driving the wire would never
         // see relics granted via this path.
-        var start = await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            _host, character: Character.Ironclad, seed: 42uL);
 
         Assert.NotEmpty(start.Relics);
         // RelicId.ToString() returns the PascalCase enum-member name
@@ -61,8 +61,8 @@ public class RelicsSnapshotTests : IClassFixture<HostSubprocess>
         // Player.Relics by the time the next snapshot is read. This pins
         // the wire contract: clients can drive give_relic and then trust
         // run/state to reflect the new bag.
-        var start = await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            _host, character: Character.Ironclad, seed: 42uL);
         var idsBefore = start.Relics.Select(r => r.Id).ToHashSet<RelicId>();
 
         var afterInject = await _host.SendAsync<DebugGiveRelicResult>(
@@ -94,8 +94,8 @@ public class RelicsSnapshotTests : IClassFixture<HostSubprocess>
         // should agree on the bag. A drift here would signal the snapshot is
         // re-reading sts2 in a way that loses state (cache miss, owner re-
         // assignment, etc.).
-        var start = await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            _host, character: Character.Ironclad, seed: 42uL);
         var state = await _host.SendAsync<RunStateResult>("run/state");
 
         var startIds = start.Relics.Select(r => r.Id.ToString()).OrderBy(x => x, StringComparer.Ordinal).ToList();

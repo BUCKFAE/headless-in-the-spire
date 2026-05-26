@@ -32,7 +32,7 @@
     },
     {
       "name": "run/new",
-      "summary": "Start a new run. Defaults: Ironclad, seed=1, withNeow=false, ascension=0.",
+      "summary": "Start a new run. Defaults: Ironclad, seed=1, ascension=0. Always lands at the Neow blessing EventRoom — dispatch run/select_event_option to advance to MapRoom.",
       "paramStructure": "by-name",
       "params": [
         {
@@ -5499,13 +5499,6 @@
           "seed": {
             "type": [
               "integer",
-              "null"
-            ],
-            "default": null
-          },
-          "withNeow": {
-            "type": [
-              "boolean",
               "null"
             ],
             "default": null

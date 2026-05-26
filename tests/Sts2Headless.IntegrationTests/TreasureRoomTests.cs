@@ -43,8 +43,7 @@ public class TreasureRoomTests : IClassFixture<HostSubprocess>
     // concern, not an agent one.
     private async Task<RunStateResult> WalkToTreasureRoom()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var transport = new HostSubprocessAgentTransport(_host);
         var agent = new GreedyAgent();

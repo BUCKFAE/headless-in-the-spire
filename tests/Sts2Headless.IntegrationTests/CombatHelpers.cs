@@ -17,7 +17,8 @@ internal static class CombatHelpers
     //
     // Idempotent on the run state: callers may have already issued run/new
     // before calling (to capture pre-combat state); we re-issue only when the
-    // host reports no active run.
+    // host reports no active run. Every run lands at the Neow EventRoom, so
+    // we route via RunFixtures.DismissNeow before walking the map.
     public static async Task<RewardsState> DriveCombatToRewards(HostSubprocess host)
     {
         RunStateResult start;
@@ -25,12 +26,16 @@ internal static class CombatHelpers
         catch
         {
             await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
-            start = await host.SendAsync<RunStateResult>("run/state");
+            start = await RunFixtures.DismissNeow(host);
+        }
+        if (start.CurrentRoomType == RoomType.EventRoom)
+        {
+            start = await RunFixtures.DismissNeow(host);
         }
         if (start.CurrentRoomType != RoomType.MapRoom)
         {
             await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
-            start = await host.SendAsync<RunStateResult>("run/state");
+            start = await RunFixtures.DismissNeow(host);
         }
         var monsterNode = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
         var snap = await host.SendAsync<RunSelectMapNodeResult>(

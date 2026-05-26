@@ -20,8 +20,7 @@ public class DebugSetEnergyTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task SetEnergyAndMaxEnergy_UpdatesPlayerCombatState()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         await _host.SendAsync<DebugStartCombatResult>(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));
 
@@ -43,8 +42,7 @@ public class DebugSetEnergyTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task SetEnergyOnly_LeavesMaxEnergyUnchanged()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         await _host.SendAsync<DebugStartCombatResult>(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));
         var before = await _host.SendAsync<RunStateResult>("run/state");
@@ -62,8 +60,7 @@ public class DebugSetEnergyTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task EmptyParams_ReturnsInvalidParamsError()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         await _host.SendAsync<DebugStartCombatResult>(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));
 
@@ -76,8 +73,7 @@ public class DebugSetEnergyTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task NegativeEnergy_ReturnsInvalidParamsError()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         await _host.SendAsync<DebugStartCombatResult>(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));
 
@@ -90,8 +86,7 @@ public class DebugSetEnergyTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ZeroMaxEnergy_ReturnsInvalidParamsError()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         await _host.SendAsync<DebugStartCombatResult>(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));
 

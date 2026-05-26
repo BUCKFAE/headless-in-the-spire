@@ -59,8 +59,7 @@ public class ScalingCardProbeTests : IClassFixture<HostSubprocess>
 
     private async Task<(int e0Damage, int e1Damage, string note)> ProbePactsEndDamageAsync(int prePlays)
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         // Deck: PactsEnd + many Imperviouses (cost 2, self-exhaust, no
         // hand churn). Need to draw enough Imperviouses to stack the
@@ -160,8 +159,7 @@ public class ScalingCardProbeTests : IClassFixture<HostSubprocess>
 
     private async Task<string> ProbeWhirlwindAsync(int energy)
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var deck = new List<CardSpec>
         {
@@ -216,8 +214,7 @@ public class ScalingCardProbeTests : IClassFixture<HostSubprocess>
         sb.AppendLine("| play # | damage |");
         sb.AppendLine("|--------|--------|");
 
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         var deckA = Enumerable.Range(0, 5).Select(_ => new CardSpec("RAMPAGE")).ToList();
         await _host.SendAsync<DebugReplaceDeckResult>(
             "debug/replace_deck", new DebugReplaceDeckParams(deckA));
@@ -249,8 +246,7 @@ public class ScalingCardProbeTests : IClassFixture<HostSubprocess>
         sb.AppendLine("|--------|--------|");
 
         // Force-end the combat by playing through, then start a fresh one.
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         var deckB = new List<CardSpec>
         {
             new("RAMPAGE"),
@@ -319,8 +315,7 @@ public class ScalingCardProbeTests : IClassFixture<HostSubprocess>
 
     private async Task<int> ProbePerfectedStrikeAsync(string companionWireId)
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var deck = new List<CardSpec>
         {
@@ -357,8 +352,7 @@ public class ScalingCardProbeTests : IClassFixture<HostSubprocess>
     [Trait("Category", "Diagnostic")]
     public async Task ProbeCorruption_ChangesSkillCostsAndExhausts()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var deck = new List<CardSpec>
         {
@@ -458,8 +452,7 @@ public class ScalingCardProbeTests : IClassFixture<HostSubprocess>
     public async Task Rampage_FirstPlayDealsNine_Pinned()
     {
         // First play of a Rampage in combat = 9 damage (catalog had 8).
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         var deck = new List<CardSpec>
         {
             new("RAMPAGE"),
@@ -489,8 +482,7 @@ public class ScalingCardProbeTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task Corruption_PowerAppliesAndDefendCostDropsToZero_Pinned()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         var deck = new List<CardSpec>
         {
             new("CORRUPTION"),

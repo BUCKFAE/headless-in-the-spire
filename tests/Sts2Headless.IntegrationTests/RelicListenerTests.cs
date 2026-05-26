@@ -27,7 +27,7 @@ public class RelicListenerTests
     public async Task SelectCardReward_FiresLuckyFyshOnObtain_GrantsFifteenGold()
     {
         await using var host = new HostSubprocess();
-        await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(host, seed: 42uL);
 
         // Inject LuckyFysh BEFORE the first combat so its subscriptions are
         // wired up by the time we land on the rewards screen. Capture deck

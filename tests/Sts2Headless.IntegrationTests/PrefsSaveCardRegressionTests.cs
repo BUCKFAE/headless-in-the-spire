@@ -30,8 +30,8 @@ public class PrefsSaveCardRegressionTests
         // SaveManager.InitPrefsDataForTest(); this test pins that the
         // wire path stays clean.
         await using var host = new HostSubprocess();
-        var start = await host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            host, character: Character.Ironclad, seed: 42uL);
 
         await host.SendAsync<DebugReplaceDeckResult>(
             "debug/replace_deck",

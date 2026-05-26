@@ -17,8 +17,7 @@ public class InlineDisplayNameTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task RunState_AfterRunNew_RelicsCarryDisplayName()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 1uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 1uL);
 
         var state = await _host.SendAsync<RunStateResult>("run/state");
 

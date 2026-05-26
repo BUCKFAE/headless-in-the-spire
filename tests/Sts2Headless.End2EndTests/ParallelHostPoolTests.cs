@@ -115,11 +115,24 @@ public class ParallelHostPoolTests
         var tasks = seeds
             .Select(seed => pool.RunAsync(async (host, ct) =>
             {
-                var run = await host.SendAsync<RunNewResult>(
-                    "run/new", new RunNewParams(
-                        Character: Character.Ironclad,
-                        Seed: seed));
-                return run.AvailableMapNodes
+                await host.SendAsync<RunNewResult>("run/new",
+                    new RunNewParams(Character: Character.Ironclad, Seed: seed));
+                // Every run starts at Neow EventRoom; dismiss it so the
+                // post-boot MapRoom shapes are what we compare. Pick the
+                // last unlocked option (HeuristicAgent default).
+                var state = await host.SendAsync<RunStateResult>("run/state");
+                if (state.CurrentRoomType == RoomType.EventRoom
+                    && state.AvailableEventOptions.Count > 0)
+                {
+                    var lastUnlocked = state.AvailableEventOptions
+                        .Reverse().FirstOrDefault(o => !o.IsLocked)
+                        ?? state.AvailableEventOptions[^1];
+                    await host.SendAsync<RunSelectEventOptionResult>(
+                        "run/select_event_option",
+                        new RunSelectEventOptionParams(OptionIndex: lastUnlocked.Index));
+                    state = await host.SendAsync<RunStateResult>("run/state");
+                }
+                return state.AvailableMapNodes
                     .Select(n => (n.Col, n.Row, n.Type))
                     .ToArray();
             }))

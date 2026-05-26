@@ -17,19 +17,17 @@ public class MapNavigationTests : IClassFixture<HostSubprocess>
     public MapNavigationTests(HostSubprocess host) => _host = host;
 
     [Fact]
-    public async Task RunNew_Surfaces_AvailableMapNodes_AtStartOfRun()
+    public async Task DismissedNeow_Surfaces_AvailableMapNodes_OnFloorOne()
     {
-        // The freshly-booted run should hand back the start node plus its
-        // legal successors. Callers should never have to guess (col, row) —
-        // this list is the source of truth they pass back to run/select_map_node.
-        var result = await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Seed: 42uL));
+        // After Neow resolves, the player lands at MapRoom floor 1 with the
+        // next-row pickable nodes available. Callers should never have to
+        // guess (col, row) — this list is the source of truth they pass
+        // back to run/select_map_node.
+        var state = await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
 
-        Assert.Equal(RoomType.MapRoom, result.CurrentRoomType);
-        Assert.NotEmpty(result.AvailableMapNodes);
-        // Every reported node must come back with sensible coords; row 0 is
-        // the act's starting row, so at least one floor-0 node should appear.
-        Assert.All(result.AvailableMapNodes, n =>
+        Assert.Equal(RoomType.MapRoom, state.CurrentRoomType);
+        Assert.NotEmpty(state.AvailableMapNodes);
+        Assert.All(state.AvailableMapNodes, n =>
         {
             Assert.True(n.Col >= 0, $"col must be non-negative, got {n.Col}");
             Assert.True(n.Row >= 0, $"row must be non-negative, got {n.Row}");
@@ -38,21 +36,20 @@ public class MapNavigationTests : IClassFixture<HostSubprocess>
         // sts2's PointType enum — that's a discipline failure, not a wire
         // shape we want to silently pass through. Capture the offending
         // names if it ever trips so we can grow the enum.
-        var unknowns = result.AvailableMapNodes.Where(n => n.Type == MapNodeType.Unknown).ToList();
+        var unknowns = state.AvailableMapNodes.Where(n => n.Type == MapNodeType.Unknown).ToList();
         Assert.True(unknowns.Count == 0,
             $"unmapped MapNodeType values; grow MapNodeType enum. Nodes: {string.Join(", ", unknowns.Select(u => $"({u.Col},{u.Row})"))}");
     }
 
     [Fact]
-    public async Task SelectMapNode_AdvancesFromMapToFloorOne()
+    public async Task SelectMapNode_AdvancesPastFloorOne()
     {
         // Drive run/select_map_node off the AvailableMapNodes list rather
         // than hard-coded coords — keeps the test stable across map-gen
         // changes and exercises the "wire is self-describing" contract.
-        var start = await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
-        // Skip the start node itself (same coord as current position) and
-        // pick the first reachable child.
-        var pick = start.AvailableMapNodes.FirstOrDefault(n => n.Row > 0)
+        var start = await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
+        // Pick the first reachable child past the current floor.
+        var pick = start.AvailableMapNodes.FirstOrDefault(n => n.Row > start.ActFloor)
                    ?? start.AvailableMapNodes[0];
 
         var afterNode = await _host.SendAsync<RunSelectMapNodeResult>(
@@ -63,7 +60,7 @@ public class MapNavigationTests : IClassFixture<HostSubprocess>
         // transition off MapRoom so this stays stable across game rebalances.
         Assert.NotEqual(RoomType.MapRoom, afterNode.CurrentRoomType);
         Assert.False(afterNode.IsGameOver);
-        Assert.True(afterNode.ActFloor > 0);
+        Assert.True(afterNode.ActFloor > 1);
         // No legal map moves while resolving the room we just entered.
         Assert.Empty(afterNode.AvailableMapNodes);
 

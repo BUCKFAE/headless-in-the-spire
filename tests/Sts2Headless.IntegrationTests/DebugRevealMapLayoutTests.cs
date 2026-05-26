@@ -24,8 +24,7 @@ public class DebugRevealMapLayoutTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task RevealMapLayout_AfterRunNew_SpansMultipleRows()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         var layout = await _host.SendAsync<DebugRevealMapLayoutResult>(
             "debug/reveal_map_layout");
 

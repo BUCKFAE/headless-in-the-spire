@@ -23,8 +23,7 @@ public class DebugAttachCardTests : IClassFixture<HostSubprocess>
 
     private async Task SetupCombatAsync()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         await _host.SendAsync<DebugSetHpResult>(
             "debug/set_hp", new DebugSetHpParams(Hp: 999, MaxHp: 999));
         await _host.SendAsync<DebugReplaceDeckResult>(

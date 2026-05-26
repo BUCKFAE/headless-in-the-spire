@@ -46,8 +46,8 @@ public class CombatParityTests
     public async Task SingleStrike_DamageMatchesEngine()
     {
         await using var host = new HostSubprocess();
-        var start = await host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            host, character: Character.Ironclad, seed: 42uL);
 
         // Deterministic deck: 10 Strikes. Opening hand is 5 Strikes
         // regardless of shuffle order.
@@ -91,8 +91,8 @@ public class CombatParityTests
     public async Task SingleDefend_BlockMatchesEngine()
     {
         await using var host = new HostSubprocess();
-        var start = await host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            host, character: Character.Ironclad, seed: 42uL);
 
         await host.SendAsync<DebugReplaceDeckResult>(
             "debug/replace_deck",
@@ -124,8 +124,8 @@ public class CombatParityTests
     public async Task BashAppliesVulnerableAndDamage_MatchesEngine()
     {
         await using var host = new HostSubprocess();
-        var start = await host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            host, character: Character.Ironclad, seed: 42uL);
 
         // Deck of 10 Bashes — every hand draw is Bashes only.
         await host.SendAsync<DebugReplaceDeckResult>(
@@ -159,8 +159,8 @@ public class CombatParityTests
     public async Task EndTurnEnemyAttackDamage_MatchesEngine()
     {
         await using var host = new HostSubprocess();
-        var start = await host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            host, character: Character.Ironclad, seed: 42uL);
 
         // Deck of pure Defends so we can compare block math at end of turn.
         await host.SendAsync<DebugReplaceDeckResult>(
@@ -203,8 +203,8 @@ public class CombatParityTests
     public async Task TwoStrikes_DamageMatchesEngine()
     {
         await using var host = new HostSubprocess();
-        var start = await host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            host, character: Character.Ironclad, seed: 42uL);
 
         await host.SendAsync<DebugReplaceDeckResult>(
             "debug/replace_deck",

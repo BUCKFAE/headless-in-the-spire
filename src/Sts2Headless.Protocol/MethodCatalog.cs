@@ -46,7 +46,7 @@ public static class MethodCatalog
         new("run/new",
             ParamsType: typeof(RunNewParams),
             ResultType: typeof(RunNewResult),
-            Summary: "Start a new run. Defaults: Ironclad, seed=1, withNeow=false, ascension=0."),
+            Summary: "Start a new run. Defaults: Ironclad, seed=1, ascension=0. Always lands at the Neow blessing EventRoom — dispatch run/select_event_option to advance to MapRoom."),
 
         new("run/state",
             ParamsType: null,

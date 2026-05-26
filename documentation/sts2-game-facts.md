@@ -12,13 +12,18 @@ same commit that bumps `GAME_VERSION`.
 
 ## Run flow
 
-- **Neow is opt-in on `run/new`.** When opted into via `withNeow=true`,
-  Neow offers a choice of one of three relics (no STS1-style "four
-  blessings" menu — it's a flat relic pick). The wire default is
-  `withNeow=false`, which lands the player straight at MapRoom with
-  `StartedWithNeow=false`; agents/tests that need a fresh-run Neow
-  pick as the first interactive step must opt in explicitly. See
-  `RunLifecycleTests.cs` for both default-and-opt-in coverage.
+- **Neow always fires on `run/new`.** Every STS2 run begins with the Neow
+  blessing pick — there is no opt-out, because there isn't one in the
+  game either. Neow offers a choice of one of three relics (no STS1-style
+  "four blessings" menu — it's a flat relic pick). `run/new` returns
+  `currentRoomType=EventRoom` with three options on
+  `availableEventOptions`; callers drive `run/select_event_option` to
+  pick a relic, after which the engine auto-advances to floor 1 MapRoom.
+  Tests that don't care about the Neow choice route through
+  `RunFixtures.StartFreshRunAtMap` (mirrors the agent layer's default
+  "pick last unlocked option" strategy). See `RunLifecycleTests.cs`
+  for the landing-shape coverage and `EventChoiceTests.cs` for the
+  pick → MapRoom flow.
 - **Architect is not a fightable boss (in the current beta).** After you
   beat the Act 3 boss, the very next room is a scripted Architect
   encounter that kills you. There is no Heart-style 4th-act fight to win

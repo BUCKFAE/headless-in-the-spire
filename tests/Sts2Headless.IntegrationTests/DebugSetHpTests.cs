@@ -20,8 +20,8 @@ public class DebugSetHpTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task SetHpAndMaxHp_UpdatesPlayerSnapshot()
     {
-        var start = await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            _host, character: Character.Ironclad, seed: 42uL);
         Assert.True(start.Ok);
 
         var beforeState = await _host.SendAsync<RunStateResult>("run/state");
@@ -43,8 +43,7 @@ public class DebugSetHpTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task SetHpOnly_LeavesMaxHpUnchanged()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         var before = await _host.SendAsync<RunStateResult>("run/state");
 
         // Set HP to 1 (anything < current). MaxHp must stay where it was —
@@ -59,8 +58,7 @@ public class DebugSetHpTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task NegativeHp_ReturnsInvalidParamsError()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/set_hp", new DebugSetHpParams(Hp: -1));
@@ -71,8 +69,7 @@ public class DebugSetHpTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task HpAboveMaxHp_ReturnsInvalidParamsError()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         var state = await _host.SendAsync<RunStateResult>("run/state");
 
         var err = await _host.ExpectErrorAsync(

@@ -41,7 +41,7 @@ public class MultiCharacterStartRunTests
 
     [Theory]
     [MemberData(nameof(AllCharacters))]
-    public async Task RunNew_For_Each_Character_LandsAtMapRoom(Character character)
+    public async Task RunNew_For_Each_Character_LandsAtMapRoom_AfterNeow(Character character)
     {
         await using var host = new HostSubprocess();
         var resp = await host.SendAsync<RunNewResult>(
@@ -50,11 +50,15 @@ public class MultiCharacterStartRunTests
 
         Assert.True(resp.Ok, $"run/new failed for {character}");
         Assert.Equal(character, resp.Character);
-        Assert.Equal(RoomType.MapRoom, resp.CurrentRoomType);
-        // Every character begins act 0 with at least one reachable Monster
-        // node above the start. Don't pin the count — Necrobinder/Regent
-        // may shape the early map differently than Ironclad.
-        Assert.NotEmpty(resp.AvailableMapNodes);
+        // Every run starts at the Neow EventRoom; advance past it and then
+        // assert the player has reached the act's floor-1 MapRoom with
+        // at least one reachable next-row pick.
+        Assert.Equal(RoomType.EventRoom, resp.CurrentRoomType);
+        var state = await RunFixtures.DismissNeow(host);
+        Assert.Equal(RoomType.MapRoom, state.CurrentRoomType);
+        // Don't pin the count — Necrobinder/Regent may shape the early map
+        // differently than Ironclad.
+        Assert.NotEmpty(state.AvailableMapNodes);
     }
 
     [Theory]

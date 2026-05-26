@@ -27,8 +27,7 @@ public class DebugKillAllEnemiesTests : IClassFixture<HostSubprocess>
         // Fresh run is on the map, not in combat. The cheat must succeed
         // (Ok=true) with killed=0; tests fire this on every state read
         // and don't want a spurious exception when combat hasn't started.
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var resp = await _host.SendAsync<DebugKillAllEnemiesResult>(
             "debug/kill_all_enemies", new DebugKillAllEnemiesParams());
@@ -41,8 +40,7 @@ public class DebugKillAllEnemiesTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task InCombat_KillsEveryAliveEnemy_AndCombatEnds()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         // Walk into the first reachable combat. We deliberately don't use
         // CombatHelpers here — that helper drives to rewards, which means
@@ -82,8 +80,7 @@ public class DebugKillAllEnemiesTests : IClassFixture<HostSubprocess>
         // killed=0 / combatEnded=false (not "true, because combat isn't in
         // progress" — combatEnded is "the cheat just ended a combat", not
         // "combat is currently ended").
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         var start = await _host.SendAsync<RunStateResult>("run/state");
         var monsterNode = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
         await _host.SendAsync<RunSelectMapNodeResult>(

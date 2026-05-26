@@ -30,8 +30,7 @@ public class RestSiteSmithTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task SelectSmith_WithCardIndex_UpgradesFirstUpgradableCard()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         // Walk to a rest site so the SMITH option is live and enabled.
         // GreedyAgent's DecideRestSite would now pick SMITH itself, so we

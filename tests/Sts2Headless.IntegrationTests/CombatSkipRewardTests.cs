@@ -29,7 +29,7 @@ public class CombatSkipRewardTests : IClassFixture<HostSubprocess>
         // Skipping a skippable card reward must NOT add a card. Deck size
         // stays the same across the skip; non-card rewards still get claimed
         // automatically by the test loop so we end up back at MapRoom.
-        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
         var beforeCombat = await _host.SendAsync<RunStateResult>("run/state");
         var deckBefore = beforeCombat.DeckSize;
 
@@ -61,7 +61,7 @@ public class CombatSkipRewardTests : IClassFixture<HostSubprocess>
         // At MapRoom there are no pending rewards. Sts2Bindings.SkipReward
         // throws InvalidOperationException("no pending rewards to skip");
         // the host wire surfaces that as -32603 so callers can't drift state.
-        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
 
         var error = await _host.ExpectErrorAsync(
             "run/skip_reward", new RunSkipRewardParams(RewardIndex: 0));
@@ -76,7 +76,7 @@ public class CombatSkipRewardTests : IClassFixture<HostSubprocess>
         // With rewards pending, an index outside [0, count) raises
         // ArgumentOutOfRangeException in the bindings → -32603. The error
         // path is non-mutating: the pending list survives the failed call.
-        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
         var rewards = await CombatHelpers.DriveCombatToRewards(_host);
         Assert.NotEmpty(rewards.Available);
 
@@ -95,7 +95,7 @@ public class CombatSkipRewardTests : IClassFixture<HostSubprocess>
         // ("only card rewards are skippable") → -32603. Seed 42's first
         // combat always offers at least one non-card reward alongside the
         // card pick, so we don't have to seed-shop.
-        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
         var rewards = await CombatHelpers.DriveCombatToRewards(_host);
         var nonCard = rewards.Available.FirstOrDefault(r => r.Kind != RewardKind.Card);
         Assert.NotNull(nonCard);

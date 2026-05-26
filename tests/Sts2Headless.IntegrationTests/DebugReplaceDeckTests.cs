@@ -24,8 +24,8 @@ public class DebugReplaceDeckTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ReplaceDeck_ShrinksDeckToRequestedCardCount()
     {
-        var start = await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            _host, character: Character.Ironclad, seed: 42uL);
         Assert.True(start.Ok);
         var before = await _host.SendAsync<RunStateResult>("run/state");
         Assert.True(before.DeckSize > 4, $"starter deck unexpectedly small ({before.DeckSize})");
@@ -51,8 +51,7 @@ public class DebugReplaceDeckTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ReplaceDeck_AcceptsUpgradedCards()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var resp = await _host.SendAsync<DebugReplaceDeckResult>(
             "debug/replace_deck",
@@ -70,8 +69,7 @@ public class DebugReplaceDeckTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ReplaceDeck_UnknownCardId_ReturnsInvalidParams()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/replace_deck",
@@ -83,8 +81,7 @@ public class DebugReplaceDeckTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ReplaceDeck_EmptyList_ReturnsInvalidParams()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/replace_deck",
@@ -96,8 +93,7 @@ public class DebugReplaceDeckTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ReplaceDeck_NegativeUpgradeLevel_ReturnsInvalidParams()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/replace_deck",

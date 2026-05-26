@@ -144,7 +144,6 @@ public static class HostMethods
     {
         var character = @params?.Character ?? Character.Ironclad;
         var seed = @params?.Seed ?? 1uL;
-        var withNeow = @params?.WithNeow ?? false;
         var ascension = @params?.Ascension ?? 0;
         var modifiers = @params?.Modifiers ?? Array.Empty<ModifierId>();
 
@@ -168,13 +167,13 @@ public static class HostMethods
         session.Recorder?.FinalizeRun();
         if (session.Recorder is not null) ReplayHook.Unbind(session.Recorder);
 
-        // Full StartRun chain. Default lands at MapRoom; withNeow=true lands
-        // at the Neow EventRoom. Callers can drive run/select_event_option
-        // to dismiss the event once it's surfaced through
-        // AvailableEventOptions. The bindings layer enforces that every
-        // Character enum value has a registered factory (Bind() throws
+        // Full StartRun chain — always lands at the Neow EventRoom (every
+        // STS2 run begins with Neow's blessing pick). Callers drive
+        // run/select_event_option to dismiss the event once it's surfaced
+        // through AvailableEventOptions. The bindings layer enforces that
+        // every Character enum value has a registered factory (Bind() throws
         // otherwise) — no per-character branch needed here.
-        var run = bindings.StartRun(character, seed, withNeow, ascension);
+        var run = bindings.StartRun(character, seed, ascension);
 
         // AD-8: recording is on by default. STS2_REPLAY_OUT unset → land
         // in <repoRoot>/vendor/replays. An explicit path overrides;

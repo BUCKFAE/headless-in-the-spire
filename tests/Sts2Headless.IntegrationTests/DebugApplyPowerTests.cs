@@ -28,8 +28,7 @@ public class DebugApplyPowerTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ApplyPower_ToPlayer_AppearsInPlayerPowers()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         await _host.SendAsync<DebugSetHpResult>(
             "debug/set_hp", new DebugSetHpParams(Hp: 999, MaxHp: 999));
         await _host.SendAsync<DebugStartCombatResult>(
@@ -54,8 +53,7 @@ public class DebugApplyPowerTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ApplyPower_ToEnemy_AppearsInEnemyPowers()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         await _host.SendAsync<DebugSetHpResult>(
             "debug/set_hp", new DebugSetHpParams(Hp: 999, MaxHp: 999));
         await _host.SendAsync<DebugStartCombatResult>(
@@ -79,8 +77,7 @@ public class DebugApplyPowerTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ApplyPower_UnknownId_ReturnsInvalidParams()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         await _host.SendAsync<DebugSetHpResult>(
             "debug/set_hp", new DebugSetHpParams(Hp: 999, MaxHp: 999));
         await _host.SendAsync<DebugStartCombatResult>(
@@ -95,8 +92,7 @@ public class DebugApplyPowerTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ApplyPower_EmptyId_ReturnsInvalidParams()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/apply_power", new DebugApplyPowerParams(PowerId: ""));
@@ -107,8 +103,7 @@ public class DebugApplyPowerTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task ApplyPower_NegativeEnemyIndex_ReturnsInvalidParams()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/apply_power",

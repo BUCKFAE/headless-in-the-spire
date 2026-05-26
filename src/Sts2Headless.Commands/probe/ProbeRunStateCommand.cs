@@ -140,12 +140,12 @@ internal static class ProbeRunStateCommand
             return $"instance={runManagerInstance.GetType().FullName}, net={netType.FullName}";
         }));
 
-        // sts2-cli sets this to true so the run auto-enters the Neow event.
-        // We leave it false during probing to isolate where HP gets zeroed:
-        // with Neow on, EnterAct walks straight into NEventRoom.Create which
-        // depends on more GodotStubs surface; flipping it off should land us
-        // at the map (CurrentRoom = MapRoom) with HP intact.
-        var startWithNeow = Environment.GetEnvironmentVariable("PROBE_NEOW") == "1";
+        // Every STS2 run starts with Neow, so the probe mirrors the
+        // production binding: ExtraFields.StartedWithNeow = true. Set
+        // PROBE_NEOW=0 to opt out for HP-isolation probing — with Neow off,
+        // EnterAct lands at MapRoom directly so we can isolate where HP
+        // gets zeroed if the Neow EventRoom path regresses.
+        var startWithNeow = Environment.GetEnvironmentVariable("PROBE_NEOW") != "0";
         steps.Add(Step($"runState.ExtraFields.StartedWithNeow = {startWithNeow}", () =>
         {
             var extraFieldsProp = runState!.GetType().GetProperty("ExtraFields", BindingFlags.Public | BindingFlags.Instance)

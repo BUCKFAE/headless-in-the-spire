@@ -24,7 +24,7 @@ public class CombatTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task SelectMonsterNode_LandsInCombat_WithPopulatedCombatState()
     {
-        var start = await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
         var monsterNode = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
 
         var afterPick = await _host.SendAsync<RunSelectMapNodeResult>(
@@ -76,7 +76,7 @@ public class CombatTests : IClassFixture<HostSubprocess>
         // synchronously: monsters resolve their intents and deal damage.
         // Verified: round advances, IsPlayPhase flips back, and the Fuzzy
         // Wurm Crawler's Attack intent reduces player HP.
-        var start = await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
         var monsterNode = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
         var inCombat = await _host.SendAsync<RunSelectMapNodeResult>(
             "run/select_map_node", new RunSelectMapNodeParams(Col: monsterNode.Col, Row: monsterNode.Row));
@@ -108,7 +108,7 @@ public class CombatTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task PlayCard_RemovesCardFromHand_AndConsumesEnergy()
     {
-        var start = await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
         var monsterNode = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
         var inCombat = await _host.SendAsync<RunSelectMapNodeResult>(
             "run/select_map_node", new RunSelectMapNodeParams(Col: monsterNode.Col, Row: monsterNode.Row));
@@ -148,7 +148,7 @@ public class CombatTests : IClassFixture<HostSubprocess>
     {
         // From a MapRoom, ending a turn is meaningless. The bindings raise
         // InvalidOperationException; surface that so callers can't drift state.
-        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 1uL));
+        await RunFixtures.StartFreshRunAtMap(_host, seed: 1uL);
 
         var error = await _host.ExpectErrorAsync("run/end_turn");
 

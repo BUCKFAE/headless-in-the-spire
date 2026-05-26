@@ -27,8 +27,7 @@ public class DebugStartEventTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task StartEvent_LandsInEventRoom()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var firstEvent = EventIdNames.AllWireNames
             .OrderBy(s => s, StringComparer.Ordinal)
@@ -58,8 +57,7 @@ public class DebugStartEventTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task StartEvent_UnknownId_ReturnsInvalidParams()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/start_event", new DebugStartEventParams(EventId: "DEFINITELY_NOT_AN_EVENT_ID"));
@@ -70,8 +68,7 @@ public class DebugStartEventTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task StartEvent_EmptyId_ReturnsInvalidParams()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/start_event", new DebugStartEventParams(EventId: ""));

@@ -35,8 +35,7 @@ public class RestSiteSnapshotTests : IClassFixture<HostSubprocess>
     // against.
     private async Task<RunStateResult> WalkToRestSiteEntry()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var transport = new HostSubprocessAgentTransport(_host);
         var agent = new GreedyAgent();

@@ -19,12 +19,11 @@ public class DebugStartCombatTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task StartCombat_FromMapRoom_FlipsRoomAndPopulatesCombatState()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
-
-        // Sanity: a fresh run lands in MapRoom, not Combat. If this ever
-        // changes, the cheat-from-map invariant below needs revisiting.
-        var beforeState = await _host.SendAsync<RunStateResult>("run/state");
+        // Walk past Neow into MapRoom — that's where the cheat-from-map
+        // invariant is exercised. If a fresh run ever lands elsewhere, the
+        // assertion below catches it.
+        var beforeState = await RunFixtures.StartFreshRunAtMap(_host,
+            character: Character.Ironclad, seed: 42uL);
         Assert.Equal(RoomType.MapRoom, beforeState.CurrentRoomType);
         Assert.Null(beforeState.CombatState);
 
@@ -44,8 +43,7 @@ public class DebugStartCombatTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task StartCombat_UnknownEncounter_ReturnsInvalidParamsError()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "NOT_A_REAL_ENCOUNTER"));
@@ -56,8 +54,7 @@ public class DebugStartCombatTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task StartCombat_EmptyEncounterId_ReturnsInvalidParamsError()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: ""));
@@ -72,8 +69,7 @@ public class DebugStartCombatTests : IClassFixture<HostSubprocess>
         // back-to-back. The sweep test in End2EndTests relies on this — it
         // doesn't run/new per encounter, just refreshes deck/HP and starts
         // the next combat.
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var first = await _host.SendAsync<DebugStartCombatResult>(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));

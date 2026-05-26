@@ -29,8 +29,7 @@ public class VantomDismemberHangTests
     public async Task VantomBoss_TwelveRoundsWithDefendDeck_AdvancesPastRoundThree()
     {
         await using var host = new HostSubprocess();
-        await host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(host, character: Character.Ironclad, seed: 42uL);
 
         // Tank-mode: 999/999 keeps the player alive through every Vantom
         // attack. An all-Defend deck means we can't accidentally kill

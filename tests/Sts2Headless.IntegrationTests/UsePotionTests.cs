@@ -19,8 +19,8 @@ public class UsePotionTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task OwnedPotions_FieldShape_IsListOnFreshRun()
     {
-        var start = await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(
+            _host, character: Character.Ironclad, seed: 42uL);
         // Fresh Ironclad starts with no potions but the field must be a
         // non-null empty list — schema-shape regression.
         Assert.NotNull(start.OwnedPotions);
@@ -30,8 +30,7 @@ public class UsePotionTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task UsePotion_OnEmptyBag_ThrowsTyped()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         // Fresh run has no potions; the call should surface a wire error
         // rather than silently no-op or crash the host.
         var ex = await Assert.ThrowsAnyAsync<Exception>(async () =>

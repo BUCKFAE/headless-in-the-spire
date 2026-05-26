@@ -55,9 +55,20 @@ internal static class ProbeRewardsNaturalChainCommand
 
         Console.WriteLine("  navigating to first combat...");
         var snap = bindings.ReadSnapshot(handle);
+        // Every run starts at the Neow EventRoom — dismiss it (pick the
+        // last unlocked option, matching GreedyAgent.StepEventAsync)
+        // before walking the map.
+        if (snap.CurrentRoomType == RoomType.EventRoom
+            && snap.AvailableEventOptions.Count > 0)
+        {
+            var neowPick = snap.AvailableEventOptions.LastOrDefault(o => !o.IsLocked)
+                ?? snap.AvailableEventOptions[^1];
+            bindings.SelectEventOption(handle, neowPick.Index);
+            snap = bindings.ReadSnapshot(handle);
+        }
         if (snap.CurrentRoomType != RoomType.MapRoom)
         {
-            Console.Error.WriteLine($"  expected MapRoom after StartRun, got {snap.CurrentRoomType}");
+            Console.Error.WriteLine($"  expected MapRoom after Neow dismissal, got {snap.CurrentRoomType}");
             return 1;
         }
         var monster = snap.AvailableMapNodes.FirstOrDefault(n => n.Type == MapNodeType.Monster && n.Row > 0);

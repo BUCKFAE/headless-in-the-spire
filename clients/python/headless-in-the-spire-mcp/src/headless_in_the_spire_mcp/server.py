@@ -233,17 +233,17 @@ def _register_core_tools(mcp: FastMCP, handle: _HostHandle) -> None:
     def run_new(
         character: Character | None = None,
         seed: int | None = None,
-        with_neow: bool | None = None,
         ascension: int | None = None,
         modifiers: list[str] | None = None,
     ) -> dict[str, Any]:
         """Start a new run. Resets the host's current run if one is active.
-        Defaults: Ironclad, random seed, with the Neow blessing.
+        Defaults: Ironclad, random seed. Every run lands at the Neow blessing
+        EventRoom — call `run_select_event_option` to pick a relic and
+        advance to MapRoom.
         """
         params = RunNewParams(
             character=character,
             seed=seed,
-            with_neow=with_neow,
             ascension=ascension,
             modifiers=modifiers,
         )

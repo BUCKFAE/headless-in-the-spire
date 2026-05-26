@@ -2,290 +2,304 @@
 
 - character: `Ironclad`
 - seed: `42`
-- starting relics: `BURNING_BLOOD`
+- starting relics: `BurningBlood`
 
-## Floor 0: MapRoom  (hp=80/80)
+## Floor 1: EventRoom  (hp=80/80)
 
-  - map options: (3,0):Monster, (0,1):Monster, (3,1):Monster, (5,1):Monster
+  - event options:
+    - [0] `NEOW.pages.INITIAL.options.ARCANE_SCROLL`
+    - [1] `NEOW.pages.INITIAL.options.PHIAL_HOLSTER`
+    - [2] `NEOW.pages.INITIAL.options.SCROLL_BOXES`
 
   - bag: (empty)
+## Floor 1: MapRoom  (hp=80)
+
+  - map options: (0,1):Monster, (3,1):Monster, (5,1):Monster
+
+  → pick event option [2] → MapRoom hp=80
 ## Floor 2: CombatRoom  (hp=80)
 
 
   → pick map (0,1) → CombatRoom floor=2
 ### Combat #1 on floor 2
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [4] `Rage` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `FUZZY_WURM_CRAWLER` 55/55 block=0 → Attack 4×1
+    - [0] `FuzzyWurmCrawler` 55/55 block=0 → Attack 4×1
 
+  → play card [0]
   → play card [0] target=0
   → play card [0] target=0
+  → play card [1]
   → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Bloodletting` cost=0 canPlay=True target=Self
+    - [2] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `FUZZY_WURM_CRAWLER` 38/55 block=0 → Buff  powers=[VULNERABLE_POWER:1]
+    - [0] `FuzzyWurmCrawler` 43/55 block=0 → Buff
 
+  → play card [0] target=0
+  → play card [0]
   → play card [0] target=0
   → play card [0] target=0
   → play card [0]
   → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `FUZZY_WURM_CRAWLER` 20/55 block=0 → Attack 4×1  powers=[STRENGTH_POWER:7]
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `FUZZY_WURM_CRAWLER` 2/55 block=0 → Attack 4×1  powers=[STRENGTH_POWER:7]
+    - [0] `FuzzyWurmCrawler` 31/55 block=0 → Attack 4×1  powers=[StrengthPower:7]
 
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [4] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `FuzzyWurmCrawler` 25/55 block=0 → Attack 4×1  powers=[StrengthPower:7]
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Rage` cost=0 canPlay=True target=Self
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `FuzzyWurmCrawler` 19/55 block=0 → Buff  powers=[StrengthPower:7]
+
+  → play card [0] target=0
+  → play card [0]
   → play card [0]
   → play card [0]
   → play card [0]
   → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `FuzzyWurmCrawler` 13/55 block=0 → Attack 4×1  powers=[StrengthPower:14]
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [1] target=0
+  → end_turn → round transition
+#### Round 7  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Rage` cost=0 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `FUZZY_WURM_CRAWLER` 2/55 block=0 → Buff  powers=[STRENGTH_POWER:7]
+    - [0] `FuzzyWurmCrawler` 1/55 block=0 → Attack 4×1  powers=[StrengthPower:14]
 
   → play card [0]
   → play card [0] target=0
   - rewards offered:
-    - [0] gold 12g  canSkip=False
-    - [1] potion potion=`ENERGY_POTION`  canSkip=False
-    - [2] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [0] gold 19g  canSkip=False
+    - [1] potion potion=`DexterityPotion`  canSkip=False
+    - [2] card cards=[`Thunderclap`(cost=1), `Armaments`(cost=1), `TrueGrit`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 12g  canSkip=False
-    - [1] potion potion=`ENERGY_POTION`  canSkip=False
-    - [2] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [0] gold 19g  canSkip=False
+    - [1] potion potion=`DexterityPotion`  canSkip=False
+    - [2] card cards=[`Thunderclap`(cost=1), `Armaments`(cost=1), `TrueGrit`(cost=1)]  canSkip=True
 
-  → claim reward [0] → hp=71 room=CombatRoom
+  → claim reward [0] → hp=60 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`ENERGY_POTION`  canSkip=False
-    - [1] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
-
-  - rewards offered:
-    - [0] potion potion=`ENERGY_POTION`  canSkip=False
-    - [1] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
-
-  → claim reward [0] → hp=71 room=CombatRoom
-  - bag: [0]ENERGY_POTION/Unknown
-  - rewards offered:
-    - [0] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [0] potion potion=`DexterityPotion`  canSkip=False
+    - [1] card cards=[`Thunderclap`(cost=1), `Armaments`(cost=1), `TrueGrit`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`BodySlam`(cost=1), `Tremble`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [0] potion potion=`DexterityPotion`  canSkip=False
+    - [1] card cards=[`Thunderclap`(cost=1), `Armaments`(cost=1), `TrueGrit`(cost=1)]  canSkip=True
 
-## Floor 2: MapRoom  (hp=71)
+  → claim reward [0] → hp=60 room=CombatRoom
+  - bag: [0]DexterityPotion/Unknown
+  - rewards offered:
+    - [0] card cards=[`Thunderclap`(cost=1), `Armaments`(cost=1), `TrueGrit`(cost=1)]  canSkip=True
+
+  - rewards offered:
+    - [0] card cards=[`Thunderclap`(cost=1), `Armaments`(cost=1), `TrueGrit`(cost=1)]  canSkip=True
+
+## Floor 2: MapRoom  (hp=60)
 
   - map options: (0,2):Unknown
 
-  → skip reward [0] → hp=71 room=MapRoom
-  - combat ended (hp=71)
+  → skip reward [0] → hp=60 room=MapRoom
+  - combat ended (hp=60)
 
   - heal → hp=80/80
 
 ## Floor 3: EventRoom  (hp=80)
 
   - event options:
-    - [0] `WELLSPRING.pages.INITIAL.options.BOTTLE`
-    - [1] `WELLSPRING.pages.INITIAL.options.BATHE`
+    - [0] `THE_LEGENDS_WERE_TRUE.pages.INITIAL.options.NAB_THE_MAP`
+    - [1] `THE_LEGENDS_WERE_TRUE.pages.INITIAL.options.SLOWLY_FIND_AN_EXIT`
 
   → pick map (0,2) → EventRoom floor=3
-## Floor 3: MapRoom  (hp=80)
+## Floor 3: MapRoom  (hp=72)
 
   - map options: (0,3):Monster
 
-  → pick event option [1] → MapRoom hp=80
+  → pick event option [1] → MapRoom hp=72
+  - bag: [0]DexterityPotion/Unknown,[1]Duplicator/Self
+  - heal → hp=80/80
+
 ## Floor 4: CombatRoom  (hp=80)
 
 
   → pick map (0,3) → CombatRoom floor=4
 ### Combat #1 on floor 4
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Rage` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `ShrinkerBeetle` 39/39 block=0 → Unknown
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [2]
+  → end_turn → round transition
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `SHRINKER_BEETLE` 39/39 block=0 → Unknown
+    - [0] `ShrinkerBeetle` 31/39 block=0 → Attack 7×1  powers=[VulnerablePower:1]
+  - player powers: ShrinkPower:-1
 
   → play card [0] target=0
   → play card [0]
-  → play card [0]
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Bloodletting` cost=0 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `SHRINKER_BEETLE` 33/39 block=0 → Attack 7×1
-  - player powers: SHRINK_POWER:-1
+    - [0] `ShrinkerBeetle` 20/39 block=0 → Attack 13×1
+  - player powers: ShrinkPower:-1
 
   → play card [0] target=0
   → play card [0]
-  → play card [2] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
   → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [1] `Rage` cost=0 canPlay=True target=Self
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `SHRINKER_BEETLE` 25/39 block=0 → Attack 13×1
-  - player powers: SHRINK_POWER:-1
+    - [0] `ShrinkerBeetle` 8/39 block=0 → Attack 7×1
+  - player powers: ShrinkPower:-1
 
   → play card [0] target=0
   → play card [0]
   → play card [0]
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SHRINKER_BEETLE` 21/39 block=0 → Attack 7×1
-  - player powers: SHRINK_POWER:-1
-
-  → play card [1]
-  → play card [1] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SHRINKER_BEETLE` 13/39 block=0 → Attack 13×1
-  - player powers: SHRINK_POWER:-1
-
-  → play card [0]
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SHRINKER_BEETLE` 13/39 block=0 → Attack 7×1
-  - player powers: SHRINK_POWER:-1
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `SHRINKER_BEETLE` 5/39 block=0 → Attack 13×1
-  - player powers: SHRINK_POWER:-1
-
-  → play card [0]
-  → play card [1] target=0
-  → play card [2]
-  → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `SHRINKER_BEETLE` 1/39 block=0 → Attack 7×1
-  - player powers: SHRINK_POWER:-1
+    - [0] `ShrinkerBeetle` 3/39 block=0 → Attack 13×1  powers=[VulnerablePower:1]
+  - player powers: ShrinkPower:-1
 
+  → play card [0]
   → play card [0] target=0
   - rewards offered:
-    - [0] gold 10g  canSkip=False
-    - [1] card cards=[`Headbutt`(cost=1), `ExpectAFight`(cost=2), `BurningPact`(cost=1)]  canSkip=True
+    - [0] gold 13g  canSkip=False
+    - [1] potion potion=`StableSerum`  canSkip=False
+    - [2] card cards=[`Anger`(cost=0), `StoneArmor`(cost=1), `Havoc`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 10g  canSkip=False
-    - [1] card cards=[`Headbutt`(cost=1), `ExpectAFight`(cost=2), `BurningPact`(cost=1)]  canSkip=True
+    - [0] gold 13g  canSkip=False
+    - [1] potion potion=`StableSerum`  canSkip=False
+    - [2] card cards=[`Anger`(cost=0), `StoneArmor`(cost=1), `Havoc`(cost=1)]  canSkip=True
 
-  → claim reward [0] → hp=74 room=CombatRoom
+  → claim reward [0] → hp=71 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`Headbutt`(cost=1), `ExpectAFight`(cost=2), `BurningPact`(cost=1)]  canSkip=True
+    - [0] potion potion=`StableSerum`  canSkip=False
+    - [1] card cards=[`Anger`(cost=0), `StoneArmor`(cost=1), `Havoc`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`Headbutt`(cost=1), `ExpectAFight`(cost=2), `BurningPact`(cost=1)]  canSkip=True
+    - [0] potion potion=`StableSerum`  canSkip=False
+    - [1] card cards=[`Anger`(cost=0), `StoneArmor`(cost=1), `Havoc`(cost=1)]  canSkip=True
 
-## Floor 4: MapRoom  (hp=74)
+  → claim reward [0] → hp=71 room=CombatRoom
+  - bag: [0]DexterityPotion/Unknown,[1]Duplicator/Self,[2]StableSerum/Unknown
+  - rewards offered:
+    - [0] card cards=[`Anger`(cost=0), `StoneArmor`(cost=1), `Havoc`(cost=1)]  canSkip=True
+
+  - rewards offered:
+    - [0] card cards=[`Anger`(cost=0), `StoneArmor`(cost=1), `Havoc`(cost=1)]  canSkip=True
+
+## Floor 4: MapRoom  (hp=71)
 
   - map options: (0,4):Monster
 
-  → skip reward [0] → hp=74 room=MapRoom
-  - combat ended (hp=74)
+  → skip reward [0] → hp=71 room=MapRoom
+  - combat ended (hp=71)
 
   - heal → hp=80/80
 
@@ -295,118 +309,145 @@
   → pick map (0,4) → CombatRoom floor=5
 ### Combat #1 on floor 5
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `NIBBIT` 44/44 block=0 → Attack 12×1
-
-  → play card [0]
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `NIBBIT` 38/44 block=0 → Attack 6×1 + Defend
+    - [0] `Nibbit` 44/44 block=0 → Attack 12×1
 
   → play card [0] target=0
   → play card [0] target=0
   → play card [0]
+  → play card [1]
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Rage` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `Nibbit` 26/44 block=0 → Attack 6×1 + Defend
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → play card [1]
+  → end_turn → round transition
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `Nibbit` 20/44 block=5 → Buff
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [1]
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Rage` cost=0 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `Nibbit` 19/44 block=0 → Attack 12×1  powers=[StrengthPower:2]
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `NIBBIT` 26/44 block=5 → Buff
+    - [0] `Nibbit` 7/44 block=0 → Attack 6×1 + Defend  powers=[StrengthPower:2]
 
   → play card [0]
   → play card [0]
   → play card [0] target=0
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Bloodletting` cost=0 canPlay=True target=Self
+    - [2] `Rage` cost=0 canPlay=True target=Self
+    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `NIBBIT` 25/44 block=0 → Attack 12×1  powers=[STRENGTH_POWER:2]
+    - [0] `Nibbit` 1/44 block=5 → Buff  powers=[StrengthPower:2]
 
   → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `NIBBIT` 11/44 block=0 → Attack 6×1 + Defend  powers=[STRENGTH_POWER:2,VULNERABLE_POWER:1]
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0] target=0
   - rewards offered:
-    - [0] gold 10g  canSkip=False
-    - [1] card cards=[`Bully`(cost=0), `Thunderclap`(cost=1), `Bludgeon`(cost=3)]  canSkip=True
+    - [0] gold 11g  canSkip=False
+    - [1] potion potion=`VulnerablePotion`  canSkip=False
+    - [2] card cards=[`Cinder`(cost=2), `BloodWall`(cost=2), `Stampede`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 10g  canSkip=False
-    - [1] card cards=[`Bully`(cost=0), `Thunderclap`(cost=1), `Bludgeon`(cost=3)]  canSkip=True
+    - [0] gold 11g  canSkip=False
+    - [1] potion potion=`VulnerablePotion`  canSkip=False
+    - [2] card cards=[`Cinder`(cost=2), `BloodWall`(cost=2), `Stampede`(cost=2)]  canSkip=True
 
-  → claim reward [0] → hp=69 room=CombatRoom
+  → claim reward [0] → hp=67 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`Bully`(cost=0), `Thunderclap`(cost=1), `Bludgeon`(cost=3)]  canSkip=True
+    - [0] potion potion=`VulnerablePotion`  canSkip=False
+    - [1] card cards=[`Cinder`(cost=2), `BloodWall`(cost=2), `Stampede`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`Bully`(cost=0), `Thunderclap`(cost=1), `Bludgeon`(cost=3)]  canSkip=True
+    - [0] potion potion=`VulnerablePotion`  canSkip=False
+    - [1] card cards=[`Cinder`(cost=2), `BloodWall`(cost=2), `Stampede`(cost=2)]  canSkip=True
 
-## Floor 5: MapRoom  (hp=69)
+  → claim reward [0] → hp=67 room=CombatRoom
+  - rewards offered:
+    - [0] card cards=[`Cinder`(cost=2), `BloodWall`(cost=2), `Stampede`(cost=2)]  canSkip=True
+
+  - rewards offered:
+    - [0] card cards=[`Cinder`(cost=2), `BloodWall`(cost=2), `Stampede`(cost=2)]  canSkip=True
+
+## Floor 5: MapRoom  (hp=67)
 
   - map options: (0,5):Unknown
 
-  → skip reward [0] → hp=69 room=MapRoom
-  - combat ended (hp=69)
+  → skip reward [0] → hp=67 room=MapRoom
+  - combat ended (hp=67)
 
   - heal → hp=80/80
 
 ## Floor 6: EventRoom  (hp=80)
 
   - event options:
-    - [0] `THE_LEGENDS_WERE_TRUE.pages.INITIAL.options.NAB_THE_MAP`
-    - [1] `THE_LEGENDS_WERE_TRUE.pages.INITIAL.options.SLOWLY_FIND_AN_EXIT`
+    - [0] `JUNGLE_MAZE_ADVENTURE.pages.INITIAL.options.SOLO_QUEST`
+    - [1] `JUNGLE_MAZE_ADVENTURE.pages.INITIAL.options.JOIN_FORCES`
 
   → pick map (0,5) → EventRoom floor=6
-## Floor 6: MapRoom  (hp=72)
+## Floor 6: MapRoom  (hp=80)
 
   - map options: (0,6):RestSite
 
-  → pick event option [1] → MapRoom hp=72
-  - bag: [0]ENERGY_POTION/Unknown,[1]REGEN_POTION/Unknown
-  - heal → hp=80/80
-
+  → pick event option [1] → MapRoom hp=80
 ## Floor 7: RestSiteRoom  (hp=80)
 
 
@@ -422,205 +463,205 @@
   → pick map (0,7) → CombatRoom floor=8
 ### Combat #1 on floor 8
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Bloodletting` cost=0 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `PhrogParasite` 64/64 block=0 → Unknown  powers=[InfestedPower:4]
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 2  (e=3/3 block=0 draw=3 disc=8)
 
   - hand:
     - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Rage` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `PHROG_PARASITE` 64/64 block=0 → Unknown  powers=[INFESTED_POWER:4]
+    - [0] `PhrogParasite` 58/64 block=0 → Attack 4×4  powers=[InfestedPower:4]
 
   → play card [0] target=0
   → play card [0] target=0
+  → play card [2]
   → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=8)
+#### Round 3  (e=3/3 block=0 draw=11 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Infection` cost=0 canPlay=False target=None
   - enemies:
-    - [0] `PHROG_PARASITE` 47/64 block=0 → Attack 4×4  powers=[INFESTED_POWER:4,VULNERABLE_POWER:1]
+    - [0] `PhrogParasite` 50/64 block=0 → Unknown  powers=[InfestedPower:4,VulnerablePower:1]
 
   → play card [0] target=0
-  → play card [1]
-  → play card [1]
+  → play card [0]
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=8 disc=0)
+#### Round 4  (e=3/3 block=0 draw=6 disc=8)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Infection` cost=0 canPlay=False target=None
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Infection` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `PHROG_PARASITE` 34/64 block=0 → Unknown  powers=[INFESTED_POWER:4]
-
-  → play card [0]
-  → play card [2] target=0
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=3 disc=8)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `PHROG_PARASITE` 28/64 block=0 → Attack 4×4  powers=[INFESTED_POWER:4]
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=11 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Infection` cost=0 canPlay=False target=None
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `Infection` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `PHROG_PARASITE` 16/64 block=0 → Unknown  powers=[INFESTED_POWER:4]
-
-  → play card [0]
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=6 disc=8)
-
-  - hand:
-    - [0] `Infection` cost=0 canPlay=False target=None
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Rage` cost=0 canPlay=True target=Self
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
     - [3] `Infection` cost=0 canPlay=False target=None
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `PHROG_PARASITE` 8/64 block=0 → Attack 4×4  powers=[INFESTED_POWER:4,VULNERABLE_POWER:1]
+    - [0] `PhrogParasite` 28/64 block=0 → Attack 4×4  powers=[InfestedPower:4]
 
+  → play card [0]
+  → play card [0]
+  → play card [0]
   → play card [1] target=0
-  → play card [1]
-  → play card [2] target=0
   → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=1 disc=13)
+#### Round 5  (e=3/3 block=0 draw=1 disc=13)
 
   - hand:
     - [0] `Infection` cost=0 canPlay=False target=None
-    - [1] `Infection` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `WRIGGLER` 10/19 block=0 → Attack 6×1
-    - [1] `WRIGGLER` 21/21 block=0 → Buff + Unknown
-    - [2] `WRIGGLER` 18/18 block=0 → Attack 6×1
-    - [3] `WRIGGLER` 17/17 block=0 → Buff + Unknown
+    - [0] `PhrogParasite` 22/64 block=0 → Unknown  powers=[InfestedPower:4]
 
-  → play card [2]
-  → play card [2] target=0
-  → play card [2] target=0
+  → play card [1]
+  → play card [1] target=0
   → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=16 disc=0)
+#### Round 6  (e=3/3 block=0 draw=17 disc=0)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [1] `Infection` cost=0 canPlay=False target=None
     - [2] `Infection` cost=0 canPlay=False target=None
-    - [3] `Infection` cost=0 canPlay=False target=None
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `WRIGGLER` 21/21 block=0 → Attack 6×1  powers=[STRENGTH_POWER:2]
-    - [1] `WRIGGLER` 18/18 block=0 → Buff + Unknown
-    - [2] `WRIGGLER` 17/17 block=0 → Attack 6×1  powers=[STRENGTH_POWER:2]
-
-  → play card [0]
-  → play card [3]
-  → end_turn → round transition
-#### Round 9  (e=3/3 block=0 draw=11 disc=6)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `Infection` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Infection` cost=0 canPlay=False target=None
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `Infection` cost=0 canPlay=False target=None
   - enemies:
-    - [0] `WRIGGLER` 21/21 block=0 → Buff + Unknown  powers=[STRENGTH_POWER:2]
-    - [1] `WRIGGLER` 18/18 block=0 → Attack 6×1  powers=[STRENGTH_POWER:2]
-    - [2] `WRIGGLER` 17/17 block=0 → Buff + Unknown  powers=[STRENGTH_POWER:2]
+    - [0] `PhrogParasite` 14/64 block=0 → Attack 4×4  powers=[InfestedPower:4,VulnerablePower:1]
 
+  → play card [0] target=0
   → play card [2]
   → end_turn → round transition
-#### Round 10  (e=3/3 block=0 draw=6 disc=13)
+#### Round 7  (e=3/3 block=0 draw=12 disc=5)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [0] `Infection` cost=0 canPlay=False target=None
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Rage` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `PhrogParasite` 14/64 block=0 → Unknown  powers=[InfestedPower:4]
+
+  → play card [1]
+  → play card [1]
+  → play card [1]
+  → play card [1]
+  → end_turn → round transition
+#### Round 8  (e=3/3 block=0 draw=7 disc=13)
+
+  - hand:
+    - [0] `Infection` cost=0 canPlay=False target=None
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Infection` cost=0 canPlay=False target=None
+  - enemies:
+    - [0] `PhrogParasite` 14/64 block=0 → Attack 4×4  powers=[InfestedPower:4]
+
+  → play card [1]
+  → play card [1] target=0
+  → end_turn → round transition
+#### Round 9  (e=3/3 block=0 draw=2 disc=18)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `Infection` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Infection` cost=0 canPlay=False target=None
   - enemies:
-    - [0] `WRIGGLER` 21/21 block=0 → Attack 6×1  powers=[STRENGTH_POWER:4]
-    - [1] `WRIGGLER` 18/18 block=0 → Buff + Unknown  powers=[STRENGTH_POWER:2]
-    - [2] `WRIGGLER` 17/17 block=0 → Attack 6×1  powers=[STRENGTH_POWER:4]
+    - [0] `PhrogParasite` 6/64 block=0 → Unknown  powers=[InfestedPower:4,VulnerablePower:1]
 
-  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
   → play card [0] target=0
   → end_turn → round transition
-#### Round 11  (e=3/3 block=0 draw=1 disc=19)
+#### Round 10  (e=3/3 block=0 draw=20 disc=0)
 
   - hand:
     - [0] `Infection` cost=0 canPlay=False target=None
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `Infection` cost=0 canPlay=False target=None
-    - [3] `Infection` cost=0 canPlay=False target=None
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `Infection` cost=0 canPlay=False target=None
   - enemies:
-    - [0] `WRIGGLER` 13/21 block=0 → Buff + Unknown  powers=[STRENGTH_POWER:4,VULNERABLE_POWER:1]
-    - [1] `WRIGGLER` 18/18 block=0 → Attack 6×1  powers=[STRENGTH_POWER:4]
-    - [2] `WRIGGLER` 17/17 block=0 → Buff + Unknown  powers=[STRENGTH_POWER:4]
+    - [0] `Wriggler` 7/19 block=0 → Attack 6×1
+    - [1] `Wriggler` 21/21 block=0 → Buff + Unknown
+    - [2] `Wriggler` 18/18 block=0 → Attack 6×1
+    - [3] `Wriggler` 17/17 block=0 → Buff + Unknown
 
   → play card [1] target=0
+  → play card [2]
   → end_turn → round transition
   - rewards offered:
-    - [0] gold 41g  canSkip=False
-    - [1] relic relic=``  canSkip=False
-    - [2] card cards=[`Dismantle`(cost=1), `Cascade`(cost=0), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] gold 35g  canSkip=False
+    - [1] potion potion=`RadiantTincture`  canSkip=False
+    - [2] relic relic=``  canSkip=False
+    - [3] card cards=[`Feed`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 41g  canSkip=False
-    - [1] relic relic=``  canSkip=False
-    - [2] card cards=[`Dismantle`(cost=1), `Cascade`(cost=0), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] gold 35g  canSkip=False
+    - [1] potion potion=`RadiantTincture`  canSkip=False
+    - [2] relic relic=``  canSkip=False
+    - [3] card cards=[`Feed`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
-    - [0] gold 41g  canSkip=False
+    - [0] gold 35g  canSkip=False
+    - [1] potion potion=`RadiantTincture`  canSkip=False
+    - [2] relic relic=``  canSkip=False
+    - [3] card cards=[`Feed`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
+
+  → claim reward [0] → hp=80 room=CombatRoom
+  - rewards offered:
+    - [0] potion potion=`RadiantTincture`  canSkip=False
     - [1] relic relic=``  canSkip=False
-    - [2] card cards=[`Dismantle`(cost=1), `Cascade`(cost=0), `Thunderclap`(cost=1)]  canSkip=True
+    - [2] card cards=[`Feed`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
+
+  - rewards offered:
+    - [0] potion potion=`RadiantTincture`  canSkip=False
+    - [1] relic relic=``  canSkip=False
+    - [2] card cards=[`Feed`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
     - [0] relic relic=``  canSkip=False
-    - [1] card cards=[`Dismantle`(cost=1), `Cascade`(cost=0), `Thunderclap`(cost=1)]  canSkip=True
+    - [1] card cards=[`Feed`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   - rewards offered:
     - [0] relic relic=``  canSkip=False
-    - [1] card cards=[`Dismantle`(cost=1), `Cascade`(cost=0), `Thunderclap`(cost=1)]  canSkip=True
+    - [1] card cards=[`Feed`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`Dismantle`(cost=1), `Cascade`(cost=0), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] card cards=[`Feed`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`Dismantle`(cost=1), `Cascade`(cost=0), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] card cards=[`Feed`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
 ## Floor 8: MapRoom  (hp=80)
 
@@ -635,143 +676,140 @@
   → pick map (0,8) → CombatRoom floor=9
 ### Combat #1 on floor 9
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `MAWLER` 72/72 block=0 → Attack 4×2
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `MAWLER` 66/72 block=0 → Attack 14×1
-
-  → play card [1] target=0
-  → play card [1] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `MAWLER` 51/72 block=0 → Debuff
+    - [0] `Mawler` 72/72 block=0 → Attack 4×2
 
-  → play card [0] target=0
   → play card [0]
   → play card [0] target=0
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Rage` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `MAWLER` 39/72 block=0 → Attack 4×2
-  - player powers: VULNERABLE_POWER:3
+    - [0] `Mawler` 61/72 block=0 → Attack 14×1
 
   → play card [0]
   → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0]
   → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `MAWLER` 31/72 block=0 → Attack 14×1  powers=[VULNERABLE_POWER:1]
-  - player powers: VULNERABLE_POWER:3
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `MAWLER` 13/72 block=0 → Attack 4×2
-  - player powers: VULNERABLE_POWER:3
+    - [0] `Mawler` 53/72 block=0 → Debuff  powers=[VulnerablePower:1]
+  - player powers: RagePower:3
 
   → play card [0]
   → play card [0] target=0
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Rage` cost=0 canPlay=True target=Self
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `Mawler` 35/72 block=0 → Attack 4×2
+  - player powers: RagePower:3, VulnerablePower:3
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
     - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Rage` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `MAWLER` 5/72 block=0 → Attack 14×1  powers=[VULNERABLE_POWER:1]
-  - player powers: VULNERABLE_POWER:3
+    - [0] `Mawler` 20/72 block=0 → Attack 14×1
+  - player powers: RagePower:6, VulnerablePower:3
 
   → play card [0] target=0
+  → play card [0]
+  → play card [1]
+  → play card [1]
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `Mawler` 14/72 block=0 → Attack 4×2
+  - player powers: RagePower:9, VulnerablePower:3
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 7  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `Mawler` 2/72 block=0 → Attack 14×1
+  - player powers: RagePower:9, VulnerablePower:3
+
+  → play card [0] target=0
+  → play card [0] target=0
   - rewards offered:
-    - [0] gold 18g  canSkip=False
-    - [1] potion potion=`ENTROPIC_BREW`  canSkip=False
-    - [2] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
+    - [0] gold 10g  canSkip=False
+    - [1] card cards=[`EvilEye`(cost=1), `Rage`(cost=0), `Cinder`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 18g  canSkip=False
-    - [1] potion potion=`ENTROPIC_BREW`  canSkip=False
-    - [2] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
+    - [0] gold 10g  canSkip=False
+    - [1] card cards=[`EvilEye`(cost=1), `Rage`(cost=0), `Cinder`(cost=2)]  canSkip=True
 
-  → claim reward [0] → hp=56 room=CombatRoom
+  → claim reward [0] → hp=57 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`ENTROPIC_BREW`  canSkip=False
-    - [1] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
+    - [0] card cards=[`EvilEye`(cost=1), `Rage`(cost=0), `Cinder`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`ENTROPIC_BREW`  canSkip=False
-    - [1] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
+    - [0] card cards=[`EvilEye`(cost=1), `Rage`(cost=0), `Cinder`(cost=2)]  canSkip=True
 
-  → claim reward [0] → hp=56 room=CombatRoom
-  - bag: [0]ENERGY_POTION/Unknown,[1]REGEN_POTION/Unknown,[2]ENTROPIC_BREW/Self
-  - rewards offered:
-    - [0] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
-
-  - rewards offered:
-    - [0] card cards=[`Uppercut`(cost=2), `Armaments`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
-
-## Floor 9: MapRoom  (hp=56)
+## Floor 9: MapRoom  (hp=57)
 
   - map options: (0,9):Treasure
 
-  → skip reward [0] → hp=56 room=MapRoom
-  - combat ended (hp=56)
+  → skip reward [0] → hp=57 room=MapRoom
+  - combat ended (hp=57)
 
   - heal → hp=80/80
 
@@ -783,7 +821,7 @@
 
   - map options: (0,10):RestSite
 
-  → leave treasure → MapRoom relics=`BURNING_BLOOD`, `ODDLY_SMOOTH_STONE`, `GORGET`
+  → take treasure → MapRoom relics=`BurningBlood`, `ScrollBoxes`, `OldCoin`, `Gorget`
 ## Floor 11: RestSiteRoom  (hp=80)
 
 
@@ -799,197 +837,145 @@
   → pick map (0,11) → CombatRoom floor=12
 ### Combat #1 on floor 12
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `LEAF_SLIME_S` 11/11 block=0 → Attack 3×1
-    - [1] `TWIG_SLIME_S` 9/9 block=0 → Attack 4×1
-    - [2] `SLITHERING_STRANGLER` 55/55 block=0 → Debuff
-
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [0] `Bloodletting` cost=0 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `LEAF_SLIME_S` 3/11 block=0 → Unknown  powers=[VULNERABLE_POWER:1]
-    - [1] `TWIG_SLIME_S` 9/9 block=0 → Attack 4×1
-    - [2] `SLITHERING_STRANGLER` 55/55 block=0 → Attack 7×1 + Defend
-  - player powers: CONSTRICT_POWER:3
+    - [0] `SnappingJaxfruit` 31/31 block=0 → Attack 3×1 + Buff
+    - [1] `SlitheringStrangler` 54/54 block=0 → Debuff
 
+  → play card [0]
+  → play card [0] target=0
   → play card [0] target=0
   → play card [0] target=0
   → play card [0]
   → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `SLITHERING_STRANGLER` 55/55 block=5 → Debuff
-  - player powers: CONSTRICT_POWER:3
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SLITHERING_STRANGLER` 51/55 block=0 → Attack 12×1
-  - player powers: CONSTRICT_POWER:6
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [1]
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SLITHERING_STRANGLER` 45/55 block=0 → Debuff
-  - player powers: CONSTRICT_POWER:6
-
-  → play card [0]
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Rage` cost=0 canPlay=True target=Self
     - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `SLITHERING_STRANGLER` 45/55 block=0 → Attack 12×1
-  - player powers: CONSTRICT_POWER:9
+    - [0] `SnappingJaxfruit` 16/31 block=0 → Attack 3×1 + Buff  powers=[StrengthPower:2]
+    - [1] `SlitheringStrangler` 54/54 block=0 → Attack 7×1 + Defend
+  - player powers: ConstrictPower:3
 
-  → play card [1]
-  → play card [1] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Bloodletting` cost=0 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `SnappingJaxfruit` 8/31 block=0 → Attack 3×1 + Buff  powers=[StrengthPower:4,VulnerablePower:1]
+    - [1] `SlitheringStrangler` 54/54 block=5 → Debuff
+  - player powers: ConstrictPower:3, RagePower:3
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `SlitheringStrangler` 54/54 block=0 → Attack 7×1 + Defend
+  - player powers: ConstrictPower:6, RagePower:3
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Rage` cost=0 canPlay=True target=Self
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [3] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `SlitheringStrangler` 43/54 block=5 → Debuff
+  - player powers: ConstrictPower:6, RagePower:3
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `SlitheringStrangler` 34/54 block=0 → Attack 7×1 + Defend  powers=[VulnerablePower:1]
+  - player powers: ConstrictPower:9, RagePower:6
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [1]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 7  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `SLITHERING_STRANGLER` 37/55 block=0 → Debuff  powers=[VULNERABLE_POWER:1]
-  - player powers: CONSTRICT_POWER:9
+    - [0] `SlitheringStrangler` 3/54 block=5 → Debuff
+  - player powers: ConstrictPower:9, RagePower:6
 
   → play card [0]
   → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SLITHERING_STRANGLER` 11/55 block=0 → Attack 7×1 + Defend
-  - player powers: CONSTRICT_POWER:12
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 9  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `SLITHERING_STRANGLER` 5/55 block=5 → Debuff
-  - player powers: CONSTRICT_POWER:12
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 10  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SLITHERING_STRANGLER` 4/55 block=0 → Attack 7×1 + Defend
-  - player powers: CONSTRICT_POWER:15
-
-  → play card [1]
-  → play card [1] target=0
   - rewards offered:
-    - [0] gold 13g  canSkip=False
-    - [1] potion potion=`COLORLESS_POTION`  canSkip=False
-    - [2] card cards=[`TrueGrit`(cost=1), `SecondWind`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [0] gold 10g  canSkip=False
+    - [1] card cards=[`Anger`(cost=0), `BodySlam`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 13g  canSkip=False
-    - [1] potion potion=`COLORLESS_POTION`  canSkip=False
-    - [2] card cards=[`TrueGrit`(cost=1), `SecondWind`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [0] gold 10g  canSkip=False
+    - [1] card cards=[`Anger`(cost=0), `BodySlam`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
-  → claim reward [0] → hp=67 room=CombatRoom
+  → claim reward [0] → hp=60 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`COLORLESS_POTION`  canSkip=False
-    - [1] card cards=[`TrueGrit`(cost=1), `SecondWind`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [0] card cards=[`Anger`(cost=0), `BodySlam`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`COLORLESS_POTION`  canSkip=False
-    - [1] card cards=[`TrueGrit`(cost=1), `SecondWind`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [0] card cards=[`Anger`(cost=0), `BodySlam`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
-  → claim reward [0] → hp=67 room=CombatRoom
-  - rewards offered:
-    - [0] card cards=[`TrueGrit`(cost=1), `SecondWind`(cost=1), `Armaments`(cost=1)]  canSkip=True
-
-  - rewards offered:
-    - [0] card cards=[`TrueGrit`(cost=1), `SecondWind`(cost=1), `Armaments`(cost=1)]  canSkip=True
-
-## Floor 12: MapRoom  (hp=67)
+## Floor 12: MapRoom  (hp=60)
 
   - map options: (0,12):RestSite
 
-  → skip reward [0] → hp=67 room=MapRoom
-  - combat ended (hp=67)
+  → skip reward [0] → hp=60 room=MapRoom
+  - combat ended (hp=60)
 
   - heal → hp=80/80
 
@@ -1005,8 +991,8 @@
 ## Floor 14: EventRoom  (hp=80)
 
   - event options:
-    - [0] `JUNGLE_MAZE_ADVENTURE.pages.INITIAL.options.SOLO_QUEST`
-    - [1] `JUNGLE_MAZE_ADVENTURE.pages.INITIAL.options.JOIN_FORCES`
+    - [0] `DENSE_VEGETATION.pages.INITIAL.options.TRUDGE_ON`
+    - [1] `DENSE_VEGETATION.pages.INITIAL.options.REST`
 
   → pick map (0,13) → EventRoom floor=14
 ## Floor 14: MapRoom  (hp=80)
@@ -1020,266 +1006,248 @@
   → pick map (0,14) → CombatRoom floor=15
 ### Combat #1 on floor 15
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `FOGMOG` 74/74 block=0 → Unknown
-
-  → play card [0]
-  → play card [0]
-  → play card [2] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 65/74 block=0 → Attack 8×1 + Buff
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `Rage` cost=0 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 65/74 block=0 → Attack 14×1  powers=[STRENGTH_POWER:1]
-
-  → play card [1]
-  → play card [1] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 56/74 block=0 → Attack 8×1 + Buff  powers=[STRENGTH_POWER:1]
+    - [0] `Fogmog` 74/74 block=0 → Unknown
 
+  → play card [0]
   → play card [0] target=0
-  → play card [0]
-  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 53/74 block=0 → Attack 8×1 + Buff
+  - player powers: RagePower:3
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → play card [1]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 44/74 block=0 → Attack 14×1  powers=[StrengthPower:1]
+  - player powers: RagePower:3
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=8)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 56/74 block=0 → Attack 14×1  powers=[STRENGTH_POWER:2]
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 44/74 block=0 → Attack 8×1 + Buff  powers=[StrengthPower:1]
+  - player powers: RagePower:3
 
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=11 disc=0)
+
+  - hand:
+    - [0] `Bloodletting` cost=0 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Rage` cost=0 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 26/74 block=0 → Attack 14×1  powers=[StrengthPower:2]
+  - player powers: RagePower:3
+
+  → play card [0]
+  → play card [0] target=0
   → play card [0]
   → play card [0] target=0
   → play card [0] target=0
   → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
+#### Round 6  (e=3/3 block=0 draw=6 disc=5)
+
+  - hand:
+    - [0] `Dazed` cost=0 canPlay=False target=None
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Dazed` cost=0 canPlay=False target=None
+  - enemies:
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 9/74 block=0 → Attack 8×1 + Buff  powers=[StrengthPower:2,VulnerablePower:1]
+  - player powers: RagePower:6
+
+  → play card [1]
+  → play card [1] target=0
+  → play card [1] target=0
+  → end_turn → round transition
+#### Round 7  (e=3/3 block=0 draw=1 disc=8)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Dazed` cost=0 canPlay=False target=None
   - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 47/74 block=0 → Attack 8×1 + Buff  powers=[STRENGTH_POWER:2]
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 2/74 block=0 → Attack 8×1 + Buff  powers=[StrengthPower:3]
+  - player powers: RagePower:6
 
   → play card [0] target=0
   → play card [0]
   → play card [0]
   → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
+#### Round 8  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 47/74 block=0 → Attack 14×1  powers=[STRENGTH_POWER:3]
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [1]
-  → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 47/74 block=0 → Attack 8×1 + Buff  powers=[STRENGTH_POWER:3]
-
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 9  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Guilty` cost=0 canPlay=False target=None
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 47/74 block=0 → Attack 14×1  powers=[STRENGTH_POWER:4]
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 2/74 block=0 → Attack 14×1  powers=[StrengthPower:4]
+  - player powers: RagePower:6
 
   → play card [0] target=0
   → play card [0]
-  → play card [1] target=0
+  → play card [0]
   → end_turn → round transition
-#### Round 10  (e=3/3 block=0 draw=0 disc=5)
+#### Round 9  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `Rage` cost=0 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 2/74 block=0 → Attack 8×1 + Buff  powers=[StrengthPower:4]
+  - player powers: RagePower:6
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [1]
+  → end_turn → round transition
+#### Round 10  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 2/74 block=0 → Attack 14×1  powers=[StrengthPower:5]
+  - player powers: RagePower:9
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 11  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Rage` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 38/74 block=0 → Attack 8×1 + Buff  powers=[STRENGTH_POWER:4]
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 2/74 block=0 → Attack 8×1 + Buff  powers=[StrengthPower:5]
+  - player powers: RagePower:9
 
   → play card [0] target=0
-  → play card [0]
   → play card [0] target=0
+  → play card [0]
+  → play card [0]
   → end_turn → round transition
-#### Round 11  (e=3/3 block=0 draw=5 disc=0)
+#### Round 12  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 29/74 block=0 → Attack 8×1 + Buff  powers=[STRENGTH_POWER:5]
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 12  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 21/74 block=0 → Attack 14×1  powers=[STRENGTH_POWER:6,VULNERABLE_POWER:1]
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 13  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 21/74 block=0 → Attack 8×1 + Buff  powers=[STRENGTH_POWER:6]
-
-  → play card [0]
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 14  (e=3/3 block=0 draw=0 disc=8)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EYE_WITH_TEETH` 6/6 block=0 → Unknown  powers=[ILLUSION_POWER:1,MINION_POWER:1]
-    - [1] `FOGMOG` 21/74 block=0 → Attack 14×1  powers=[STRENGTH_POWER:7]
+    - [0] `EyeWithTeeth` 6/6 block=0 → Unknown  powers=[IllusionPower:1,MinionPower:1]
+    - [1] `Fogmog` 2/74 block=0 → Attack 14×1  powers=[StrengthPower:6]
+  - player powers: RagePower:12
 
   → play card [0] target=0
   → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
   - rewards offered:
-    - [0] gold 11g  canSkip=False
-    - [1] potion potion=`BLOCK_POTION`  canSkip=False
-    - [2] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
+    - [0] gold 15g  canSkip=False
+    - [1] potion potion=`AttackPotion`  canSkip=False
+    - [2] card cards=[`Stampede`(cost=2), `BodySlam`(cost=1), `Bloodletting`(cost=0)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 11g  canSkip=False
-    - [1] potion potion=`BLOCK_POTION`  canSkip=False
-    - [2] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
+    - [0] gold 15g  canSkip=False
+    - [1] potion potion=`AttackPotion`  canSkip=False
+    - [2] card cards=[`Stampede`(cost=2), `BodySlam`(cost=1), `Bloodletting`(cost=0)]  canSkip=True
 
-  - heal → hp=80/80
+  → claim reward [0] → hp=3 room=CombatRoom
+  - rewards offered:
+    - [0] potion potion=`AttackPotion`  canSkip=False
+    - [1] card cards=[`Stampede`(cost=2), `BodySlam`(cost=1), `Bloodletting`(cost=0)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 11g  canSkip=False
-    - [1] potion potion=`BLOCK_POTION`  canSkip=False
-    - [2] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
+    - [0] potion potion=`AttackPotion`  canSkip=False
+    - [1] card cards=[`Stampede`(cost=2), `BodySlam`(cost=1), `Bloodletting`(cost=0)]  canSkip=True
 
-  → claim reward [0] → hp=80 room=CombatRoom
+  → claim reward [0] → hp=3 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`BLOCK_POTION`  canSkip=False
-    - [1] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
+    - [0] card cards=[`Stampede`(cost=2), `BodySlam`(cost=1), `Bloodletting`(cost=0)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`BLOCK_POTION`  canSkip=False
-    - [1] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
+    - [0] card cards=[`Stampede`(cost=2), `BodySlam`(cost=1), `Bloodletting`(cost=0)]  canSkip=True
 
-  → claim reward [0] → hp=80 room=CombatRoom
-  - rewards offered:
-    - [0] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
-
-  - rewards offered:
-    - [0] card cards=[`Taunt`(cost=1), `Armaments`(cost=1), `BloodWall`(cost=2)]  canSkip=True
-
-## Floor 15: MapRoom  (hp=80)
+## Floor 15: MapRoom  (hp=3)
 
   - map options: (0,15):RestSite
 
-  → skip reward [0] → hp=80 room=MapRoom
-  - combat ended (hp=80)
+  → skip reward [0] → hp=3 room=MapRoom
+  - combat ended (hp=3)
+
+  - heal → hp=80/80
 
 ## Floor 16: RestSiteRoom  (hp=80)
 
@@ -1296,294 +1264,176 @@
   → pick map (3,16) → BossRoom floor=17
 ### Combat #1 on floor 17
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Guilty` cost=0 canPlay=False target=None
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `VANTOM` 173/173 block=0 → Attack 7×1  powers=[SLIPPERY_POWER:9]
+    - [0] `Vantom` 173/173 block=0 → Attack 7×1  powers=[SlipperyPower:9]
 
   - heal → hp=80/80
 
   → play card [0] target=0
   → play card [0] target=0
-  → play card [0]
   → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `Bloodletting` cost=0 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `VANTOM` 171/173 block=0 → Attack 6×2  powers=[SLIPPERY_POWER:7]
-
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `VANTOM` 170/173 block=0 → Attack 27×1 + Unknown  powers=[SLIPPERY_POWER:6,VULNERABLE_POWER:1]
-
-  → play card [0] target=0
-  → play card [1]
-  → play card [2] target=0
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Rage` cost=0 canPlay=True target=Self
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `VANTOM` 168/173 block=0 → Buff  powers=[SLIPPERY_POWER:4]
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `VANTOM` 166/173 block=0 → Attack 7×1  powers=[SLIPPERY_POWER:2,STRENGTH_POWER:2]
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `VANTOM` 164/173 block=0 → Attack 6×2  powers=[STRENGTH_POWER:2,VULNERABLE_POWER:1]
-
-  → play card [1]
-  → play card [1] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `VANTOM` 151/173 block=0 → Attack 27×1 + Unknown  powers=[STRENGTH_POWER:2]
+    - [0] `Vantom` 171/173 block=0 → Attack 6×2  powers=[SlipperyPower:7,VulnerablePower:1]
 
   → play card [0]
   → play card [0] target=0
-  → play card [1]
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
   → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Guilty` cost=0 canPlay=False target=None
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `VANTOM` 142/173 block=0 → Buff  powers=[STRENGTH_POWER:2]
+    - [0] `Vantom` 169/173 block=0 → Attack 27×1 + Unknown  powers=[SlipperyPower:5]
+  - player powers: RagePower:3
 
   → play card [0] target=0
   → play card [0] target=0
   → play card [0]
+  → play card [1]
+  → play card [0]
   → end_turn → round transition
-#### Round 9  (e=3/3 block=0 draw=5 disc=0)
+#### Round 4  (e=3/3 block=0 draw=3 disc=8)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [0] `Rage` cost=0 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `VANTOM` 124/173 block=0 → Attack 7×1  powers=[STRENGTH_POWER:4]
+    - [0] `Vantom` 168/173 block=0 → Buff  powers=[SlipperyPower:4]
+  - player powers: RagePower:3
 
   → play card [0]
+  → play card [0] target=0
   → play card [0]
   → play card [0] target=0
   → end_turn → round transition
-#### Round 10  (e=3/3 block=0 draw=0 disc=5)
+#### Round 5  (e=3/3 block=0 draw=11 disc=0)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `VANTOM` 115/173 block=0 → Attack 6×2  powers=[STRENGTH_POWER:4]
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 11  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `VANTOM` 106/173 block=0 → Attack 27×1 + Unknown  powers=[STRENGTH_POWER:4]
-
-  → play card [1] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 12  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Wound` cost=0 canPlay=False target=None
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `VANTOM` 89/173 block=0 → Buff  powers=[STRENGTH_POWER:4,VULNERABLE_POWER:1]
+    - [0] `Vantom` 166/173 block=0 → Attack 7×1  powers=[SlipperyPower:2,StrengthPower:2]
+  - player powers: RagePower:6
 
-  → play card [0]
   → play card [0] target=0
   → play card [0] target=0
+  → play card [0]
   → end_turn → round transition
-#### Round 13  (e=3/3 block=0 draw=5 disc=0)
+#### Round 6  (e=3/3 block=0 draw=6 disc=5)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `VANTOM` 63/173 block=0 → Attack 7×1  powers=[STRENGTH_POWER:6]
-
-  → play card [0]
-  → play card [0]
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 14  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `VANTOM` 54/173 block=0 → Attack 6×2  powers=[STRENGTH_POWER:6]
-
-  → play card [0]
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 15  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `Wound` cost=0 canPlay=False target=None
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `VANTOM` 45/173 block=0 → Attack 27×1 + Unknown  powers=[STRENGTH_POWER:6]
+    - [0] `Vantom` 164/173 block=0 → Attack 6×2  powers=[StrengthPower:2]
+  - player powers: RagePower:6
 
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 16  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `VANTOM` 37/173 block=0 → Buff  powers=[STRENGTH_POWER:6,VULNERABLE_POWER:1]
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 17  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `VANTOM` 11/173 block=0 → Attack 7×1  powers=[STRENGTH_POWER:8]
-
-  → play card [0]
-  → play card [0] target=0
+  → play card [1] target=0
+  → play card [1]
+  → play card [1] target=0
   → play card [1]
   → end_turn → round transition
-#### Round 18  (e=3/3 block=0 draw=0 disc=5)
+#### Round 7  (e=3/3 block=0 draw=1 disc=10)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Rage` cost=0 canPlay=True target=Self
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `VANTOM` 2/173 block=0 → Attack 6×2  powers=[STRENGTH_POWER:8]
+    - [0] `Vantom` 149/173 block=0 → Attack 27×1 + Unknown  powers=[StrengthPower:2]
+  - player powers: RagePower:6
 
-  → play card [0]
   → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 8  (e=3/3 block=0 draw=14 disc=0)
+
+  - hand:
+    - [0] `Wound` cost=0 canPlay=False target=None
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Wound` cost=0 canPlay=False target=None
+    - [3] `Wound` cost=0 canPlay=False target=None
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `Vantom` 140/173 block=0 → Buff  powers=[StrengthPower:2]
+  - player powers: RagePower:9
+
+  → play card [1]
+  → play card [3]
   - rewards offered:
     - [0] gold 100g  canSkip=False
-    - [1] card cards=[`CrimsonMantle`(cost=1), `Conflagration`(cost=1), `Stoke`(cost=1)]  canSkip=True
+    - [1] potion potion=`FlexPotion`  canSkip=False
+    - [2] card cards=[`CrimsonMantle`(cost=1), `Barricade`(cost=3), `Cruelty`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 100g  canSkip=False
-    - [1] card cards=[`CrimsonMantle`(cost=1), `Conflagration`(cost=1), `Stoke`(cost=1)]  canSkip=True
-
-  → claim reward [0] → hp=23 room=BossRoom
-  - rewards offered:
-    - [0] card cards=[`CrimsonMantle`(cost=1), `Conflagration`(cost=1), `Stoke`(cost=1)]  canSkip=True
-
-  - rewards offered:
-    - [0] card cards=[`CrimsonMantle`(cost=1), `Conflagration`(cost=1), `Stoke`(cost=1)]  canSkip=True
-
-## Floor 17: MapRoom  (hp=23)
-
-
-  → skip reward [0] → hp=23 room=MapRoom
-  - combat ended (hp=23)
+    - [1] potion potion=`FlexPotion`  canSkip=False
+    - [2] card cards=[`CrimsonMantle`(cost=1), `Barricade`(cost=3), `Cruelty`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
+
+  - rewards offered:
+    - [0] gold 100g  canSkip=False
+    - [1] potion potion=`FlexPotion`  canSkip=False
+    - [2] card cards=[`CrimsonMantle`(cost=1), `Barricade`(cost=3), `Cruelty`(cost=1)]  canSkip=True
+
+  → claim reward [0] → hp=80 room=BossRoom
+  - rewards offered:
+    - [0] potion potion=`FlexPotion`  canSkip=False
+    - [1] card cards=[`CrimsonMantle`(cost=1), `Barricade`(cost=3), `Cruelty`(cost=1)]  canSkip=True
+
+  - rewards offered:
+    - [0] potion potion=`FlexPotion`  canSkip=False
+    - [1] card cards=[`CrimsonMantle`(cost=1), `Barricade`(cost=3), `Cruelty`(cost=1)]  canSkip=True
+
+  → claim reward [0] → hp=80 room=BossRoom
+  - rewards offered:
+    - [0] card cards=[`CrimsonMantle`(cost=1), `Barricade`(cost=3), `Cruelty`(cost=1)]  canSkip=True
+
+  - rewards offered:
+    - [0] card cards=[`CrimsonMantle`(cost=1), `Barricade`(cost=3), `Cruelty`(cost=1)]  canSkip=True
+
+## Floor 17: MapRoom  (hp=80)
+
+
+  → skip reward [0] → hp=80 room=MapRoom
+  - combat ended (hp=80)
 
 ## Floor 0: MapRoom  (hp=80)
 
@@ -1596,146 +1446,138 @@
   → pick map (1,1) → CombatRoom floor=2
 ### Combat #1 on floor 2
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Guilty` cost=0 canPlay=False target=None
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Rage` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `BowlbugRock` 47/47 block=0 → Attack 15×1  powers=[ImbalancedPower:1]
+    - [1] `BowlbugNectar` 36/36 block=0 → Attack 3×1
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → play card [1]
+  → end_turn → round transition
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `BOWLBUG_ROCK` 46/46 block=0 → Attack 15×1  powers=[IMBALANCED_POWER:1]
-    - [1] `BOWLBUG_EGG` 22/22 block=0 → Attack 7×1 + Defend
+    - [0] `BowlbugRock` 29/47 block=0 → Attack 15×1  powers=[ImbalancedPower:1]
+    - [1] `BowlbugNectar` 36/36 block=0 → Buff
+  - player powers: RagePower:3
 
   → play card [0] target=0
-  → play card [0]
-  → play card [1]
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `BOWLBUG_ROCK` 37/46 block=0 → Attack 15×1  powers=[IMBALANCED_POWER:1]
-    - [1] `BOWLBUG_EGG` 22/22 block=7 → Attack 7×1 + Defend
-
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `BOWLBUG_ROCK` 29/46 block=0 → Attack 15×1  powers=[IMBALANCED_POWER:1,VULNERABLE_POWER:1]
-    - [1] `BOWLBUG_EGG` 22/22 block=7 → Attack 7×1 + Defend
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `BOWLBUG_ROCK` 4/46 block=0 → Attack 15×1  powers=[IMBALANCED_POWER:1,VULNERABLE_POWER:2]
-    - [1] `BOWLBUG_EGG` 22/22 block=7 → Attack 7×1 + Defend
-
-  → play card [0] target=0
-  → play card [1]
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `BOWLBUG_EGG` 20/22 block=7 → Attack 7×1 + Defend
-
   → play card [0] target=0
   → play card [0]
   → play card [0]
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `BOWLBUG_EGG` 18/22 block=7 → Attack 7×1 + Defend
-
-  → play card [0] target=0
   → play card [0] target=0
   → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [3] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `BOWLBUG_EGG` 8/22 block=7 → Attack 7×1 + Defend  powers=[VULNERABLE_POWER:1]
+    - [0] `BowlbugRock` 14/47 block=0 → Attack 15×1  powers=[ImbalancedPower:1]
+    - [1] `BowlbugNectar` 36/36 block=0 → Attack 3×1  powers=[StrengthPower:15]
+  - player powers: RagePower:3
 
   → play card [0]
-  → play card [0] target=0
+  → play card [0]
+  → play card [1] target=0
   → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Rage` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `BOWLBUG_EGG` 3/22 block=7 → Attack 7×1 + Defend  powers=[VULNERABLE_POWER:2]
+    - [0] `BowlbugRock` 4/47 block=0 → Attack 15×1  powers=[ImbalancedPower:1]
+    - [1] `BowlbugNectar` 36/36 block=0 → Attack 3×1  powers=[StrengthPower:15]
+  - player powers: RagePower:3
 
   → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `BowlbugNectar` 18/36 block=0 → Attack 3×1  powers=[StrengthPower:15]
+  - player powers: RagePower:6
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Rage` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `BowlbugNectar` 12/36 block=0 → Attack 3×1  powers=[StrengthPower:15]
+  - player powers: RagePower:6
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [1]
+  → end_turn → round transition
   - rewards offered:
-    - [0] gold 12g  canSkip=False
-    - [1] card cards=[`Hemokinesis`(cost=1), `Colossus`(cost=1), `FeelNoPain`(cost=1)]  canSkip=True
+    - [0] gold 17g  canSkip=False
+    - [1] card cards=[`Inferno`(cost=1), `SwordBoomerang`(cost=1), `ShrugItOff`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 12g  canSkip=False
-    - [1] card cards=[`Hemokinesis`(cost=1), `Colossus`(cost=1), `FeelNoPain`(cost=1)]  canSkip=True
+    - [0] gold 17g  canSkip=False
+    - [1] card cards=[`Inferno`(cost=1), `SwordBoomerang`(cost=1), `ShrugItOff`(cost=1)]  canSkip=True
 
-  → claim reward [0] → hp=60 room=CombatRoom
-  - rewards offered:
-    - [0] card cards=[`Hemokinesis`(cost=1), `Colossus`(cost=1), `FeelNoPain`(cost=1)]  canSkip=True
+  - heal → hp=80/80
 
   - rewards offered:
-    - [0] card cards=[`Hemokinesis`(cost=1), `Colossus`(cost=1), `FeelNoPain`(cost=1)]  canSkip=True
+    - [0] gold 17g  canSkip=False
+    - [1] card cards=[`Inferno`(cost=1), `SwordBoomerang`(cost=1), `ShrugItOff`(cost=1)]  canSkip=True
 
-## Floor 2: MapRoom  (hp=60)
+  → claim reward [0] → hp=80 room=CombatRoom
+  - rewards offered:
+    - [0] card cards=[`Inferno`(cost=1), `SwordBoomerang`(cost=1), `ShrugItOff`(cost=1)]  canSkip=True
+
+  - rewards offered:
+    - [0] card cards=[`Inferno`(cost=1), `SwordBoomerang`(cost=1), `ShrugItOff`(cost=1)]  canSkip=True
+
+## Floor 2: MapRoom  (hp=80)
 
   - map options: (0,2):Monster
 
-  → skip reward [0] → hp=60 room=MapRoom
-  - combat ended (hp=60)
-
-  - heal → hp=80/80
+  → skip reward [0] → hp=80 room=MapRoom
+  - combat ended (hp=80)
 
 ## Floor 3: CombatRoom  (hp=80)
 
@@ -1743,98 +1585,146 @@
   → pick map (0,2) → CombatRoom floor=3
 ### Combat #1 on floor 3
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `ThievingHopper` 79/79 block=0 → Attack 17×1 + Unknown  powers=[EscapeArtistPower:5]
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 2  (e=3/3 block=0 draw=2 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `ThievingHopper` 68/79 block=0 → Buff  powers=[EscapeArtistPower:5,SwipePower:1]
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [1]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 3  (e=3/3 block=0 draw=7 disc=0)
 
   - hand:
     - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `THIEVING_HOPPER` 79/79 block=0 → Attack 17×1 + Unknown  powers=[ESCAPE_ARTIST_POWER:5]
+    - [0] `ThievingHopper` 41/79 block=0 → Attack 21×1  powers=[EscapeArtistPower:5,SwipePower:1,FlutterPower:5]
 
   → play card [0] target=0
   → play card [0] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `THIEVING_HOPPER` 58/79 block=0 → Buff  powers=[ESCAPE_ARTIST_POWER:5,VULNERABLE_POWER:1]
-
-  → play card [0]
-  → play card [1]
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `THIEVING_HOPPER` 45/79 block=0 → Attack 21×1  powers=[ESCAPE_ARTIST_POWER:5]
-
+  → play card [2]
   → play card [0]
   → play card [0] target=0
-  → play card [0]
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `THIEVING_HOPPER` 36/79 block=0 → Attack 14×1  powers=[ESCAPE_ARTIST_POWER:5]
-
-  → play card [1] target=0
-  → play card [1] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
+#### Round 4  (e=3/3 block=0 draw=2 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `THIEVING_HOPPER` 9/79 block=0 → Escape  powers=[ESCAPE_ARTIST_POWER:5]
+    - [0] `ThievingHopper` 25/79 block=0 → Attack 14×1  powers=[EscapeArtistPower:5,SwipePower:1,FlutterPower:2,VulnerablePower:1]
 
   → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=7 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `ThievingHopper` 19/79 block=0 → Escape  powers=[EscapeArtistPower:5,SwipePower:1,FlutterPower:1]
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [1]
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=2 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `Bloodletting` cost=0 canPlay=True target=Self
+    - [4] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `ThievingHopper` 15/79 block=0 → Escape  powers=[EscapeArtistPower:5,SwipePower:1]
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
   - rewards offered:
-    - [0] gold 13g  canSkip=False
-    - [1] card cards=[`Bloodletting`(cost=0), `Breakthrough`(cost=1), `TwinStrike`(cost=1)]  canSkip=True
+    - [0] gold 14g  canSkip=False
+    - [1] potion potion=`CureAll`  canSkip=False
+    - [2] unknown  canSkip=False
+    - [3] card cards=[`MoltenFist`(cost=1), `StoneArmor`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 13g  canSkip=False
-    - [1] card cards=[`Bloodletting`(cost=0), `Breakthrough`(cost=1), `TwinStrike`(cost=1)]  canSkip=True
+    - [0] gold 14g  canSkip=False
+    - [1] potion potion=`CureAll`  canSkip=False
+    - [2] unknown  canSkip=False
+    - [3] card cards=[`MoltenFist`(cost=1), `StoneArmor`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
-  → claim reward [0] → hp=80 room=CombatRoom
+  → claim reward [0] → hp=37 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`Bloodletting`(cost=0), `Breakthrough`(cost=1), `TwinStrike`(cost=1)]  canSkip=True
+    - [0] potion potion=`CureAll`  canSkip=False
+    - [1] unknown  canSkip=False
+    - [2] card cards=[`MoltenFist`(cost=1), `StoneArmor`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`Bloodletting`(cost=0), `Breakthrough`(cost=1), `TwinStrike`(cost=1)]  canSkip=True
+    - [0] potion potion=`CureAll`  canSkip=False
+    - [1] unknown  canSkip=False
+    - [2] card cards=[`MoltenFist`(cost=1), `StoneArmor`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
 
-## Floor 3: MapRoom  (hp=80)
+  → claim reward [0] → hp=37 room=CombatRoom
+  - rewards offered:
+    - [0] unknown  canSkip=False
+    - [1] card cards=[`MoltenFist`(cost=1), `StoneArmor`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
+
+  - rewards offered:
+    - [0] unknown  canSkip=False
+    - [1] card cards=[`MoltenFist`(cost=1), `StoneArmor`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
+
+  → claim reward [0] → hp=37 room=CombatRoom
+  - rewards offered:
+    - [0] card cards=[`MoltenFist`(cost=1), `StoneArmor`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
+
+  - rewards offered:
+    - [0] card cards=[`MoltenFist`(cost=1), `StoneArmor`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
+
+## Floor 3: MapRoom  (hp=37)
 
   - map options: (0,3):Monster
 
-  → skip reward [0] → hp=80 room=MapRoom
-  - combat ended (hp=80)
+  → skip reward [0] → hp=37 room=MapRoom
+  - combat ended (hp=37)
+
+  - heal → hp=80/80
 
 ## Floor 4: CombatRoom  (hp=80)
 
@@ -1842,169 +1732,144 @@
   → pick map (0,3) → CombatRoom floor=4
 ### Combat #1 on floor 4
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
+    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `HunterKiller` 121/121 block=0 → Debuff
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `Bloodletting` cost=0 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `HunterKiller` 107/121 block=0 → Attack 17×1  powers=[VulnerablePower:1]
+  - player powers: TenderPower:1
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Rage` cost=0 canPlay=True target=Self
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `HUNTER_KILLER` 121/121 block=0 → Debuff
+    - [0] `HunterKiller` 68/121 block=0 → Attack 7×3
+  - player powers: TenderPower:1
 
   → play card [0] target=0
-  → play card [1]
-  → play card [1]
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
   → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `HUNTER_KILLER` 112/121 block=0 → Attack 7×3
-  - player powers: TENDER_POWER:1
+    - [0] `HunterKiller` 59/121 block=0 → Attack 17×1
+  - player powers: TenderPower:1, RagePower:3
 
   → play card [0]
+  → play card [0] target=0
   → play card [0]
   → play card [0] target=0
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `HUNTER_KILLER` 103/121 block=0 → Attack 17×1
-  - player powers: TENDER_POWER:1
+    - [0] `HunterKiller` 33/121 block=0 → Attack 7×3  powers=[VulnerablePower:1]
+  - player powers: TenderPower:1, RagePower:3
 
   → play card [0]
   → play card [0] target=0
   → play card [0]
+  → play card [1]
+  → play card [0]
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Rage` cost=0 canPlay=True target=Self
     - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `HUNTER_KILLER` 94/121 block=0 → Attack 7×3
-  - player powers: TENDER_POWER:1
-
-  → play card [1]
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `HUNTER_KILLER` 86/121 block=0 → Attack 7×3  powers=[VULNERABLE_POWER:1]
-  - player powers: TENDER_POWER:1
+    - [0] `HunterKiller` 20/121 block=0 → Attack 7×3
+  - player powers: TenderPower:1, RagePower:3
 
   → play card [0] target=0
   → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `HUNTER_KILLER` 73/121 block=0 → Attack 17×1
-  - player powers: TENDER_POWER:1
-
-  → play card [0]
   → play card [0] target=0
   → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
+#### Round 7  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `HUNTER_KILLER` 65/121 block=0 → Attack 7×3  powers=[VULNERABLE_POWER:1]
-  - player powers: TENDER_POWER:1
+    - [0] `HunterKiller` 3/121 block=0 → Attack 17×1  powers=[VulnerablePower:1]
+  - player powers: TenderPower:1, RagePower:6
 
-  → play card [0]
   → play card [0] target=0
   → play card [0] target=0
-  → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `HUNTER_KILLER` 39/121 block=0 → Attack 17×1
-  - player powers: TENDER_POWER:1
-
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
   - rewards offered:
-    - [0] gold 11g  canSkip=False
-    - [1] potion potion=`LIQUID_BRONZE`  canSkip=False
-    - [2] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
+    - [0] gold 20g  canSkip=False
+    - [1] card cards=[`SwordBoomerang`(cost=1), `Feed`(cost=1), `TrueGrit`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 11g  canSkip=False
-    - [1] potion potion=`LIQUID_BRONZE`  canSkip=False
-    - [2] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
+    - [0] gold 20g  canSkip=False
+    - [1] card cards=[`SwordBoomerang`(cost=1), `Feed`(cost=1), `TrueGrit`(cost=1)]  canSkip=True
 
-  - heal → hp=80/80
+  → claim reward [0] → hp=4 room=CombatRoom
+  - rewards offered:
+    - [0] card cards=[`SwordBoomerang`(cost=1), `Feed`(cost=1), `TrueGrit`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 11g  canSkip=False
-    - [1] potion potion=`LIQUID_BRONZE`  canSkip=False
-    - [2] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
+    - [0] card cards=[`SwordBoomerang`(cost=1), `Feed`(cost=1), `TrueGrit`(cost=1)]  canSkip=True
 
-  → claim reward [0] → hp=80 room=CombatRoom
-  - rewards offered:
-    - [0] potion potion=`LIQUID_BRONZE`  canSkip=False
-    - [1] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
-
-  - rewards offered:
-    - [0] potion potion=`LIQUID_BRONZE`  canSkip=False
-    - [1] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
-
-  → claim reward [0] → hp=80 room=CombatRoom
-  - rewards offered:
-    - [0] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
-
-  - rewards offered:
-    - [0] card cards=[`SetupStrike`(cost=1), `TwinStrike`(cost=1), `StoneArmor`(cost=1)]  canSkip=True
-
-## Floor 4: MapRoom  (hp=80)
+## Floor 4: MapRoom  (hp=4)
 
   - map options: (0,4):Unknown
 
-  → skip reward [0] → hp=80 room=MapRoom
-  - combat ended (hp=80)
+  → skip reward [0] → hp=4 room=MapRoom
+  - combat ended (hp=4)
+
+  - heal → hp=80/80
 
 ## Floor 5: MerchantRoom  (hp=80)
 
@@ -2042,170 +1907,131 @@
   → pick map (1,7) → CombatRoom floor=8
 ### Combat #1 on floor 8
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SPINY_TOAD` 118/118 block=0 → Buff
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SPINY_TOAD` 100/118 block=0 → Attack 23×1  powers=[THORNS_POWER:5]
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `SPINY_TOAD` 91/118 block=0 → Attack 17×1
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `SPINY_TOAD` 73/118 block=0 → Buff
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `SPINY_TOAD` 52/118 block=0 → Attack 23×1  powers=[VULNERABLE_POWER:1,THORNS_POWER:5]
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SPINY_TOAD` 27/118 block=0 → Attack 17×1  powers=[VULNERABLE_POWER:2]
-
-  → play card [0]
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `SPINY_TOAD` 27/118 block=0 → Buff  powers=[VULNERABLE_POWER:1]
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
     - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `SPINY_TOAD` 1/118 block=0 → Attack 23×1  powers=[THORNS_POWER:5]
+    - [0] `SpinyToad` 116/116 block=0 → Buff
 
-  → play card [0]
+  → play card [0] target=0
   → play card [0]
   → play card [1]
   → end_turn → round transition
-#### Round 9  (e=3/3 block=0 draw=5 disc=0)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `Rage` cost=0 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `SPINY_TOAD` 1/118 block=0 → Attack 17×1
+    - [0] `SpinyToad` 107/116 block=0 → Attack 23×1  powers=[ThornsPower:5]
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `Rage` cost=0 canPlay=True target=Self
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `SpinyToad` 89/116 block=0 → Attack 17×1
+  - player powers: RagePower:3
 
   → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `SpinyToad` 80/116 block=0 → Buff
+  - player powers: RagePower:6
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `SpinyToad` 59/116 block=0 → Attack 23×1  powers=[VulnerablePower:1,ThornsPower:5]
+  - player powers: RagePower:6
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [4] `Rage` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `SpinyToad` 33/116 block=0 → Attack 17×1
+  - player powers: RagePower:6
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → play card [1]
+  → end_turn → round transition
   - rewards offered:
-    - [0] gold 14g  canSkip=False
-    - [1] potion potion=`BLESSING_OF_THE_FORGE`  canSkip=False
-    - [2] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
+    - [0] gold 15g  canSkip=False
+    - [1] card cards=[`Cinder`(cost=2), `FlameBarrier`(cost=2), `BodySlam`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 14g  canSkip=False
-    - [1] potion potion=`BLESSING_OF_THE_FORGE`  canSkip=False
-    - [2] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
+    - [0] gold 15g  canSkip=False
+    - [1] card cards=[`Cinder`(cost=2), `FlameBarrier`(cost=2), `BodySlam`(cost=1)]  canSkip=True
 
-  → claim reward [0] → hp=12 room=CombatRoom
-  - rewards offered:
-    - [0] potion potion=`BLESSING_OF_THE_FORGE`  canSkip=False
-    - [1] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
+  - heal → hp=80/80
 
   - rewards offered:
-    - [0] potion potion=`BLESSING_OF_THE_FORGE`  canSkip=False
-    - [1] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
+    - [0] gold 15g  canSkip=False
+    - [1] card cards=[`Cinder`(cost=2), `FlameBarrier`(cost=2), `BodySlam`(cost=1)]  canSkip=True
 
-  → claim reward [0] → hp=12 room=CombatRoom
+  → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
+    - [0] card cards=[`Cinder`(cost=2), `FlameBarrier`(cost=2), `BodySlam`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`Headbutt`(cost=1), `Conflagration`(cost=1), `MoltenFist`(cost=1)]  canSkip=True
+    - [0] card cards=[`Cinder`(cost=2), `FlameBarrier`(cost=2), `BodySlam`(cost=1)]  canSkip=True
 
-## Floor 8: MapRoom  (hp=12)
+## Floor 8: MapRoom  (hp=80)
 
   - map options: (2,8):Treasure
 
-  → skip reward [0] → hp=12 room=MapRoom
-  - combat ended (hp=12)
-
-  - heal → hp=80/80
+  → skip reward [0] → hp=80 room=MapRoom
+  - combat ended (hp=80)
 
 ## Floor 9: TreasureRoom  (hp=80)
 
@@ -2215,164 +2041,143 @@
 
   - map options: (2,9):Elite, (1,9):Monster, (3,9):Unknown
 
-  → leave treasure → MapRoom relics=`BURNING_BLOOD`, `ODDLY_SMOOTH_STONE`, `GORGET`, `JUZU_BRACELET`
+  → take treasure → MapRoom relics=`BurningBlood`, `ScrollBoxes`, `OldCoin`, `Gorget`, `JuzuBracelet`
 ## Floor 10: CombatRoom  (hp=80)
 
 
   → pick map (1,9) → CombatRoom floor=10
 ### Combat #1 on floor 10
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EXOSKELETON` 24/24 block=0 → Attack 1×3  powers=[HARD_TO_KILL_POWER:9]
-    - [1] `EXOSKELETON` 26/26 block=0 → Attack 8×1  powers=[HARD_TO_KILL_POWER:9]
-    - [2] `EXOSKELETON` 27/27 block=0 → Buff  powers=[HARD_TO_KILL_POWER:9]
-    - [3] `EXOSKELETON` 25/25 block=0 → Attack 1×3  powers=[HARD_TO_KILL_POWER:9]
-
-  → play card [0] target=0
-  → play card [1]
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EXOSKELETON` 6/24 block=0 → Attack 8×1  powers=[HARD_TO_KILL_POWER:9]
-    - [1] `EXOSKELETON` 26/26 block=0 → Buff  powers=[HARD_TO_KILL_POWER:9]
-    - [2] `EXOSKELETON` 27/27 block=0 → Attack 8×1  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:2]
-    - [3] `EXOSKELETON` 25/25 block=0 → Attack 8×1  powers=[HARD_TO_KILL_POWER:9]
-
-  → play card [0]
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EXOSKELETON` 6/24 block=0 → Buff  powers=[HARD_TO_KILL_POWER:9]
-    - [1] `EXOSKELETON` 26/26 block=0 → Attack 1×3  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:2]
-    - [2] `EXOSKELETON` 27/27 block=0 → Buff  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:2]
-    - [3] `EXOSKELETON` 25/25 block=0 → Buff  powers=[HARD_TO_KILL_POWER:9]
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EXOSKELETON` 26/26 block=0 → Attack 8×1  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:2]
-    - [1] `EXOSKELETON` 27/27 block=0 → Attack 1×3  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:4]
-    - [2] `EXOSKELETON` 25/25 block=0 → Attack 1×3  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:2]
-
-  → play card [1] target=0
-  → play card [1] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
+    - [4] `BodySlam` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `EXOSKELETON` 8/26 block=0 → Buff  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:2]
-    - [1] `EXOSKELETON` 27/27 block=0 → Attack 8×1  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:4]
-    - [2] `EXOSKELETON` 25/25 block=0 → Attack 8×1  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:2]
+    - [0] `Exoskeleton` 27/27 block=0 → Attack 1×3  powers=[HardToKillPower:9]
+    - [1] `Exoskeleton` 24/24 block=0 → Attack 8×1  powers=[HardToKillPower:9]
+    - [2] `Exoskeleton` 25/25 block=0 → Buff  powers=[HardToKillPower:9]
+    - [3] `Exoskeleton` 26/26 block=0 → Attack 1×3  powers=[HardToKillPower:9]
 
   → play card [0] target=0
   → play card [0] target=0
-  → play card [0]
   → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `Rage` cost=0 canPlay=True target=Self
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `EXOSKELETON` 18/27 block=0 → Buff  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:4]
-    - [1] `EXOSKELETON` 25/25 block=0 → Buff  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:2]
-
-  → play card [0]
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
+    - [3] `Bloodletting` cost=0 canPlay=True target=Self
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `EXOSKELETON` 18/27 block=0 → Attack 8×1  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:6]
-    - [1] `EXOSKELETON` 25/25 block=0 → Attack 1×3  powers=[HARD_TO_KILL_POWER:9,STRENGTH_POWER:4]
+    - [0] `Exoskeleton` 10/27 block=0 → Attack 8×1  powers=[HardToKillPower:9,VulnerablePower:1]
+    - [1] `Exoskeleton` 24/24 block=0 → Buff  powers=[HardToKillPower:9]
+    - [2] `Exoskeleton` 25/25 block=0 → Attack 8×1  powers=[HardToKillPower:9,StrengthPower:2]
+    - [3] `Exoskeleton` 26/26 block=0 → Attack 8×1  powers=[HardToKillPower:9]
 
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Bloodletting` cost=0 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `Exoskeleton` 1/27 block=0 → Buff  powers=[HardToKillPower:9]
+    - [1] `Exoskeleton` 24/24 block=0 → Attack 8×1  powers=[HardToKillPower:9,StrengthPower:2]
+    - [2] `Exoskeleton` 25/25 block=0 → Buff  powers=[HardToKillPower:9,StrengthPower:2]
+    - [3] `Exoskeleton` 26/26 block=0 → Buff  powers=[HardToKillPower:9]
+  - player powers: RagePower:3
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `Exoskeleton` 24/24 block=0 → Buff  powers=[HardToKillPower:9,StrengthPower:2]
+    - [1] `Exoskeleton` 25/25 block=0 → Attack 1×3  powers=[HardToKillPower:9,StrengthPower:4]
+    - [2] `Exoskeleton` 26/26 block=0 → Attack 1×3  powers=[HardToKillPower:9,StrengthPower:2]
+  - player powers: RagePower:3
+
+  → play card [0]
   → play card [0] target=0
   → play card [0] target=0
   → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Rage` cost=0 canPlay=True target=Self
+    - [2] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `Exoskeleton` 6/24 block=0 → Attack 1×3  powers=[HardToKillPower:9,StrengthPower:4]
+    - [1] `Exoskeleton` 25/25 block=0 → Attack 8×1  powers=[HardToKillPower:9,StrengthPower:4]
+    - [2] `Exoskeleton` 26/26 block=0 → Attack 8×1  powers=[HardToKillPower:9,StrengthPower:2]
+  - player powers: RagePower:3
+
+  → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Bloodletting` cost=0 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `Exoskeleton` 16/25 block=0 → Buff  powers=[HardToKillPower:9,StrengthPower:4]
+    - [1] `Exoskeleton` 26/26 block=0 → Buff  powers=[HardToKillPower:9,StrengthPower:2]
+  - player powers: RagePower:6
+
+  → play card [0]
+  → play card [0]
   - rewards offered:
-    - [0] gold 13g  canSkip=False
-    - [1] potion potion=`FIRE_POTION`  canSkip=False
-    - [2] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] gold 20g  canSkip=False
+    - [1] card cards=[`Breakthrough`(cost=1), `PommelStrike`(cost=1), `Taunt`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 13g  canSkip=False
-    - [1] potion potion=`FIRE_POTION`  canSkip=False
-    - [2] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] gold 20g  canSkip=False
+    - [1] card cards=[`Breakthrough`(cost=1), `PommelStrike`(cost=1), `Taunt`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
-    - [0] gold 13g  canSkip=False
-    - [1] potion potion=`FIRE_POTION`  canSkip=False
-    - [2] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] gold 20g  canSkip=False
+    - [1] card cards=[`Breakthrough`(cost=1), `PommelStrike`(cost=1), `Taunt`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`FIRE_POTION`  canSkip=False
-    - [1] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] card cards=[`Breakthrough`(cost=1), `PommelStrike`(cost=1), `Taunt`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`FIRE_POTION`  canSkip=False
-    - [1] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
-
-  → claim reward [0] → hp=80 room=CombatRoom
-  - rewards offered:
-    - [0] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
-
-  - rewards offered:
-    - [0] card cards=[`BodySlam`(cost=1), `ForgottenRitual`(cost=1), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] card cards=[`Breakthrough`(cost=1), `PommelStrike`(cost=1), `Taunt`(cost=1)]  canSkip=True
 
 ## Floor 10: MapRoom  (hp=80)
 
@@ -2400,132 +2205,172 @@
   → pick map (0,11) → CombatRoom floor=12
 ### Combat #1 on floor 12
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `BOWLBUG_ROCK` 47/47 block=0 → Attack 15×1  powers=[IMBALANCED_POWER:1]
-    - [1] `BOWLBUG_EGG` 22/22 block=0 → Attack 7×1 + Defend
-    - [2] `BOWLBUG_NECTAR` 38/38 block=0 → Attack 3×1
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `BOWLBUG_ROCK` 30/47 block=0 → Attack 15×1  powers=[IMBALANCED_POWER:1,VULNERABLE_POWER:1]
-    - [1] `BOWLBUG_EGG` 22/22 block=7 → Attack 7×1 + Defend
-    - [2] `BOWLBUG_NECTAR` 38/38 block=0 → Buff
-
-  → play card [1]
-  → play card [1]
-  → play card [1]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
+    - [2] `Rage` cost=0 canPlay=True target=Self
+    - [3] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `BOWLBUG_ROCK` 30/47 block=0 → Attack 15×1  powers=[IMBALANCED_POWER:1]
-    - [1] `BOWLBUG_EGG` 22/22 block=7 → Attack 7×1 + Defend
-    - [2] `BOWLBUG_NECTAR` 38/38 block=0 → Attack 3×1  powers=[STRENGTH_POWER:15]
+    - [0] `BowlbugRock` 46/46 block=0 → Attack 15×1  powers=[ImbalancedPower:1]
+    - [1] `BowlbugSilk` 42/42 block=0 → Debuff
+    - [2] `BowlbugEgg` 22/22 block=0 → Attack 7×1 + Defend
 
   → play card [0]
   → play card [0]
-  → play card [1] target=0
+  → play card [0]
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `BOWLBUG_ROCK` 21/47 block=0 → Attack 15×1  powers=[IMBALANCED_POWER:1]
-    - [1] `BOWLBUG_EGG` 22/22 block=7 → Attack 7×1 + Defend
-    - [2] `BOWLBUG_NECTAR` 38/38 block=0 → Attack 3×1  powers=[STRENGTH_POWER:15]
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `BOWLBUG_ROCK` 3/47 block=0 → Attack 15×1  powers=[IMBALANCED_POWER:1]
-    - [1] `BOWLBUG_EGG` 22/22 block=7 → Attack 7×1 + Defend
-    - [2] `BOWLBUG_NECTAR` 38/38 block=0 → Attack 3×1  powers=[STRENGTH_POWER:15]
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `BOWLBUG_EGG` 22/22 block=7 → Attack 7×1 + Defend
-    - [1] `BOWLBUG_NECTAR` 38/38 block=0 → Attack 3×1  powers=[STRENGTH_POWER:15]
+    - [0] `BowlbugRock` 36/46 block=0 → Attack 15×1  powers=[ImbalancedPower:1]
+    - [1] `BowlbugSilk` 42/42 block=0 → Attack 4×2
+    - [2] `BowlbugEgg` 22/22 block=7 → Attack 7×1 + Defend
+  - player powers: RagePower:3, WeakPower:1
 
-  → play card [1] target=0
-  → play card [1] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0] target=0
   → end_turn → round transition
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `BowlbugRock` 9/46 block=0 → Attack 15×1  powers=[ImbalancedPower:1]
+    - [1] `BowlbugSilk` 42/42 block=0 → Debuff
+    - [2] `BowlbugEgg` 22/22 block=7 → Attack 7×1 + Defend
+  - player powers: RagePower:3, WeakPower:1
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Rage` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `BowlbugSilk` 34/42 block=0 → Attack 4×2  powers=[VulnerablePower:1]
+    - [1] `BowlbugEgg` 22/22 block=7 → Attack 7×1 + Defend
+  - player powers: RagePower:3, WeakPower:2
+
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
+  → play card [1]
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `Rage` cost=0 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `BowlbugSilk` 21/42 block=0 → Debuff
+    - [1] `BowlbugEgg` 22/22 block=7 → Attack 7×1 + Defend
+  - player powers: RagePower:6, WeakPower:2
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `BowlbugSilk` 3/42 block=0 → Attack 4×2
+    - [1] `BowlbugEgg` 22/22 block=7 → Attack 7×1 + Defend
+  - player powers: RagePower:9, WeakPower:3
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 7  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `BowlbugEgg` 21/22 block=7 → Attack 7×1 + Defend  powers=[VulnerablePower:1]
+  - player powers: RagePower:9, WeakPower:3
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 8  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `Bloodletting` cost=0 canPlay=True target=Self
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Rage` cost=0 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `BowlbugEgg` 2/22 block=7 → Attack 7×1 + Defend
+  - player powers: RagePower:9, WeakPower:3
+
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
   - rewards offered:
-    - [0] gold 16g  canSkip=False
-    - [1] card cards=[`Bloodletting`(cost=0), `SetupStrike`(cost=1), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] gold 14g  canSkip=False
+    - [1] card cards=[`Thunderclap`(cost=1), `Bloodletting`(cost=0), `PerfectedStrike`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 16g  canSkip=False
-    - [1] card cards=[`Bloodletting`(cost=0), `SetupStrike`(cost=1), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] gold 14g  canSkip=False
+    - [1] card cards=[`Thunderclap`(cost=1), `Bloodletting`(cost=0), `PerfectedStrike`(cost=2)]  canSkip=True
 
-  - heal → hp=80/80
+  → claim reward [0] → hp=15 room=CombatRoom
+  - rewards offered:
+    - [0] card cards=[`Thunderclap`(cost=1), `Bloodletting`(cost=0), `PerfectedStrike`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 16g  canSkip=False
-    - [1] card cards=[`Bloodletting`(cost=0), `SetupStrike`(cost=1), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] card cards=[`Thunderclap`(cost=1), `Bloodletting`(cost=0), `PerfectedStrike`(cost=2)]  canSkip=True
 
-  → claim reward [0] → hp=80 room=CombatRoom
-  - rewards offered:
-    - [0] card cards=[`Bloodletting`(cost=0), `SetupStrike`(cost=1), `Thunderclap`(cost=1)]  canSkip=True
-
-  - rewards offered:
-    - [0] card cards=[`Bloodletting`(cost=0), `SetupStrike`(cost=1), `Thunderclap`(cost=1)]  canSkip=True
-
-## Floor 12: MapRoom  (hp=80)
+## Floor 12: MapRoom  (hp=15)
 
   - map options: (0,12):Monster
 
-  → skip reward [0] → hp=80 room=MapRoom
-  - combat ended (hp=80)
+  → skip reward [0] → hp=15 room=MapRoom
+  - combat ended (hp=15)
+
+  - heal → hp=80/80
 
 ## Floor 13: CombatRoom  (hp=80)
 
@@ -2533,166 +2378,188 @@
   → pick map (0,12) → CombatRoom floor=13
 ### Combat #1 on floor 13
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `LOUSE_PROGENITOR` 136/136 block=0 → Attack 9×1 + Debuff  powers=[CURL_UP_POWER:14]
-
-  → play card [1] target=0
-  → play card [1]
-  → play card [1]
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `LOUSE_PROGENITOR` 127/136 block=0 → Defend + Buff
-  - player powers: FRAIL_POWER:2
+    - [0] `LouseProgenitor` 136/136 block=0 → Attack 9×1 + Debuff  powers=[CurlUpPower:14]
 
   → play card [0] target=0
-  → play card [0]
+  → play card [0] target=0
   → play card [0] target=0
   → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Guilty` cost=0 canPlay=False target=None
+    - [1] `Rage` cost=0 canPlay=True target=Self
     - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `LOUSE_PROGENITOR` 109/136 block=14 → Attack 14×1  powers=[STRENGTH_POWER:5]
-  - player powers: FRAIL_POWER:2
+    - [0] `LouseProgenitor` 127/136 block=0 → Defend + Buff
+  - player powers: FrailPower:2
 
   → play card [0]
-  → play card [1] target=0
+  → play card [0]
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `Bloodletting` cost=0 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `LouseProgenitor` 119/136 block=14 → Attack 14×1  powers=[VulnerablePower:1,StrengthPower:5]
+  - player powers: FrailPower:2, RagePower:3
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Rage` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `LouseProgenitor` 94/136 block=0 → Attack 9×1 + Debuff  powers=[StrengthPower:5]
+  - player powers: FrailPower:2, RagePower:3
+
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `LouseProgenitor` 94/136 block=0 → Defend + Buff  powers=[StrengthPower:5]
+  - player powers: FrailPower:4, RagePower:6
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [2]
+  → play card [0]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Rage` cost=0 canPlay=True target=Self
+    - [3] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `LouseProgenitor` 60/136 block=14 → Attack 14×1  powers=[StrengthPower:10,VulnerablePower:1]
+  - player powers: FrailPower:4, RagePower:6
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 7  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Bloodletting` cost=0 canPlay=True target=Self
+    - [4] `Rage` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `LouseProgenitor` 48/136 block=0 → Attack 9×1 + Debuff  powers=[StrengthPower:10]
+  - player powers: FrailPower:4, RagePower:9
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 8  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `LouseProgenitor` 39/136 block=0 → Defend + Buff  powers=[StrengthPower:10]
+  - player powers: FrailPower:6, RagePower:12
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 9  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `LOUSE_PROGENITOR` 109/136 block=0 → Attack 9×1 + Debuff  powers=[STRENGTH_POWER:5,VULNERABLE_POWER:1]
-  - player powers: FRAIL_POWER:2
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `LOUSE_PROGENITOR` 96/136 block=0 → Defend + Buff  powers=[STRENGTH_POWER:5]
-  - player powers: FRAIL_POWER:4
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `LOUSE_PROGENITOR` 69/136 block=14 → Attack 14×1  powers=[STRENGTH_POWER:10]
-  - player powers: FRAIL_POWER:4
-
-  → play card [1] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `LOUSE_PROGENITOR` 69/136 block=0 → Attack 9×1 + Debuff  powers=[STRENGTH_POWER:10,VULNERABLE_POWER:1]
-  - player powers: FRAIL_POWER:4
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `LOUSE_PROGENITOR` 44/136 block=0 → Defend + Buff  powers=[STRENGTH_POWER:10,VULNERABLE_POWER:2]
-  - player powers: FRAIL_POWER:6
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 9  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `LOUSE_PROGENITOR` 18/136 block=14 → Attack 14×1  powers=[STRENGTH_POWER:15,VULNERABLE_POWER:1]
-  - player powers: FRAIL_POWER:6
+    - [0] `LouseProgenitor` 18/136 block=14 → Attack 14×1  powers=[StrengthPower:15,VulnerablePower:1]
+  - player powers: FrailPower:6, RagePower:12
 
-  → play card [0] target=0
   → play card [0]
   → play card [0] target=0
+  → play card [0]
   → end_turn → round transition
   - rewards offered:
-    - [0] gold 11g  canSkip=False
-    - [1] card cards=[`Juggling`(cost=1), `Hemokinesis`(cost=1), `Mangle`(cost=3)]  canSkip=True
+    - [0] gold 19g  canSkip=False
+    - [1] potion potion=`LiquidMemories`  canSkip=False
+    - [2] card cards=[`BodySlam`(cost=0), `ShrugItOff`(cost=1), `FightMe`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 11g  canSkip=False
-    - [1] card cards=[`Juggling`(cost=1), `Hemokinesis`(cost=1), `Mangle`(cost=3)]  canSkip=True
+    - [0] gold 19g  canSkip=False
+    - [1] potion potion=`LiquidMemories`  canSkip=False
+    - [2] card cards=[`BodySlam`(cost=0), `ShrugItOff`(cost=1), `FightMe`(cost=2)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
-    - [0] gold 11g  canSkip=False
-    - [1] card cards=[`Juggling`(cost=1), `Hemokinesis`(cost=1), `Mangle`(cost=3)]  canSkip=True
+    - [0] gold 19g  canSkip=False
+    - [1] potion potion=`LiquidMemories`  canSkip=False
+    - [2] card cards=[`BodySlam`(cost=0), `ShrugItOff`(cost=1), `FightMe`(cost=2)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`Juggling`(cost=1), `Hemokinesis`(cost=1), `Mangle`(cost=3)]  canSkip=True
+    - [0] potion potion=`LiquidMemories`  canSkip=False
+    - [1] card cards=[`BodySlam`(cost=0), `ShrugItOff`(cost=1), `FightMe`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`Juggling`(cost=1), `Hemokinesis`(cost=1), `Mangle`(cost=3)]  canSkip=True
+    - [0] potion potion=`LiquidMemories`  canSkip=False
+    - [1] card cards=[`BodySlam`(cost=0), `ShrugItOff`(cost=1), `FightMe`(cost=2)]  canSkip=True
+
+  → claim reward [0] → hp=80 room=CombatRoom
+  - rewards offered:
+    - [0] card cards=[`BodySlam`(cost=0), `ShrugItOff`(cost=1), `FightMe`(cost=2)]  canSkip=True
+
+  - rewards offered:
+    - [0] card cards=[`BodySlam`(cost=0), `ShrugItOff`(cost=1), `FightMe`(cost=2)]  canSkip=True
 
 ## Floor 13: MapRoom  (hp=80)
 
@@ -2707,214 +2574,208 @@
   → pick map (1,13) → CombatRoom floor=14
 ### Combat #1 on floor 14
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `OVICOPTER` 125/125 block=0 → Unknown
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Rage` cost=0 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `TOUGH_EGG` 14/14 block=0 → Unknown  powers=[HATCH_POWER:1,MINION_POWER:1]
-    - [1] `TOUGH_EGG` 17/17 block=0 → Unknown  powers=[HATCH_POWER:1,MINION_POWER:1]
-    - [2] `TOUGH_EGG` 16/16 block=0 → Unknown  powers=[HATCH_POWER:1,MINION_POWER:1]
-    - [3] `OVICOPTER` 107/125 block=0 → Attack 16×1
+    - [0] `Ovicopter` 130/130 block=0 → Unknown
 
+  → play card [0] target=0
+  → play card [0] target=0
   → play card [0] target=0
   → play card [0]
   → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `TOUGH_EGG` 21/21 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [1] `TOUGH_EGG` 19/19 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [2] `TOUGH_EGG` 21/21 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [3] `OVICOPTER` 107/125 block=0 → Attack 7×1 + Debuff
-
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `TOUGH_EGG` 13/21 block=0 → Attack 4×1  powers=[MINION_POWER:1,VULNERABLE_POWER:1]
-    - [1] `TOUGH_EGG` 19/19 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [2] `TOUGH_EGG` 21/21 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [3] `OVICOPTER` 107/125 block=0 → Buff
-  - player powers: VULNERABLE_POWER:2
-
-  → play card [0]
-  → play card [1] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `TOUGH_EGG` 19/19 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [1] `TOUGH_EGG` 21/21 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [2] `OVICOPTER` 107/125 block=0 → Attack 16×1  powers=[STRENGTH_POWER:3]
-  - player powers: VULNERABLE_POWER:2
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `TOUGH_EGG` 21/21 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [1] `OVICOPTER` 107/125 block=0 → Attack 7×1 + Debuff  powers=[STRENGTH_POWER:3]
-  - player powers: VULNERABLE_POWER:2
+    - [0] `ToughEgg` 18/18 block=0 → Unknown  powers=[HatchPower:1,MinionPower:1]
+    - [1] `ToughEgg` 17/17 block=0 → Unknown  powers=[HatchPower:1,MinionPower:1]
+    - [2] `ToughEgg` 15/15 block=0 → Unknown  powers=[HatchPower:1,MinionPower:1]
+    - [3] `Ovicopter` 103/130 block=0 → Attack 16×1
+  - player powers: RagePower:3
 
-  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
   → play card [1]
-  → play card [1] target=0
   → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [0] `Bloodletting` cost=0 canPlay=True target=Self
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `TOUGH_EGG` 12/21 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [1] `OVICOPTER` 107/125 block=0 → Unknown  powers=[STRENGTH_POWER:3]
-  - player powers: VULNERABLE_POWER:4
+    - [0] `ToughEgg` 19/19 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [1] `ToughEgg` 21/21 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [2] `ToughEgg` 19/19 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [3] `Ovicopter` 103/130 block=0 → Attack 7×1 + Debuff
+  - player powers: RagePower:3
+
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [3] `Rage` cost=0 canPlay=True target=Self
+    - [4] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `ToughEgg` 10/19 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [1] `ToughEgg` 21/21 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [2] `ToughEgg` 19/19 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [3] `Ovicopter` 103/130 block=0 → Buff
+  - player powers: RagePower:3, VulnerablePower:2
 
   → play card [0]
   → play card [0] target=0
+  → play card [1]
+  → play card [1] target=0
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `ToughEgg` 21/21 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [1] `ToughEgg` 19/19 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [2] `Ovicopter` 103/130 block=0 → Attack 16×1  powers=[StrengthPower:3]
+  - player powers: RagePower:6, VulnerablePower:2
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `Rage` cost=0 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `ToughEgg` 19/19 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [1] `Ovicopter` 103/130 block=0 → Attack 7×1 + Debuff  powers=[StrengthPower:3]
+  - player powers: RagePower:6, VulnerablePower:2
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
   → play card [0]
   → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
+#### Round 7  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `TOUGH_EGG` 14/14 block=0 → Unknown  powers=[HATCH_POWER:1,MINION_POWER:1]
-    - [1] `TOUGH_EGG` 16/16 block=0 → Unknown  powers=[HATCH_POWER:1,MINION_POWER:1]
-    - [2] `TOUGH_EGG` 15/15 block=0 → Unknown  powers=[HATCH_POWER:1,MINION_POWER:1]
-    - [3] `TOUGH_EGG` 3/21 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [4] `OVICOPTER` 107/125 block=0 → Attack 16×1  powers=[STRENGTH_POWER:3]
-  - player powers: VULNERABLE_POWER:4
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 9  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `Bloodletting` cost=0 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `TOUGH_EGG` 20/20 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [1] `TOUGH_EGG` 19/19 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [2] `TOUGH_EGG` 3/21 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [3] `OVICOPTER` 107/125 block=0 → Attack 7×1 + Debuff  powers=[STRENGTH_POWER:3]
-  - player powers: VULNERABLE_POWER:4
+    - [0] `ToughEgg` 11/19 block=0 → Attack 4×1  powers=[MinionPower:1,VulnerablePower:1]
+    - [1] `Ovicopter` 103/130 block=0 → Unknown  powers=[StrengthPower:3]
+  - player powers: RagePower:9, VulnerablePower:4
 
-  → play card [0]
   → play card [0] target=0
   → play card [0]
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 10  (e=3/3 block=0 draw=0 disc=5)
+#### Round 8  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Rage` cost=0 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `ToughEgg` 14/14 block=0 → Unknown  powers=[HatchPower:1,MinionPower:1]
+    - [1] `ToughEgg` 15/15 block=0 → Unknown  powers=[HatchPower:1,MinionPower:1]
+    - [2] `ToughEgg` 17/17 block=0 → Unknown  powers=[HatchPower:1,MinionPower:1]
+    - [3] `Ovicopter` 94/130 block=0 → Attack 16×1  powers=[StrengthPower:3]
+  - player powers: RagePower:9, VulnerablePower:4
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [1]
+  → end_turn → round transition
+#### Round 9  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `TOUGH_EGG` 11/20 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [1] `TOUGH_EGG` 19/19 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [2] `TOUGH_EGG` 3/21 block=0 → Attack 4×1  powers=[MINION_POWER:1]
-    - [3] `OVICOPTER` 107/125 block=0 → Buff  powers=[STRENGTH_POWER:3]
-  - player powers: VULNERABLE_POWER:6
+    - [0] `ToughEgg` 19/19 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [1] `ToughEgg` 20/20 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [2] `ToughEgg` 19/19 block=0 → Attack 4×1  powers=[MinionPower:1]
+    - [3] `Ovicopter` 94/130 block=0 → Attack 7×1 + Debuff  powers=[StrengthPower:3]
+  - player powers: RagePower:12, VulnerablePower:4
 
-  → play card [1] target=0
-  → play card [1] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0] target=0
   → end_turn → round transition
   - rewards offered:
-    - [0] gold 12g  canSkip=False
-    - [1] potion potion=`SPEED_POTION`  canSkip=False
-    - [2] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] gold 17g  canSkip=False
+    - [1] potion potion=`ColorlessPotion`  canSkip=False
+    - [2] card cards=[`Hemokinesis`(cost=1), `Rampage`(cost=1), `Tremble`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 12g  canSkip=False
-    - [1] potion potion=`SPEED_POTION`  canSkip=False
-    - [2] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] gold 17g  canSkip=False
+    - [1] potion potion=`ColorlessPotion`  canSkip=False
+    - [2] card cards=[`Hemokinesis`(cost=1), `Rampage`(cost=1), `Tremble`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
-    - [0] gold 12g  canSkip=False
-    - [1] potion potion=`SPEED_POTION`  canSkip=False
-    - [2] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] gold 17g  canSkip=False
+    - [1] potion potion=`ColorlessPotion`  canSkip=False
+    - [2] card cards=[`Hemokinesis`(cost=1), `Rampage`(cost=1), `Tremble`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`SPEED_POTION`  canSkip=False
-    - [1] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] potion potion=`ColorlessPotion`  canSkip=False
+    - [1] card cards=[`Hemokinesis`(cost=1), `Rampage`(cost=1), `Tremble`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`SPEED_POTION`  canSkip=False
-    - [1] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] potion potion=`ColorlessPotion`  canSkip=False
+    - [1] card cards=[`Hemokinesis`(cost=1), `Rampage`(cost=1), `Tremble`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] card cards=[`Hemokinesis`(cost=1), `Rampage`(cost=1), `Tremble`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`BloodWall`(cost=2), `Bloodletting`(cost=0), `Breakthrough`(cost=1)]  canSkip=True
+    - [0] card cards=[`Hemokinesis`(cost=1), `Rampage`(cost=1), `Tremble`(cost=1)]  canSkip=True
 
 ## Floor 14: MapRoom  (hp=80)
 
@@ -2938,188 +2799,142 @@
   → pick map (3,15) → BossRoom floor=16
 ### Combat #1 on floor 16
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `KNOWLEDGE_DEMON` 379/379 block=0 → Debuff
-
-  → play card [0] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `KNOWLEDGE_DEMON` 358/379 block=0 → Attack 17×1  powers=[VULNERABLE_POWER:1]
-
-  → play card [0]
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `KNOWLEDGE_DEMON` 345/379 block=0 → Attack 8×3
+    - [0] `KnowledgeDemon` 379/379 block=0 → Debuff
 
-  → play card [0]
   → play card [0] target=0
   → play card [0]
+  → play card [0]
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `KNOWLEDGE_DEMON` 336/379 block=0 → Attack 11×1 + Unknown + Buff
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → play card [2] target=0
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `KNOWLEDGE_DEMON` 339/379 block=0 → Debuff  powers=[STRENGTH_POWER:2]
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Rage` cost=0 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `KNOWLEDGE_DEMON` 321/379 block=0 → Attack 17×1  powers=[STRENGTH_POWER:2]
+    - [0] `KnowledgeDemon` 379/379 block=0 → Attack 17×1
 
   → play card [0] target=0
-  → play card [1]
-  → play card [1]
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
   → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `KNOWLEDGE_DEMON` 312/379 block=0 → Attack 8×3  powers=[STRENGTH_POWER:2]
-
-  → play card [1] target=0
-  → play card [1] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Bloodletting` cost=0 canPlay=True target=Self
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `KNOWLEDGE_DEMON` 294/379 block=0 → Attack 11×1 + Unknown + Buff  powers=[STRENGTH_POWER:2]
-
-  → play card [0]
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 9  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `KNOWLEDGE_DEMON` 315/379 block=0 → Debuff  powers=[STRENGTH_POWER:4]
+    - [0] `KnowledgeDemon` 361/379 block=0 → Attack 8×3
+  - player powers: RagePower:3
 
   → play card [0] target=0
   → play card [0]
-  → end_turn → round transition
-#### Round 10  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `KNOWLEDGE_DEMON` 307/379 block=0 → Attack 17×1  powers=[STRENGTH_POWER:4,VULNERABLE_POWER:1]
-
-  → play card [0]
+  → play card [0] target=0
   → play card [0] target=0
   → play card [0] target=0
   → end_turn → round transition
-#### Round 11  (e=3/3 block=0 draw=5 disc=0)
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `KnowledgeDemon` 322/379 block=0 → Attack 11×1 + Unknown + Buff  powers=[VulnerablePower:1]
+  - player powers: RagePower:3
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Rage` cost=0 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `KnowledgeDemon` 326/379 block=0 → Debuff  powers=[StrengthPower:2]
+  - player powers: RagePower:3
+
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `KNOWLEDGE_DEMON` 281/379 block=0 → Attack 8×3  powers=[STRENGTH_POWER:4]
+    - [0] `KnowledgeDemon` 317/379 block=0 → Attack 17×1  powers=[StrengthPower:2]
+  - player powers: RagePower:6
 
   → play card [0] target=0
+  → play card [0] target=0
+  → play card [1]
+  → end_turn → round transition
+#### Round 7  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `KnowledgeDemon` 308/379 block=0 → Attack 8×3  powers=[StrengthPower:2]
+  - player powers: RagePower:6
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
   → play card [0] target=0
   → end_turn → round transition
   - rewards offered:
     - [0] gold 100g  canSkip=False
-    - [1] card cards=[`OneTwoPunch`(cost=1), `TearAsunder`(cost=2), `Cascade`(cost=0)]  canSkip=True
+    - [1] card cards=[`Pyre`(cost=2), `Hellraiser`(cost=2), `Juggernaut`(cost=2)]  canSkip=True
 
   - rewards offered:
     - [0] gold 100g  canSkip=False
-    - [1] card cards=[`OneTwoPunch`(cost=1), `TearAsunder`(cost=2), `Cascade`(cost=0)]  canSkip=True
+    - [1] card cards=[`Pyre`(cost=2), `Hellraiser`(cost=2), `Juggernaut`(cost=2)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
     - [0] gold 100g  canSkip=False
-    - [1] card cards=[`OneTwoPunch`(cost=1), `TearAsunder`(cost=2), `Cascade`(cost=0)]  canSkip=True
+    - [1] card cards=[`Pyre`(cost=2), `Hellraiser`(cost=2), `Juggernaut`(cost=2)]  canSkip=True
 
   → claim reward [0] → hp=80 room=BossRoom
   - rewards offered:
-    - [0] card cards=[`OneTwoPunch`(cost=1), `TearAsunder`(cost=2), `Cascade`(cost=0)]  canSkip=True
+    - [0] card cards=[`Pyre`(cost=2), `Hellraiser`(cost=2), `Juggernaut`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`OneTwoPunch`(cost=1), `TearAsunder`(cost=2), `Cascade`(cost=0)]  canSkip=True
+    - [0] card cards=[`Pyre`(cost=2), `Hellraiser`(cost=2), `Juggernaut`(cost=2)]  canSkip=True
 
 ## Floor 16: MapRoom  (hp=80)
 
@@ -3138,156 +2953,128 @@
   → pick map (1,1) → CombatRoom floor=2
 ### Combat #1 on floor 2
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Rage` cost=0 canPlay=True target=Self
+    - [3] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `LIVING_SHIELD` 55/55 block=0 → Attack 6×1  powers=[RAMPART_POWER:25]
-    - [1] `TURRET_OPERATOR` 41/41 block=25 → Attack 3×5
+    - [0] `LivingShield` 55/55 block=0 → Attack 6×1  powers=[RampartPower:25]
+    - [1] `TurretOperator` 41/41 block=25 → Attack 3×5
 
   → play card [0]
-  → play card [1] target=0
-  → play card [1]
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `LIVING_SHIELD` 46/55 block=0 → Attack 6×1  powers=[RAMPART_POWER:25]
-    - [1] `TURRET_OPERATOR` 41/41 block=25 → Attack 3×5
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `LIVING_SHIELD` 28/55 block=0 → Attack 6×1  powers=[RAMPART_POWER:25]
-    - [1] `TURRET_OPERATOR` 41/41 block=25 → Buff
-
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `LIVING_SHIELD` 20/55 block=0 → Attack 6×1  powers=[RAMPART_POWER:25,VULNERABLE_POWER:1]
-    - [1] `TURRET_OPERATOR` 41/41 block=25 → Attack 3×5  powers=[STRENGTH_POWER:1]
-
-  → play card [0]
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `LIVING_SHIELD` 20/55 block=0 → Attack 6×1  powers=[RAMPART_POWER:25]
-    - [1] `TURRET_OPERATOR` 41/41 block=25 → Attack 3×5  powers=[STRENGTH_POWER:1]
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `TURRET_OPERATOR` 41/41 block=0 → Buff  powers=[STRENGTH_POWER:1]
+    - [0] `LivingShield` 42/55 block=0 → Attack 6×1  powers=[RampartPower:25]
+    - [1] `TurretOperator` 41/41 block=25 → Attack 3×5
+  - player powers: RagePower:3
 
   → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `TURRET_OPERATOR` 32/41 block=0 → Attack 3×5  powers=[STRENGTH_POWER:2]
-
   → play card [0] target=0
   → play card [1] target=0
-  → play card [1]
   → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
     - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `TURRET_OPERATOR` 14/41 block=0 → Attack 3×5  powers=[STRENGTH_POWER:2]
+    - [0] `LivingShield` 15/55 block=0 → Attack 6×1  powers=[RampartPower:25]
+    - [1] `TurretOperator` 41/41 block=25 → Buff
+  - player powers: RagePower:3
 
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `TurretOperator` 41/41 block=0 → Attack 3×5  powers=[StrengthPower:1]
+  - player powers: RagePower:3
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Rage` cost=0 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `TurretOperator` 23/41 block=0 → Attack 3×5  powers=[StrengthPower:1]
+  - player powers: RagePower:3
+
+  → play card [0] target=0
   → play card [0]
   → play card [0]
   → play card [0] target=0
   → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `Bloodletting` cost=0 canPlay=True target=Self
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `TurretOperator` 5/41 block=0 → Buff  powers=[StrengthPower:1]
+  - player powers: RagePower:6
+
+  → play card [0] target=0
   - rewards offered:
-    - [0] gold 10g  canSkip=False
-    - [1] card cards=[`IronWave`(cost=1), `MoltenFist`(cost=1), `Tremble`(cost=1)]  canSkip=True
+    - [0] gold 19g  canSkip=False
+    - [1] card cards=[`FlameBarrier`(cost=2), `StoneArmor`(cost=1), `Pillage`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 10g  canSkip=False
-    - [1] card cards=[`IronWave`(cost=1), `MoltenFist`(cost=1), `Tremble`(cost=1)]  canSkip=True
+    - [0] gold 19g  canSkip=False
+    - [1] card cards=[`FlameBarrier`(cost=2), `StoneArmor`(cost=1), `Pillage`(cost=1)]  canSkip=True
 
-  - heal → hp=80/80
+  → claim reward [0] → hp=21 room=CombatRoom
+  - rewards offered:
+    - [0] card cards=[`FlameBarrier`(cost=2), `StoneArmor`(cost=1), `Pillage`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 10g  canSkip=False
-    - [1] card cards=[`IronWave`(cost=1), `MoltenFist`(cost=1), `Tremble`(cost=1)]  canSkip=True
+    - [0] card cards=[`FlameBarrier`(cost=2), `StoneArmor`(cost=1), `Pillage`(cost=1)]  canSkip=True
 
-  → claim reward [0] → hp=80 room=CombatRoom
-  - rewards offered:
-    - [0] card cards=[`IronWave`(cost=1), `MoltenFist`(cost=1), `Tremble`(cost=1)]  canSkip=True
-
-  - rewards offered:
-    - [0] card cards=[`IronWave`(cost=1), `MoltenFist`(cost=1), `Tremble`(cost=1)]  canSkip=True
-
-## Floor 2: MapRoom  (hp=80)
+## Floor 2: MapRoom  (hp=21)
 
   - map options: (0,2):Unknown
 
-  → skip reward [0] → hp=80 room=MapRoom
-  - combat ended (hp=80)
+  → skip reward [0] → hp=21 room=MapRoom
+  - combat ended (hp=21)
+
+  - heal → hp=80/80
 
 ## Floor 3: MerchantRoom  (hp=80)
 
@@ -3304,126 +3091,121 @@
   → pick map (0,3) → CombatRoom floor=4
 ### Combat #1 on floor 4
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Rage` cost=0 canPlay=True target=Self
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `DEVOTED_SCULPTOR` 162/162 block=0 → Buff
+    - [0] `DevotedSculptor` 162/162 block=0 → Buff
 
   → play card [0]
   → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0]
   → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Guilty` cost=0 canPlay=False target=None
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `DEVOTED_SCULPTOR` 154/162 block=0 → Attack 12×1  powers=[VULNERABLE_POWER:1,RITUAL_POWER:9]
+    - [0] `DevotedSculptor` 153/162 block=0 → Attack 12×1  powers=[RitualPower:9]
+  - player powers: RagePower:3
 
   → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `DEVOTED_SCULPTOR` 141/162 block=0 → Attack 12×1  powers=[RITUAL_POWER:9,STRENGTH_POWER:9]
-
   → play card [0] target=0
-  → play card [0]
-  → play card [0]
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `DEVOTED_SCULPTOR` 132/162 block=0 → Attack 12×1  powers=[RITUAL_POWER:9,STRENGTH_POWER:18]
+    - [0] `DevotedSculptor` 136/162 block=0 → Attack 12×1  powers=[RitualPower:9,VulnerablePower:1,StrengthPower:9]
+  - player powers: RagePower:3
 
   → play card [0] target=0
   → play card [0] target=0
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Rage` cost=0 canPlay=True target=Self
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Guilty` cost=0 canPlay=False target=None
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `DEVOTED_SCULPTOR` 111/162 block=0 → Attack 12×1  powers=[RITUAL_POWER:9,STRENGTH_POWER:27,VULNERABLE_POWER:1]
+    - [0] `DevotedSculptor` 110/162 block=0 → Attack 12×1  powers=[RitualPower:9,StrengthPower:18]
+  - player powers: RagePower:3
 
   → play card [0]
   → play card [0] target=0
   → play card [0]
+  → play card [0]
   → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `DEVOTED_SCULPTOR` 98/162 block=0 → Attack 12×1  powers=[RITUAL_POWER:9,STRENGTH_POWER:36]
+    - [0] `DevotedSculptor` 101/162 block=0 → Attack 12×1  powers=[RitualPower:9,StrengthPower:27]
+  - player powers: RagePower:6
 
+  → play card [0]
   → play card [0] target=0
+  → play card [0]
   → play card [0]
   → play card [0] target=0
   → end_turn → round transition
   - rewards offered:
-    - [0] gold 18g  canSkip=False
-    - [1] potion potion=`BEETLE_JUICE`  canSkip=False
-    - [2] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
+    - [0] gold 19g  canSkip=False
+    - [1] potion potion=`ExplosiveAmpoule`  canSkip=False
+    - [2] card cards=[`TwinStrike`(cost=1), `InfernalBlade`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 18g  canSkip=False
-    - [1] potion potion=`BEETLE_JUICE`  canSkip=False
-    - [2] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
+    - [0] gold 19g  canSkip=False
+    - [1] potion potion=`ExplosiveAmpoule`  canSkip=False
+    - [2] card cards=[`TwinStrike`(cost=1), `InfernalBlade`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
-    - [0] gold 18g  canSkip=False
-    - [1] potion potion=`BEETLE_JUICE`  canSkip=False
-    - [2] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
+    - [0] gold 19g  canSkip=False
+    - [1] potion potion=`ExplosiveAmpoule`  canSkip=False
+    - [2] card cards=[`TwinStrike`(cost=1), `InfernalBlade`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`BEETLE_JUICE`  canSkip=False
-    - [1] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
+    - [0] potion potion=`ExplosiveAmpoule`  canSkip=False
+    - [1] card cards=[`TwinStrike`(cost=1), `InfernalBlade`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`BEETLE_JUICE`  canSkip=False
-    - [1] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
+    - [0] potion potion=`ExplosiveAmpoule`  canSkip=False
+    - [1] card cards=[`TwinStrike`(cost=1), `InfernalBlade`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
+    - [0] card cards=[`TwinStrike`(cost=1), `InfernalBlade`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`Tremble`(cost=1), `ForgottenRitual`(cost=1), `Havoc`(cost=1)]  canSkip=True
+    - [0] card cards=[`TwinStrike`(cost=1), `InfernalBlade`(cost=1), `BloodWall`(cost=2)]  canSkip=True
 
 ## Floor 4: MapRoom  (hp=80)
 
@@ -3438,85 +3220,7 @@
   → pick map (0,4) → CombatRoom floor=5
 ### Combat #1 on floor 5
 
-#### Round 1  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `GLOBE_HEAD` 148/148 block=0 → Attack 13×1 + Debuff  powers=[GALVANIC_POWER:6]
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `GLOBE_HEAD` 139/148 block=0 → Attack 6×3  powers=[GALVANIC_POWER:6]
-  - player powers: FRAIL_POWER:2
-
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `GLOBE_HEAD` 131/148 block=0 → Attack 16×1 + Buff  powers=[GALVANIC_POWER:6,VULNERABLE_POWER:1]
-  - player powers: FRAIL_POWER:2
-
-  → play card [1]
-  → play card [1] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=0 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `GLOBE_HEAD` 105/148 block=0 → Attack 13×1 + Debuff  powers=[GALVANIC_POWER:6,STRENGTH_POWER:2]
-  - player powers: FRAIL_POWER:2
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=5 disc=0)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `GLOBE_HEAD` 96/148 block=0 → Attack 6×3  powers=[GALVANIC_POWER:6,STRENGTH_POWER:2]
-  - player powers: FRAIL_POWER:4
-
-  → play card [1]
-  → play card [1] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=0 disc=5)
+#### Round 1  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
@@ -3525,64 +3229,131 @@
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `GLOBE_HEAD` 87/148 block=0 → Attack 16×1 + Buff  powers=[GALVANIC_POWER:6,STRENGTH_POWER:2]
-  - player powers: FRAIL_POWER:4
+    - [0] `GlobeHead` 148/148 block=0 → Attack 13×1 + Debuff  powers=[GalvanicPower:6]
 
   → play card [0] target=0
   → play card [0]
   → play card [1] target=0
   → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=5 disc=0)
+#### Round 2  (e=3/3 block=0 draw=3 disc=5)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `Rage` cost=0 canPlay=True target=Self
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `GLOBE_HEAD` 69/148 block=0 → Attack 13×1 + Debuff  powers=[GALVANIC_POWER:6,STRENGTH_POWER:4]
-  - player powers: FRAIL_POWER:4
+    - [0] `GlobeHead` 130/148 block=0 → Attack 6×3  powers=[GalvanicPower:6]
+  - player powers: FrailPower:2
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 3  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `GlobeHead` 121/148 block=0 → Attack 16×1 + Buff  powers=[GalvanicPower:6]
+  - player powers: FrailPower:2, RagePower:3
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `GlobeHead` 112/148 block=0 → Attack 13×1 + Debuff  powers=[GalvanicPower:6,StrengthPower:2]
+  - player powers: FrailPower:2, RagePower:3
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=8 disc=0)
+
+  - hand:
+    - [0] `Rage` cost=0 canPlay=True target=Self
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `GlobeHead` 104/148 block=0 → Attack 6×3  powers=[GalvanicPower:6,StrengthPower:2,VulnerablePower:1]
+  - player powers: FrailPower:4, RagePower:3
+
+  → play card [0]
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=3 disc=5)
+
+  - hand:
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `GlobeHead` 78/148 block=0 → Attack 16×1 + Buff  powers=[GalvanicPower:6,StrengthPower:2]
+  - player powers: FrailPower:4, RagePower:6
 
   → play card [0] target=0
   → play card [0]
   → play card [0] target=0
   → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=0 disc=5)
+#### Round 7  (e=3/3 block=0 draw=8 disc=0)
 
   - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `GLOBE_HEAD` 51/148 block=0 → Attack 6×3  powers=[GALVANIC_POWER:6,STRENGTH_POWER:4]
-  - player powers: FRAIL_POWER:6
+    - [0] `GlobeHead` 69/148 block=0 → Attack 13×1 + Debuff  powers=[GalvanicPower:6,StrengthPower:4]
+  - player powers: FrailPower:4, RagePower:6
 
   → play card [0] target=0
-  → play card [0] target=0
+  → play card [0]
+  → play card [0]
   → end_turn → round transition
   - rewards offered:
-    - [0] gold 16g  canSkip=False
-    - [1] card cards=[`InfernalBlade`(cost=1), `BloodWall`(cost=2), `MoltenFist`(cost=1)]  canSkip=True
+    - [0] gold 15g  canSkip=False
+    - [1] card cards=[`FiendFire`(cost=2), `Stampede`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 16g  canSkip=False
-    - [1] card cards=[`InfernalBlade`(cost=1), `BloodWall`(cost=2), `MoltenFist`(cost=1)]  canSkip=True
+    - [0] gold 15g  canSkip=False
+    - [1] card cards=[`FiendFire`(cost=2), `Stampede`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
-    - [0] gold 16g  canSkip=False
-    - [1] card cards=[`InfernalBlade`(cost=1), `BloodWall`(cost=2), `MoltenFist`(cost=1)]  canSkip=True
+    - [0] gold 15g  canSkip=False
+    - [1] card cards=[`FiendFire`(cost=2), `Stampede`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`InfernalBlade`(cost=1), `BloodWall`(cost=2), `MoltenFist`(cost=1)]  canSkip=True
+    - [0] card cards=[`FiendFire`(cost=2), `Stampede`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`InfernalBlade`(cost=1), `BloodWall`(cost=2), `MoltenFist`(cost=1)]  canSkip=True
+    - [0] card cards=[`FiendFire`(cost=2), `Stampede`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
 
 ## Floor 5: MapRoom  (hp=80)
 
@@ -3609,277 +3380,134 @@
   → pick map (1,6) → CombatRoom floor=7
 ### Combat #1 on floor 7
 
-#### Round 1  (e=3/3 block=0 draw=6 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SOUL_NEXUS` 234/234 block=0 → Attack 29×1
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=1 disc=5)
+#### Round 1  (e=3/3 block=0 draw=9 disc=0)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Rage` cost=0 canPlay=True target=Self
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [3] `Debt` cost=0 canPlay=False target=None
-    - [4] `Guilty` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `SOUL_NEXUS` 217/234 block=0 → Attack 18×1 + Unknown  powers=[VULNERABLE_POWER:1]
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=6 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Debt` cost=0 canPlay=False target=None
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SOUL_NEXUS` 204/234 block=0 → Attack 6×4
-
-  → play card [0] target=0
-  → play card [1] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `SOUL_NEXUS` 177/234 block=0 → Attack 29×1
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0]
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=6 disc=0)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `SOUL_NEXUS` 168/234 block=0 → Attack 18×1 + Unknown
+    - [0] `SoulNexus` 234/234 block=0 → Attack 29×1
 
-  → play card [1]
-  → play card [1] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `Debt` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `SOUL_NEXUS` 159/234 block=0 → Attack 6×4
-
-  → play card [0] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=6 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Debt` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SOUL_NEXUS` 151/234 block=0 → Attack 18×1 + Unknown  powers=[VULNERABLE_POWER:1]
-
-  → play card [0] target=0
-  → play card [1]
-  → play card [1]
-  → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `SOUL_NEXUS` 138/234 block=0 → Attack 29×1
-
-  → play card [1] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 9  (e=3/3 block=0 draw=6 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `SOUL_NEXUS` 130/234 block=0 → Attack 18×1 + Unknown  powers=[VULNERABLE_POWER:1]
-
-  → play card [0] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 10  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `SOUL_NEXUS` 105/234 block=0 → Attack 29×1  powers=[VULNERABLE_POWER:2]
-
-  → play card [0] target=0
   → play card [0]
   → play card [0]
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 11  (e=3/3 block=0 draw=6 disc=0)
+#### Round 2  (e=3/3 block=0 draw=4 disc=5)
 
   - hand:
-    - [0] `Debt` cost=0 canPlay=False target=None
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `SOUL_NEXUS` 92/234 block=0 → Attack 6×4  powers=[VULNERABLE_POWER:1]
+    - [0] `SoulNexus` 226/234 block=0 → Attack 6×4  powers=[VulnerablePower:1]
+  - player powers: RagePower:3
 
-  → play card [1] target=0
-  → play card [1]
-  → play card [1] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
   → end_turn → round transition
-#### Round 12  (e=3/3 block=0 draw=1 disc=5)
+#### Round 3  (e=3/3 block=0 draw=9 disc=0)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `Bloodletting` cost=0 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `SOUL_NEXUS` 66/234 block=0 → Attack 18×1 + Unknown
+    - [0] `SoulNexus` 213/234 block=0 → Attack 29×1
+  - player powers: RagePower:3
 
   → play card [0]
   → play card [0] target=0
   → play card [0] target=0
+  → play card [0]
+  → play card [0]
   → end_turn → round transition
-#### Round 13  (e=3/3 block=0 draw=6 disc=0)
+#### Round 4  (e=3/3 block=0 draw=4 disc=5)
 
   - hand:
-    - [0] `Guilty` cost=0 canPlay=False target=None
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [0] `Rage` cost=0 canPlay=True target=Self
+    - [1] `Debt` cost=0 canPlay=False target=None
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `SOUL_NEXUS` 48/234 block=0 → Attack 29×1
+    - [0] `SoulNexus` 195/234 block=0 → Attack 6×4
+  - player powers: RagePower:3
 
-  → play card [1]
+  → play card [0]
   → play card [1] target=0
+  → play card [1]
+  → play card [1]
   → end_turn → round transition
-#### Round 14  (e=3/3 block=0 draw=1 disc=5)
+#### Round 5  (e=3/3 block=0 draw=9 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Debt` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `SOUL_NEXUS` 40/234 block=0 → Attack 6×4  powers=[VULNERABLE_POWER:1]
-
-  → play card [0] target=0
-  → play card [0]
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 15  (e=3/3 block=0 draw=6 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Debt` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `SOUL_NEXUS` 14/234 block=0 → Attack 29×1
-
-  → play card [0]
-  → play card [1] target=0
-  → play card [1]
-  → end_turn → round transition
-#### Round 16  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `SOUL_NEXUS` 5/234 block=0 → Attack 6×4
+    - [0] `SoulNexus` 186/234 block=0 → Attack 29×1
+  - player powers: RagePower:6
 
-  → play card [0]
   → play card [0] target=0
+  → play card [0] target=0
+  → play card [1] target=0
+  → end_turn → round transition
   - rewards offered:
-    - [0] gold 43g  canSkip=False
-    - [1] potion potion=`OROBIC_ACID`  canSkip=False
+    - [0] gold 40g  canSkip=False
+    - [1] potion potion=`StrengthPotion`  canSkip=False
     - [2] relic relic=``  canSkip=False
-    - [3] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [3] card cards=[`Bully`(cost=0), `PerfectedStrike`(cost=2), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 43g  canSkip=False
-    - [1] potion potion=`OROBIC_ACID`  canSkip=False
+    - [0] gold 40g  canSkip=False
+    - [1] potion potion=`StrengthPotion`  canSkip=False
     - [2] relic relic=``  canSkip=False
-    - [3] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [3] card cards=[`Bully`(cost=0), `PerfectedStrike`(cost=2), `Breakthrough`(cost=1)]  canSkip=True
+
+  - heal → hp=80/80
+
+  - rewards offered:
+    - [0] gold 40g  canSkip=False
+    - [1] potion potion=`StrengthPotion`  canSkip=False
+    - [2] relic relic=``  canSkip=False
+    - [3] card cards=[`Bully`(cost=0), `PerfectedStrike`(cost=2), `Breakthrough`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`OROBIC_ACID`  canSkip=False
+    - [0] potion potion=`StrengthPotion`  canSkip=False
     - [1] relic relic=``  canSkip=False
-    - [2] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [2] card cards=[`Bully`(cost=0), `PerfectedStrike`(cost=2), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`OROBIC_ACID`  canSkip=False
+    - [0] potion potion=`StrengthPotion`  canSkip=False
     - [1] relic relic=``  canSkip=False
-    - [2] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [2] card cards=[`Bully`(cost=0), `PerfectedStrike`(cost=2), `Breakthrough`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
     - [0] relic relic=``  canSkip=False
-    - [1] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [1] card cards=[`Bully`(cost=0), `PerfectedStrike`(cost=2), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] relic relic=``  canSkip=False
-    - [1] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [1] card cards=[`Bully`(cost=0), `PerfectedStrike`(cost=2), `Breakthrough`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [0] card cards=[`Bully`(cost=0), `PerfectedStrike`(cost=2), `Breakthrough`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`Havoc`(cost=1), `Pillage`(cost=1), `SwordBoomerang`(cost=1)]  canSkip=True
+    - [0] card cards=[`Bully`(cost=0), `PerfectedStrike`(cost=2), `Breakthrough`(cost=1)]  canSkip=True
 
 ## Floor 7: MapRoom  (hp=80)
 
@@ -3896,91 +3524,48 @@
 
   - map options: (1,8):Unknown, (3,8):Elite
 
-  → leave treasure → MapRoom relics=`BURNING_BLOOD`, `ODDLY_SMOOTH_STONE`, `GORGET`, `JUZU_BRACELET`, `TEA_OF_DISCOURTESY`, `ANCHOR`, `MEAL_TICKET`
+  → take treasure → MapRoom relics=`BurningBlood`, `ScrollBoxes`, `OldCoin`, `Gorget`, `JuzuBracelet`, `TeaOfDiscourtesy`, `OddlySmoothStone`, `MealTicket`
 ## Floor 9: CombatRoom  (hp=80)
 
 
   → pick map (3,8) → CombatRoom floor=9
 ### Combat #1 on floor 9
 
-#### Round 1  (e=3/3 block=0 draw=6 disc=0)
+#### Round 1  (e=3/3 block=0 draw=9 disc=0)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Debt` cost=0 canPlay=False target=None
+    - [2] `Rage` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Bash` cost=2 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `MechaKnight` 300/300 block=0 → Attack 25×1  powers=[ArtifactPower:3]
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 2  (e=3/3 block=0 draw=4 disc=5)
+
+  - hand:
+    - [0] `Bloodletting` cost=0 canPlay=True target=Self
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `MECHA_KNIGHT` 300/300 block=0 → Attack 25×1  powers=[ARTIFACT_POWER:3]
+    - [0] `MechaKnight` 291/300 block=0 → Unknown  powers=[ArtifactPower:3]
+  - player powers: RagePower:3
 
   → play card [0]
-  → play card [0] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Guilty` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `MECHA_KNIGHT` 282/300 block=0 → Unknown  powers=[ARTIFACT_POWER:3]
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=6 disc=0)
-
-  - hand:
-    - [0] `Burn` cost=0 canPlay=False target=None
-    - [1] `Burn` cost=0 canPlay=False target=None
-    - [2] `Burn` cost=0 canPlay=False target=None
-    - [3] `Burn` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [5] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [6] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [7] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [8] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `MECHA_KNIGHT` 265/300 block=0 → Defend + Buff  powers=[ARTIFACT_POWER:2]
-
-  → play card [4] target=0
-  → play card [4] target=0
-  → play card [5]
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=1 disc=9)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `MECHA_KNIGHT` 247/300 block=15 → Attack 35×1  powers=[ARTIFACT_POWER:2,STRENGTH_POWER:5]
-
+  → play card [0]
   → play card [0] target=0
   → play card [0] target=0
   → play card [0]
   → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=10 disc=0)
-
-  - hand:
-    - [0] `Debt` cost=0 canPlay=False target=None
-    - [1] `Burn` cost=0 canPlay=False target=None
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `Burn` cost=0 canPlay=False target=None
-  - enemies:
-    - [0] `MECHA_KNIGHT` 244/300 block=0 → Unknown  powers=[ARTIFACT_POWER:2,STRENGTH_POWER:5]
-
-  → play card [2] target=0
-  → play card [2]
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=5 disc=5)
+#### Round 3  (e=3/3 block=0 draw=9 disc=0)
 
   - hand:
     - [0] `Burn` cost=0 canPlay=False target=None
@@ -3989,63 +3574,134 @@
     - [3] `Burn` cost=0 canPlay=False target=None
     - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [5] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [6] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [7] `Burn` cost=0 canPlay=False target=None
-    - [8] `Burn` cost=0 canPlay=False target=None
+    - [6] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [7] `Debt` cost=0 canPlay=False target=None
+    - [8] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `MECHA_KNIGHT` 235/300 block=0 → Defend + Buff  powers=[ARTIFACT_POWER:2,STRENGTH_POWER:5]
+    - [0] `MechaKnight` 273/300 block=0 → Defend + Buff  powers=[ArtifactPower:3]
+  - player powers: RagePower:3
 
   → play card [4] target=0
   → play card [4]
-  → play card [4]
+  → play card [4] target=0
   → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=0 disc=14)
+#### Round 4  (e=3/3 block=0 draw=4 disc=9)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
+  - enemies:
+    - [0] `MechaKnight` 255/300 block=15 → Attack 35×1  powers=[ArtifactPower:3,StrengthPower:5]
+  - player powers: RagePower:3
+
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [1]
+  → play card [0]
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=13 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `Rage` cost=0 canPlay=True target=Self
+    - [4] `BodySlam` cost=1 canPlay=True target=AnyEnemy
   - enemies:
-    - [0] `MECHA_KNIGHT` 226/300 block=15 → Attack 35×1  powers=[ARTIFACT_POWER:2,STRENGTH_POWER:10]
+    - [0] `MechaKnight` 255/300 block=0 → Unknown  powers=[ArtifactPower:3,StrengthPower:5]
+  - player powers: RagePower:3
 
   → play card [0] target=0
   → play card [0] target=0
-  → play card [2]
+  → play card [1]
+  → end_turn → round transition
+#### Round 6  (e=3/3 block=0 draw=8 disc=5)
+
+  - hand:
+    - [0] `Burn` cost=0 canPlay=False target=None
+    - [1] `Burn` cost=0 canPlay=False target=None
+    - [2] `Burn` cost=0 canPlay=False target=None
+    - [3] `Burn` cost=0 canPlay=False target=None
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [5] `Debt` cost=0 canPlay=False target=None
+    - [6] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [7] `Bloodletting` cost=0 canPlay=True target=Self
+    - [8] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `MechaKnight` 238/300 block=0 → Defend + Buff  powers=[ArtifactPower:2,StrengthPower:5]
+  - player powers: RagePower:6
+
+  → play card [4] target=0
+  → play card [5]
+  → play card [5]
+  → play card [5] target=0
+  → end_turn → round transition
+#### Round 7  (e=3/3 block=0 draw=3 disc=14)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Burn` cost=0 canPlay=False target=None
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Burn` cost=0 canPlay=False target=None
+  - enemies:
+    - [0] `MechaKnight` 220/300 block=15 → Attack 35×1  powers=[ArtifactPower:2,StrengthPower:10]
+  - player powers: RagePower:6
+
+  → play card [0]
+  → play card [1]
+  → play card [1] target=0
   → end_turn → round transition
   - rewards offered:
-    - [0] gold 41g  canSkip=False
-    - [1] relic relic=``  canSkip=False
-    - [2] card cards=[`Stomp`(cost=3), `Conflagration`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [0] gold 35g  canSkip=False
+    - [1] potion potion=`SkillPotion`  canSkip=False
+    - [2] relic relic=``  canSkip=False
+    - [3] card cards=[`ExpectAFight`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 41g  canSkip=False
-    - [1] relic relic=``  canSkip=False
-    - [2] card cards=[`Stomp`(cost=3), `Conflagration`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [0] gold 35g  canSkip=False
+    - [1] potion potion=`SkillPotion`  canSkip=False
+    - [2] relic relic=``  canSkip=False
+    - [3] card cards=[`ExpectAFight`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
-    - [0] gold 41g  canSkip=False
+    - [0] gold 35g  canSkip=False
+    - [1] potion potion=`SkillPotion`  canSkip=False
+    - [2] relic relic=``  canSkip=False
+    - [3] card cards=[`ExpectAFight`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
+
+  → claim reward [0] → hp=80 room=CombatRoom
+  - rewards offered:
+    - [0] potion potion=`SkillPotion`  canSkip=False
     - [1] relic relic=``  canSkip=False
-    - [2] card cards=[`Stomp`(cost=3), `Conflagration`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [2] card cards=[`ExpectAFight`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
+
+  - rewards offered:
+    - [0] potion potion=`SkillPotion`  canSkip=False
+    - [1] relic relic=``  canSkip=False
+    - [2] card cards=[`ExpectAFight`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
     - [0] relic relic=``  canSkip=False
-    - [1] card cards=[`Stomp`(cost=3), `Conflagration`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [1] card cards=[`ExpectAFight`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   - rewards offered:
     - [0] relic relic=``  canSkip=False
-    - [1] card cards=[`Stomp`(cost=3), `Conflagration`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [1] card cards=[`ExpectAFight`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`Stomp`(cost=3), `Conflagration`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [0] card cards=[`ExpectAFight`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`Stomp`(cost=3), `Conflagration`(cost=1), `Armaments`(cost=1)]  canSkip=True
+    - [0] card cards=[`ExpectAFight`(cost=1), `Breakthrough`(cost=1), `PactsEnd`(cost=0)]  canSkip=True
 
 ## Floor 9: MapRoom  (hp=80)
 
@@ -4071,105 +3727,102 @@
   → pick map (5,10) → CombatRoom floor=11
 ### Combat #1 on floor 11
 
-#### Round 1  (e=3/3 block=0 draw=6 disc=0)
+#### Round 1  (e=3/3 block=0 draw=9 disc=0)
 
   - hand:
-    - [0] `Debt` cost=0 canPlay=False target=None
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [3] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Rage` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `PUNCH_CONSTRUCT` 55/55 block=0 → Defend  powers=[ARTIFACT_POWER:1]
-    - [1] `CUBEX_CONSTRUCT` 65/65 block=0 → Buff  powers=[ARTIFACT_POWER:1]
-    - [2] `CUBEX_CONSTRUCT` 65/65 block=0 → Buff  powers=[ARTIFACT_POWER:1]
+    - [0] `PunchConstruct` 55/55 block=0 → Defend  powers=[ArtifactPower:1]
+    - [1] `CubexConstruct` 65/65 block=0 → Buff  powers=[ArtifactPower:1]
+    - [2] `CubexConstruct` 65/65 block=0 → Buff  powers=[ArtifactPower:1]
 
-  → play card [1] target=0
-  → play card [1] target=0
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
   → play card [1]
   → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=1 disc=5)
+#### Round 2  (e=3/3 block=0 draw=4 disc=5)
 
   - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `PUNCH_CONSTRUCT` 37/55 block=10 → Attack 14×1  powers=[ARTIFACT_POWER:1]
-    - [1] `CUBEX_CONSTRUCT` 65/65 block=0 → Attack 7×1 + Buff  powers=[ARTIFACT_POWER:1,STRENGTH_POWER:2]
-    - [2] `CUBEX_CONSTRUCT` 65/65 block=0 → Attack 7×1 + Buff  powers=[ARTIFACT_POWER:1,STRENGTH_POWER:2]
-
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=6 disc=0)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `PUNCH_CONSTRUCT` 37/55 block=0 → Attack 5×2 + Debuff
-    - [1] `CUBEX_CONSTRUCT` 65/65 block=0 → Attack 7×1 + Buff  powers=[ARTIFACT_POWER:1,STRENGTH_POWER:4]
-    - [2] `CUBEX_CONSTRUCT` 65/65 block=0 → Attack 7×1 + Buff  powers=[ARTIFACT_POWER:1,STRENGTH_POWER:4]
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Bloodletting` cost=0 canPlay=True target=Self
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `PUNCH_CONSTRUCT` 19/55 block=0 → Defend
-    - [1] `CUBEX_CONSTRUCT` 65/65 block=0 → Attack 5×2  powers=[ARTIFACT_POWER:1,STRENGTH_POWER:6]
-    - [2] `CUBEX_CONSTRUCT` 65/65 block=0 → Attack 5×2  powers=[ARTIFACT_POWER:1,STRENGTH_POWER:6]
-  - player powers: WEAK_POWER:1
+    - [0] `PunchConstruct` 37/55 block=10 → Attack 14×1  powers=[ArtifactPower:1]
+    - [1] `CubexConstruct` 65/65 block=0 → Attack 7×1 + Buff  powers=[ArtifactPower:1,StrengthPower:2]
+    - [2] `CubexConstruct` 65/65 block=0 → Attack 7×1 + Buff  powers=[ArtifactPower:1,StrengthPower:2]
+  - player powers: RagePower:3
+
+  → play card [0]
+  → play card [0]
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [0]
+  → end_turn → round transition
+#### Round 3  (e=3/3 block=0 draw=9 disc=0)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [2] `Debt` cost=0 canPlay=False target=None
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `PunchConstruct` 30/55 block=0 → Attack 5×2 + Debuff
+    - [1] `CubexConstruct` 65/65 block=0 → Attack 7×1 + Buff  powers=[ArtifactPower:1,StrengthPower:4]
+    - [2] `CubexConstruct` 65/65 block=0 → Attack 7×1 + Buff  powers=[ArtifactPower:1,StrengthPower:4]
+  - player powers: RagePower:3
 
   → play card [0] target=0
+  → play card [0]
+  → play card [1] target=0
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=4 disc=5)
+
+  - hand:
+    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `PunchConstruct` 12/55 block=0 → Defend
+    - [1] `CubexConstruct` 65/65 block=0 → Attack 5×2  powers=[ArtifactPower:1,StrengthPower:6]
+    - [2] `CubexConstruct` 65/65 block=0 → Attack 5×2  powers=[ArtifactPower:1,StrengthPower:6]
+  - player powers: RagePower:3, WeakPower:1
+
+  → play card [0]
   → play card [0] target=0
+  → play card [0]
+  → play card [0] target=0
+  → play card [0]
   → end_turn → round transition
   - rewards offered:
-    - [0] gold 13g  canSkip=False
-    - [1] potion potion=`SHACKLING_POTION`  canSkip=False
-    - [2] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
+    - [0] gold 14g  canSkip=False
+    - [1] card cards=[`BattleTrance`(cost=0), `Headbutt`(cost=1), `ShrugItOff`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] gold 13g  canSkip=False
-    - [1] potion potion=`SHACKLING_POTION`  canSkip=False
-    - [2] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
+    - [0] gold 14g  canSkip=False
+    - [1] card cards=[`BattleTrance`(cost=0), `Headbutt`(cost=1), `ShrugItOff`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
-    - [0] gold 13g  canSkip=False
-    - [1] potion potion=`SHACKLING_POTION`  canSkip=False
-    - [2] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
+    - [0] gold 14g  canSkip=False
+    - [1] card cards=[`BattleTrance`(cost=0), `Headbutt`(cost=1), `ShrugItOff`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`SHACKLING_POTION`  canSkip=False
-    - [1] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
+    - [0] card cards=[`BattleTrance`(cost=0), `Headbutt`(cost=1), `ShrugItOff`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`SHACKLING_POTION`  canSkip=False
-    - [1] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
-
-  → claim reward [0] → hp=80 room=CombatRoom
-  - rewards offered:
-    - [0] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
-
-  - rewards offered:
-    - [0] card cards=[`DrumOfBattle`(cost=0), `Tremble`(cost=1), `Headbutt`(cost=1)]  canSkip=True
+    - [0] card cards=[`BattleTrance`(cost=0), `Headbutt`(cost=1), `ShrugItOff`(cost=1)]  canSkip=True
 
 ## Floor 11: MapRoom  (hp=80)
 
@@ -4184,106 +3837,129 @@
   → pick map (4,11) → CombatRoom floor=12
 ### Combat #1 on floor 12
 
-#### Round 1  (e=3/3 block=0 draw=6 disc=0)
+#### Round 1  (e=3/3 block=0 draw=9 disc=0)
 
   - hand:
-    - [0] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `FABRICATOR` 150/150 block=0 → Unknown
+    - [0] `Fabricator` 150/150 block=0 → Unknown
 
   → play card [0] target=0
   → play card [0]
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Debt` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `GUARDBOT` 20/20 block=0 → Defend  powers=[MINION_POWER:1]
-    - [1] `STABBOT` 21/21 block=0 → Attack 11×1 + Debuff  powers=[MINION_POWER:1]
-    - [2] `FABRICATOR` 142/150 block=0 → Attack 18×1 + Unknown  powers=[VULNERABLE_POWER:1]
-
   → play card [0] target=0
-  → play card [1]
-  → play card [2] target=0
   → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=6 disc=0)
+#### Round 2  (e=3/3 block=0 draw=4 disc=5)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Debt` cost=0 canPlay=False target=None
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [1] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [2] `Debt` cost=0 canPlay=False target=None
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [4] `DefendIronclad` cost=1 canPlay=True target=Self
   - enemies:
-    - [0] `GUARDBOT` 2/20 block=0 → Defend  powers=[MINION_POWER:1]
-    - [1] `STABBOT` 21/21 block=0 → Attack 11×1 + Debuff  powers=[MINION_POWER:1]
-    - [2] `FABRICATOR` 142/150 block=15 → Attack 11×1
-    - [3] `ZAPBOT` 23/23 block=0 → Attack 14×1  powers=[HIGH_VOLTAGE_POWER:2,MINION_POWER:1,STRENGTH_POWER:2]
-  - player powers: FRAIL_POWER:1
+    - [0] `Noisebot` 23/23 block=0 → Unknown  powers=[MinionPower:1]
+    - [1] `Stabbot` 20/20 block=0 → Attack 11×1 + Debuff  powers=[MinionPower:1]
+    - [2] `Fabricator` 132/150 block=0 → Unknown
 
-  → play card [0]
-  → play card [1]
-  → play card [1] target=0
+  → play card [0] target=0
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=1 disc=5)
+#### Round 3  (e=3/3 block=0 draw=0 disc=11)
 
   - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [0] `Rage` cost=0 canPlay=True target=Self
     - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [3] `Guilty` cost=0 canPlay=False target=None
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bloodletting` cost=0 canPlay=True target=Self
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Dazed` cost=0 canPlay=False target=None
   - enemies:
-    - [0] `STABBOT` 21/21 block=0 → Attack 11×1 + Debuff  powers=[MINION_POWER:1]
-    - [1] `FABRICATOR` 142/150 block=0 → Attack 18×1 + Unknown
-    - [2] `ZAPBOT` 23/23 block=0 → Attack 14×1  powers=[HIGH_VOLTAGE_POWER:2,MINION_POWER:1,STRENGTH_POWER:4]
-  - player powers: FRAIL_POWER:2
+    - [0] `Noisebot` 15/23 block=0 → Unknown  powers=[MinionPower:1,VulnerablePower:1]
+    - [1] `Stabbot` 20/20 block=0 → Attack 11×1 + Debuff  powers=[MinionPower:1]
+    - [2] `Fabricator` 132/150 block=0 → Attack 11×1
+    - [3] `Noisebot` 22/22 block=0 → Unknown  powers=[MinionPower:1]
+    - [4] `Stabbot` 21/21 block=0 → Attack 11×1 + Debuff  powers=[MinionPower:1]
+  - player powers: FrailPower:1
 
   → play card [0]
   → play card [0] target=0
-  → play card [2] target=0
+  → play card [0]
+  → play card [0]
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=14 disc=0)
+
+  - hand:
+    - [0] `Dazed` cost=0 canPlay=False target=None
+    - [1] `Dazed` cost=0 canPlay=False target=None
+    - [2] `Rage` cost=0 canPlay=True target=Self
+    - [3] `Debt` cost=0 canPlay=False target=None
+    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+  - enemies:
+    - [0] `Noisebot` 2/23 block=0 → Unknown  powers=[MinionPower:1]
+    - [1] `Stabbot` 20/20 block=0 → Attack 11×1 + Debuff  powers=[MinionPower:1]
+    - [2] `Fabricator` 132/150 block=0 → Attack 11×1
+    - [3] `Noisebot` 22/22 block=0 → Unknown  powers=[MinionPower:1]
+    - [4] `Stabbot` 21/21 block=0 → Attack 11×1 + Debuff  powers=[MinionPower:1]
+  - player powers: FrailPower:3, RagePower:3
+
+  → play card [2]
+  → play card [3]
+  → end_turn → round transition
+#### Round 5  (e=3/3 block=0 draw=11 disc=5)
+
+  - hand:
+    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Dazed` cost=0 canPlay=False target=None
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Dazed` cost=0 canPlay=False target=None
+  - enemies:
+    - [0] `Noisebot` 2/23 block=0 → Unknown  powers=[MinionPower:1]
+    - [1] `Stabbot` 20/20 block=0 → Attack 11×1 + Debuff  powers=[MinionPower:1]
+    - [2] `Fabricator` 132/150 block=0 → Attack 11×1
+    - [3] `Noisebot` 22/22 block=0 → Unknown  powers=[MinionPower:1]
+    - [4] `Stabbot` 21/21 block=0 → Attack 11×1 + Debuff  powers=[MinionPower:1]
+  - player powers: FrailPower:5, RagePower:6
+
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [1]
   → end_turn → round transition
   - rewards offered:
     - [0] gold 15g  canSkip=False
-    - [1] potion potion=`FIRE_POTION`  canSkip=False
-    - [2] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
+    - [1] potion potion=`StrengthPotion`  canSkip=False
+    - [2] card cards=[`Dominate`(cost=1), `Rage`(cost=0), `BodySlam`(cost=1)]  canSkip=True
 
   - rewards offered:
     - [0] gold 15g  canSkip=False
-    - [1] potion potion=`FIRE_POTION`  canSkip=False
-    - [2] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
+    - [1] potion potion=`StrengthPotion`  canSkip=False
+    - [2] card cards=[`Dominate`(cost=1), `Rage`(cost=0), `BodySlam`(cost=1)]  canSkip=True
 
   - heal → hp=80/80
 
   - rewards offered:
     - [0] gold 15g  canSkip=False
-    - [1] potion potion=`FIRE_POTION`  canSkip=False
-    - [2] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
+    - [1] potion potion=`StrengthPotion`  canSkip=False
+    - [2] card cards=[`Dominate`(cost=1), `Rage`(cost=0), `BodySlam`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] potion potion=`FIRE_POTION`  canSkip=False
-    - [1] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] potion potion=`StrengthPotion`  canSkip=False
+    - [1] card cards=[`Dominate`(cost=1), `Rage`(cost=0), `BodySlam`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] potion potion=`FIRE_POTION`  canSkip=False
-    - [1] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] potion potion=`StrengthPotion`  canSkip=False
+    - [1] card cards=[`Dominate`(cost=1), `Rage`(cost=0), `BodySlam`(cost=1)]  canSkip=True
 
   → claim reward [0] → hp=80 room=CombatRoom
   - rewards offered:
-    - [0] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] card cards=[`Dominate`(cost=1), `Rage`(cost=0), `BodySlam`(cost=1)]  canSkip=True
 
   - rewards offered:
-    - [0] card cards=[`Taunt`(cost=1), `PerfectedStrike`(cost=2), `Thunderclap`(cost=1)]  canSkip=True
+    - [0] card cards=[`Dominate`(cost=1), `Rage`(cost=0), `BodySlam`(cost=1)]  canSkip=True
 
 ## Floor 12: MapRoom  (hp=80)
 
@@ -4316,126 +3992,78 @@
   → pick map (3,14) → BossRoom floor=15
 ### Combat #1 on floor 15
 
-#### Round 1  (e=3/3 block=0 draw=6 disc=0)
+#### Round 1  (e=3/3 block=0 draw=9 disc=0)
 
   - hand:
     - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
+    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `Rage` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `TEST_SUBJECT` 100/100 block=0 → Attack 20×1
+    - [0] `TestSubject` 100/100 block=0 → Attack 20×1  powers=[AdaptablePower:1,EnragePower:2]
 
   → play card [0] target=0
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 2  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [2] `Debt` cost=0 canPlay=False target=None
-    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `TEST_SUBJECT` 83/100 block=0 → Attack 14×1 + Debuff  powers=[VULNERABLE_POWER:1]
-
+  → play card [0] target=0
   → play card [0]
-  → play card [0]
-  → play card [1] target=0
-  → end_turn → round transition
-#### Round 3  (e=3/3 block=0 draw=6 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Debt` cost=0 canPlay=False target=None
-    - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `TEST_SUBJECT` 70/100 block=0 → Attack 20×1
-
-  → play card [0]
-  → play card [1] target=0
   → play card [1]
   → end_turn → round transition
-#### Round 4  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `Guilty` cost=0 canPlay=False target=None
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `DefendIronclad` cost=1 canPlay=True target=Self
-  - enemies:
-    - [0] `TEST_SUBJECT` 61/100 block=0 → Attack 14×1 + Debuff
-
-  → play card [0] target=0
-  → play card [0] target=0
-  → play card [2]
-  → end_turn → round transition
-#### Round 5  (e=3/3 block=0 draw=6 disc=0)
-
-  - hand:
-    - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [2] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `TEST_SUBJECT` 43/100 block=0 → Attack 20×1
-
-  → play card [0]
-  → play card [0] target=0
-  → play card [0]
-  → end_turn → round transition
-#### Round 6  (e=3/3 block=0 draw=1 disc=5)
-
-  - hand:
-    - [0] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [1] `Guilty` cost=0 canPlay=False target=None
-    - [2] `Debt` cost=0 canPlay=False target=None
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-  - enemies:
-    - [0] `TEST_SUBJECT` 34/100 block=0 → Attack 14×1 + Debuff
-
-  → play card [0] target=0
-  → play card [2] target=0
-  → end_turn → round transition
-#### Round 7  (e=3/3 block=0 draw=6 disc=0)
+#### Round 2  (e=3/3 block=0 draw=4 disc=5)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
     - [1] `DefendIronclad` cost=1 canPlay=True target=Self
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [3] `Bash` cost=2 canPlay=True target=AnyEnemy
-    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [4] `Bloodletting` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `TEST_SUBJECT` 17/100 block=0 → Attack 20×1  powers=[VULNERABLE_POWER:1]
+    - [0] `TestSubject` 91/100 block=0 → Attack 14×1 + Debuff  powers=[AdaptablePower:1,EnragePower:2,StrengthPower:4]
+  - player powers: RagePower:3
 
   → play card [0]
   → play card [0]
   → play card [0] target=0
+  → play card [1]
+  → play card [0] target=0
   → end_turn → round transition
-#### Round 8  (e=3/3 block=0 draw=1 disc=5)
+#### Round 3  (e=3/3 block=0 draw=9 disc=0)
+
+  - hand:
+    - [0] `Debt` cost=0 canPlay=False target=None
+    - [1] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+    - [2] `Bash` cost=2 canPlay=True target=AnyEnemy
+    - [3] `DefendIronclad` cost=1 canPlay=True target=Self
+    - [4] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
+  - enemies:
+    - [0] `TestSubject` 73/100 block=0 → Attack 20×1  powers=[AdaptablePower:1,EnragePower:2,StrengthPower:10]
+  - player powers: RagePower:3, VulnerablePower:1
+
+  → play card [1] target=0
+  → play card [1] target=0
+  → end_turn → round transition
+#### Round 4  (e=3/3 block=0 draw=4 disc=5)
 
   - hand:
     - [0] `DefendIronclad` cost=1 canPlay=True target=Self
-    - [1] `Debt` cost=0 canPlay=False target=None
+    - [1] `BodySlam` cost=1 canPlay=True target=AnyEnemy
     - [2] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
     - [3] `StrikeIronclad` cost=1 canPlay=True target=AnyEnemy
-    - [4] `Guilty` cost=0 canPlay=False target=None
+    - [4] `Rage` cost=0 canPlay=True target=Self
   - enemies:
-    - [0] `TEST_SUBJECT` 4/100 block=0 → Attack 14×1 + Debuff
+    - [0] `TestSubject` 56/100 block=0 → Attack 14×1 + Debuff  powers=[AdaptablePower:1,EnragePower:2,StrengthPower:10,VulnerablePower:1]
+  - player powers: RagePower:3, VulnerablePower:1
 
   → play card [0]
-## Floor 15: MapRoom  (hp=80)
+  → play card [0] target=0
+  → play card [0] target=0
+  → play card [1]
+## Floor 15: MapRoom  (hp=0)
 
 
-  → play card [1] target=0
-  - combat ended (hp=80)
+  → end_turn → round transition
+  - combat ended (hp=0)
+
+  - heal → hp=80/80
 
 ## Floor 15: EventRoom  (hp=80)
 
@@ -4629,30 +4257,6 @@
   - heal → hp=80/80
 
 ## Floor 39: EventRoom  (hp=0)
-
-  - event options:
-    - [0] `PROCEED`
-
-  → pick event option [0] → EventRoom hp=0
-  - heal → hp=80/80
-
-## Floor 40: EventRoom  (hp=0)
-
-  - event options:
-    - [0] `PROCEED`
-
-  → pick event option [0] → EventRoom hp=0
-  - heal → hp=80/80
-
-## Floor 41: EventRoom  (hp=0)
-
-  - event options:
-    - [0] `PROCEED`
-
-  → pick event option [0] → EventRoom hp=0
-  - heal → hp=80/80
-
-## Floor 42: EventRoom  (hp=0)
 
   - event options:
     - [0] `PROCEED`

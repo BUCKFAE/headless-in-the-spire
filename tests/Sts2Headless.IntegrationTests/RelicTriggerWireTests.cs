@@ -24,7 +24,7 @@ public class RelicTriggerWireTests
         // surfaces here as TriggeredSincePrev. Without it the wire field
         // is empty even though the relic's gold side effect still fires.
         await using var host = HostSubprocess.WithHookInstrumentation();
-        await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(host, seed: 42uL);
 
         // Inject LuckyFysh before the first combat — same pattern as
         // RelicListenerTests. RelicCmd.Obtain itself may fire one or more

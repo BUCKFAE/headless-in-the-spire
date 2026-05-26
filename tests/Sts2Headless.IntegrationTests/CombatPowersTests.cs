@@ -35,7 +35,7 @@ public class CombatPowersTests : IClassFixture<HostSubprocess>
         // Blood is an end-of-combat relic hook, not a Power. The wire must
         // surface an empty list (not omit the field, not return null), so
         // clients can iterate without a null guard.
-        var start = await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
         var monster = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
         var inCombat = await _host.SendAsync<RunSelectMapNodeResult>(
             "run/select_map_node", new RunSelectMapNodeParams(Col: monster.Col, Row: monster.Row));
@@ -60,7 +60,7 @@ public class CombatPowersTests : IClassFixture<HostSubprocess>
         // expected upper bound. Tracked card ids surface in the failure
         // diagnostic so a future rebalance (Bash removed, replaced, or
         // renamed) is debuggable from the test output alone.
-        var start = await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
+        var start = await RunFixtures.StartFreshRunAtMap(_host, seed: 42uL);
         var monster = start.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
         var inCombat = await _host.SendAsync<RunSelectMapNodeResult>(
             "run/select_map_node", new RunSelectMapNodeParams(Col: monster.Col, Row: monster.Row));

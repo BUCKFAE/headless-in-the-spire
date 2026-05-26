@@ -57,18 +57,20 @@ public class HostReuseTests
     }
 
     [Fact]
-    public async Task RunNew_Twice_WithNeow_SameSeed_ProducesIdenticalEventOptions()
+    public async Task RunNew_Twice_SameSeed_ProducesIdenticalNeowEventOptions()
     {
         // The Neow path exercises EventRoom + the option-generation RNG,
         // which is a denser leak surface than the bare MapRoom landing.
+        // Every run starts at Neow, so the two run/new calls should
+        // produce byte-identical event options for the same seed.
         await using var host = new HostSubprocess();
 
         await host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Seed: 7uL, WithNeow: true));
+            "run/new", new RunNewParams(Seed: 7uL));
         var firstState = await host.SendAsync<RunStateResult>("run/state");
 
         await host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Seed: 7uL, WithNeow: true));
+            "run/new", new RunNewParams(Seed: 7uL));
         var secondState = await host.SendAsync<RunStateResult>("run/state");
 
         Assert.Equal(RoomType.EventRoom, firstState.CurrentRoomType);

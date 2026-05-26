@@ -55,6 +55,11 @@
     <Compile Include="..\Sts2Headless.IntegrationTests\RecordingHost.cs">
       <Link>RecordingHost.cs</Link>
     </Compile>
+    <!-- run/new helper: dismisses Neow so tests that just want a fresh
+         MapRoom can share one call site. Same source-link pattern. -->
+    <Compile Include="..\Sts2Headless.IntegrationTests\RunFixtures.cs">
+      <Link>RunFixtures.cs</Link>
+    </Compile>
   </ItemGroup>
 
 </Project>

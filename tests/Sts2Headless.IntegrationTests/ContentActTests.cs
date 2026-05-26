@@ -15,8 +15,7 @@ public class ContentActTests : IClassFixture<HostSubprocess>
 
     private async Task EnsureRun()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
     }
 
     [Fact]

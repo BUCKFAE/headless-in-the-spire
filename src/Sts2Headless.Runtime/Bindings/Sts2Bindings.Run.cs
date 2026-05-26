@@ -15,13 +15,12 @@ public sealed partial class Sts2Bindings
     // layer can pass back in for subsequent calls. `character` selects
     // which Player.CreateForNewRun<T> closed generic to invoke — the
     // dictionary was built at Bind() so every Character enum value has a
-    // registered factory or bootstrap would have failed. `withNeow` opts
-    // into the Neow blessing event: lands CurrentRoom at EventRoom (the
-    // Neow node) instead of MapRoom. Callers can then drive
-    // run/select_event_option to dismiss the event; LocPatches + the
-    // Texture2D / StringName stubs are what let the event populate
-    // options in the first place.
-    public RunHandle StartRun(Character character, ulong seed, bool withNeow = false, int ascensionLevel = 0)
+    // registered factory or bootstrap would have failed. Every STS2 run
+    // starts at the Neow blessing EventRoom (no opt-out — that's how the
+    // game works); callers drive `run/select_event_option` to advance to
+    // MapRoom. LocPatches + the Texture2D / StringName stubs are what let
+    // the event populate options in the first place.
+    public RunHandle StartRun(Character character, ulong seed, int ascensionLevel = 0)
     {
         if (ascensionLevel < 0)
             throw new ArgumentOutOfRangeException(nameof(ascensionLevel),
@@ -92,7 +91,7 @@ public sealed partial class Sts2Bindings
 
         var extra = _runStateExtraFields.GetValue(runState)
             ?? throw new InvalidOperationException("RunState.ExtraFields was null");
-        _extraFieldsStartedWithNeow.SetValue(extra, withNeow);
+        _extraFieldsStartedWithNeow.SetValue(extra, true);
 
         _runManagerGenerateRooms.Invoke(runManager, null);
         _runManagerLaunch.Invoke(runManager, null);

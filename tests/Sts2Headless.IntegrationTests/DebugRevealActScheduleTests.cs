@@ -15,8 +15,7 @@ public class DebugRevealActScheduleTests
     public async Task RevealActSchedule_AgreesWithBossEncounterId()
     {
         await using var host = new HostSubprocess();
-        await host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(host, character: Character.Ironclad, seed: 42uL);
         var state = await host.SendAsync<RunStateResult>("run/state");
         var schedule = await host.SendAsync<DebugRevealActScheduleResult>(
             "debug/reveal_act_schedule");

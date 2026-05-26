@@ -1,9 +1,11 @@
-// Fixture mirroring the shape of the real bundled sample
-// (replays/sample/v0.103.2/...) — no "ancient" entry because
-// the recording was started with withNeow=false. The first
-// map_point_history entry is the first real combat at engine ActFloor=2
-// (Neow at engine ActFloor=1 is skipped, but the floor counter still
-// includes it).
+// Legacy-shape fixture: every current STS2 run produces an "ancient"
+// (Neow) entry as the first map_point_history record, but older
+// recordings could omit it (the `withNeow=false` wire path that has
+// since been removed). The first map_point_history entry is the first
+// real combat at engine ActFloor=2 (Neow at engine ActFloor=1 is
+// skipped, but the floor counter still includes it). Kept as a
+// robustness fixture so the viewer can still render historical
+// captures without an ancient row.
 //
 // HP/gold values mirror what a properly-stamped run.json would carry —
 // i.e. AFTER the TestMode-gated UpdatePlayerStatsInMapPointHistory fix

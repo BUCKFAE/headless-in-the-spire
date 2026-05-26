@@ -20,10 +20,8 @@ public class BossDiscoveryProbe
         for (ulong seed = 1; seed <= 50; seed++)
         {
             await using var host = new HostSubprocess();
-            await host.SendAsync<RunNewResult>(
-                "run/new",
-                new RunNewParams(Character: Character.Ironclad, Seed: seed, Ascension: 0));
-            var state = await host.SendAsync<RunStateResult>("run/state");
+            var state = await RunFixtures.StartFreshRunAtMap(
+                host, character: Character.Ironclad, seed: seed, ascension: 0);
             bossesBySeed[seed] = state.BossEncounterId;
         }
 

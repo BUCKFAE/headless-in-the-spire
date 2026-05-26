@@ -1846,7 +1846,6 @@ class RunNewParams(BaseModel):
     )
     character: Character | None = None
     seed: int | None = None
-    with_neow: Annotated[bool | None, Field(alias="withNeow")] = None
     ascension: int | None = None
     modifiers: list[str] | None = None
 

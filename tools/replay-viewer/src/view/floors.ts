@@ -39,10 +39,10 @@ const COMBAT_ROOM_TYPES = new Set(["monster", "elite", "boss"]);
 export interface FloorRow {
   // Engine ActFloor for this row. Matches the floor number the
   // game's UI displays and the floor number stamped into manifest
-  // combat entries. Neow is engine floor 1 when present (an "ancient"
-  // map_point_history entry); when Neow was skipped (`withNeow=false`
-  // at recording time) the engine still counts it as floor 1, so the
-  // first map_point_history entry is engine floor 2.
+  // combat entries. Neow is engine floor 1 (an "ancient"
+  // map_point_history entry); every STS2 run starts with Neow.
+  // Legacy recordings produced when Neow could be skipped land the
+  // first row at engine floor 2 — kept as a robustness fallback.
   floor: number;
   actIndex: number;
   mapPointType: string;
@@ -81,19 +81,19 @@ export function materialiseFloors(runHistory: RunHistory): FloorRow[] {
   const rows: FloorRow[] = [];
   runHistory.map_point_history.forEach((act, actIndex) => {
     // Floor numbering rules:
-    //   - "ancient" entry (Neow) is engine floor 1.
-    //   - If there's no ancient entry in act 0, Neow was skipped
-    //     (`withNeow=false`) but the engine still counts it as
-    //     floor 1, so the first non-ancient row in act 0 is engine
-    //     floor 2.
+    //   - "ancient" entry (Neow) is engine floor 1 — every run starts
+    //     here in current STS2 builds.
+    //   - Legacy recordings could skip Neow; the engine still counted
+    //     it as floor 1, so the first non-ancient row in act 0 was
+    //     engine floor 2. Kept as a robustness fallback.
     //   - For acts after the first, we anchor at floor 1 of that
     //     act (no Neow in subsequent acts).
     //
     // We walk the act and increment a counter from the right base.
     const firstIsAncient = act.length > 0 && act[0]!.map_point_type === "ancient";
     // Engine floor for the FIRST entry in this act:
-    //   act 0 + ancient    → 1 (Neow)
-    //   act 0 + no ancient → 2 (Neow skipped, still counted)
+    //   act 0 + ancient    → 1 (Neow, the always-on case)
+    //   act 0 + no ancient → 2 (legacy Neow-skipped recordings)
     //   act N>0            → 1 (first room of the act)
     let nextFloor: number;
     if (actIndex === 0) {

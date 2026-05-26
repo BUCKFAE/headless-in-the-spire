@@ -188,7 +188,6 @@ internal static class CellExecutor
                 _ = await host.SendAsync<RunNewResult>("run/new", new RunNewParams(
                     Character: cell.Character,
                     Seed:      cell.Seed,
-                    WithNeow:  null,
                     Ascension: cell.Ascension,
                     Modifiers: cell.Modifiers.Count == 0 ? null : cell.Modifiers));
             }

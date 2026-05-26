@@ -26,8 +26,7 @@ public class DebugGivePotionTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task GivePotion_LandsInPotionSlots()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var before = await _host.SendAsync<RunStateResult>("run/state");
         var startingCount = before.OwnedPotions.Count;
@@ -56,8 +55,7 @@ public class DebugGivePotionTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task GivePotion_UnknownId_ReturnsInvalidParams()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/give_potion", new DebugGivePotionParams(PotionId: "DEFINITELY_NOT_A_POTION_ID"));
@@ -71,8 +69,7 @@ public class DebugGivePotionTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task GivePotion_EmptyId_ReturnsInvalidParams()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         var err = await _host.ExpectErrorAsync(
             "debug/give_potion", new DebugGivePotionParams(PotionId: ""));

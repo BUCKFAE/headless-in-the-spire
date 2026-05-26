@@ -438,19 +438,19 @@ public sealed record HostMethodsResult(
 
 // ── run/new ──────────────────────────────────────────────────────────────
 
-// Fields optional on the wire — character defaults to Ironclad, seed to 1,
-// withNeow to false. Defaults are applied in the handler, not the record,
-// so the JSON schema matches "field absent" cleanly and the deserialiser
-// doesn't need to know.
+// Fields optional on the wire — character defaults to Ironclad, seed to 1.
+// Defaults are applied in the handler, not the record, so the JSON schema
+// matches "field absent" cleanly and the deserialiser doesn't need to know.
 //
-// withNeow=true opts into the Neow blessing event (lands CurrentRoom on the
-// Neow EventRoom). No wire method yet exists to *dismiss* the event, so
-// clients that opt in are accepting a room they can't currently leave;
-// useful for state-shape tests, not for end-to-end runs.
+// Every run starts at the Neow blessing EventRoom — there is no opt-out,
+// because there isn't one in STS2 either. Callers proceed by reading
+// `availableEventOptions` from the response and dispatching
+// `run/select_event_option`; the host auto-advances to MapRoom once the
+// pick resolves. Tests that don't care about Neow share the
+// `RunFixtures.StartFreshRunAtMap` helper which encapsulates the dismissal.
 public sealed record RunNewParams(
     [property: JsonPropertyName("character")] Character? Character = null,
     [property: JsonPropertyName("seed")] ulong? Seed = null,
-    [property: JsonPropertyName("withNeow")] bool? WithNeow = null,
     // Ascension level. 0 (default) matches the previous wire behavior.
     // Higher levels enable harder content (ASCENDERS_BANE curse,
     // tougher monsters, …). The engine's RunState.CreateForTest takes

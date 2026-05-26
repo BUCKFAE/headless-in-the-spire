@@ -19,8 +19,7 @@ public class DebugGainStarsTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task GainStars_AccumulatesOnPlayerCombatState()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Regent, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Regent, seed: 42uL);
         await _host.SendAsync<DebugStartCombatResult>(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));
 
@@ -42,8 +41,7 @@ public class DebugGainStarsTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task GainStarsZero_IsNoop()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Regent, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Regent, seed: 42uL);
         await _host.SendAsync<DebugStartCombatResult>(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));
 
@@ -61,8 +59,7 @@ public class DebugGainStarsTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task NegativeAmount_ReturnsInvalidParamsError()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Regent, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Regent, seed: 42uL);
         await _host.SendAsync<DebugStartCombatResult>(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));
 

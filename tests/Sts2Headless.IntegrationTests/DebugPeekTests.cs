@@ -17,8 +17,7 @@ public class DebugPeekTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task PeekCardReward_DuringCombat_ReturnsNonEmptyPool()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
         await _host.SendAsync<DebugStartCombatResult>(
             "debug/start_combat", new DebugStartCombatParams(EncounterId: "SLIMES_NORMAL"));
 
@@ -32,8 +31,7 @@ public class DebugPeekTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task PeekEventOutcome_StubbedShape_EchoesEventIdWithNotes()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 42uL));
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 42uL);
 
         // Stubbed at the current pin (see CheatDtos comment): ok=false,
         // zero deltas, empty diff lists, and a `notes` line explaining

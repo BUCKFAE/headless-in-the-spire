@@ -33,8 +33,10 @@ public class CardUpgradedWireTests : IClassFixture<HostSubprocess>
     [Fact]
     public async Task UpgradedStrike_SurfacesOnWire_AndPropagatesToSimState()
     {
-        await _host.SendAsync<RunNewResult>(
-            "run/new", new RunNewParams(Character: Character.Ironclad, Seed: 1uL));
+        // Dismiss Neow first so debug/replace_deck mutates the live MapRoom
+        // deck, not the in-Neow deck (the engine swaps cards around on the
+        // Neow-pick transition and wipes pre-Neow replacements).
+        await RunFixtures.StartFreshRunAtMap(_host, character: Character.Ironclad, seed: 1uL);
 
         // Seed the deck with one base Strike + one +1 Strike. UpgradeLevel: 1
         // routes through CardModel.UpgradeInternal one step in debug/replace_deck

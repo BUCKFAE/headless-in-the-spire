@@ -29,9 +29,7 @@ public class ReplayChecksumEmissionTests
         using var tempReplays = new TempDir("sts2-replays");
         await using var host = RecordingHost.Start(tempReplays.Path);
 
-        await host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 42uL));
-
-        var snap = await host.SendAsync<RunStateResult>("run/state");
+        var snap = await RunFixtures.StartFreshRunAtMap(host, seed: 42uL);
         var monsterNode = snap.AvailableMapNodes.First(n => n.Type == MapNodeType.Monster && n.Row > 0);
         var entered = await host.SendAsync<RunSelectMapNodeResult>(
             "run/select_map_node", new RunSelectMapNodeParams(Col: monsterNode.Col, Row: monsterNode.Row));
@@ -141,4 +139,5 @@ public class ReplayChecksumEmissionTests
         // the Neow floor + first combat floor — assert non-empty.
         Assert.NotEmpty(runJson["map_point_history"]!.AsArray());
     }
+
 }
