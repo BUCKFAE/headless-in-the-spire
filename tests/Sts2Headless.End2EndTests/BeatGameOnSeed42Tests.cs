@@ -229,13 +229,27 @@ public class BeatGameOnSeed42Tests
         // The Architect terminus, demoted to a logged check while the cheat
         // stack / agent are re-tuned for the post-Neow RNG path. Pre-Neow
         // the cheats below were enough to nuke every boss; post-Neow the
-        // Act 3 boss now deadlocks the kill_all_enemies path on seed 42
-        // (CombatBudgetGuard trips at 20 no-progress rounds). The
-        // replay-artifact assertions below remain hard, since the test's
-        // load-bearing job is feeding the viewer a full-run corpus —
-        // the artefacts emit cleanly whether or not the terminus is
-        // reached. Re-promote to hard asserts once the boss combat
-        // resolves under the new RNG path.
+        // Act 3 boss (TestSubject, 300 HP on this seed) now deadlocks the
+        // kill_all_enemies path on seed 42 (CombatBudgetGuard trips at 20
+        // no-progress rounds — enemies list goes empty after the cheat but
+        // CombatManager.IsInProgress stays true, so the engine never
+        // transitions to the scripted Architect EventRoom). Disabling the
+        // cheat at the Act 3 boss and letting the agent play TestSubject
+        // naturally surfaces a *different* failure: a StallDetector trip
+        // mid-combat (state stuck at playPhase=False, hand=0, energy=3/3)
+        // — a monster-move hang in TestSubject's async chain (same
+        // Doormaker-shape pattern that needed Harmony patches to resolve).
+        //
+        // Restoring this assertion needs either: (a) a Harmony patch for
+        // TestSubject's hanging move method (Doormaker-style — see
+        // src/Sts2Headless.Runtime/Patches/HangPatches.Monsters.cs), or
+        // (b) a kill_all_enemies enhancement that properly drives
+        // CombatManager.EndCombat to recognise the boss-dead state past
+        // whatever AdaptablePower / EnragePower hook is keeping
+        // IsInProgress=true. Neither is cheap. The replay-artifact
+        // assertions below remain hard since the test's load-bearing job
+        // is feeding the viewer a full-run corpus — the artefacts emit
+        // cleanly whether or not the terminus is reached.
         //
         // Concrete shape we'd like to hit:
         //   * act_index == 2 (third act, 0-indexed).

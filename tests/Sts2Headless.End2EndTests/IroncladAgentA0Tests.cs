@@ -67,13 +67,16 @@ public class IroncladAgentA0Tests
     [Fact]
     [Trait("Category", "Diagnostic")]
     public async Task IroncladAgent_WinsAtLeastThreeOfTenSeeds_A0() =>
-        // Re-baselined when Neow became always-on (every run consumes
-        // the Neow RNG draws now, which shifts map shape vs. the
-        // pre-Neow baseline this gate was tuned for). The IroncladAgent
-        // doesn't yet pick Neow blessings strategically — the helper
-        // picks the last unlocked option, which often doesn't grant a
-        // useful relic. Bump back up once the agent is Neow-aware.
-        await MeasureWinRate(ascension: 0, seedCount: 10, minWins: 0);
+        // Re-baselined twice: first when Neow became always-on (gates
+        // dropped to 0 because the dismissal helper picked the last
+        // unlocked option, often a card-select-broken relic and no
+        // grant), then bumped back to 1 once IroncladEventPolicy got
+        // Neow-aware relic-tier scoring. 50-seed measurement settled
+        // at ~18%; the 10-seed slice has a 95% CI of roughly [0,5]
+        // wins, so 1 is the highest threshold that doesn't flake.
+        // Bump when the agent's combat / draft policies catch up to
+        // the boss-clear bar (currently most runs die in floors 6-15).
+        await MeasureWinRate(ascension: 0, seedCount: 10, minWins: 1);
 
     [Fact]
     [Trait("Category", "Diagnostic")]
@@ -82,10 +85,12 @@ public class IroncladAgentA0Tests
         // Broader-sample measurement of A0 win rate. 50 seeds gives a
         // tighter confidence interval than the 10-seed gate test; the
         // assertion threshold was re-baselined when Neow became always-on
-        // (was 10/50 = 20%; the new measured baseline is ~3/50 = 6%
-        // because the agent doesn't yet capitalise on Neow blessings).
-        // Bump back up once the agent is Neow-aware.
-        await MeasureWinRate(ascension: 0, seedCount: 50, minWins: 2,
+        // (was 10/50 = 20%; dropped to 2 while the agent picked broken
+        // Neow relics, now bumped to 5 with the Neow-aware policy
+        // measuring 9/50 = 18%). The 4-win slack absorbs seed-set
+        // variance. Bump back toward the pre-Neow 10/50 once the agent's
+        // draft / combat tuning closes the remaining gap.
+        await MeasureWinRate(ascension: 0, seedCount: 50, minWins: 5,
             outputDir: "/tmp/ironclad-a0-50");
     }
 
@@ -97,9 +102,9 @@ public class IroncladAgentA0Tests
         // bumps base monster damage. We don't expect 3/10 wins here —
         // this is a measurement test, not a regression gate. Records
         // results to /tmp/ironclad-a1/summary.txt. Threshold was 1
-        // pre-Neow; re-baselined to 0 since the agent's effective rate
-        // dropped on the Neow-on flow. Bump when the agent learns to
-        // pick blessings.
+        // pre-Neow; held at 0 even with the Neow-aware policy because
+        // A1's curse + damage bump still overwhelms the Phial Holster
+        // pickup on most 10-seed slices (most recent run: 0/10).
         await MeasureWinRate(ascension: 1, seedCount: 10, minWins: 0,
             outputDir: "/tmp/ironclad-a1");
     }

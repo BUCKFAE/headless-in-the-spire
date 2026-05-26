@@ -153,10 +153,37 @@ public class EventChoiceTests : IClassFixture<HostSubprocess>
         Assert.NotEmpty(afterChoose.AvailableMapNodes);
     }
 
-    [Fact(Skip = "Seed needs to be re-rolled now that Neow is always-on — the floor-2 ?-node target shifted. "
-        + "Multi-page event wire contract is still covered by EventSweep; pick a new seed where the post-Neow row-2 "
-        + "Unknown rolls into TabletOfTruth or similar multi-page event.")]
-    public Task QuestionMarkRoom_MultiPageEvent_StaysInEventRoomAfterFirstPick() => Task.CompletedTask;
+    [Fact]
+    public async Task QuestionMarkRoom_MultiPageEvent_StaysInEventRoomAfterFirstPick()
+    {
+        // Some in-run events span multiple pages: picking the first option
+        // opens a new option set rather than terminating the room. The wire
+        // contract in Methods.cs lets that surface as RoomType.EventRoom with
+        // a refreshed AvailableEventOptions list and no map nodes yet. Seed 47
+        // (re-rolled after Neow became always-on; was seed 6 pre-Neow) rolls
+        // its row-2 `?` into a multi-page event that exercises that path. If
+        // a future game rebalance changes the rolled event, pick another seed
+        // — the test only requires (a) Unknown node reachable via
+        // WalkPastFirstCombat and (b) first option keeps the room in EventRoom.
+        await _host.SendAsync<RunNewResult>("run/new", new RunNewParams(Seed: 47uL));
+        var afterCombat = await MapHelpers.WalkPastFirstCombat(_host);
+        var mystery = afterCombat.AvailableMapNodes.First(n => n.Type == MapNodeType.Unknown);
+
+        var afterPick = await _host.SendAsync<RunSelectMapNodeResult>(
+            "run/select_map_node", new RunSelectMapNodeParams(Col: mystery.Col, Row: mystery.Row));
+        Assert.Equal(RoomType.EventRoom, afterPick.CurrentRoomType);
+        Assert.NotEmpty(afterPick.AvailableEventOptions);
+
+        var afterChoose = await _host.SendAsync<RunSelectEventOptionResult>(
+            "run/select_event_option", new RunSelectEventOptionParams(OptionIndex: 0));
+
+        Assert.True(afterChoose.Ok);
+        // Page-advance, not room-exit: still in EventRoom with a fresh option
+        // list and no map nodes yet.
+        Assert.Equal(RoomType.EventRoom, afterChoose.CurrentRoomType);
+        Assert.NotEmpty(afterChoose.AvailableEventOptions);
+        Assert.Empty(afterChoose.AvailableMapNodes);
+    }
 
     [Fact]
     public async Task QuestionMarkRoom_RollsIntoCombat_LandsInCombatRoom()

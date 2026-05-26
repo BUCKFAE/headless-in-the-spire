@@ -197,4 +197,65 @@ public sealed class PolicyTests
         var pick = Assert.IsType<SelectEventOption>(policy.Choose(state));
         Assert.Equal(1, pick.OptionIndex);
     }
+
+    // ── Neow ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void EventPolicyPrefersPhialHolsterAtNeow()
+    {
+        // Seed 42's Neow offer: ARCANE_SCROLL / PHIAL_HOLSTER / SCROLL_BOXES.
+        // PHIAL_HOLSTER is the highest-tier Ironclad pick per
+        // research-sts2-ironclad.md. Without Neow-aware scoring the policy
+        // would fall through to the "earlier index is safer" default
+        // (-idxInList), which picks ARCANE_SCROLL (index 0) — second-best.
+        var options = new[]
+        {
+            new EventOption(0, "NEOW.pages.INITIAL.options.ARCANE_SCROLL", IsLocked: false),
+            new EventOption(1, "NEOW.pages.INITIAL.options.PHIAL_HOLSTER", IsLocked: false),
+            new EventOption(2, "NEOW.pages.INITIAL.options.SCROLL_BOXES", IsLocked: false),
+        };
+        var state = NewState(eventOptions: options, currentRoomType: RoomType.EventRoom);
+        var policy = new IroncladEventPolicy();
+        var pick = Assert.IsType<SelectEventOption>(policy.Choose(state));
+        Assert.Equal(1, pick.OptionIndex);
+    }
+
+    [Fact]
+    public void EventPolicyAvoidsCardSelectBrokenNeowRelics()
+    {
+        // LEAD_PAPERWEIGHT and PRECARIOUS_SHEARS crash Chosen() in headless
+        // (they route through NSimpleCardSelectScreen.Create which loads
+        // missing .tscn assets). Picking either grants no relic — strictly
+        // worse than picking any working relic. The policy must prefer the
+        // unknown / generic-positive over the known-broken ones.
+        var options = new[]
+        {
+            new EventOption(0, "NEOW.pages.INITIAL.options.LEAD_PAPERWEIGHT", IsLocked: false),
+            new EventOption(1, "NEOW.pages.INITIAL.options.PRECARIOUS_SHEARS", IsLocked: false),
+            new EventOption(2, "NEOW.pages.INITIAL.options.ICE_CREAM", IsLocked: false),
+        };
+        var state = NewState(eventOptions: options, currentRoomType: RoomType.EventRoom);
+        var policy = new IroncladEventPolicy();
+        var pick = Assert.IsType<SelectEventOption>(policy.Choose(state));
+        Assert.Equal(2, pick.OptionIndex);
+    }
+
+    [Fact]
+    public void EventPolicyPicksAnyKnownWorkingNeowRelicOverPureUnknown()
+    {
+        // The fallback for unknown Neow relics is `10 - idxInList`, while
+        // any relic in the generic-positive list scores 60. A bag of
+        // unfamiliar relic ids with one known-positive must pick the
+        // known one.
+        var options = new[]
+        {
+            new EventOption(0, "NEOW.pages.INITIAL.options.UNKNOWN_RELIC_A", IsLocked: false),
+            new EventOption(1, "NEOW.pages.INITIAL.options.MAW_BANK", IsLocked: false),
+            new EventOption(2, "NEOW.pages.INITIAL.options.UNKNOWN_RELIC_C", IsLocked: false),
+        };
+        var state = NewState(eventOptions: options, currentRoomType: RoomType.EventRoom);
+        var policy = new IroncladEventPolicy();
+        var pick = Assert.IsType<SelectEventOption>(policy.Choose(state));
+        Assert.Equal(1, pick.OptionIndex);
+    }
 }

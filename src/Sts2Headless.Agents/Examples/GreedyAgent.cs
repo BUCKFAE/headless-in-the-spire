@@ -56,10 +56,19 @@ public sealed class GreedyAgent : HeuristicAgent
         if (playable is not null)
         {
             // AnyEnemy is the only target mode that requires a caller-supplied
-            // targetIndex; for everything else the wire ignores it. Targeting
-            // enemy 0 isn't smart but is always legal so long as at least one
-            // enemy is alive — which is guaranteed by IsInProgress.
-            var target = playable.TargetType == TargetType.AnyEnemy ? (int?)0 : null;
+            // targetIndex; for everything else the wire ignores it. The wire's
+            // alive-enemy list can shift mid-turn (Hellraiser-style auto-plays
+            // kill enemies between actions), so we pick the first still-alive
+            // enemy off the current snapshot — picking index 0 unconditionally
+            // throws on the snapshot tick where enemy 0 has fallen but combat
+            // hasn't transitioned out yet.
+            int? target = null;
+            if (playable.TargetType == TargetType.AnyEnemy)
+            {
+                var alive = combat.Enemies.FirstOrDefault(e => e.Hp > 0);
+                if (alive is null) return new EndTurn();
+                target = alive.Index;
+            }
             return new PlayCard(playable.Index, target);
         }
         return new EndTurn();
