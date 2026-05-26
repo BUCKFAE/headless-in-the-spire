@@ -76,7 +76,7 @@ failure.
 wired automatically by `AgentDriver.PlayRunAsync` — every IAgent gets
 stall detection for free, structurally impossible to forget. It
 fingerprints each snapshot (room + act/floor + hp/gold/deck + combat
-round/phase/energy/block/hand + per-enemy hp/powers) and throws
+round/phase/inProgress/energy/block/hand + per-enemy hp/powers) and throws
 `StallDetectedException` when K consecutive snapshots have an identical
 fingerprint. Default threshold 8 catches hangs within ~8 seconds. The
 exception's fingerprint message points the operator at the exact
