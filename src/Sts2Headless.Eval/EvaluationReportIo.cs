@@ -90,8 +90,8 @@ public static class EvaluationReportIo
                 ("Version",      MarkdownAlign.Left),
                 ("Wins",         MarkdownAlign.Right),
                 ("Win%",         MarkdownAlign.Right),
-                ("Mean floor",   MarkdownAlign.Right),
-                ("p25 floor",    MarkdownAlign.Right),
+                ("Mean depth",   MarkdownAlign.Right),
+                ("p25 depth",    MarkdownAlign.Right),
                 ("Engine⚠",      MarkdownAlign.Right),
                 ("Agent⚠",       MarkdownAlign.Right),
                 ("Host⚠",        MarkdownAlign.Right),
@@ -106,8 +106,8 @@ public static class EvaluationReportIo
                 r.Agent.Version,
                 $"{a.Wins}/{a.Cells}",
                 $"{(a.WinRate * 100).ToString("0.#", CultureInfo.InvariantCulture)}%",
-                a.MeanFloor.ToString("0.#", CultureInfo.InvariantCulture),
-                a.P25Floor.ToString(CultureInfo.InvariantCulture),
+                FormatDepth(a.MeanDepth),
+                FormatDepth(a.P25Depth),
                 a.EngineCrashes.ToString(CultureInfo.InvariantCulture),
                 a.AgentCrashes.ToString(CultureInfo.InvariantCulture),
                 a.HostCrashes.ToString(CultureInfo.InvariantCulture),
@@ -126,6 +126,7 @@ public static class EvaluationReportIo
                     ("Agent",     MarkdownAlign.Left),
                     ("Seed",      MarkdownAlign.Right),
                     ("Terminus",  MarkdownAlign.Left),
+                    ("Act",       MarkdownAlign.Right),
                     ("Floor",     MarkdownAlign.Right),
                     ("Replay",    MarkdownAlign.Left));
             foreach (var nc in s.NotableCells)
@@ -134,6 +135,7 @@ public static class EvaluationReportIo
                     $"`{nc.Agent}`",
                     nc.Seed.ToString(CultureInfo.InvariantCulture),
                     nc.Terminus.ToString(),
+                    nc.Act.ToString(CultureInfo.InvariantCulture),
                     nc.Floor.ToString(CultureInfo.InvariantCulture),
                     $"[{nc.ReplayPath}/]({nc.ReplayPath}/)");
             }
@@ -149,6 +151,16 @@ public static class EvaluationReportIo
         if (ts.TotalMinutes < 1) return $"{ts.TotalSeconds:0.0}s";
         if (ts.TotalHours   < 1) return $"{(int)ts.TotalMinutes}m{ts.Seconds}s";
         return $"{(int)ts.TotalHours}h{ts.Minutes}m";
+    }
+
+    // Depth = act*100 + floor (the AgentAggregates sort ordinal). Render
+    // as "A<act>·F<floor>" so a reader sees the act/floor split instead
+    // of a confusing three-digit "floor".
+    private static string FormatDepth(double depth)
+    {
+        var act = (int)(depth / 100);
+        var floor = depth - (act * 100);
+        return $"A{act.ToString(CultureInfo.InvariantCulture)}·F{floor.ToString("0.#", CultureInfo.InvariantCulture)}";
     }
 
     // ── Captured config shape ────────────────────────────────────────────

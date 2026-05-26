@@ -201,7 +201,7 @@ var report = await EvaluationHarness.RunAsync(
     config,
     cancellationToken: cts.Token,
     onCellComplete: cell => Console.WriteLine(
-        $"  [{cell.Terminus,-12}] {cell.Agent.Name,-24} seed={cell.Seed,-6} floor={cell.FloorReached}"));
+        $"  [{cell.Terminus,-12}] {cell.Agent.Name,-24} seed={cell.Seed,-6} act={cell.Act} floor={cell.Floor}"));
 
 await EvaluationReportIo.WriteAsync(report);
 Console.WriteLine(report.Summary.ToMarkdown());
@@ -233,8 +233,10 @@ Things this exposes:
 
 ## Custom scoring
 
-The default ranking is `lex-sort(win-rate desc, mean-floor desc,
-mean-wall-clock asc)`. Roll your own by implementing
+The default ranking is `lex-sort(win-rate desc, mean-depth desc,
+mean-wall-clock asc)`. _Depth_ is the sort ordinal `act × 100 + floor` —
+it exists so cells in act 2 outrank deep act-1 cells without forcing
+scoring functions to do that math themselves. Roll your own by implementing
 `IScoringFunction` and passing an instance to `EvaluationHarnessConfig.Scoring`.
 
 ```csharp
@@ -243,7 +245,7 @@ using Sts2Headless.Eval.Scoring;
 
 public sealed class WeightedScoring(double winWeight) : IScoringFunction
 {
-    public string Name    => $"weighted({winWeight:0.0}·win + {1 - winWeight:0.0}·floor)";
+    public string Name    => $"weighted({winWeight:0.0}·win + {1 - winWeight:0.0}·depth)";
     public string Version => "1.0";
 
     public IReadOnlyList<AgentRanking> Rank(IReadOnlyList<CellResult> cells) =>
@@ -253,7 +255,7 @@ public sealed class WeightedScoring(double winWeight) : IScoringFunction
             {
                 var aggs = AgentAggregates.From(g);
                 var score = winWeight * aggs.WinRate
-                          + (1 - winWeight) * (aggs.MeanFloor / 60.0);
+                          + (1 - winWeight) * (aggs.MeanDepth / 300.0);
                 return new AgentRanking(Agent: g.Key, Score: score, Aggregates: aggs);
             })
             .OrderByDescending(r => r.Score)

@@ -8,14 +8,19 @@ namespace Sts2Headless.Eval.Scoring;
 //
 // All numeric fields are computed best-effort and lossless: empty cell
 // list ⇒ zeroed numerics, NaN-free.
+//
+// Depth is a sort ordinal: `act * 100 + floor`. It exists so cells from
+// different acts compare correctly (act 2 floor 3 > act 1 floor 17)
+// without forcing scoring functions to learn that ordering. Don't read
+// it as a floor count.
 public sealed record AgentAggregates(
     [property: JsonPropertyName("cells")]             int    Cells,
     [property: JsonPropertyName("wins")]              int    Wins,
     [property: JsonPropertyName("winRate")]           double WinRate,
-    [property: JsonPropertyName("meanFloor")]         double MeanFloor,
-    [property: JsonPropertyName("p25Floor")]          int    P25Floor,
-    [property: JsonPropertyName("p50Floor")]          int    P50Floor,
-    [property: JsonPropertyName("p75Floor")]          int    P75Floor,
+    [property: JsonPropertyName("meanDepth")]         double MeanDepth,
+    [property: JsonPropertyName("p25Depth")]          int    P25Depth,
+    [property: JsonPropertyName("p50Depth")]          int    P50Depth,
+    [property: JsonPropertyName("p75Depth")]          int    P75Depth,
     [property: JsonPropertyName("engineCrashes")]     int    EngineCrashes,
     [property: JsonPropertyName("hostCrashes")]       int    HostCrashes,
     [property: JsonPropertyName("agentCrashes")]      int    AgentCrashes,
@@ -32,7 +37,7 @@ public sealed record AgentAggregates(
         if (rows.Count == 0)
             return Empty;
 
-        var floors = rows.Select(r => r.FloorReached).OrderBy(f => f).ToArray();
+        var depths = rows.Select(r => (r.Act * 100) + r.Floor).OrderBy(d => d).ToArray();
         var wallclocks = rows.Select(r => r.WallClockMs).OrderBy(t => t).ToArray();
         var wins = rows.Count(r => r.Terminus == CellTerminus.Victory);
 
@@ -40,10 +45,10 @@ public sealed record AgentAggregates(
             Cells:             rows.Count,
             Wins:              wins,
             WinRate:           (double)wins / rows.Count,
-            MeanFloor:         floors.Average(),
-            P25Floor:          Percentile(floors, 0.25),
-            P50Floor:          Percentile(floors, 0.50),
-            P75Floor:          Percentile(floors, 0.75),
+            MeanDepth:         depths.Average(),
+            P25Depth:          Percentile(depths, 0.25),
+            P50Depth:          Percentile(depths, 0.50),
+            P75Depth:          Percentile(depths, 0.75),
             EngineCrashes:     rows.Count(r => r.Terminus == CellTerminus.EngineCrash),
             HostCrashes:       rows.Count(r => r.Terminus == CellTerminus.HostCrash),
             AgentCrashes:      rows.Count(r => r.Terminus == CellTerminus.AgentCrash),
@@ -56,8 +61,8 @@ public sealed record AgentAggregates(
     }
 
     private static AgentAggregates Empty { get; } = new(
-        Cells: 0, Wins: 0, WinRate: 0.0, MeanFloor: 0.0,
-        P25Floor: 0, P50Floor: 0, P75Floor: 0,
+        Cells: 0, Wins: 0, WinRate: 0.0, MeanDepth: 0.0,
+        P25Depth: 0, P50Depth: 0, P75Depth: 0,
         EngineCrashes: 0, HostCrashes: 0, AgentCrashes: 0, HarnessErrors: 0,
         Timeouts: 0, Stalled: 0, MaxStepsTrips: 0,
         MedianWallClockMs: 0, MeanWallClockMs: 0);

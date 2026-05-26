@@ -57,7 +57,7 @@ public sealed class SmokeEvalEndToEndTests(ITestOutputHelper log)
             TeeProcessStderr = true,
         },
         onCellComplete: cell => log.WriteLine(
-            $"[{cell.Terminus}] {cell.Agent.Name} seed={cell.Seed} floor={cell.FloorReached} {cell.WallClockMs}ms"),
+            $"[{cell.Terminus}] {cell.Agent.Name} seed={cell.Seed} act={cell.Act} floor={cell.Floor} {cell.WallClockMs}ms"),
         onLog: line => log.WriteLine(line));
 
         Assert.False(report.HasHarnessError, "Greedy smoke eval surfaced a HarnessError terminus");

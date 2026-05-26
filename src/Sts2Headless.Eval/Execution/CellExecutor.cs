@@ -348,8 +348,6 @@ DriveDone: ;
         var deckSize  = lastState?.DeckSize ?? 0;
         var relicCount = lastState?.Relics.Count ?? 0;
 
-        var floorReached = (maxActSeen * 100) + maxFloorSeen;
-
         return new CellResult(
             EvalId:        evalId,
             Agent:         agentIdentity,
@@ -358,7 +356,8 @@ DriveDone: ;
             Ascension:     cell.Ascension,
             Modifiers:     cell.Modifiers,
             Terminus:      terminus,
-            FloorReached:  floorReached,
+            Act:           maxActSeen,
+            Floor:         maxFloorSeen,
             FinalHp:       hp,
             MaxHp:         maxHp,
             Gold:          gold,

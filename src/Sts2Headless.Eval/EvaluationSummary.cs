@@ -42,6 +42,7 @@ public sealed record NotableCell(
     [property: JsonPropertyName("agent")]      string       Agent,
     [property: JsonPropertyName("seed")]       ulong        Seed,
     [property: JsonPropertyName("terminus")]   CellTerminus Terminus,
+    [property: JsonPropertyName("act")]        int          Act,
     [property: JsonPropertyName("floor")]      int          Floor,
     [property: JsonPropertyName("replayPath")] string       ReplayPath,
     [property: JsonPropertyName("error")]      WireErrorPayload? Error = null);

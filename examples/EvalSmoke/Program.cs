@@ -8,7 +8,7 @@ var report = await EvaluationHarness.RunAsync(
         Seeds  = SeedBanks.Smoke,
     },
     onCellComplete: cell => Console.Error.WriteLine(
-        $"  [{cell.Terminus,-12}] {cell.Agent.Name,-12} seed={cell.Seed,-6} floor={cell.FloorReached,-4} {cell.WallClockMs} ms"),
+        $"  [{cell.Terminus,-12}] {cell.Agent.Name,-12} seed={cell.Seed,-6} act={cell.Act} floor={cell.Floor,-3} {cell.WallClockMs} ms"),
     onSkip: skip => Console.Error.WriteLine(
         $"  [skip] {skip.Manifest.Name}: {skip.Reason}"),
     onLog: line => Console.Error.WriteLine(line));

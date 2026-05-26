@@ -599,7 +599,7 @@ pins the *how* this document deferred:
   (per-decision 30s, per-cell 10min, max-steps 4000), and the auto
   worker cap (⌊cores/2⌋).
 - The `IScoringFunction` interface shape and the default
-  `LexSortScoring(WinRate desc, MeanFloor desc, MedianWallClock asc)`.
+  `LexSortScoring(WinRate desc, MeanDepth desc, MedianWallClock asc)`.
 - The `AgentManifest` + `BundledAgent` abstract-class hierarchy
   (with `CreateAgent()` for hand-written agent construction) and
   the `BuiltinAgents` registry.

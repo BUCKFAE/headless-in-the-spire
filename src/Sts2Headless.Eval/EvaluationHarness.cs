@@ -136,7 +136,8 @@ public static class EvaluationHarness
                     Agent:      r.Agent.Name,
                     Seed:       r.Seed,
                     Terminus:   r.Terminus,
-                    Floor:      r.FloorReached,
+                    Act:        r.Act,
+                    Floor:      r.Floor,
                     ReplayPath: r.ReplayPath,
                     Error:      r.Error))
                 .ToList());

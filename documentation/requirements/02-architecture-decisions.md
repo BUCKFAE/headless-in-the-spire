@@ -1305,7 +1305,7 @@ public sealed class LexSortScoring : IScoringFunction
                     Aggregates: aggs);
             })
             .OrderByDescending(r => r.Aggregates.WinRate)
-            .ThenByDescending(r => r.Aggregates.MeanFloor)
+            .ThenByDescending(r => r.Aggregates.MeanDepth)
             .ThenBy(r => r.Aggregates.MedianWallClockMs)
             .Select((r, i) => r with { Rank = i + 1 })
             .ToList();
@@ -1318,9 +1318,12 @@ public static class ScoringFunctions
 ```
 
 `AgentAggregates.From(IEnumerable<CellResult>)` is a static helper —
-computes the per-agent rollups (`Wins`, `WinRate`, `MeanFloor`,
-`P25Floor` / `P50Floor` / `P75Floor`, `EngineCrashes`, `HostCrashes`,
-`AgentCrashes`, `Timeouts`, `MedianWallClockMs`, `PeakRssMbP95`).
+computes the per-agent rollups (`Wins`, `WinRate`, `MeanDepth`,
+`P25Depth` / `P50Depth` / `P75Depth`, `EngineCrashes`, `HostCrashes`,
+`AgentCrashes`, `Timeouts`, `MedianWallClockMs`, `PeakRssMbP95`). The
+"depth" axes are a sort ordinal — `act × 100 + floor` — so cells in
+act 2 outrank deep act-1 cells without scoring functions doing the
+math.
 Custom scoring functions consume aggregates; they don't recompute
 them.
 
@@ -1357,7 +1360,8 @@ public sealed record CellResult(
     int              Ascension,
     IReadOnlyList<ModifierId> Modifiers,
     CellTerminus     Terminus,
-    int              FloorReached,
+    int              Act,                  // 1..10 (A1..A10)
+    int              Floor,                // floor index within `Act`
     int              FinalHp,
     int              MaxHp,
     int              Gold,

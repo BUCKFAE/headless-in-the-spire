@@ -2,7 +2,7 @@ namespace Sts2Headless.Eval.Scoring;
 
 // Default IScoringFunction. Lex-sort:
 //   1. Win rate (desc) — correctness first.
-//   2. Mean floor (desc) — depth as the wider signal when wins are tied.
+//   2. Mean depth (desc) — depth as the wider signal when wins are tied.
 //   3. Median wall-clock (asc) — efficiency as the deterministic tiebreak.
 //
 // `Score` displayed on the leaderboard is the win rate. The other axes
@@ -27,7 +27,7 @@ public sealed class LexSortScoring : IScoringFunction
                     Aggregates: aggs);
             })
             .OrderByDescending(r => r.Aggregates.WinRate)
-            .ThenByDescending(r => r.Aggregates.MeanFloor)
+            .ThenByDescending(r => r.Aggregates.MeanDepth)
             .ThenBy(r => r.Aggregates.MedianWallClockMs)
             .ThenBy(r => r.Agent.Name, StringComparer.Ordinal)
             .Select((r, i) => r with { Rank = i + 1 })

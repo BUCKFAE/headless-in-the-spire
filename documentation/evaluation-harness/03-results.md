@@ -129,8 +129,8 @@ slicing by hand with `jq` or `pandas.read_json(lines=True)` is the
 expected workflow.
 
 ```jsonl
-{"evalId":"2026-05-26T19-32-04Z","agent":{"name":"greedy","version":"0.1.0","language":"csharp"},"seed":42,"character":"Ironclad","ascension":0,"modifiers":[],"terminus":"Death","floorReached":17,"finalHp":0,"maxHp":80,"gold":124,"deckSize":18,"relicCount":4,"combatCount":12,"eliteCount":1,"bossCount":0,"turnsInCombat":78,"steps":342,"wallClockMs":42137,"peakRssMb":523,"replayPath":"cells/greedy/42","gameVersion":"v0.103.2","sts2DllSha256":"a1b2…","scoring":{"score":0.0}}
-{"evalId":"2026-05-26T19-32-04Z","agent":{"name":"greedy","version":"0.1.0","language":"csharp"},"seed":17,"character":"Ironclad","ascension":0,"modifiers":[],"terminus":"EngineCrash","floorReached":24,"finalHp":31,"maxHp":80,"gold":201,"deckSize":22,"relicCount":6,"combatCount":17,"eliteCount":2,"bossCount":1,"turnsInCombat":121,"steps":488,"wallClockMs":61492,"peakRssMb":541,"replayPath":"cells/greedy/17","gameVersion":"v0.103.2","sts2DllSha256":"a1b2…","scoring":{"score":0.0},"error":{"code":-32603,"message":"internal error: NullReferenceException: …","stack":"at MegaCrit.Sts2.Core.Combat.CombatManager.DoAction(…)"}}
+{"evalId":"2026-05-26T19-32-04Z","agent":{"name":"greedy","version":"0.1.0","language":"csharp"},"seed":42,"character":"Ironclad","ascension":0,"modifiers":[],"terminus":"Death","act":1,"floor":17,"finalHp":0,"maxHp":80,"gold":124,"deckSize":18,"relicCount":4,"combatCount":12,"eliteCount":1,"bossCount":0,"turnsInCombat":78,"steps":342,"wallClockMs":42137,"peakRssMb":523,"replayPath":"cells/greedy/42","gameVersion":"v0.103.2","sts2DllSha256":"a1b2…","scoring":{"score":0.0}}
+{"evalId":"2026-05-26T19-32-04Z","agent":{"name":"greedy","version":"0.1.0","language":"csharp"},"seed":17,"character":"Ironclad","ascension":0,"modifiers":[],"terminus":"EngineCrash","act":2,"floor":4,"finalHp":31,"maxHp":80,"gold":201,"deckSize":22,"relicCount":6,"combatCount":17,"eliteCount":2,"bossCount":1,"turnsInCombat":121,"steps":488,"wallClockMs":61492,"peakRssMb":541,"replayPath":"cells/greedy/17","gameVersion":"v0.103.2","sts2DllSha256":"a1b2…","scoring":{"score":0.0},"error":{"code":-32603,"message":"internal error: NullReferenceException: …","stack":"at MegaCrit.Sts2.Core.Combat.CombatManager.DoAction(…)"}}
 ```
 
 ## `cell.json` (per cell)
@@ -152,7 +152,8 @@ context so a tool walking `cells/` doesn't need `runs.jsonl`.
   "ascension":  0,
   "modifiers":  [],
   "terminus":   "Death",
-  "floorReached": 17,
+  "act":   1,
+  "floor": 17,
   "finalHp": 0,
   "scoringMetrics": {"score": 0.0},
   "wallClockMs": 42137,

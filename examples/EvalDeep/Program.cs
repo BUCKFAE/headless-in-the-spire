@@ -17,7 +17,7 @@ var report = await EvaluationHarness.RunAsync(
     },
     cancellationToken: cts.Token,
     onCellComplete: cell => Console.Error.WriteLine(
-        $"  [{cell.Terminus,-12}] {cell.Agent.Name,-12} seed={cell.Seed,-6} floor={cell.FloorReached,-4} {cell.WallClockMs} ms"));
+        $"  [{cell.Terminus,-12}] {cell.Agent.Name,-12} seed={cell.Seed,-6} act={cell.Act} floor={cell.Floor,-3} {cell.WallClockMs} ms"));
 
 Console.WriteLine();
 Console.WriteLine(File.ReadAllText(report.Output.SummaryMarkdown));
