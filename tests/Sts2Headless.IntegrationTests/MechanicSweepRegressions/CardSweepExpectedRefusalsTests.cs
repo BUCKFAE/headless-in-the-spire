@@ -6,37 +6,15 @@ namespace Sts2Headless.IntegrationTests.MechanicSweepRegressions;
 
 // Regression pin for the CardExpectedRefusals catalog.
 //
-// Cards listed in SweepKnownIssues.CardExpectedRefusals are Unplayable
-// in the smoke CardSweep fixture even with the fixture's debug/set_energy
-// + debug/gain_stars resource boost. Two empirical buckets:
+// The catalog is currently empty: every card the sweep used to mark as
+// "expected to refuse" has either been staged (CLASH / PACTS_END via
+// CardSweep.CustomStagingDeckFor + PreStageHandAsync) or filtered out
+// at iteration time (the AnyAlly multiplayer-only set via
+// CardSweep.AnyAllyMultiplayerOnly).
 //
-//   * TargetType=AnyAlly (bitflag=64): CardModel.CanPlay refuses because
-//     CombatState.PlayerCreatures.Where(IsAlive).Count() > 1 is
-//     structurally false in single-player — these are co-op-multiplayer
-//     cards (BELIEVE_IN_YOU, COORDINATE, DEMONIC_SHIELD, IGNITION,
-//     INTERCEPT, LARGESSE, LIFT, MIMIC). Out of scope per requirements
-//     /01-initial-goals.md.
-//
-//   * IsPlayable override (bitflag=8): PACTS_END's PactsEnd.get_IsPlayable
-//     requires Exhaust pile count >= DynamicVars.Cards (~3); the fixture
-//     starts combat with an empty Exhaust pile.
-//
-// The sweep marks each row Detail with "expected-refusal: <reason>" so
-// reports stay self-explanatory.
-//
-// These tests catch three drift scenarios:
-//   (1) An id in the catalog no longer exists in the manifest (rename
-//       or removal after a GAME_VERSION bump) — flag it so the
-//       catalog stays clean.
-//   (2) Pool annotation wiring loses the prefix path
-//       (ClassifyWireError → SweepKnownIssues.TryGetExpectedRefusal).
-//   (3) The catalog grows stale: a card that used to refuse now
-//       plays cleanly because the engine relaxed its CanPlay or our
-//       fixture grew the staging — remove the entry.
-//
-// (3) is best surfaced by the slow sweep flipping the row to Played;
-// we don't pin it here because doing so would freeze the catalog
-// against legitimate engine improvements.
+// The catalog plumbing stays around in case a NEW clean-refusal shape
+// surfaces in a future engine bump — these tests pin invariants that
+// keep the empty state honest and the lookup mechanism live.
 public class CardSweepExpectedRefusalsTests
 {
     [Fact]
@@ -58,20 +36,14 @@ public class CardSweepExpectedRefusalsTests
     }
 
     [Fact]
-    public void ExpectedRefusal_LookupReturnsTheCatalogedReason()
+    public void CardExpectedRefusalsCatalogIsEmpty()
     {
-        // Pick one entry as a representative — the lookup itself is
-        // exercised by the sweep on every row, so a smoke check here
-        // is enough.
-        Assert.True(
-            SweepKnownIssues.TryGetExpectedRefusal("card", "PACTS_END", out var reason),
-            "PACTS_END should be in CardExpectedRefusals");
-        Assert.NotNull(reason);
-        // Reason cites the IsPlayable override + the Exhaust-pile predicate
-        // it gates on. A drift here (e.g. the engine removes the override
-        // or our reason loses the IL citation) is worth surfacing.
-        Assert.Contains("IsPlayable", reason!, StringComparison.Ordinal);
-        Assert.Contains("Exhaust", reason!, StringComparison.Ordinal);
+        // Pins the "every card works" invariant. If a real new clean-
+        // refusal shape needs a catalog entry, update this test to
+        // explicitly allow it — the explicit edit forces a conversation
+        // about whether the entry should instead become a staging recipe
+        // in CardSweep.
+        Assert.Empty(SweepKnownIssues.CardExpectedRefusals);
     }
 
     [Fact]
@@ -79,7 +51,7 @@ public class CardSweepExpectedRefusalsTests
     {
         // Negative case: STRIKE_IRONCLAD plays cleanly, so it must
         // NOT be on the expected-refusals list. Catches accidental
-        // copy-paste growth of the catalog.
+        // growth of the catalog with cards that don't belong.
         Assert.False(
             SweepKnownIssues.TryGetExpectedRefusal("card", "STRIKE_IRONCLAD", out _),
             "STRIKE_IRONCLAD should never be on CardExpectedRefusals");

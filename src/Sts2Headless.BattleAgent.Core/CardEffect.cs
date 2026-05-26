@@ -11,12 +11,6 @@ namespace Sts2Headless.BattleAgent.Core;
 // in the planner (powers first, then debuffs, then attacks) and a few
 // side effects (Rage triggers off attacks, SecondWind exhausts
 // non-attacks for block).
-//
-// Headless-unsafe cards (any card whose effect routes through the
-// CardSelectCmd sub-flow that NREs in our host) are flagged here so the
-// model can refuse to "play" them — Apply returns a SimState with
-// IsInvalid=true, which planners treat as a hard dead end and the
-// agent translates back as "skip this card".
 public sealed record CardEffect(
     // Categorisation
     bool IsAttack = false,
@@ -76,9 +70,6 @@ public sealed record CardEffect(
     int ExhaustRandomFromHand = 0,
     int DiscardRandom = 0,
     int DiscardForBlock = 0,      // SecondWind shape: per non-attack discard, gain N block
-
-    // Operational
-    bool IsHeadlessUnsafe = false,
 
     // Escape hatch for cards that genuinely don't fit the above shape.
     // Receives an in-place mutable copy of the state and returns the

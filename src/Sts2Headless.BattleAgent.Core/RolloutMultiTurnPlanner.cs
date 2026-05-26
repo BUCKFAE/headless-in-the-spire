@@ -381,7 +381,6 @@ public sealed class RolloutMultiTurnPlanner : ICombatPlanner
     {
         var effect = catalog.GetEffect(card.Id, card.Upgraded);
         if (effect is null) return 90;
-        if (effect.IsHeadlessUnsafe) return 1000;
         if (effect.IsStatus || effect.IsCurse) return 200;
         if (effect.IsPower) return 0;
         if (effect.VulnerableApply > 0 || effect.WeakApply > 0) return 10;

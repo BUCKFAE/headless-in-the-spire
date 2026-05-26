@@ -38,32 +38,6 @@ public sealed class IroncladCardCatalogTests
     public void BodySlamIsBlockToDamage() =>
         Assert.True(Catalog.GetEffect(CardId.BodySlam, upgraded: false)!.BlockToDamage);
 
-    // The previous batch of "<Card>IsHeadlessUnsafe" tests was deleted on
-    // 2026-05-24: every Ironclad card the catalog had flagged unsafe
-    // (Headbutt, Armaments, BurningPact, DualWield, InfernalBlade,
-    // Whirlwind) now plays cleanly through the engine — verified by
-    // tests/Sts2Headless.IntegrationTests/CardCatalogProbeTests.cs. The
-    // PrefsSave-NRE bootstrap fix from 2026-05-22 closed the underlying
-    // issue. Re-add a test here only when a new card surfaces a real
-    // headless gap.
-    [Fact]
-    public void NoIroncladCardsCurrentlyHeadlessUnsafe()
-    {
-        foreach (var id in Catalog.ModelledIds)
-        {
-            var effect = Catalog.GetEffect(id, upgraded: false);
-            Assert.False(effect!.IsHeadlessUnsafe,
-                $"card {id} is flagged IsHeadlessUnsafe — if this is intentional, " +
-                "update this test to allow it explicitly.");
-            var upgraded = Catalog.GetEffect(id, upgraded: true);
-            if (upgraded is not null)
-            {
-                Assert.False(upgraded.IsHeadlessUnsafe,
-                    $"upgraded card {id} is flagged IsHeadlessUnsafe — same rule.");
-            }
-        }
-    }
-
     [Fact]
     public void UnknownCardReturnsNull() =>
         Assert.Null(Catalog.GetEffect(CardId.Unknown, upgraded: false));

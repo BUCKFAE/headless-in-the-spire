@@ -313,20 +313,6 @@ public sealed class CombatModelTests
     }
 
     [Fact]
-    public void LegalActionsSkipsHeadlessUnsafeCards()
-    {
-        // No production Ironclad card currently carries IsHeadlessUnsafe
-        // (2026-05-24 reclassification). Synthesise a flagged BurningPact
-        // via a test catalog so the filter mechanism itself stays under
-        // regression test.
-        var model = new CombatModel(TestFixtures.CatalogWithUnsafeOverride(CardId.BurningPact));
-        var state = TestFixtures.State(
-            hand: new[] { TestFixtures.Card(CardId.BurningPact, 0) });
-        var actions = model.LegalActions(state);
-        Assert.DoesNotContain(actions, a => a is SimPlayCard);
-    }
-
-    [Fact]
     public void LegalActionsEnumeratesAllLivingEnemiesForAnyEnemyCards()
     {
         var state = TestFixtures.State(

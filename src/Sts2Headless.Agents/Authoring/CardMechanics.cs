@@ -32,13 +32,7 @@ public static class CardMechanics
         int Strength = 0,      // stacks applied to self
         bool Exhausts = false, // is the card exhausted on play?
         bool BlockToDamage = false, // body-slam-shape: damage = self block
-        bool TargetsAllEnemies = false,
-        // True when the card's side effects route through a screen / sub-
-        // flow we haven't wired up in headless (today: any card-select
-        // sub-flow — Headbutt, Burning Pact, Armaments). Playing or
-        // drafting these throws inside sts2; every agent must avoid them.
-        // When the missing sub-flow is implemented, flip this to false.
-        bool IsHeadlessUnsafe = false);
+        bool TargetsAllEnemies = false);
 
     private static readonly Dictionary<CardId, Mechanics> Catalog = new()
     {

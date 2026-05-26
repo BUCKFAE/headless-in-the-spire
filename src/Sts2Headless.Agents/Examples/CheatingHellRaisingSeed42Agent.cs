@@ -23,10 +23,7 @@ namespace Sts2Headless.Agents.Examples;
 //     cheat ends the combat before the agent's choices matter.
 //   * On rewards: pick cards by the agent's own DraftScore table (below)
 //     rather than skipping. Skip only when every offering is at-or-below
-//     neutral. CardMechanics.IsHeadlessUnsafe cards (Headbutt, Burning
-//     Pact, Armaments — they NRE on card-select sub-flows) carry a strong
-//     negative score so the reward picker skips them when possible and
-//     takes the least-bad option only when forced.
+//     neutral.
 //   * On map / event / rest / treasure / merchant: the HeuristicAgent
 //     defaults handle these. DecideMap is overridden with an HP-aware
 //     priority bias toward rest sites when wounded.
@@ -129,9 +126,7 @@ public sealed class CheatingHellRaisingSeed42Agent : HeuristicAgent
     //
     // Lives next to the agent (not in CardMechanics) because the score
     // depends on *this* agent's strategy — the defensive-stance bias, the
-    // SLIPPERY-drain plan, the boss target. CardMechanics.IsHeadlessUnsafe
-    // cards get a strong negative score here so the reward picker skips
-    // them when possible.
+    // SLIPPERY-drain plan, the boss target.
 
     private static readonly Dictionary<CardId, int> SeedFourtyTwoDraftScores = new()
     {
@@ -155,16 +150,8 @@ public sealed class CheatingHellRaisingSeed42Agent : HeuristicAgent
         [CardId.Taunt]          = 0,
     };
 
-    // Strongly negative score for IsHeadlessUnsafe cards. -100 leaves
-    // headroom for sub-flag refinement later and stays well below any
-    // legitimate score in SeedFourtyTwoDraftScores.
-    private const int HeadlessUnsafePenalty = -100;
-
-    private static int DraftScore(CardId cardId)
-    {
-        var penalty = CardMechanics.Get(cardId).IsHeadlessUnsafe ? HeadlessUnsafePenalty : 0;
-        return penalty + (SeedFourtyTwoDraftScores.TryGetValue(cardId, out var s) ? s : 0);
-    }
+    private static int DraftScore(CardId cardId) =>
+        SeedFourtyTwoDraftScores.TryGetValue(cardId, out var s) ? s : 0;
 
     // ── Potion-use decision ─────────────────────────────────────────────
     //

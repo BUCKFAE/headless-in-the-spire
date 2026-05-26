@@ -80,30 +80,6 @@ internal static class TestFixtures
             IsInvalid: false,
             StrikeCardsInDeck: strikeCardsInDeck);
 
-    // A test-only catalog that overlays a single CardId as
-    // IsHeadlessUnsafe on top of the production catalog. Used by the
-    // unsafe-card-filter tests so the IsHeadlessUnsafe mechanism keeps
-    // regression coverage even though no production card currently
-    // carries the flag.
-    public static ICardEffectCatalog CatalogWithUnsafeOverride(CardId unsafeId) =>
-        new SyntheticUnsafeCatalog(IroncladCardCatalog.Instance, unsafeId);
-
-    private sealed class SyntheticUnsafeCatalog(ICardEffectCatalog inner, CardId unsafeId) : ICardEffectCatalog
-    {
-        public CardEffect? GetEffect(CardId cardId, bool upgraded)
-        {
-            var baseEffect = inner.GetEffect(cardId, upgraded);
-            if (cardId == unsafeId)
-            {
-                return (baseEffect ?? new CardEffect(IsAttack: true, Damage: 1))
-                    with { IsHeadlessUnsafe = true };
-            }
-            return baseEffect;
-        }
-
-        public IReadOnlyCollection<CardId> ModelledIds => inner.ModelledIds;
-    }
-
     // Conventional default costs so test setup reads naturally. Mirrors
     // the actual game (Strike=1, Defend=1, Bash=2, Inflame=1, …) so the
     // tests don't drift from intuition. Anything unspecified defaults

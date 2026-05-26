@@ -4,18 +4,18 @@ using Xunit;
 
 namespace Sts2Headless.IntegrationTests;
 
-// Regression-net for cards that historically NRE'd the host. Now that
-// `BootstrapSequence.InitSavePrefsData` seeds a default PrefsSave (the
-// root cause for Whirlwind / FlashOfSteel / Neutralize / Slice /
-// Suppress on 2026-05-22), these tests pin the FIXED state: a positive
-// assertion that the card plays cleanly. If any of them goes red, the
-// PrefsSave init regressed or an engine upgrade re-introduced the
-// NRE path.
+// Regression-net for cards whose play paths once NRE'd on a missing
+// PrefsSave. `BootstrapSequence.InitSavePrefsData` seeds a default
+// PrefsSave (root cause for Whirlwind / FlashOfSteel / Neutralize /
+// Slice / Suppress on 2026-05-22); these tests pin the FIXED state: a
+// positive assertion that the card plays cleanly. If any of them goes
+// red, the PrefsSave init regressed or an engine upgrade re-introduced
+// the NRE path.
 //
 // Adding a new test here: when a sweep surfaces a card that's blocked
 // on a similar engine-state gap, fix the gap in BootstrapSequence,
 // then pin the fix with a positive test here.
-public class HeadlessUnsafeCardTests
+public class PrefsSaveCardRegressionTests
 {
     [Fact]
     public async Task Whirlwind_PlaysCleanly()

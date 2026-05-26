@@ -18,75 +18,36 @@ namespace Sts2Headless.MechanicSweep;
 //   4. After an engine bump: the row flips to Played → remove from
 //      catalog. KnownIssuesParityTest catches stale entries (id no
 //      longer in the manifest).
-//
-// Same posture as CardMechanics.IsHeadlessUnsafe in
-// src/Sts2Headless.Agents/Authoring/CardMechanics.cs — that flag covers
-// the agent's view of "don't draft this card"; this catalog covers the
-// sweep's view of "this row would be Crashed but we know why".
 public static class SweepKnownIssues
 {
     public sealed record Issue(string Id, string Reason);
 
     // Cards that remain Unplayable in the standard CardSweep fixture even
     // after the smoke fixture's resource boost (debug/set_energy 20 +
-    // debug/gain_stars 20 — see CardSweep.ResourceBoost). The remaining
-    // refusals fall into two empirically-verified buckets:
+    // debug/gain_stars 20 — see CardSweep.ResourceBoost).
     //
-    //   * TargetType=AnyAlly cards (bitflag=64) — `CardModel.CanPlay`
-    //     refuses when `CombatState.PlayerCreatures.Where(IsAlive).Count() > 1`
-    //     is false. `PlayerCreatures` filters on `IsPlayer` (only Player-typed
-    //     creatures, not Pets / summons / Allies), so in single-player STS2 the
-    //     count is structurally 1 and the gate never passes. These cards are
-    //     designed for co-op multiplayer — the targeted ally must be a second
-    //     human-controlled Player. Out of scope per documentation/requirements
-    //     /01-initial-goals.md ("Single-player only"). Necrobinder + Osty does
-    //     NOT satisfy the gate (Osty is a Pet, stored as Monster in
-    //     CombatState._allies, not in PlayerCreatures).
+    // Empty today. Two historical buckets that lived here have been
+    // resolved:
     //
-    //   * IsPlayable virtual override (bitflag=8) — the card's IsPlayable
-    //     getter requires runtime state the smoke fixture doesn't stage. Only
-    //     three cards in the engine override IsPlayable (Clash / GrandFinale /
-    //     PactsEnd); the first two are smoke-playable through the default
-    //     deck, only PACTS_END's Exhaust-pile predicate requires bespoke
-    //     staging (the fixture starts combat with an empty Exhaust pile).
+    //   * TargetType=AnyAlly (co-op) cards — `CardModel.CanPlay` refuses
+    //     when `CombatState.PlayerCreatures.Where(IsAlive).Count() > 1` is
+    //     false, which is structurally true in single-player STS2 (Pets /
+    //     Allies aren't Players). Per 01-initial-goals.md ("Single-player
+    //     only") they're out of scope. CardSweep skips them at iteration
+    //     time via CardSweep.AnyAllyMultiplayerOnly so they don't surface
+    //     as noisy Unplayable rows.
     //
-    // Each entry cites the bitflag, the engine code path, and where the IL
-    // evidence lives — so a reader can verify (or correct) the reason
-    // without re-running the investigation.
+    //   * IsPlayable-override cards (CLASH, PACTS_END) — the engine's
+    //     IsPlayable virtual gates on bespoke combat state (all-Attack
+    //     hand / 3+ Exhaust pile). CardSweep now stages a tailored deck
+    //     for each (CardSweep.CustomStagingDeckFor) plus a per-card
+    //     pre-stage hook (PreStageHandAsync); both cards Play.
     //
-    // These rows surface as Unplayable in the sweep — not failures,
-    // because Unplayable doesn't fail the test. The catalog entry annotates
-    // the row Detail with "expected-refusal: <reason>" so a reader can
-    // distinguish "fixture-staging gap we know about" from "fixture-staging
-    // gap we haven't analysed yet." Lifecycle:
-    //   * If the engine ships a single-player codepath for AnyAlly cards,
-    //     all eight rows flip to Played → remove the AnyAlly entries.
-    //   * If the fixture is extended to stage PACTS_END's Exhaust pile, that
-    //     row flips to Played → remove the PACTS_END entry.
-    public static readonly IReadOnlyList<Issue> CardExpectedRefusals =
-    [
-        // AnyAlly cards — co-op multiplayer-only by engine design. CanPlay
-        // bitflag=64 because PlayerCreatures.Where(IsAlive).Count() > 1
-        // never holds in single-player. IL: CardModel.CanPlay around lines
-        // 53-76 (TargetType==6 branch in src/Sts2Headless.Runtime against
-        // Models/CardModel.CanPlay disassembly).
-        new("BELIEVE_IN_YOU", "TargetType=AnyAlly (co-op): OnPlay grants the targeted ally energy via PlayerCmd.GainEnergy; single-player has no second Player to target"),
-        new("COORDINATE",     "TargetType=AnyAlly (co-op): OnPlay applies CoordinatePower to the targeted ally; single-player has no second Player to target"),
-        new("DEMONIC_SHIELD", "TargetType=AnyAlly (co-op): OnPlay self-damages 14 then grants Block to the targeted ally via CreatureCmd.GainBlock; not a Demon-Form mechanic. Single-player has no second Player to target"),
-        new("IGNITION",       "TargetType=AnyAlly (co-op): OnPlay channels a Plasma orb into the targeted ally's slots via OrbCmd.Channel — ally must be Defect. Single-player has no second Player to target"),
-        new("INTERCEPT",      "TargetType=AnyAlly (co-op): OnPlay grants Block + 1 CoveredPower to the targeted ally; single-player has no second Player to target"),
-        new("LARGESSE",       "TargetType=AnyAlly (co-op): OnPlay generates a random Colorless card into the targeted ally's hand via CardFactory.GetDistinctForCombat + CardPileCmd.AddGeneratedCardToCombat; single-player has no second Player to target"),
-        new("LIFT",           "TargetType=AnyAlly (co-op): OnPlay grants Block to the targeted ally via CreatureCmd.GainBlock; single-player has no second Player to target"),
-        new("MIMIC",          "TargetType=AnyAlly (co-op): OnPlay grants Block scaling with the ally's stats via CreatureCmd.GainBlock + CalculatedBlock.Calculate (despite the name, the IL contains no 'last card played' lookup); single-player has no second Player to target"),
-
-        // IsPlayable virtual override — requires runtime state the fixture
-        // doesn't stage. Only three cards in the engine override IsPlayable
-        // (Clash / GrandFinale / PactsEnd). GrandFinale is satisfiable in
-        // the default fixture (its predicate is "draw pile empty", which
-        // holds briefly post-draw); the other two need bespoke staging.
-        new("CLASH", "IsPlayable override: Clash.get_IsPlayable requires every card in hand to satisfy CardModel.IsAttack; CardSweep's deck mixes STRIKE (Attack) + DEFEND (Skill) so the all-Attack hand check fails. Localized text: \"Can only be played if every card in your hand is an Attack.\""),
-        new("PACTS_END", "IsPlayable override: PactsEnd.get_IsPlayable requires CardPile.GetCards(Owner, PileType.ExhaustPile).Count() >= DynamicVars.Cards.IntValue (~3); CardSweep starts combat with empty Exhaust pile. Localized text: \"Can only be played if you have {Cards} or more cards in your Exhaust Pile.\""),
-    ];
+    // Re-add an entry here only when a sweep surfaces a NEW clean-refusal
+    // shape (the engine deliberately said no) that the fixture genuinely
+    // can't stage. The standard cure for "the fixture refuses my card" is
+    // to extend CustomStagingDeckFor / PreStageHandAsync first.
+    public static readonly IReadOnlyList<Issue> CardExpectedRefusals = [];
 
     // Cards whose OnPlay can't be exercised cleanly in headless even
     // after the standard fixture work in CardSweep. Currently empty:

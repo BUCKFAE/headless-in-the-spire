@@ -65,7 +65,6 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
             // "unknown", extend IroncladCardCatalog rather than
             // weakening this guard.
             if (effect is null) continue;
-            if (effect.IsHeadlessUnsafe) continue;
 
             // Card must be targeted at an enemy if its TargetType demands.
             switch (card.TargetType)
@@ -149,8 +148,6 @@ public sealed class CombatModel(ICardEffectCatalog catalog) : ICombatModel
                 DiscardPileCount = state.DiscardPileCount + 1,
             };
         }
-        if (effect.IsHeadlessUnsafe) return state with { IsInvalid = true };
-
         // Spend energy first so Custom handlers (Whirlwind etc.) see
         // post-cost energy. Cost regimes:
         //   - X-cost (Cost == -1): drain to 0; the handler reads pre-drain

@@ -13,13 +13,13 @@ public interface ICombatModel
 {
     // Actions the player can legally take in this state. Includes one
     // SimEndTurn plus one SimPlayCard per (legal hand index × legal
-    // target). Excludes IsHeadlessUnsafe cards.
+    // target).
     IReadOnlyList<SimAction> LegalActions(SimState state);
 
     // Apply a single player action, returning the next state. The
     // returned state's IsInvalid is true for actions that can't legally
-    // resolve (energy mismatch, unsafe card, dead-target attack);
-    // planners treat those as dead ends.
+    // resolve (energy mismatch, dead-target attack); planners treat
+    // those as dead ends.
     SimState Apply(SimState state, SimAction action);
 
     // Resolves the end of the player turn: end-of-turn powers (Combust,

@@ -49,34 +49,30 @@ public class CardSweepResourceBoostTests : IClassFixture<HostSubprocess>
     }
 
     [Fact]
-    public async Task AnyAllyCard_StillRefuses_WithCorrectEmpiricalDetail()
+    public async Task AnyAllyCard_IsFilteredFromSweep()
     {
-        // Negative pin: the resource boost does NOT unblock co-op AnyAlly
-        // cards (they need a second human Player, not more energy). Confirm
-        // the row stays Unplayable AND the Detail carries the empirical
-        // catalog reason — drift here means SweepKnownIssues.TryGetExpectedRefusal
-        // wiring broke, OR the catalog entry was accidentally removed.
+        // AnyAlly cards (co-op multiplayer only) are skipped at iteration
+        // time — they're structurally impossible to exercise in single-
+        // player STS2 (PlayerCreatures.Count is always 1). Asking the
+        // sweep for MIMIC should produce zero rows. Drift here means
+        // CardSweep.AnyAllyMultiplayerOnly broke or the filter site moved.
         var transport = new HostSubprocessTransportAdapter(_host);
         var report = await new Sts2Headless.MechanicSweep.Sweeps.CardSweep().RunAsync(
             transport,
             sampleIds: new[] { "MIMIC" },
             gameVersion: "regression-test");
 
-        var row = Assert.Single(report.Rows);
-        Assert.Equal(SweepOutcome.Unplayable, row.Outcome);
-        Assert.NotNull(row.Detail);
-        Assert.Contains("expected-refusal", row.Detail!, StringComparison.Ordinal);
-        Assert.Contains("AnyAlly", row.Detail!, StringComparison.Ordinal);
+        Assert.Empty(report.Rows);
     }
 
     [Fact]
-    public async Task PactsEndCard_StillRefuses_OnIsPlayableOverride()
+    public async Task PactsEnd_PlaysWithStagedExhaustPile()
     {
-        // Negative pin: PACTS_END's IsPlayable virtual gates on the
-        // Exhaust pile count, which the smoke fixture leaves empty. The
-        // resource boost doesn't help. Confirm the row stays Unplayable
-        // AND the Detail carries the empirical reason citing the IL
-        // (Exhaust pile + DynamicVars.Cards predicate).
+        // PACTS_END's IsPlayable virtual gates on Exhaust pile count
+        // (>= ~3). CardSweep now stages BLOODLETTING x3 in the deck and
+        // pre-plays them via PreStageHandAsync to satisfy the predicate.
+        // Drift here means CustomStagingDeckFor lost the PACTS_END entry
+        // or PreStageHandAsync stopped playing the staged cards.
         var transport = new HostSubprocessTransportAdapter(_host);
         var report = await new Sts2Headless.MechanicSweep.Sweeps.CardSweep().RunAsync(
             transport,
@@ -84,9 +80,24 @@ public class CardSweepResourceBoostTests : IClassFixture<HostSubprocess>
             gameVersion: "regression-test");
 
         var row = Assert.Single(report.Rows);
-        Assert.Equal(SweepOutcome.Unplayable, row.Outcome);
-        Assert.NotNull(row.Detail);
-        Assert.Contains("IsPlayable", row.Detail!, StringComparison.Ordinal);
-        Assert.Contains("Exhaust", row.Detail!, StringComparison.Ordinal);
+        Assert.True(row.Outcome == SweepOutcome.Played,
+            $"Expected Played but got {row.Outcome}: {row.Detail}");
+    }
+
+    [Fact]
+    public async Task Clash_PlaysWithStagedAllAttackHand()
+    {
+        // CLASH's IsPlayable virtual requires every card in hand to be
+        // an Attack. CardSweep stages an all-STRIKE deck so the predicate
+        // holds on turn 1. Drift here means CustomStagingDeckFor lost the
+        // CLASH entry.
+        var transport = new HostSubprocessTransportAdapter(_host);
+        var report = await new Sts2Headless.MechanicSweep.Sweeps.CardSweep().RunAsync(
+            transport,
+            sampleIds: new[] { "CLASH" },
+            gameVersion: "regression-test");
+
+        var row = Assert.Single(report.Rows);
+        Assert.Equal(SweepOutcome.Played, row.Outcome);
     }
 }

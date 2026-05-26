@@ -135,6 +135,97 @@ public sealed class CardSweep
         _ => IroncladFiller,
     };
 
+    // Cards whose engine-side IsPlayable virtual gates on bespoke combat
+    // state (an all-Attack hand for CLASH; a populated Exhaust pile for
+    // PACTS_END). The standard STRIKE+DEFEND filler doesn't satisfy them,
+    // so each gets a tailored 5-card deck. The matching PreStageHandAsync
+    // hook (below) drives any per-card preparation that has to happen
+    // mid-combat (e.g. playing exhaust-on-play cards to populate the
+    // Exhaust pile before the test card is attempted).
+    private static (string CardId, int UpgradeLevel)[]? CustomStagingDeckFor(string testCardId) => testCardId switch
+    {
+        // CLASH: IsPlayable requires every card in hand to be an Attack.
+        // All-Strike filler satisfies that on turn 1.
+        "CLASH" =>
+        [
+            ("CLASH", 0),
+            ("STRIKE_IRONCLAD", 0), ("STRIKE_IRONCLAD", 0),
+            ("STRIKE_IRONCLAD", 0), ("STRIKE_IRONCLAD", 0),
+        ],
+        // PACTS_END: IsPlayable requires Exhaust pile count >= ~3.
+        // OFFERING x3 (0-cost, exhausts on play per IroncladCardCatalog)
+        // populates the Exhaust pile via PreStageHandAsync before
+        // PACTS_END runs. (BLOODLETTING was considered but doesn't
+        // exhaust in STS2's modelling — the catalog omits Exhausts on it.)
+        "PACTS_END" =>
+        [
+            ("PACTS_END", 0),
+            ("OFFERING", 0), ("OFFERING", 0), ("OFFERING", 0),
+            ("STRIKE_IRONCLAD", 0),
+        ],
+        _ => null,
+    };
+
+    // Mid-combat preparation that has to happen before the test card is
+    // attempted. Today only PACTS_END uses it (plays the staged
+    // OFFERINGs to grow the Exhaust pile past PactsEnd.get_IsPlayable's
+    // threshold). Returns true on success; false if the engine refused a
+    // stage step (caller should bail out with Unreachable so we don't
+    // mask the failure as the test card's own).
+    private static async System.Threading.Tasks.Task<bool> PreStageHandAsync(
+        ITransport transport, string testCardId, System.Threading.CancellationToken ct)
+    {
+        if (testCardId != "PACTS_END") return true;
+
+        // Play every OFFERING in hand to populate the Exhaust pile.
+        // Each Offering is 0-cost and exhausts itself on play; 3 of them
+        // push ExhaustPile.Count past the PACTS_END threshold
+        // (DynamicVars.Cards ≈ 3). Re-fetch state between plays because
+        // playing a card mutates hand indices.
+        const int maxStagePlays = 5;
+        for (int i = 0; i < maxStagePlays; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var state = await transport.SendAsync<RunStateResult>("run/state");
+            var cs = state.CombatState;
+            if (cs is null || !cs.IsInProgress) return false;
+            int handIdx = -1;
+            for (int h = 0; h < cs.Hand.Count; h++)
+            {
+                if (cs.Hand[h].Id == CardId.Offering) { handIdx = h; break; }
+            }
+            if (handIdx < 0) return true;
+            _ = await transport.SendAsync<RunPlayCardResult>(
+                "run/play_card",
+                new RunPlayCardParams(CardIndex: handIdx, TargetIndex: 0));
+        }
+        return true;
+    }
+
+    // Co-op AnyAlly cards — CardModel.CanPlay structurally refuses when
+    // PlayerCreatures.Where(IsAlive).Count() > 1 is false. In a single-
+    // player headless run that count is always 1 (Pets/Allies are stored
+    // separately), so these cards can never be exercised. Per
+    // documentation/requirements/01-initial-goals.md (single-player
+    // only) they're explicitly out of scope. Skip them at iteration
+    // time instead of letting them surface as noisy Unplayable rows.
+    //
+    // When sts2 adds a new AnyAlly card, the engine probe shows
+    // TargetType=AnyAlly → add the wire id here. The list is small and
+    // stable; mass updates aren't expected.
+    private static readonly HashSet<string> AnyAllyMultiplayerOnly =
+        new(StringComparer.Ordinal)
+        {
+            "BELIEVE_IN_YOU",
+            "COORDINATE",
+            "DEMONIC_SHIELD",
+            "IGNITION",
+            "INTERCEPT",
+            "LARGESSE",
+            "LIFT",
+            "MIMIC",
+        };
+
     // Annotate a Detail with the card's pool category so readers can
     // distinguish a curse / status being Unplayable (expected by engine
     // design — these are never playable in any combat) from a fixture-
@@ -158,8 +249,16 @@ public sealed class CardSweep
         System.Action<SweepRow>? onRow = null,
         System.Threading.CancellationToken ct = default)
     {
-        var universe = SweepInternals.FilterReachable(CardIdNames.AllWireNames);
-        var ids = sampleIds is { Count: > 0 } ? sampleIds : universe;
+        var universe = SweepInternals.FilterReachable(CardIdNames.AllWireNames)
+            .Where(id => !AnyAllyMultiplayerOnly.Contains(id))
+            .ToList();
+        // Apply the AnyAlly filter to sampleIds too — the skip is
+        // structural (single-player has no second Player to target), so
+        // sampling an AnyAlly id explicitly should still drop it rather
+        // than letting the test surface a guaranteed-Unplayable row.
+        var ids = sampleIds is { Count: > 0 }
+            ? sampleIds.Where(id => !AnyAllyMultiplayerOnly.Contains(id)).ToList()
+            : universe;
         var sampled = sampleIds is { Count: > 0 };
 
         var rows = new System.Collections.Generic.List<SweepRow>(ids.Count);
@@ -212,9 +311,21 @@ public sealed class CardSweep
             // the Ironclad starters refuse to enter another character's
             // deck under replace_deck.
             await transport.SetHpAsync(999, 999);
-            var filler = FillerDeckFor(character);
-            var deck = new System.Collections.Generic.List<(string, int)>(filler.Length + 1) { (cardId, 0) };
-            deck.AddRange(filler);
+            // Cards with bespoke IsPlayable predicates need a tailored
+            // deck (see CustomStagingDeckFor). Fall back to the standard
+            // [test card + character filler] mix otherwise.
+            var custom = CustomStagingDeckFor(cardId);
+            System.Collections.Generic.List<(string, int)> deck;
+            if (custom is not null)
+            {
+                deck = new System.Collections.Generic.List<(string, int)>(custom);
+            }
+            else
+            {
+                var filler = FillerDeckFor(character);
+                deck = new System.Collections.Generic.List<(string, int)>(filler.Length + 1) { (cardId, 0) };
+                deck.AddRange(filler);
+            }
             await transport.ReplaceDeckAsync(deck);
             var combat = await transport.StartCombatAsync(BenignEncounter);
             if (!combat.InProgress)
@@ -239,6 +350,18 @@ public sealed class CardSweep
             // (8, 2, 64) aren't affected by raising resources.
             await transport.SetEnergyAsync(energy: ResourceBoost, maxEnergy: ResourceBoost);
             await transport.GainStarsAsync(ResourceBoost);
+
+            // Per-card mid-combat preparation (PACTS_END needs an Exhaust
+            // pile populated first). Bail out as Unreachable if a stage
+            // step's prerequisite isn't met so we don't masquerade as the
+            // test card's own failure.
+            if (!await PreStageHandAsync(transport, cardId, ct))
+            {
+                sw.Stop();
+                return new SweepRow(
+                    cardId, SweepOutcome.Unreachable, Steps: 0, sw.Elapsed,
+                    Detail: AnnotatePool(pool, "pre-stage failed (combat ended before staging completed)"));
+            }
 
             // 5. Find the card in hand and try to play it. Loop a few
             // end-turns so (a) Innate / draw-pile-only cards still

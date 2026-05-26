@@ -5,8 +5,9 @@ using Xunit;
 
 namespace Sts2Headless.IntegrationTests;
 
-// Engine probes for the "TODO verify" / IsHeadlessUnsafe cards in
-// IroncladCardCatalog. For each card under test the probe:
+// Engine probes for Ironclad cards whose catalog entries were once
+// guessed ("TODO verify") or flagged as unsafe in headless. For each
+// card under test the probe:
 //
 //   1. run/new Ironclad seed=42
 //   2. debug/replace_deck = [card x1, DEFEND_IRONCLAD x4]
@@ -15,12 +16,10 @@ namespace Sts2Headless.IntegrationTests;
 //   5. find the card in hand by CardId
 //   6. play_card and diff CombatState before / after
 //
-// The diff (damage to enemy, block on player, powers applied, hand
-// change, max-hp change) feeds the catalog update: each stub gets
-// replaced with the observed numbers, and the "TODO verify" comment
-// gets removed. Cards that refuse to play headless (NRE or
-// UnplayableReason on the wire) stay flagged IsHeadlessUnsafe and the
-// reason is logged in the report.
+// Acts as a regression net: every card listed here must keep playing
+// cleanly headless. The diff (damage to enemy, block on player, powers
+// applied, hand change, max-hp change) also pins the measured stats so
+// engine rebalances surface as test breaks, not silent acceptance.
 //
 // The probe writes a markdown summary to /tmp/card-probe.md, captured
 // in the test output too so CI artifacts pick it up.
@@ -35,16 +34,13 @@ public class CardCatalogProbeTests : IClassFixture<HostSubprocess>
         _output = output;
     }
 
-    // The CardIds catalogue calls out as either "TODO verify" or
-    // IsHeadlessUnsafe in IroncladCardCatalog.cs. Each wire id matches
-    // the canonical SCREAMING_SNAKE_CASE the engine uses. Whirlwind is
-    // also probed — the unit test asserts it's IsHeadlessUnsafe but the
-    // catalog reclassified it as safe; this confirms what the engine
-    // actually says.
+    // Ironclad cards whose catalog entries were once guessed or whose
+    // play paths once NRE'd in headless. Each wire id matches the
+    // canonical SCREAMING_SNAKE_CASE the engine uses. Every entry must
+    // keep playing cleanly — that's the regression net.
     public static IEnumerable<object[]> CardsUnderTest() =>
         new[]
         {
-            // TODO verify (best-guess catalog entries)
             new object[] { "BULLY",          false },
             new object[] { "TREMBLE",        false },
             new object[] { "ASHEN_STRIKE",   false },
@@ -54,13 +50,11 @@ public class CardCatalogProbeTests : IClassFixture<HostSubprocess>
             new object[] { "EXPECT_A_FIGHT", false },
             new object[] { "CRIMSON_MANTLE", false },
             new object[] { "BRAND",          false },
-            // IsHeadlessUnsafe (do they really refuse to play headless?)
             new object[] { "HEADBUTT",       false },
             new object[] { "ARMAMENTS",      false },
             new object[] { "BURNING_PACT",   false },
             new object[] { "DUAL_WIELD",     false },
             new object[] { "INFERNAL_BLADE", false },
-            // Whirlwind (catalog says safe; unit test says unsafe; settle it)
             new object[] { "WHIRLWIND",      false },
         };
 
@@ -68,9 +62,8 @@ public class CardCatalogProbeTests : IClassFixture<HostSubprocess>
     [MemberData(nameof(CardsUnderTest))]
     public async Task ProbeCard_PlaysCleanly(string cardWireId, bool upgraded)
     {
-        // Regression net: each card we previously flagged unsafe or
-        // had a "TODO verify" guess for must keep playing cleanly. If
-        // a future engine change re-NREs one of them, this red test
+        // Regression net: each card listed must keep playing cleanly.
+        // If a future engine change re-NREs one of them, this red test
         // tells us before agent runs surface a mid-act crash.
         var observation = await ProbeOne(cardWireId, upgraded);
         _output.WriteLine(observation.ToString());
@@ -132,7 +125,7 @@ public class CardCatalogProbeTests : IClassFixture<HostSubprocess>
     public async Task ProbeAll_AndWriteReport()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("# Card catalog probe — Ironclad TODO-verify / IsHeadlessUnsafe");
+        sb.AppendLine("# Card catalog probe — Ironclad regression set");
         sb.AppendLine();
         sb.AppendLine("Each row is one card played against SLIMES_NORMAL with energy=99,");
         sb.AppendLine("from a deck of [card, defend x4]. Diff is post-play minus pre-play.");

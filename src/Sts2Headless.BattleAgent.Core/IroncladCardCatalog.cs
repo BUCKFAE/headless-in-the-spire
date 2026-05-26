@@ -9,13 +9,6 @@ namespace Sts2Headless.BattleAgent.Core;
 //   - STS1 Ironclad card stats where the card name appears identical
 //   - direct engine probing for STS2-original cards via
 //     tests/Sts2Headless.IntegrationTests/CardCatalogProbeTests.cs
-//
-// IsHeadlessUnsafe cards must never be returned by LegalActions; the
-// planner respects that flag. No Ironclad cards are currently flagged
-// — every prior unsafe card was a victim of the PrefsSave-NRE family
-// fixed by BootstrapSequence.InitSavePrefsData (2026-05-22) and now
-// plays cleanly (verified via the probe test). The field stays in the
-// shape for new cards that turn out to need it.
 public sealed class IroncladCardCatalog : ICardEffectCatalog
 {
     public static IroncladCardCatalog Instance { get; } = new();
