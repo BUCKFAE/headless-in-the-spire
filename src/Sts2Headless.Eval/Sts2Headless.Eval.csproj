@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Evaluation-harness orchestrator. EvaluationHarness.RunAsync(config) drives a matrix of (agent × seed × character × ascension × modifier) cells against the headless host, captures replays (AD-8), and emits summary.json + runs.jsonl + per-cell cell.json. See documentation/requirements/04-evaluation-harness.md (the what) and AD-9 (the how).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- AD-2 wire envelope + EnvelopeIo.JsonOptions; AD-5 MethodCatalog -->
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <!-- AD-6 in-process drive of an IAgent against a HostProcess. Used by the
+         orchestrator's per-cell loop to apply each AgentAction the agent
+         subprocess returns. -->
+    <ProjectReference Include="..\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+    <!-- Repo / vendor / GAME_VERSION helpers for output paths and provenance. -->
+    <ProjectReference Include="..\Sts2Headless.Utils\Sts2Headless.Utils.csproj" />
+  </ItemGroup>
+
+</Project>

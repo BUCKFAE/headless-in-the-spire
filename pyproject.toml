@@ -26,6 +26,7 @@ package = false
 members = [
     "clients/python/headless-in-the-spire",
     "clients/python/headless-in-the-spire-agents",
+    "clients/python/headless-in-the-spire-leaderboard",
     "clients/python/headless-in-the-spire-mcp",
     "clients/python/headless-in-the-spire-utils",
 ]

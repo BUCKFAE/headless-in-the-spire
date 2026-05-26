@@ -10,6 +10,7 @@ resolution-markers = [
 members = [
     "headless-in-the-spire",
     "headless-in-the-spire-agents",
+    "headless-in-the-spire-leaderboard",
     "headless-in-the-spire-mcp",
     "headless-in-the-spire-utils",
     "headless-in-the-spire-workspace",
@@ -274,6 +275,10 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "headless-in-the-spire", editable = "clients/python/headless-in-the-spire" }]
+
+[[package]]
+name = "headless-in-the-spire-leaderboard"
+source = { editable = "clients/python/headless-in-the-spire-leaderboard" }
 
 [[package]]
 name = "headless-in-the-spire-mcp"

@@ -2,11 +2,14 @@
   <Folder Name="/src/">
     <Project Path="src/GodotStubs/GodotStubs.csproj" />
     <Project Path="src/Sts2Headless.Agents/Sts2Headless.Agents.csproj" />
+    <Project Path="src/Sts2Headless.AgentRunner/Sts2Headless.AgentRunner.csproj" />
     <Project Path="src/Sts2Headless.BattleAgent/Sts2Headless.BattleAgent.csproj" />
     <Project Path="src/Sts2Headless.BattleAgent.Core/Sts2Headless.BattleAgent.Core.csproj" />
     <Project Path="src/Sts2Headless.Cheats/Sts2Headless.Cheats.csproj" />
     <Project Path="src/Sts2Headless.Commands/Sts2Headless.Commands.csproj" />
     <Project Path="src/Sts2Headless.Content/Sts2Headless.Content.csproj" />
+    <Project Path="src/Sts2Headless.Eval/Sts2Headless.Eval.csproj" />
+    <Project Path="src/Sts2Headless.Eval.Manifests/Sts2Headless.Eval.Manifests.csproj" />
     <Project Path="src/Sts2Headless.MechanicSweep/Sts2Headless.MechanicSweep.csproj" />
     <Project Path="src/Sts2Headless.Protocol/Sts2Headless.Protocol.csproj" />
     <Project Path="src/Sts2Headless.Replay/Sts2Headless.Replay.csproj" />
@@ -18,9 +21,15 @@
   <Folder Name="/tests/">
     <Project Path="tests/Sts2Headless.UnitTests/Sts2Headless.UnitTests.csproj" />
     <Project Path="tests/Sts2Headless.BattleAgent.UnitTests/Sts2Headless.BattleAgent.UnitTests.csproj" />
+    <Project Path="tests/Sts2Headless.EvalTests/Sts2Headless.EvalTests.csproj" />
     <Project Path="tests/Sts2Headless.IntegrationTests/Sts2Headless.IntegrationTests.csproj" />
     <Project Path="tests/Sts2Headless.End2EndTests/Sts2Headless.End2EndTests.csproj" />
     <Project Path="tests/Sts2Headless.MechanicSweepTests/Sts2Headless.MechanicSweepTests.csproj" />
     <Project Path="tests/Sts2Headless.TestSupport/Sts2Headless.TestSupport.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/EvalSmoke/EvalSmoke.csproj" />
+    <Project Path="examples/EvalReference/EvalReference.csproj" />
+    <Project Path="examples/EvalDeep/EvalDeep.csproj" />
   </Folder>
 </Solution>

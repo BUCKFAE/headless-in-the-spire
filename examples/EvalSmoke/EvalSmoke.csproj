@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Smoke eval — 5 seeds × Greedy on Ironclad A0. Fast inner-loop check used by PR CI and by an author probing "did I break the basic plumbing".</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sts2Headless.Eval\Sts2Headless.Eval.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Eval.Manifests\Sts2Headless.Eval.Manifests.csproj" />
+    <!-- The harness spawns a host subprocess via the stdio entrypoint
+         and resolves Sts2Headless.dll from AppContext.BaseDirectory.
+         Referencing the host project here copies its build output
+         (Sts2Headless.dll + its dependencies + GodotSharp.dll) into
+         this example's bin/, so the harness finds it without an
+         explicit HostDllPath override. AD-7 still holds: we never
+         enable the debug methods. -->
+    <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
+    <!-- AgentRunner ships its bundled-agent exe next to the harness so
+         BundledAgent.Command's direct-dll path resolves locally. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.AgentRunner\Sts2Headless.AgentRunner.csproj" />
+  </ItemGroup>
+
+</Project>

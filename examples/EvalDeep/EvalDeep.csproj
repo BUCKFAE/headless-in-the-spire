@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Deep eval — 500-seed bank × all opted-in agents. Multi-hour, operator-triggered. Published manually via the eval-deep.yml workflow.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sts2Headless.Eval\Sts2Headless.Eval.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Eval.Manifests\Sts2Headless.Eval.Manifests.csproj" />
+    <!-- Copies Sts2Headless.dll (host) + GodotSharp.dll into bin/ so
+         the harness's HostProcess.Start resolves the host out of the
+         example's AppContext.BaseDirectory. -->
+    <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
+    <!-- AgentRunner exe next to the harness so BundledAgent.Command
+         picks the fast direct-dll path. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.AgentRunner\Sts2Headless.AgentRunner.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "headless-in-the-spire-leaderboard"
+description = "Downstream consumer of the C# evaluation harness's summary.json / runs.jsonl. Reads, validates, and renders a static leaderboard from a recorded eval. AD-9: the C# orchestrator authors behaviour; this package only renders."
+readme = "README.md"
+# Pinned to 3.13 in lockstep with the workspace root.
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Julian Schubert" }]
+dynamic = ["version"]
+dependencies = [
+    # No runtime deps beyond the standard library for the MVP — the C#
+    # side owns every authored fact (NFR-1: the JSON shape is the API).
+    # Plot rendering (matplotlib / jinja2) lands here only when the
+    # leaderboard is actually being published; the typed-model layer
+    # below is stdlib-only.
+]
+
+[project.urls]
+Homepage = "https://github.com/buckfae/headless-in-the-spire"
+
+[project.scripts]
+sts2-leaderboard = "headless_in_the_spire_leaderboard.cli:main"
+
+[tool.hatch.version]
+path = "src/headless_in_the_spire_leaderboard/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/headless_in_the_spire_leaderboard"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

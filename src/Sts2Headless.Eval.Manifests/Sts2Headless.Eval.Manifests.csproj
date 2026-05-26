@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Concrete BundledAgent subclasses for the in-repo C# agents, plus the BuiltinAgents registry. Kept as its own assembly so the AgentRunner exe can resolve manifest types by FQN without dragging the orchestrator (Sts2Headless.Eval) into the agent subprocess.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Manifest base classes + agent-dialect DTOs. -->
+    <ProjectReference Include="..\Sts2Headless.Eval\Sts2Headless.Eval.csproj" />
+    <!-- IAgent + reference agents (GreedyAgent in Examples/). -->
+    <ProjectReference Include="..\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+    <!-- IroncladAgent + its policies. -->
+    <ProjectReference Include="..\Sts2Headless.BattleAgent\Sts2Headless.BattleAgent.csproj" />
+  </ItemGroup>
+
+</Project>

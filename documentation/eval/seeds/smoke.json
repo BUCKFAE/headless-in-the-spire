@@ -1,0 +1,8 @@
+{
+  "name":             "smoke",
+  "version":          "1",
+  "createdAt":        "2026-05-26",
+  "gameVersion":      "v0.103.2",
+  "generationMethod": "Fixed 5-seed bank for the smoke eval. Five small uints chosen for a fast inner-loop check: every PR runs `just eval::smoke` against the in-repo Greedy agent and the run must complete in under 5 minutes per agent on workstation hardware. The exact seeds don't carry semantic intent; their value is comparability across PRs.",
+  "seeds": [1, 7, 17, 42, 137]
+}

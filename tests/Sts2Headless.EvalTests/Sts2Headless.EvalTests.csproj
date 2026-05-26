@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Description>Unit + integration tests for Sts2Headless.Eval. The unit tests verify scoring, matrix expansion, seed bank loading, and JSON shape against in-memory inputs. The integration tests (gated [Trait("Category", "Integration")]) spin up a small Greedy-x-3-seeds matrix against a real host subprocess and inspect the resulting eval directory.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sts2Headless.Eval\Sts2Headless.Eval.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Eval.Manifests\Sts2Headless.Eval.Manifests.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.AgentRunner\Sts2Headless.AgentRunner.csproj" />
+    <!-- The integration tests spawn a real host; we depend on the host
+         exe project so a `dotnet build` of this test project also
+         builds Sts2Headless.dll into the test bin/. -->
+    <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
+    <ProjectReference Include="..\Sts2Headless.TestSupport\Sts2Headless.TestSupport.csproj" />
+  </ItemGroup>
+
+</Project>

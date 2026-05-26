@@ -17,5 +17,9 @@ mod protocol 'scripts/protocol/justfile'
 # Tests, lint, typecheck — both C# and Python suites.
 mod validation 'scripts/validation/justfile'
 
+# Evaluation harness — drives a matrix of agents × seeds and emits a
+# leaderboard. See documentation/requirements/04-evaluation-harness.md.
+mod eval 'scripts/eval/justfile'
+
 _default:
     just --list

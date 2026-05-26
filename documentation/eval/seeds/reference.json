@@ -1,0 +1,14 @@
+{
+  "name":             "reference",
+  "version":          "1",
+  "createdAt":        "2026-05-26",
+  "gameVersion":      "v0.103.2",
+  "generationMethod": "Initial 50-seed reference bank. First 50 uints in ascending order; nothing rolled out of the engine pre-flight. We expect to upgrade to a curated bank (e.g. \"first 50 seeds where Ironclad A0 has at least one Neow choice with a boss relic\") on bank version 2 once the harness is producing data we can use to filter. Seeds may only be APPENDED, never removed or reordered — a material content change is a new bank with a new name.",
+  "seeds": [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+    31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50
+  ]
+}

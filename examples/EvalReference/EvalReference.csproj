@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Reference eval — 50 committed seeds × the in-repo agents on Ironclad A0. The everyday "compare the in-repo agents" run; published by the nightly CI workflow.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sts2Headless.Eval\Sts2Headless.Eval.csproj" />
+    <ProjectReference Include="..\..\src\Sts2Headless.Eval.Manifests\Sts2Headless.Eval.Manifests.csproj" />
+    <!-- Copies Sts2Headless.dll (host) + GodotSharp.dll into bin/ so
+         the harness's HostProcess.Start resolves the host out of the
+         example's AppContext.BaseDirectory. -->
+    <ProjectReference Include="..\..\src\Sts2Headless\Sts2Headless.csproj" />
+    <!-- AgentRunner exe next to the harness so BundledAgent.Command
+         picks the fast direct-dll path. -->
+    <ProjectReference Include="..\..\src\Sts2Headless.AgentRunner\Sts2Headless.AgentRunner.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Generic stdio agent host for in-repo C# bundled agents. Takes `--manifest &lt;FQN&gt;` on the command line, reflects the parameterless manifest constructor, calls manifest.CreateAgent(), and runs the agent/init → agent/decide* → agent/teardown loop against stdin / stdout. One AgentRunner subprocess per cell (FR-2: stateful by design). AD-9.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Agent-dialect DTOs (AgentInitParams / AgentDecideParams / …),
+         AgentMethodCatalog, and the BundledAgent base class. -->
+    <ProjectReference Include="..\Sts2Headless.Eval\Sts2Headless.Eval.csproj" />
+    <!-- Concrete manifests we resolve by FQN. Without this reference, the
+         FQNs the harness passes wouldn't be loadable at startup. -->
+    <ProjectReference Include="..\Sts2Headless.Eval.Manifests\Sts2Headless.Eval.Manifests.csproj" />
+    <!-- The shared wire envelope + EnvelopeIo framing the agent dialect
+         mirrors from the host dialect (AD-2). -->
+    <ProjectReference Include="..\Sts2Headless.Protocol\Sts2Headless.Protocol.csproj" />
+    <!-- IAgent contract + AgentAction (the polymorphic decision union). -->
+    <ProjectReference Include="..\Sts2Headless.Agents\Sts2Headless.Agents.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,25 @@
+import '../common.just'
+
+# See scripts/setup/justfile for why this `set` is per-module.
+set working-directory := '../..'
+
+# Smoke eval — 5 seeds × Greedy on Ironclad A0. Fast inner-loop check
+# (≲ a few minutes); used by PR CI and by an author probing "did I
+# break the basic plumbing". Lands at replays/eval-harness/<eval-id>/.
+smoke:
+    @just build::build
+    @dotnet run --project examples/EvalSmoke --no-build
+
+# Reference eval — 50 committed seeds × the in-repo agents on Ironclad A0.
+# The everyday "compare the in-repo agents" run; nightly-CI flavour.
+# Lands at replays/eval-harness/<eval-id>/.
+reference:
+    @just build::build
+    @dotnet run --project examples/EvalReference --no-build
+
+# Deep eval — full 500-seed bank against everyone opted in. Multi-hour,
+# operator-triggered. Forward extra flags after `--`, e.g.
+# `just eval::deep -- --workers 16`.
+deep *args:
+    @just build::build
+    @dotnet run --project examples/EvalDeep --no-build -- {{args}}
