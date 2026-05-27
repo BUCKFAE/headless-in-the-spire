@@ -186,7 +186,6 @@ public static class HostMethods
             repoRoot);
         if (replayOut is not null)
         {
-            var (gameVersion, sha) = ReplayHeaderFactory.ReadGameVersionPin(repoRoot);
             // Serialise each ModifierId through EnvelopeIo.JsonOptions and strip
             // the surrounding quotes so the replay header carries the engine's
             // wire-name (e.g. "ALL_STAR"), matching what CombatReplayWriter
@@ -197,8 +196,6 @@ public static class HostMethods
             var agent = Environment.GetEnvironmentVariable("STS2_REPLAY_AGENT");
             var header = ReplayHeaderFactory.Create(
                 sts2: bindings.Sts2,
-                gameVersion: gameVersion,
-                sts2DllSha256: sha,
                 seed: seed.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 character: character,
                 ascension: ascension,
@@ -589,9 +586,18 @@ public static class HostMethods
         return ReplayQuery.LoadAsWireJson(recorder.RunDirectory);
     }
 
+    // Builds the (label, sha) pair the host/ping wire response carries.
+    // Version label comes from GAME_VERSION (the pin). SHA-256 is computed
+    // from the live vendor/sts2.dll bytes, NOT from the pin's recorded
+    // SHA — see Sts2Identity for the rationale (pin-SHA diverges from
+    // loaded-SHA on macOS). Either field is null when its source is
+    // absent; the wire DTO is nullable on both.
     private static (string? Version, string? Sha256) ReadGameVersion(string repoRoot)
     {
         var pin = GameVersionPin.Read(repoRoot);
-        return (pin?.Version, pin?.Sha256);
+        var sts2Path = Paths.Sts2DllPath(Paths.VendorDir(repoRoot));
+        return (
+            pin?.Version,
+            File.Exists(sts2Path) ? FileHash.Sha256(sts2Path) : null);
     }
 }

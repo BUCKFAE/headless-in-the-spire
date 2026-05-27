@@ -23,7 +23,7 @@ public static class EvaluationReportIo
         string                  configJsonPath,
         EvaluationHarnessConfig config,
         string                  evalId,
-        GameVersionPin?         gameVersion)
+        Sts2Identity            identity)
     {
         var manifestSnapshots = config.Agents.Select(a => new SerialisedManifest(
             ManifestType:        a.GetType().FullName ?? a.GetType().Name,
@@ -42,8 +42,8 @@ public static class EvaluationReportIo
         var capture = new SerialisedConfig(
             EvalId:        evalId,
             HarnessVersion: HarnessVersion,
-            GameVersion:   gameVersion?.Version ?? "",
-            Sts2DllSha256: gameVersion?.Sha256 ?? "",
+            GameVersion:   identity.GameVersion,
+            Sts2DllSha256: identity.Sts2DllSha256,
             Agents:        manifestSnapshots,
             Seeds:         new SeedBankReference(config.Seeds.Name, config.Seeds.Version, config.Seeds.Seeds.Count),
             Characters:    config.Characters,

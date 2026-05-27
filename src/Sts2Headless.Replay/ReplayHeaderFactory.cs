@@ -6,22 +6,18 @@ namespace Sts2Headless.Replay;
 
 // Builds a fully-populated ReplayHeader from the live engine + run
 // identity inputs. Pulls model-id hash, release info, schema version
-// from the loaded sts2 assembly via reflection; pulls game version /
-// dll SHA-256 from GAME_VERSION (the AD-3 pin file). Run-identity
-// (seed, character, ascension, modifiers, start time) comes from the
-// caller.
+// from the loaded sts2 assembly via reflection; pulls game version
+// label + live sts2.dll SHA-256 from Sts2Identity (single helper, see
+// its file-level docs for why pin-SHA and live-SHA must not be
+// conflated). Run-identity (seed, character, ascension, modifiers,
+// start time) comes from the caller.
 //
 // AD-4: no compile-time reference to sts2 — every engine read goes
 // through Assembly.GetType + reflection.
 public static class ReplayHeaderFactory
 {
-    // Builds the header for a run that's about to start (or just
-    // started). `gameVersion` and `sts2DllSha256` come from GAME_VERSION
-    // — Read(repoRoot) is the convenience.
     public static ReplayHeader Create(
         Assembly sts2,
-        string gameVersion,
-        string sts2DllSha256,
         string seed,
         Character character,
         int ascension,
@@ -29,11 +25,12 @@ public static class ReplayHeaderFactory
         DateTimeOffset startTime,
         string? agent = null)
     {
+        var identity = Sts2Identity.Current;
         var modelIdHash = ReadModelIdHash(sts2);
         var gitCommit = ReadGitCommit(sts2);
         return new ReplayHeader(
-            GameVersion: gameVersion,
-            Sts2DllSha256: sts2DllSha256,
+            GameVersion: identity.GameVersion,
+            Sts2DllSha256: identity.Sts2DllSha256,
             ModelIdHash: modelIdHash,
             GitCommit: gitCommit,
             RunHistorySchemaVersion: ReplayHeader.CurrentRunHistorySchemaVersion,
@@ -44,17 +41,6 @@ public static class ReplayHeaderFactory
             Modifiers: modifiers,
             StartTimeUnix: startTime.ToUnixTimeSeconds(),
             Agent: string.IsNullOrWhiteSpace(agent) ? ReplayHeader.UnknownAgent : agent);
-    }
-
-    // Reads GAME_VERSION (AD-3 pin) and returns the parsed (version, sha256)
-    // tuple. Falls back to "UNKNOWN" / "" if the file is absent — the
-    // caller can decide whether that's acceptable for the use case. The
-    // actual parse lives in Utils.GameVersionPin (shared with host ping and
-    // schema export); this wrapper only adapts the missing-file fallback.
-    public static (string Version, string Sha256) ReadGameVersionPin(string? repoRoot = null)
-    {
-        var pin = GameVersionPin.Read(repoRoot ?? Paths.LocateRepoRoot());
-        return pin is null ? ("UNKNOWN", "") : (pin.Version, pin.Sha256);
     }
 
     private static uint ReadModelIdHash(Assembly sts2)

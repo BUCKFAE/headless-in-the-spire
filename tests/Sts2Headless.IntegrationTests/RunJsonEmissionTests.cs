@@ -50,11 +50,8 @@ public class RunJsonEmissionTests
         var runHistory = LoadRunHistoryFromDisk(sts2, samplePath);
 
         using var tempReplays = new TempDir("sts2-replay-test");
-        var (gameVersion, sha) = ReplayHeaderFactory.ReadGameVersionPin(repoRoot);
         var header = ReplayHeaderFactory.Create(
             sts2: sts2,
-            gameVersion: gameVersion,
-            sts2DllSha256: sha,
             seed: "42",
             character: Character.Ironclad,
             ascension: 0,

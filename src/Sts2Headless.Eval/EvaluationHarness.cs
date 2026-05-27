@@ -69,9 +69,12 @@ public static class EvaluationHarness
         Directory.CreateDirectory(output.CellsDirectory);
 
         // Capture config eagerly so an interrupted eval still has its
-        // canonical reproducer on disk.
-        var gameVersion = GameVersionPin.Read(repoRoot);
-        EvaluationReportIo.WriteConfig(output.ConfigJson, config, evalId, gameVersion);
+        // canonical reproducer on disk. Sts2Identity sources the version
+        // label from GAME_VERSION and the SHA-256 from the live vendor
+        // bytes (see Sts2Identity for why those two have different
+        // sources).
+        var identity = Sts2Identity.Current;
+        EvaluationReportIo.WriteConfig(output.ConfigJson, config, evalId, identity);
 
         // ── Run cells ────────────────────────────────────────────────────
         using var writer = new CellWriter(output.RunsJsonl);
@@ -118,8 +121,8 @@ public static class EvaluationHarness
 
         var summary = new EvaluationSummary(
             EvalId:        evalId,
-            GameVersion:   gameVersion?.Version ?? "",
-            Sts2DllSha256: gameVersion?.Sha256 ?? "",
+            GameVersion:   identity.GameVersion,
+            Sts2DllSha256: identity.Sts2DllSha256,
             SeedBank:      new SeedBankReference(config.Seeds.Name, config.Seeds.Version, config.Seeds.Seeds.Count),
             Characters:    config.Characters,
             Ascensions:    config.Ascensions,
